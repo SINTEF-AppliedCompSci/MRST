@@ -9,25 +9,24 @@ classdef RegressionTest
         tolerance = 0
         testCaseOpt = {}
         problemInput = {}
-        reports
-        verbose = mrstVerbose()
+        verbose = true
     end
     
     methods
-        
         %-----------------------------------------------------------------%
         function rt = RegressionTest(test, varargin)
             [rt, testCaseOpt] = merge_options(rt, varargin{:});
 
             if ischar(test)
-                rt.name = test;
-            elseif isa(test, 'MRSTExample')
-                rt.name = test.name;
+                name = test;
+            elseif isa(test, 'TestCase')
+                name = test.name;
             else
                 error(['Input argument `test` must be either a '     , ...
                        'string corresponding to a test case setup '  , ...
                        'function, or an object of the TestCase class']);
             end
+            if isempty(rt.name), rt.name = name; end
             rt.test = test;
             rt.testCaseOpt = testCaseOpt;
             
@@ -41,13 +40,13 @@ classdef RegressionTest
             time = rt.getTimeString();
             testCase = rt.test;
             if ischar(testCase)
-                testCase = MRSTExample(rt.test, rt.testCaseOpt{:});
+                testCase = TestCase(rt.test, rt.testCaseOpt{:});
             end
             if rt.verbose, rt.printHeader(); end
             % Output directory for test case
             directory = rt.getDataDirectory();
             % Get test case hash
-            hash = testCase.getTestCaseHash(true);
+            hash = rt.getRegressionTestHash(testCase);
             % Find existing resutls for test case
             nameExt = rt.findExisting(hash, time);
             if ~isempty(nameExt)
@@ -68,24 +67,28 @@ classdef RegressionTest
                               'Directory', directory                     , ...
                               'Name'     , nameCurr, rt.problemInput{:});
             % Simulate
-            simulatePackedProblem(probCurr);
+            try
+                simulatePackedProblem(probCurr);
+                details = [];
+            catch ex
+                details = ex.message;
+            end
             % Compare to existing results if they exist
             if ~isempty(nameExt)
-                report = compareResults(rt, probCurr, probExt);
+                report = rt.compareResults(probCurr, probExt, details);
                 if report.passed == 1 && rt.deleteExisting
                     % Delete existing results
                     rmdir(fullfile(directory, nameExt), 's');
                 end
             else
-                report = struct('passed', -1);
-                report.(testCase.name) = report;
-                report.passed = -1;
+                if ~isempty(details), details = [details, '. ']; end
+                details = [details, 'No existing results to compare againts'];
+                report  = struct('passed', -1, 'detials', details);
             end
             if rt.verbose, rt.printFooter(report.passed); end
             % Save regression test report
             save(fullfile(directory, ['regreport_', nameCurr, '.mat']), 'report');
         end
-        
         
         %-----------------------------------------------------------------%
         function reports = getTestReports(rt)
@@ -99,6 +102,14 @@ classdef RegressionTest
                 reports{i} = data.report;
             end
             reports = reports(~cellfun(@isempty, reports));
+        end
+        
+        %-----------------------------------------------------------------%
+        function hash = getRegressionTestHash(rt, testCase)
+            hash   = testCase.getTestCaseHash();
+            if isempty(rt.problemInput), return; end
+            piHash = cellfun(@(ip) obj2hash(ip), rt.problemInput, 'UniformOutput', false);
+            hash   = str2hash(strjoin([hash, piHash], '_'));
         end
         
         %-----------------------------------------------------------------%
@@ -116,7 +127,8 @@ classdef RegressionTest
             
             directory = rt.getDataDirectory();
             
-            if ~exist(directory, 'dir'), existing = []; return; end
+            existing = [];
+            if ~exist(directory, 'dir'); return; end
             dirNames = ls(directory);
             if isempty(dirNames), existing = []; return; end
 
@@ -133,7 +145,7 @@ classdef RegressionTest
                 existing{i} = dirNames{i};
             end
             existing = existing(~cellfun(@isempty, existing));
-
+            if isempty(existing), return; end
             timeCurr = datetime(timeCurr, 'Format', fmt);
             timeExt  = cellfun(@(ext) datetime(ext(1:numel(fmt)), ...
                                                 'Format', fmt), existing);
@@ -163,7 +175,9 @@ classdef RegressionTest
         end
         
         %-----------------------------------------------------------------%
-        function report = compareResults(rt, problemCurr, problemExt)
+        function report = compareResults(rt, problemCurr, problemExt, details)
+            % Parse deails
+            if ~isempty(details), details = [details, '. ']; end
             % Get result handlers
             [wsc, stc, repc] = getPackedSimulatorOutput(problemCurr, 'readFromDisk', false);
             [wse, ste, repe] = getPackedSimulatorOutput(problemExt , 'readFromDisk', false);
@@ -171,20 +185,31 @@ classdef RegressionTest
             fun = @(v) norm(v, inf);
             % Compare states
             stRep = rt.compareStructsLocal(stc, ste, rt.tolerance,      ...
-                                        'fun'           , fun        , ...
-                                        'omit'          , {'wellSol'}, ...
-                                        'includeStructs', false      );
+                                         'fun'           , fun        , ...
+                                         'omit'          , {'wellSol'}, ...
+                                         'includeStructs', false      );
+            if ~stRep.passed, details = [details, {'states'}]; end
             % Compare well solutions
-            wsRep = rt.compareStructsLocal(wsc, wse, rt.tolerance, ...
-                                         'fun'           , fun  , ...
-                                         'includeStructs', false);
+            wsRep = rt.compareStructsLocal(wsc, wse, rt.tolerance,  ...
+                                           'fun'           , fun  , ...
+                                           'includeStructs', false);
+            if ~wsRep.passed, details = [details, {'wellSols'}]; end
             % Compare simulation reports
             repRep = rt.compareReports(repc, repe, 0);
+            if ~repRep.passed, details = [details, {'reports'}]; end
+            if isempty(details)
+                details = '--';
+            else
+                details = strjoin(details, ', ');
+                details = [details, ' differ in magnitude or number of '         , ...
+                                    'timesteps by more than prescribed tolerance.'];
+            end
             % Make report
             passed = (stRep.passed && wsRep.passed && repRep.passed)*1;
-            report = struct('passed'  , passed, ...
-                            'states'  , stRep , ...
-                            'wellSols', wsRep , ...
+            report = struct('passed'  , passed , ...
+                            'details' , details, ...
+                            'states'  , stRep  , ...
+                            'wellSols', wsRep  , ...
                             'reports' , repRep);
         end
         
@@ -245,6 +270,7 @@ classdef RegressionTest
             n2 = struct2.numelData();
 
             n  = min(n1, n2);
+            if n == 0, report = struct('dsteps', n1 - n2, 'passed', false); return; end
             structd = [];
             for i = 1:n
                 st1 = struct1{i};
@@ -260,12 +286,14 @@ classdef RegressionTest
         function report = compareReports(report1, report2, tol)
             n1 = report1.numelData();
             n2 = report2.numelData();
+            if min(n1, n2) == 0, report = struct('dsteps', n1 - n2, 'passed', false); return; end
             names = {'nonlinearIterations', 'linearIterations'};
             out = struct();
             for name = names
                 out1 = getReportOutput(report1, 'type', name{1});
                 out2 = getReportOutput(report2, 'type', name{1});
-                dout = norm(out1.total - out2.total, inf);
+                n = min(numel(out1.total), numel(out2.total));
+                dout = norm(out1.total(1:n) - out2.total(1:n), inf);
                 out.(name{1}) = dout;
             end
             report = struct('dvalues', out, 'dsteps', n1 - n2);
