@@ -1,4 +1,4 @@
-classdef MRSTExample
+classdef TestCase
     
     properties
         % Core test case properties
@@ -18,7 +18,7 @@ classdef MRSTExample
     
     methods
         %-----------------------------------------------------------------%
-        function test = MRSTExample(name, varargin)
+        function test = TestCase(name, varargin)
             if nargin == 0, return; end
             % Set test name
             test.name = lower(name);

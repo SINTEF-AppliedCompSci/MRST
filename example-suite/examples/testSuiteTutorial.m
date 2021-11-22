@@ -1,22 +1,22 @@
-%% Minimal example showing how to run multiple examples using MRSTExample
-
-%% Add required modules
-mrstModule add example-suite
-mrstModule add ad-core ad-props ad-blackoil deckformat
-mrstModule add mrst-gui
+mrstModule add example-suite ad-core ad-props ad-blackoil mrst-gui
 mrstVerbose on
 
-%% Simulate three SPE benchmarks
-names = {'spe1_bo', 'spe3_bo', 'spe9_bo'};
-for name = names
-    example = MRSTExample(name{1});
-    example.plot(); drawnow, pause(1);
-    problem = example.getPackedSimulationProblem();
-    simulatePackedProblem(problem);
-    % Plot results
-    [wellSols, states] = getPackedSimulatorOutput(problem);
-    example.plot(states); plotWellSols(wellSols);
-end
+%% List examples
+listExampleSuite();
+
+%% Get and plot example
+name = 'qfs_wo'; % Choose a name from the table
+test = TestCase(name);
+test.plot(test.model.rock);
+
+%% Simulate
+
+problem = test.getPackedSimulationProblem();
+simulatePackedProblem(problem);
+
+%% Interactive plotting
+[wellSols, states, reports] = getPackedSimulatorOutput(problem);
+test.plot(states);
 
 %% Copyright Notice
 %
