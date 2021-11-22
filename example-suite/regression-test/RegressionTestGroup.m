@@ -68,13 +68,9 @@ classdef RegressionTestGroup
             v  = struct2cell(report);
             nd = max(cellfun(@(tr) numel(tr.details), v(cellfun(@isstruct, v))));
             nc = [nn, npf, nd];
+            num = max(sum(nc+3) + 1, numel(strHead) + 4);            
+            nc(end) = nc(end) + num - sum(nc+2) - 4;
             
-
-            num = max(sum(nc+3) + 1, numel(strHead) + 4);
-            
-            nc(end) = num - sum(nc+2) - 2;
-            
-
             fprintf('\n\n');
             fprintf([repmat('=', 1, num), '\n']);
             fprintf(['| %-', num2str(num-3), 's|\n'], strHead);

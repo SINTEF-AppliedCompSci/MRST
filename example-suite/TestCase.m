@@ -283,14 +283,15 @@ classdef TestCase
                 hash = hashOpt; return;
             else
                 % Get hash of selected test case properties
+                hashModel    = str2hash(class(test.model)); 
                 hashG        = struct2hash(test.model.G);
                 hashRock     = struct2hash(test.model.rock);
                 hashFluid    = struct2hash(test.model.fluid);
                 hashState0   = struct2hash(test.state0);
                 hashSchedule = struct2hash(test.schedule);
                 % Concatenate and compute hash of combined hashes
-                str = strjoin({hashOpt, hashG, hashRock, hashFluid, ...
-                                           hashState0, hashSchedule}, '_');
+                str = strjoin({hashOpt, hashModel, hashG, hashRock, ...
+                                hashFluid, hashState0, hashSchedule}, '_');
                 hash = str2hash(str);
             end
         end
@@ -369,6 +370,9 @@ classdef TestCase
             end
             % Pack problem
             desc = test.description(1:min(numel(test.description), 113));
+            if numel(desc) < numel(test.description)
+                desc = [desc, ' ...'];
+            end
             problem = packSimulationProblem(                          ...
                 test.state0, test.model, test.schedule, test.name,    ...
                     'Name'           , opt.Name                     , ...

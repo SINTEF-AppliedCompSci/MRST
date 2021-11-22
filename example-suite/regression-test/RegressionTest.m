@@ -83,7 +83,7 @@ classdef RegressionTest
             else
                 if ~isempty(details), details = [details, '. ']; end
                 details = [details, 'No existing results to compare againts'];
-                report  = struct('passed', -1, 'detials', details);
+                report  = struct('passed', -1, 'details', details);
             end
             if rt.verbose, rt.printFooter(report.passed); end
             % Save regression test report
@@ -188,7 +188,7 @@ classdef RegressionTest
                                          'fun'           , fun        , ...
                                          'omit'          , {'wellSol'}, ...
                                          'includeStructs', false      );
-            if ~stRep.passed, details = [details, {'states'}]; end
+            if ~stRep.passed, details = [details, 'states']; end
             % Compare well solutions
             wsRep = rt.compareStructsLocal(wsc, wse, rt.tolerance,  ...
                                            'fun'           , fun  , ...
