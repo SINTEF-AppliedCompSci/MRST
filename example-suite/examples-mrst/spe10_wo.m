@@ -30,8 +30,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     options = struct('layers', []); % Layer subset. Either subset of 1:85, 
                                     % 'tarbert', or 'upper_ness'
     [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
-    % Define module dependencies
-    require ad-core ad-props ad-blackoil spe10
     % Pick layer subset
     if isempty(options.layers)
         options.layers = 1:85;
@@ -46,6 +44,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         assert(min(options.layers) >= 1 && max(options.layers) <= 85);
     end
     if optOnly, setup.options = options; return; end
+    % Define module dependencies
+    require ad-core ad-props ad-blackoil spe10
     % Get state0, model and schedule
     gravity reset on  
     [state0, model, schedule] = setupSPE10_AD(options.extra{:}, 'layers', options.layers);

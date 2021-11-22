@@ -25,7 +25,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % One-line description
     description ...
         = ['Inverted five-spot pattern with two-phase fluid and ', ...
-           'perm/poro made from repeated patteern of peaks'       ];
+           'perm/poro made from repeated pattern of peaks'       ];
     % Optional input arguments
     options = struct('ncells', 51, ... % Number of cells in xy for each tile
                      'tiles' , 1 , ... % Number of tiles using peaks (tiles x tiles)
