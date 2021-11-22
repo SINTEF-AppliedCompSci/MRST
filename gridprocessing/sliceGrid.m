@@ -33,7 +33,15 @@ opt = struct('onlyFaces',  false, ...
 
 [pntsList, optList] = handleMultInput(pnts, opt2);
 timer = tic();
-npts = numel(pntsList);
+npts  = numel(pntsList);
+
+% establish cell-face-tags of new grid at the end, get map from original
+% grid
+faceTagMap = [];
+if size(G.cells.faces, 2) == 2
+    faceTagMap = getFaceTagMap(G);
+end
+
 for k = 1:npts
     % hard-set some opts that are required or not yet compatible with
     % grid-processing
@@ -82,7 +90,7 @@ for k = 1:npts
         cutCells.nodes(~nix) =  cutCells.nodes(~nix) + nNodesOrig;
         
         % Perform actual grid splitting/cutting
-        [G, isSplit, cutFaces, nFacesRemoved]  = splitFaces(G, cutFaces, cutCells);
+        [G, isSplit, cutFaces, removedFaces]  = splitFaces(G, cutFaces, cutCells);
         if ~opt.onlyFaces
             [G, isCut, sliceFaces] = splitCells(G, cutCells, sliceFaces, opt.topoSplit);
         else
@@ -108,8 +116,10 @@ for k = 1:npts
     else
         [isSplit, isCut] = deal([]);
     end
-    gix = getIndices(ncOld, nfOld-nFacesRemoved, cutCells.ix(isCut), cutFaces.ix(isSplit), sliceFaces, gix);
+    gix = getIndices(ncOld, nfOld, cutCells.ix(isCut), cutFaces.ix(isSplit), sliceFaces, removedFaces, gix);
 end
+G = updateAdditionalFields(G, gix, faceTagMap);
+
 dispif(mrstVerbose(), 'Performed %d slices in %fs\n', npts, toc(timer));
 % create 2D slice-grid if requested
 if nargout >= 3 && G.griddim == 3 && ~isempty(gix)
@@ -253,7 +263,7 @@ G.cells.faces   = [f1; vertcat(cfn{validIx})];
 end
 
 %--------------------------------------------------------------------------
-function [G, validIx, cutFaces, nRemoved] = splitFaces(G, cutFaces, cutCells)
+function [G, validIx, cutFaces, removedFaces] = splitFaces(G, cutFaces, cutCells)
 [fix, cix] = deal(cutFaces.ix, cutCells.ix);
 [nf , nc ] = deal(numel(fix), numel(cix));
 % Need to update original and create new face-nodes for cutfaces
@@ -386,10 +396,9 @@ G.faces.nodes   = [n1; vertcat(fnn{validIx})];
 % update cellfaces/facepos for cutcells and potenial extras
 [G.cells.faces, G.cells.facePos] = ...
     replaceEntries(G.cells.faces(:,1), [cfo;cfe], [cix; cixe], G.cells.facePos);
-nRemoved = 0;
+removedFaces = [];
 if duplicatesExist
-   [G, reindex, nRemoved] = removeDuplicateFaces(G, duplicateCandidates);
-   cutFaces.ix = reindex(cutFaces.ix); 
+   [G, removedFaces] = removeDuplicateFaces(G, duplicateCandidates);
 end
 end
 
@@ -460,7 +469,7 @@ end
 end
 
 %--------------------------------------------------------------------------
-function [G, reindex, nd] = removeDuplicateFaces(G, fcand)
+function [G, removedFaces] = removeDuplicateFaces(G, fcand)
 % Partly collpased cells that are cut might result in a degenerate cut
 % polygon, this function identifies pairs of collapsed faces from a list 
 % of candidates and removes them from the cell that contains both
@@ -491,7 +500,7 @@ for k = 1:nd
     end
 end
 if ~all(isDuplicate)
-    warning('Potention problem with handling duplicate faces')
+    warning('Potential problem with handling duplicate faces')
 end
 f = fdup(isDuplicate,:);
 nd = size(f,1);
@@ -531,31 +540,42 @@ G.cells.faces = reindex(cellFaces);
 emptyFaceNodes = cell(size(f,1), 1);
 [G.faces.nodes, G.faces.nodePos] = ...
     replaceEntries(G.faces.nodes, emptyFaceNodes, f(:,2), G.faces.nodePos);
+removedFaces = f(:,2);
 end
 
 %--------------------------------------------------------------------------
-function ix = getIndices(nc, nf, cutCellIx, cutFaceIx, sliceFaces, ixp)
+function ix = getIndices(nc, nf, cutCellIx, cutFaceIx, sliceFaces, removedFaces, ixp)
+facesPrev = (1:nf)'; 
+if any(removedFaces)
+    removedPrev = removedFaces(removedFaces <= nf);
+    facesPrev(removedPrev) = [];
+    removedCur = removedFaces(removedFaces > nf);
+    cutFaceIx(removedCur - nf) = [];
+    nf = numel(facesPrev);
+end
 [nc2, nf2] = deal(numel(cutCellIx), numel(cutFaceIx));
 if isempty(ixp)
     [nc_orig, nf_orig] = deal(nc, nf);
     ix.old    = struct('cells', true(nc,1), 'faces', true(nf,1));
     ix.new    = struct('cells', ones(nc+nc2,1), 'faces', ones(nf+nf2+nc2,1));
-    ix.parent = struct('cells', [(1:nc)'; cutCellIx], 'faces', [(1:nf)'; cutFaceIx; zeros(nc2,1)]);
+    ix.parent = struct('cells', [(1:nc)'; cutCellIx], 'faces', [facesPrev; cutFaceIx; zeros(nc2,1)]);
     previous  = ix.parent;
 else
+    if any(removedFaces)
+        ixp.parent.faces(facesPrev) = [];
+        ixp.new.faces(facesPrev) = [];
+    end
     [nc_orig, nf_orig] = deal(numel(ixp.old.cells), numel(ixp.old.faces));
     ix.old    = ixp.old;
     ix.new    = struct('cells', [ixp.new.cells; ones(nc2, 1)], ...
                        'faces', [ixp.new.faces; ones(nf2+nc2, 1)]);
     ix.parent = struct('cells', [ixp.parent.cells; ixp.parent.cells(cutCellIx)], ...
                        'faces', [ixp.parent.faces; ixp.parent.faces(cutFaceIx); zeros(nc2,1)]);
-    previous = struct('cells', [(1:nc)'; cutCellIx], 'faces', [(1:nf)'; cutFaceIx; zeros(nc2,1)]);
+    previous = struct('cells', [(1:nc)'; cutCellIx], 'faces', [facesPrev; cutFaceIx; zeros(nc2,1)]);
 end
-
 % set split cells/faces to false
 ix.old.cells(cutCellIx(cutCellIx < nc_orig)) = false;
 ix.old.faces(cutFaceIx(cutFaceIx < nf_orig)) = false;
-
 % set new/updated cells to 2
 ix.new.cells([cutCellIx; nc + (1:nc2)']) = 2;
 % set new/updated faces to 2, faces along plane to 3
@@ -596,6 +616,36 @@ w(ixn) = vertcat(vi{:});
 % if set is empty, reduce posNew
 remove = cellfun(@isempty, vi);
 posNew(ix(remove)) = [];
+end
+
+%--------------------------------------------------------------------------
+function faceTagMap = getFaceTagMap(G)
+nc  = G.cells.num;
+cellNo = rldecode((1:nc)', diff(G.cells.facePos));
+isPos  = G.faces.neighbors(G.cells.faces(:,1),1) == cellNo;
+cfTag  = G.cells.faces(:,2);
+[faceTagMap.pos, faceTagMap.neg] = deal(zeros(G.faces.num, 1));
+faceTagMap.pos(G.cells.faces(isPos))  = cfTag(isPos);
+faceTagMap.neg(G.cells.faces(~isPos)) = cfTag(~isPos);
+end
+
+%--------------------------------------------------------------------------
+function G = updateAdditionalFields(G, gix, faceTagMap)
+if ~isempty(faceTagMap)
+    nc  = G.cells.num;
+    ncf = size(G.cells.faces,1);
+    cellNo = rldecode((1:nc)', diff(G.cells.facePos));
+    isPos  = G.faces.neighbors(G.cells.faces(:,1),1) == cellNo;
+    cfTag   = zeros(ncf,1);
+    fParent = gix.parent.faces(G.cells.faces(:,1));
+    nzero   = fParent > 0;
+    cfTag(isPos & nzero)  = faceTagMap.pos(fParent(isPos & nzero));
+    cfTag(~isPos & nzero) = faceTagMap.neg(fParent(~isPos & nzero));
+    G.cells.faces = [G.cells.faces(:,1), cfTag];
+end
+if isfield(G.cells, 'indexMap') && numel(G.cells.indexMap) < G.cells.num
+    G.cells.indexMap = G.cells.indexMap(gix.parent.cells);
+end
 end
 
 %--------------------------------------------------------------------------
