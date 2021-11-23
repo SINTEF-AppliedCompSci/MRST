@@ -159,7 +159,7 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 % computing the multiscale pressure in the next section.
 
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
-basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
+basis_sb = getMultiscaleBasis(CG, A, 'type', 'msrsb');
 clf; plotToolbar(G,basis_sb.B,'filterzero',true);
 prm = log10(G.rock.perm); mx = max(prm); mn = min(prm);
 G.nodes.z = 1e-3*ones(G.nodes.num,1);

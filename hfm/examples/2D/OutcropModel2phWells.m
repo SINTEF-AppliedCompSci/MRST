@@ -130,7 +130,7 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 %% Compute basis functions
 
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
-basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
+basis_sb = getMultiscaleBasis(CG, A, 'type', 'msrsb');
 clf; plotToolbar(G,basis_sb.B);
 line(fl(:,1:2:3)',fl(:,2:2:4)',1e-3*ones(2,size(fl,1)),'Color','k');
 axis tight; c = colormap([1 1 1; jet]);

@@ -145,7 +145,7 @@ state_fs = incompTPFA(state, G, T, fluid,  ...
 % or boundary conditions. They are added to the coarse linear system when
 % computing the multiscale pressure in the next section.
 dispif(mrstVerbose, 'Computing basis functions...\n\n');
-basis_sb = getMultiscaleBasis(CG, A, 'type', 'rsb');
+basis_sb = getMultiscaleBasis(CG, A, 'type', 'msrsb');
 clf; plotToolbar(G,basis_sb.B,'filterzero',true);
 plotGrid(CG,'FaceColor','none');
 axis tight; colorbar;
