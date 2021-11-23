@@ -278,22 +278,17 @@ classdef TestCase
         %-----------------------------------------------------------------%
         function hash = getTestCaseHash(test, fullHash)
             % Get hash of options struct, prepended with test case name
-            hashOpt = struct2hash(test.options, test.name);
-            if nargin < 2 || ~fullHash
-                hash = hashOpt; return;
-            else
-                % Get hash of selected test case properties
-                hashModel    = str2hash(class(test.model)); 
-                hashG        = struct2hash(test.model.G);
-                hashRock     = struct2hash(test.model.rock);
-                hashFluid    = struct2hash(test.model.fluid);
-                hashState0   = struct2hash(test.state0);
-                hashSchedule = struct2hash(test.schedule);
-                % Concatenate and compute hash of combined hashes
-                str = strjoin({hashOpt, hashModel, hashG, hashRock, ...
-                                hashFluid, hashState0, hashSchedule}, '_');
-                hash = str2hash(str);
+            args = {test.name, test.options};
+            if nargin == 2 && fullHash
+                args = [args, {class(test.model)   , ...
+                               test.model.G        , ...
+                               test.model.rock     , ...
+                               test.model.fluid    , ...
+                               test.model.operators, ...
+                               test.state0         , ...
+                               test.schedule       }];
             end
+            hash = md5sum(args);
         end
         
         %-----------------------------------------------------------------%
