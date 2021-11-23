@@ -49,7 +49,8 @@ function examples = getExamplesInPath(pth,grp)
     list = list(~[list.isdir]);
 
     [~, name] = cellfun(@fileparts, {list.name}, 'UniformOutput', false);
-    desc = cellfun(@feval, name, 'UniformOutput', false);
+    desc = cellfun(@(name) feval(name, true), name, 'UniformOutput', false);
+    desc = cellfun(@(desc) desc.description, desc, 'UniformOutput', false);
     examples = struct('name', name, 'description', desc, 'group', grp);
 end
 
