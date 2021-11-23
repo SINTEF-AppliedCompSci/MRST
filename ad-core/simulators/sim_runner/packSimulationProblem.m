@@ -95,7 +95,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
     noName = isempty(opt.Name);
     if noName
-        opt.Name = [class(model), '_', obj2hash(model)];
+        hash     = {obj2hash(state0), obj2hash(model), obj2hash(schedule)};
+        hash     = join(hash, '_'); hash = obj2hash(hash{1});
+        opt.Name = [class(model), '_', hash];
     end
 
     if isempty(opt.Description)
