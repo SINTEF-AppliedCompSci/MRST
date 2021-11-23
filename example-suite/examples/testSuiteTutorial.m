@@ -1,8 +1,16 @@
 mrstModule add example-suite ad-core ad-props ad-blackoil mrst-gui
-mrstVerbose on
+mrstVerbose off
 
 %% List examples
 listExampleSuite();
+
+%% Get test case setup
+setup0 = qfs_wo(true , 'nkr', 1); % Get options and description only
+disp(setup0);
+
+setup  = qfs_wo(false, 'nkr', 1); %#ok Get full setup
+setup  = qfs_wo('nkr', 1);        % Omitting optOnly argument also gives full setup
+disp(setup);
 
 %% Get and plot example
 name = 'qfs_wo'; % Choose a name from the table
@@ -10,7 +18,6 @@ test = TestCase(name);
 test.plot(test.model.rock);
 
 %% Simulate
-
 problem = test.getPackedSimulationProblem();
 simulatePackedProblem(problem);
 
