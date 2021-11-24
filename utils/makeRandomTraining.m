@@ -10,7 +10,12 @@ rng(1);
 for m=1:numel(ctrlNo)
     ctrlVals = ceil(0.25*(1:nstep(m))') + ctrlInd;
     schedule.step.control(inds(m)+1:inds(m+1)) = ctrlVals;
+    
+    % Preserve the first well control
+    ctrlInd = ctrlInd+1;
+    schedule.control(ctrlInd) = control(ctrlNo(m));
 
+    % Perturb the remaining ones
     for n=ctrlInd+1:max(ctrlVals)
         schedule.control(n) = control(ctrlNo(m));
         W = schedule.control(n).W;
