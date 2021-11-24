@@ -97,10 +97,10 @@ switch networkType
         error('\nType of network: %s is not implemented\n', networkType);
 end
 
-%% Create the data-driven model
-% Here, we use a generic black-oil type model and it is thus important to
-% validate the model to dynamically construct the correct number of phases
-% and components and set up all the necessary state functions.
+%% Create the GPSNet
+% Each edge in the network is subgridded and mapped onto a row in a
+% rectangular Cartesian gird having the same number of rows as the number
+% of network edges. The fluid model is copied from the reference model.
 gravity off
 gpsNet = NetworkModel(modelTrue, ntwrk, WTrain);
 
@@ -195,10 +195,11 @@ pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 0.5);
 %% Model calibration
 % Calibrate the model using the BFGS method. This is a computationally
 % expensive operation that may run for several hours if you choose a large
-% number of iterations
+% number of iterations. Here, we therefore only apply 10 iterations. To get
+% a good match, you should increase this number to 100+
 objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,prmsTrain,statesTrain);
 [v, popt, history] = unitBoxBFGS(pinit, objh, 'objChangeTol', 1e-8, 'gradTol', 1e-5, ...
-    'maxIt', 2, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5, ...
+    'maxIt', 10, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5, ...
     'outputHessian', true, 'logPlot', true);
 
 %% Evaluate mismatch over the full simulation schedule 
