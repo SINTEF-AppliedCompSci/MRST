@@ -35,7 +35,9 @@ for n=1:numel(schedule.control)
         Wi.val    = schedule.control(n).W(i).val;
         Wi.WI     = sum(schedule.control(n).W(i).WI);
         Wi.status = schedule.control(n).W(i).status;
-        schedule.control(n).W(i) = Wi;
+        for fn = fieldnames(Wi)'
+            schedule.control(n).W(i).(fn{1}) = Wi.(fn{1});
+        end
     end
 end
 setup = struct('model', gpsNet.model, ...
