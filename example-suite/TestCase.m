@@ -23,15 +23,14 @@ classdef TestCase
             % Set test name
             test.name = lower(name);
             % Merge options
-            opt = struct('plot', false, 'verbose', [], 'readFromDisk', true);
-            [opt, varargin]  = merge_options(opt, varargin{:});
-            test.verbose = opt.verbose;
-            if isempty(opt.verbose), test.verbose = mrstVerbose(); end
+            opt = struct('plot', false, 'readFromDisk', true);
+            [opt , varargin] = merge_options(opt, varargin{:});
+            [test, extra   ] = merge_options(test, varargin{:});
+            if isempty(test.verbose), test.verbose = mrstVerbose(); end
             if test.verbose
                 fprintf('Setting up %s test \n\n', test.name);
                 timer = tic();
             end
-            [test, extra] = merge_options(test, varargin{:});
             if opt.readFromDisk
                 % Get test options and description
                 setup = feval(lower(name), true, extra{:});
