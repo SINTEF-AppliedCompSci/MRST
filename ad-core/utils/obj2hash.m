@@ -126,6 +126,6 @@ end
 
 %-------------------------------------------------------------------------%
 function hash = combineHashes(hashes)
-    hash = join(hashes, '_');
-    hash = md5sum(hash{1});
+    hash = strjoin(hashes, '_');
+    hash = md5sum(hash);
 end

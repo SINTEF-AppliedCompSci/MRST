@@ -309,12 +309,12 @@ methods
             rockOK = strcmpi(obj2hash(model.rock), model.operators.hashRock);
             if ~(gridOK && rockOK)
                 str = {'model.G', 'model.rock'};
-                str = join(str([~gridOK, ~rockOK]), ' and ');
+                str = strjoin(str([~gridOK, ~rockOK]), ' and ');
                 pl = ''; if ~gridOK && ~rockOK, pl = 's'; end
                 warning(['%s differ from the one%s used to set up '    , ...
                          'the discrete operators.\n'                   , ...
                          'You or may want to recompute operators: '    , ...
-                         'model = model.setupOperators()'], str{1}, pl);
+                         'model = model.setupOperators()'], str, pl);
             end
         end
     end
