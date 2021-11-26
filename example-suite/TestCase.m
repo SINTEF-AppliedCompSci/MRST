@@ -216,7 +216,9 @@ classdef TestCase
         %-----------------------------------------------------------------%
         function h = plot(test, v, varargin)
             % Plot filed v on test case grid using plotToolbar
-            opt = struct('Name', '', 'plotWells', true, 'camlight', true);
+            opt = struct('Name'     , ''   , ...
+                         'plotWells', true , ...
+                         'camlight' , true);
             [opt, extra] = merge_options(opt, varargin{:});
             Name = test.name;
             if ~isempty(opt.Name)
@@ -277,17 +279,14 @@ classdef TestCase
         %-----------------------------------------------------------------%
         function hash = getTestCaseHash(test, fullHash)
             % Get hash of options struct, prepended with test case name
-            args = {test.name, test.options};
-            if nargin == 2 && fullHash
-                args = [args, {class(test.model)   , ...
-                               test.model.G        , ...
-                               test.model.rock     , ...
-                               test.model.fluid    , ...
-                               test.model.operators, ...
-                               test.state0         , ...
-                               test.schedule       }];
+            skip = {'figureProperties', ...
+                    'axisProperties'  , ...
+                    'toolbarOptions'  , ...
+                    'verbose'         };
+            if nargin < 2 || ~fullHash
+                skip = [skip, {'model', 'state0', 'schedule'}];
             end
-            hash = md5sum(args);
+            hash = obj2hash(test, 'skip', skip);
         end
         
         %-----------------------------------------------------------------%
@@ -336,7 +335,7 @@ classdef TestCase
                          'NonLinearSolver', []);
             [opt, extra] = merge_options(opt, varargin{:});
             if isempty(opt.Name)
-                opt.Name = test.getTestCaseHash(true);
+                opt.Name = [test.name, '_', test.getTestCaseHash(true)];
             end
             has_ls  = ~isempty(opt.LinearSolver);    % Linear solver given
             has_nls = ~isempty(opt.NonLinearSolver); % Nonlinear solver given
