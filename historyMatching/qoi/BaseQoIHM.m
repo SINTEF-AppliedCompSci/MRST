@@ -67,6 +67,40 @@ classdef BaseQoIHM
             end
         end
         
+        function qoi = setObservations(qoi, referenceProblem, varargin)
+            % Takes a reference problem as input and extracts the QoI from
+            % it as observations for history matching. 
+            opt = struct('perturb', true);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            disp('Simulating the reference problem');
+            simulatePackedProblem(referenceProblem);
+            
+            referenceObservations = qoi.getQoI(referenceProblem);
+            
+            qoi.truthResultHandler = ResultHandler('dataPrefix', 'trueQoI', ...
+                                   'writeToDisk', qoi.ResultHandler.writeToDisk,...
+                                   'dataDirectory', qoi.ResultHandler.dataDirectory, ...
+                                   'dataFolder', qoi.ResultHandler.dataFolder, ...
+                                   'cleardir', false);
+            qoi.truthResultHandler{1} = {referenceObservations};
+            
+            perturbedObservations = referenceObservations;
+            if opt.perturb
+                perturbedObservations = qoi.perturbQoI(referenceObservations);
+            end
+            
+            qoi.observationResultHandler = ResultHandler('dataPrefix', 'observedQoI', ...
+                                   'writeToDisk', qoi.ResultHandler.writeToDisk,...
+                                   'dataDirectory', qoi.ResultHandler.dataDirectory, ...
+                                   'dataFolder', qoi.ResultHandler.dataFolder, ...
+                                   'cleardir', false);
+            qoi.observationResultHandler{1} = {perturbedObservations};
+            
+            
+        end
+        
+        
         %-----------------------------------------------------------------%
         % Functions related to history matching
         %-----------------------------------------------------------------%
@@ -113,8 +147,8 @@ classdef BaseQoIHM
             error('Template class not meant for direct use!');
         end
             
-
-       
+        
+        
         %-----------------------------------------------------------------%
         % Functions related to plotting
         % TODO: How to reuse from BaseQoI here???
@@ -123,7 +157,7 @@ classdef BaseQoIHM
         %-----------------------------------------------------------------%
     end
     methods (Sealed = true)
-
+        
         %-----------------------------------------------------------------%
         function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
             % Create a meaningful plot of the ensemble based on the
@@ -337,6 +371,8 @@ classdef BaseQoIHM
     end
     
     methods (Access = protected, Sealed = true)
+
+        
         function saveFigure(qoi, figNr, folderName, wellName, field)
             
             %figHandles = findobj('Type', 'figure')
@@ -365,6 +401,12 @@ classdef BaseQoIHM
             end      
         end
 
+    end
+    
+    methods (Access = protected) 
+        function perturbedU = perturbQoI(qoi, u)
+            error('Template class not meant for direct use!');
+        end
     end
 end
     

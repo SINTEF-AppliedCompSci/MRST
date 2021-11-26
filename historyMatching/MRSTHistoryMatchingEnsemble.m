@@ -33,7 +33,10 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
         %-----------------------------------------------------------------%
         function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
             
-            opt = struct('prepareSimulation', true);
+            opt = struct('prepareSimulation', true, ...
+                         'observationProblem', struct([]), ...
+                         'perturbObservations', true);
+            
             [opt, extra] = merge_options(opt, varargin{:});
             
             ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, ...
@@ -65,6 +68,18 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             % if we chose to reset and delete any old results, we need to
             % rebuild the folder structure
             ensemble.getIterationPath();
+            
+            % Check observations
+            if isempty(opt.observationProblem)
+               assert(~isempty(ensemble.qoi.observationResultHandler), ...
+                   'Missing observations. Provide observations to the QoI directly, or as an observationProblem in the ensemble constructor');
+            else
+                assert(isempty(ensemble.qoi.observationResultHandler), ...
+                    'Observations provided twice. Please only provide observations to the QoI directly, or as an observationProblem in the ensemble constructor. Not both');
+                ensemble.qoi = ensemble.qoi.setObservations(opt.observationProblem, ...
+                                                            'perturb', opt.perturbObservations);
+            end
+            
             
             % Prepare ensemble
             if opt.prepareSimulation

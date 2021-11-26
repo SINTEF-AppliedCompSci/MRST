@@ -25,7 +25,7 @@ trueExample = MRSTExample(trueProblemName);
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = false;
-rerunTrueProblemFromScratch = false;
+rerunTrueProblemFromScratch = true;
 overwriteObservation = true;
 
 
@@ -36,52 +36,6 @@ simulatePackedProblem(trueProblem);
 if plotExample
     [wellSols, states, reports] = getPackedSimulatorOutput(trueProblem);
     trueExample.plot(states);
-end
-
-%% Generate observations
-% Define a QoI object for storing the relevant observations we will use for
-% history matching
-
-trueQoI = WellQoIHM(...
-    'wellNames', {'P1', 'P2'}, ...
-    'names', {'qOs', 'qWs'}, ...
-    'cumulative', false);
-
-trueQoI = trueQoI.validateQoI(trueProblem);
-trueObservations = trueQoI.getQoI(trueProblem);
-%% Perturb observations
-
-% Define observation uncertainty 
-obsStdDev = 0.0004*0.1;
-
-% Create a separate ResultHandler for the observations 
-observationResultHandler = trueQoI.ResultHandler;
-observationResultHandler.dataPrefix = 'observedQoI';
-
-% Create a separate ResultHandler for the observations.
-% Need to build a new ResultHandler from scratch, so that we do not
-% overwrite the dataPrefix property of observationResultHandler
-truthResultHandler = ResultHandler('dataPrefix', 'trueQoI', ...
-                                   'writeToDisk', observationResultHandler.writeToDisk,...
-                                   'dataDirectory', observationResultHandler.dataDirectory, ...
-                                   'dataFolder', observationResultHandler.dataFolder, ...
-                                   'cleardir', false);
-
-%% Add some observation noise and store output
-
-if numel(truthResultHandler.getValidIds) < 1 || overwriteObservation
-    for w=1:numel(trueObservations)
-        perturbedObservations(w) = trueObservations(w);
-        for f=1:numel(trueQoI.names)
-            trueVals = trueObservations(w).(trueQoI.names{f});
-            perturbedObservations(w).(trueQoI.names{f}) = trueVals + randn(size(trueVals))*obsStdDev;
-        end
-        observationResultHandler{1} = {perturbedObservations};
-    end
-end
-
-if numel(truthResultHandler.getValidIds) < 1 || overwriteObservation
-    truthResultHandler{1} = {trueObservations};
 end
 
 
@@ -99,19 +53,23 @@ end
 
 rockSamples = RockSamplesHM('data', rockData);
 
-%% Select quantity of interest class matching the what we have as observations
+%% Select quantity of interest class
 % We validate the QoI with the trueProblem, since this will be our ensemble
 % base problem as well.
 
+obsStdDev = 0.0004*0.1;
+
 qoi = WellQoIHM('wellNames', {'P1', 'P2'}, ...
                 'names', {'qOs', 'qWs'}, ...
-                'observationResultHandler', observationResultHandler, ...
-                'truthResultHandler', truthResultHandler, ...
                 'observationCov', obsStdDev^2);
-
+                %'observationResultHandler', observationResultHandler, ...
+                %'truthResultHandler', truthResultHandler, ...
+                
 
 %% Create the ensemble
+% and specify from where we want to take observations
 rockEnsemble = MRSTHistoryMatchingEnsemble(trueExample, rockSamples, qoi, ...
+    'observationProblem', trueProblem, ...
     'directory', fullfile(topDirectory, 'rock'), ...
     'simulationStrategy', 'spmd', ...
     'maxWorkers', 8, ...
@@ -167,6 +125,7 @@ wellSamples = WellSamplesHM('data', wellSampleData);
 
 %% Define new ensemble
 wellEnsemble = MRSTHistoryMatchingEnsemble(trueExample, wellSamples, qoi, ...
+    'observationProblem', trueProblem, ...
     'directory', fullfile(topDirectory, 'well'), ...
     'simulationStrategy', 'spmd', ...
     'maxWorkers', 8, ...
@@ -204,6 +163,7 @@ comboSamples = CompositeSamplesHM({rockSamples, wellSamples}, 'tensorProduct', f
 
 %% Define new ensemble
 comboEnsemble = MRSTHistoryMatchingEnsemble(trueExample, comboSamples, qoi, ...
+    'observationProblem', trueProblem, ...
     'directory', fullfile(topDirectory, 'combo'), ...
     'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
