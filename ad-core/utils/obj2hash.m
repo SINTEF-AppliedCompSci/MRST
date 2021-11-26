@@ -99,6 +99,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         return
     elseif isstruct(obj)
         % Object is a struct. We will have to loop through all fields
+        if numel(obj) > 1
+            hash = arrayfun(@(obj) obj2hash(obj), obj, 'UniformOutput', false);
+            hash = combineHashes(hash);
+            return
+        end
         names = fieldnames(obj);
     else
         % Object is not of a type we can hash directly
@@ -117,7 +122,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Loop through all fields/properties and compute hash
     for i = 1:numel(names)
         % Avoid protected (returned by properties(obj) in Octave)
-        if ~isprop(obj, names{i}), continue; end
+        if ~isprop(obj, names{i}) && ~isfield(obj, names{i}), continue; end
         prop    = obj.(names{i});
         hash{i} = obj2hash(prop, varargin{:});
     end
