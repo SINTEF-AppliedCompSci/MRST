@@ -20,5 +20,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    v = fieldnames(struct(x));
+    if isa(x, 'function_handle'), v = []; return; end
+    s = struct(x);
+    if isempty(s), v = []; else, v = fieldnames(s); end
+    
 end
