@@ -102,7 +102,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         names = fieldnames(obj);
     else
         % Object is not of a type we can hash directly
-        names = properties(obj)';
+        names = properties(obj);
     end
     
     if isempty(names)
@@ -116,9 +116,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     hash  = cell(1, numel(names));
     % Loop through all fields/properties and compute hash
     for i = 1:numel(names)
+        % Avoid protected (returned by properties(obj) in Octave)
+        if ~isprop(obj, names{i}), continue; end
         prop    = obj.(names{i});
         hash{i} = obj2hash(prop, varargin{:});
     end
+    hash = hash(~cellfun(@isempty, hash));
     % Hash the combined result
     hash = combineHashes(hash);
     
