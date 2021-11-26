@@ -34,13 +34,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if optOnly, return; end
     % Define module dependencies
     require ad-core ad-props ad-blackoil
-    % Model
+    % Cartesian grid covering a 1000 x 1000 m domain
     G     = computeGeometry(cartGrid([1,1]*options.ncells, [1000, 1000]*meter));
-    rock  = makeRock(G, 100*milli*darcy, 0.4);
-    fluid = initSimpleADIFluid('phases', 'WO'             , ...
-                               'n'     , [1,1]*options.nkr, ...
-                               'mu'    , [1,1]*centi*poise, ...
-                               'rho'   , [1,1]            );
+    rock  = makeRock(G, 100*milli*darcy, 0.4); % Rock with 100 md perm and 0.4 poro
+    fluid = initSimpleADIFluid('phases', 'WO'             , ... % Water and oil
+                               'n'     , [1,1]*options.nkr, ... % Relperm exponents
+                               'mu'    , [1,1]*centi*poise, ... % Viscosity
+                               'rho'   , [1,1]            );    % Density (no gravity)
+    % Construct two-phase model with oil and water
     model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
     % Wells
     rate = options.pvi*sum(poreVolume(G, rock))/options.time;
