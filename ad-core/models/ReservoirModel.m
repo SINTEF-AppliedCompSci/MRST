@@ -117,7 +117,7 @@ methods
         model.oil = false;
 
         if doSetup
-            model.operators = model.setupOperators(G, model.rock);
+            model = model.setupOperators();
         end
     end
 
