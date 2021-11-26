@@ -239,7 +239,11 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
                 'qoi.observationCov is missing');
             
             % Check how observationCov matches the observation
-            u = qoi.getObservationVector('vectorize', false);
+            if isempty(qoi.observationResultHandler)
+                u = qoi.getTrueObservation('vectorize',false);
+            else
+                u = qoi.getObservationVector('vectorize', false);
+            end
             u_vec = qoi.qoi2vector(u, 'dtIndices', []);
             numObs = size(u_vec,1);
             
@@ -291,6 +295,27 @@ classdef WellQoIHM < BaseQoIHM & WellQoI
     
     
     methods (Access = protected)
+        
+        function perturbedU = perturbQoI(qoi, u)
+            
+            uvec = qoi.qoi2vector(u, 'dtIndices', []);
+            R = qoi.getObservationErrorCov();
+            perturbedUVector = uvec + sqrt(R)*randn(size(uvec));
+            
+            numTimesteps = numel(qoi.dt);
+            
+            startIndex = 0;
+            % Perturb
+            for w=1:numel(u)
+                perturbedU(w) = u(w);
+                for f=1:numel(qoi.names)
+                    perturbedU(w).(qoi.names{f}) = perturbedUVector(startIndex+1:startIndex+numTimesteps);
+                    startIndex = startIndex + numTimesteps;
+                end
+            end
+
+        end
+        
         
         %-----------------------------------------------------------------%
         function wellOutputOut = interpolateWellOutput(qoi, dtProblem, wellOutput)

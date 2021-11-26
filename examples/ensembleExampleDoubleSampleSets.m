@@ -16,13 +16,14 @@ mrstVerbose off
 % example_template.m for the MRSTExample template).
 
 baseProblemName = 'ensemble_base_problem_3d_reservoir';
-baseProblemOptions = {};
+baseProblemOptions = {'longWells', true, ...
+                     'randomSchedule', true};
 
 
 % Change these flags to investigate the baseExample
 simulateExample = true;
-plotSimulation = false;
-rerunBaseProblemFromScratch = false;
+plotSimulation = true;
+rerunBaseProblemFromScratch = true;
 
 baseExample = MRSTExample(baseProblemName, baseProblemOptions{:});
 
@@ -36,6 +37,7 @@ if simulateExample
     [wellSols, states, reports] = getPackedSimulatorOutput(problem);
     if plotSimulation
         baseExample.plot(states);
+        plotWellSols(wellSols);
     end
 end
 

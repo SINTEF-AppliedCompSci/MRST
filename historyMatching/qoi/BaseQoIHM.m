@@ -67,6 +67,40 @@ classdef BaseQoIHM
             end
         end
         
+        function qoi = setObservations(qoi, referenceProblem, varargin)
+            % Takes a reference problem as input and extracts the QoI from
+            % it as observations for history matching. 
+            opt = struct('perturb', true);
+            [opt, extra] = merge_options(opt, varargin{:});
+            
+            disp('Simulating the reference problem');
+            simulatePackedProblem(referenceProblem);
+            
+            referenceObservations = qoi.getQoI(referenceProblem);
+            
+            qoi.truthResultHandler = ResultHandler('dataPrefix', 'trueQoI', ...
+                                   'writeToDisk', qoi.ResultHandler.writeToDisk,...
+                                   'dataDirectory', qoi.ResultHandler.dataDirectory, ...
+                                   'dataFolder', qoi.ResultHandler.dataFolder, ...
+                                   'cleardir', false);
+            qoi.truthResultHandler{1} = {referenceObservations};
+            
+            perturbedObservations = referenceObservations;
+            if opt.perturb
+                perturbedObservations = qoi.perturbQoI(referenceObservations);
+            end
+            
+            qoi.observationResultHandler = ResultHandler('dataPrefix', 'observedQoI', ...
+                                   'writeToDisk', qoi.ResultHandler.writeToDisk,...
+                                   'dataDirectory', qoi.ResultHandler.dataDirectory, ...
+                                   'dataFolder', qoi.ResultHandler.dataFolder, ...
+                                   'cleardir', false);
+            qoi.observationResultHandler{1} = {perturbedObservations};
+            
+            
+        end
+        
+        
         %-----------------------------------------------------------------%
         % Functions related to history matching
         %-----------------------------------------------------------------%
@@ -113,8 +147,8 @@ classdef BaseQoIHM
             error('Template class not meant for direct use!');
         end
             
-
-       
+        
+        
         %-----------------------------------------------------------------%
         % Functions related to plotting
         % TODO: How to reuse from BaseQoI here???
@@ -123,7 +157,7 @@ classdef BaseQoIHM
         %-----------------------------------------------------------------%
     end
     methods (Sealed = true)
-
+        
         %-----------------------------------------------------------------%
         function h = plotEnsembleQoI(qoi, ensemble, h, varargin)
             % Create a meaningful plot of the ensemble based on the
@@ -148,7 +182,10 @@ classdef BaseQoIHM
                          'plotTruth', false        , ...
                          'legend'     , {{}}       , ...
                          'plotWells'  , []         , ...
-                         'alreadyOpenFigures', 0);
+                         'alreadyOpenFigures', 0   , ...
+                         'Position',  get(0, 'DefaultFigurePosition'), ...
+                         'savefig', false          , ...
+                         'savefolder', ''          );
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u_var, u]  = qoi.getQoIMean(opt.range);
             numQoIs      = numel(u_mean);
@@ -177,6 +214,18 @@ classdef BaseQoIHM
                         figIds(w).(qoi.names{f}) = 0;
                     end
                 end
+            end
+            
+            if opt.savefig 
+                if strcmp(opt.savefolder, '')
+                    opt.savefolder = fullfile(ensemble.mainDirectory(), ...
+                                              strcat('history_matching_figures_', ...
+                                                     datestr(now,'yyyy_mm_dd_HHMMSS')));
+                end
+                if ~exist(opt.savefolder, 'dir')
+                    mkdir(opt.savefolder);
+                end
+                fprintf('Saving figures to %s\n', opt.savefolder);    
             end
                         
             plotQoI = @(u, i, k, varargin) qoi.plotQoI(ensemble, u(i).(qoi.names{k}), ...
@@ -210,7 +259,7 @@ classdef BaseQoIHM
                         figureId = figIds(i).(qoi.names{k});
                     end
                     if isnan(h(figureId))
-                        h(figureId) = qoi.figure(ensemble);
+                        h(figureId) = qoi.figure(ensemble, 'Position', opt.Position);
                     else
                         set(0, 'CurrentFigure', h(figureId));
                         if ~opt.subplots && opt.clearFigure
@@ -240,6 +289,10 @@ classdef BaseQoIHM
                     
                     % Stack the lines so that the mean(s) come on top
                     qoi.organizePlots(opt.legend);
+                    if opt.savefig
+                        qoi.saveFigure(h(figureId), opt.savefolder, ...
+                                       qoi.wellNames{i}, qoi.names{k});
+                    end
                 end
             end
         end
@@ -278,6 +331,9 @@ classdef BaseQoIHM
                 if numel(legendText) == numel(meansID)+1 && ~isempty(obsID)
                     legend([lines(obsID(1)); lines(meansID)], ...
                            legendText, 'Location', 'Best');
+                elseif numel(legendText) == numel(meansID)+1 && ~isempty(truthID)
+                    legend([lines(truthID(1)); lines(meansID)], ...
+                           legendText, 'Location', 'Best');
                 elseif numel(legendText) == numel(meansID)+2 && ~isempty(obsID) && ~isempty(truthID)
                     legend([lines(obsID(1)); lines(truthID(1)); lines(meansID)], ...
                            legendText, 'Location', 'Best');
@@ -314,6 +370,44 @@ classdef BaseQoIHM
         
     end
     
+    methods (Access = protected, Sealed = true)
+
+        
+        function saveFigure(qoi, figNr, folderName, wellName, field)
+            
+            %figHandles = findobj('Type', 'figure')
+            %figHandle = figHandles(figNr);
+            figHandle = gcf;
+            
+            fileExt = {'.fig', '.png', '.eps'}; %, '.pdf'};
+            formats = {'fig', 'png', 'epsc'}; %, 'pdf'};
+            
+            filenameBase = strcat(wellName, '_', field);
+
+            for showLegend = 0:1
+                legendText = '';
+                if showLegend
+                    figHandle.CurrentAxes.Legend.Visible = 1;
+                    legendText = '_legend';
+                else
+                    figHandle.CurrentAxes.Legend.Visible = 0;
+                end
+
+                for fe = 1:numel(fileExt)
+                    savefilename = fullfile(folderName, strcat(filenameBase, legendText, fileExt{fe}))
+                    saveas(figHandle, savefilename, formats{fe});
+                end
+
+            end      
+        end
+
+    end
+    
+    methods (Access = protected) 
+        function perturbedU = perturbQoI(qoi, u)
+            error('Template class not meant for direct use!');
+        end
+    end
 end
     
 %{

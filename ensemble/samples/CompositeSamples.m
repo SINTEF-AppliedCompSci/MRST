@@ -79,6 +79,34 @@ classdef CompositeSamples < BaseSamples
             n = cellfun(@(samples) samples.num, samples.parentSamples);
         end
         
+        function meanSample = getMeanSample(sample)
+            % Computes the mean of the sample distributions and structure
+            % the output in the same form as the relevant sample object.
+            %
+            % SYNOPSIS:
+            %   meanSamples = sample.getMeanSamples()
+            %
+            % RETURNS:
+            %   meanSamples - same object type as sample but with one num
+            %   only.
+            %
+            % NOTE:
+            %   This function ust be implemented by each specific sample
+            %   type.
+            
+            %error('Template class not meant for direct use!');
+            
+            if isinf(sample.num)
+                error('Function cannot be used when generating samples on the fly');
+            end
+            
+            meanSample = sample;
+            meanSample.num = 1;
+            
+            for p = 1:numel(sample.parentSamples)
+                meanSample.parentSamples{p} = sample.parentSamples{p}.getMeanSample();
+            end
+        end
         
       
     end

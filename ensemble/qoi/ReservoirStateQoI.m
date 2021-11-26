@@ -10,7 +10,7 @@ classdef ReservoirStateQoI < BaseQoI
     %   qoi = ReservoirStateQoI(...);
     %
     % OPTIONAL PARAMETERS
-    %   'name' - Name of the reservoir state variable we are interested in.
+    %   'names' - Name of the reservoir state variable we are interested in.
     %            Default: 'sW'.
     %   'cells' - range of cells that we are interested in. Default: ':'
     %   'time' - At what simulation time we want to store the QoI.
