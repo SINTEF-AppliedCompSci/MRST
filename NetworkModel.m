@@ -41,6 +41,12 @@ classdef NetworkModel
             %
             % OPTIONAL PARAMETERS:
             %
+            %   'p0'        - Constant initial pressure. Default: 100 bar
+            %
+            %   'S0'        - Constant initial data. Must have the same
+            %                 number of components as the fluid model.
+            %                 Default: S_o=1, all other phases zero.
+            %
             %   'Verbose'   - Indicate whether extra output is to be printed, such as
             %                 reports on how the faces and cell indices have been
             %                 assigned to each connection, and so on.
@@ -60,7 +66,9 @@ classdef NetworkModel
                 nc = varargin{1};
                 varargin = varargin(2:end);
             end
-            opt = struct('Verbose',  mrstVerbose());
+            opt = struct('Verbose',  mrstVerbose(), ...
+                         'p0',       100*barsa,     ...
+                         'S0',       []);
             opt = merge_options(opt, varargin{:});
 
             % Get the network graph and extract properties
@@ -200,9 +208,14 @@ classdef NetworkModel
             end
             
             % Initialize the model
-            S0 = zeros(1,model.getNumberOfPhases());
-            S0(model.getPhaseIndex('O')) = 1;
-            state0 = initState(model.G, W, 100*barsa, S0);
+            if isempty(opt.S0)
+                opt.S0 = zeros(1,model.getNumberOfPhases());
+                opt.S0(model.getPhaseIndex('O')) = 1;
+            else
+                assert(numel(opt.S0)==model.getNumberOfPhases(),...
+                    'Initial data does not match number of phases');
+            end
+            state0 = initState(model.G, W, opt.p0, opt.S0);
             
             % Assign data objects
             graph.Nodes = nodes;
