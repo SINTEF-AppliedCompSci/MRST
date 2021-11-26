@@ -180,7 +180,7 @@ classdef BaseSamples
             meanData = sample.data{1};
             for f = 1:numel(fields)
                 for i = 2:sample.num
-                    meanData.(fields{f}) = meanData.(fields{f})+1;
+                    meanData.(fields{f}) = meanData.(fields{f})+sample.data{i}.(fields{f});
                 end
                 meanData.(fields{f}) = meanData.(fields{f})/sample.num;
             end
