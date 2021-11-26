@@ -23,8 +23,14 @@ for m=1:numel(ctrlNo)
             switch W(i).type
                 case 'rate'
                     W(i).val = (.75 + .5*rand)*W(i).val;
+                    if ~isempty(W(i).lims) && ~isinf(W(i).lims.rate)
+                        W(i).lims.rate = W(i).val;
+                    end
                 case 'bhp'
                     W(i).val = (.95 + 0.1*rand)*W(i).val;
+                    if ~isempty(W(i).lims) && ~isinf(W(i).lims.bhp)
+                        W(i).lims.bhp = W(i).val;
+                    end
             end
             if shutin && (W(i).sign<0) && (rand(1)>0.9)
                 W(i).status = false;
