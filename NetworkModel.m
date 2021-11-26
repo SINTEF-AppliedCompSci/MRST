@@ -82,8 +82,10 @@ classdef NetworkModel
             G = computeGeometry(G);
 
             % Fluid model with endpoint scaling of relative permeabilities.
-            % The fluid model is copied from the model we seek to match.            
-            model = GenericBlackOilModel(G, makeRock(G, 1*darcy, 0.2), ...
+            % The fluid model is copied from the model we seek to match.
+            poro = mean(modelTrue.rock.poro);
+            perm = mean(modelTrue.rock.perm(:,1));
+            model = GenericBlackOilModel(G, makeRock(G, perm, poro), ...
                 modelTrue.fluid,'gas',modelTrue.gas);
             pts   = modelTrue.fluid.krPts;
             if isfield(pts,'o')
