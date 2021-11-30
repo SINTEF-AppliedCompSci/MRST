@@ -105,11 +105,14 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[] )
   md5_finish(&state, digest);
 
   /* Return digest as string to Matlab*/
-  char *str = mxCalloc(33, sizeof(char));
+  char *str = mxCalloc(1 + 2*(sizeof digest / sizeof digest[0]), sizeof *str);
   int  pos  = 0;
-  for (i=0; i<16; ++i) pos+=sprintf(str+pos, "%x", digest[i]);
+  for (i = 0; i < sizeof digest / sizeof digest[0]; ++i) {
+    pos += sprintf(str+pos, "%02x", digest[i]);
+  }
 
-  plhs[0]   = mxCreateString(str);
+  plhs[0] = mxCreateString(str);
+  mxFree(str);
 }
 
 
@@ -142,8 +145,11 @@ void md5_append_array(md5_state_t *state, const mxArray *a)
   }
   else if (mxIsChar(a))
   {
-    int   size = mxGetNumberOfElements(a);
-    md5_append(state, (md5_byte_t*)mxGetChars(a), size);
+    mwSize len = mxGetNumberOfElements(a);
+    char* str = mxMalloc((len + 1) * sizeof *str);
+    mxGetString(a, str, len + 1);
+    md5_append(state, (md5_byte_t*)str, len * sizeof *str);
+    mxFree(str);
   }
   else if (mxIsStruct(a))
   {
