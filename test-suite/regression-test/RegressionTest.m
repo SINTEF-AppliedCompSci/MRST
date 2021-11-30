@@ -109,7 +109,7 @@ classdef RegressionTest
             hash   = testCase.getTestCaseHash();
             if isempty(rt.problemInput), return; end
             piHash = cellfun(@(ip) obj2hash(ip), rt.problemInput, 'UniformOutput', false);
-            hash   = str2hash(strjoin([hash, piHash], '_'));
+            hash   = obj2hash(strjoin([hash, piHash], '_'));
         end
         
         %-----------------------------------------------------------------%
