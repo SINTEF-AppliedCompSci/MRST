@@ -104,7 +104,8 @@ classdef TestCase
             % Get default properties
             props = test.defaultProperties('Figure');
             % Remove read-only properties
-            props = rmfield(props, 'XDisplay');
+            props = rmfield(props, {'XDisplay', ...
+                                    'Name'    });
             % Set extra property Size
             props.Size = props.Position(3:4);
         end
@@ -302,7 +303,7 @@ classdef TestCase
                     'axisProperties'  , ...
                     'toolbarOptions'  , ...
                     'verbose'         };
-            if nargin < 2 || ~fullHash
+            if nargin > 1 && ~fullHash
                 skip = [skip, {'model', 'state0', 'schedule'}];
             end
             hash = obj2hash(test, 'skip', skip);
@@ -311,7 +312,7 @@ classdef TestCase
         %-----------------------------------------------------------------%
         function ok = save(test)
             % Get test case hash value
-            hash = test.getTestCaseHash();
+            hash = test.getTestCaseHash(false);
             % Store in default data directory under 'example-suite'
             pth = fullfile(mrstDataDirectory(), 'example-suite');
             if ~exist(pth, 'dir')
@@ -328,7 +329,7 @@ classdef TestCase
                 throwError = true;
             end
             % Test case is stored with a filename equal to its hash value
-            hash = test.getTestCaseHash();
+            hash = test.getTestCaseHash(false);
             pth  = fullfile(mrstDataDirectory(), 'test-suite', test.name);
             fn   = [fullfile(pth, hash), '.mat'];
             tc   = [];
@@ -354,7 +355,7 @@ classdef TestCase
                          'NonLinearSolver', []);
             [opt, extra] = merge_options(opt, varargin{:});
             if isempty(opt.Name)
-                opt.Name = [test.name, '_', test.getTestCaseHash(true)];
+                opt.Name = [test.name, '_', test.getTestCaseHash()];
             end
             has_ls  = ~isempty(opt.LinearSolver);    % Linear solver given
             has_nls = ~isempty(opt.NonLinearSolver); % Nonlinear solver given
