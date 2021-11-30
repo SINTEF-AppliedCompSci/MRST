@@ -39,6 +39,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 options.layers = 1:35;
             case 'upper_ness'
                 options.layers = 36:85;
+            otherwise
+                error(['Optional input argument `layers` must be '  , ...
+                       'either a vetor of layer numbers, or one of ', ...
+                       'the aliases `tarbert` (= layer 1:35) or '   , ...
+                       '`upper_ness` (= layer 35:85)']              );
         end
     else
         assert(min(options.layers) >= 1 && max(options.layers) <= 85);

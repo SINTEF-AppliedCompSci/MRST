@@ -1,10 +1,22 @@
-mrstModule add example-suite ad-core ad-props ad-blackoil mrst-gui
+%% Test suite tutorial
+% In this tutorial, we will go through the basic concepts of a test suite,
+% including how to call a test case setup function, how to identify a text
+% case by it's hash value, and how to run and visualize a test case using
+% the TestCase class.
+
+%% Add necessary modules
+mrstModule add example-suite
+mrstModule add ad-core ad-props ad-blackoil
+mrstModule add mrst-gui
 mrstVerbose off
 
-%% List examples
-listExampleSuite();
-
-%% Get test case setup
+%% Using a test case setup function
+% We consider a quarter five-spot setup posed on a 1000 x 1000 m domain.
+% This is implemented in the test case setup function `qfs_wo`. Providing
+% the optional input argument `optOnly` determines if we should return the
+% options and descriptions only (true), or the full setup (true). See the
+% function `testcase_template` to get an overwiew of the general body of a
+% test case setup function.
 setup0 = qfs_wo(true , 'nkr', 1); % Get options and description only
 disp(setup0);
 
@@ -12,18 +24,41 @@ setup  = qfs_wo(false, 'nkr', 1); %#ok Get full setup
 setup  = qfs_wo('nkr', 1);        % Omitting optOnly argument also gives full setup
 disp(setup);
 
-%% Get and plot example
-name = 'qfs_wo'; % Choose a name from the table
-test = TestCase(name);
-test.plot(test.model.rock);
+%% Setting up a test case
+% The TestCase class implements useful functionality for setting up,
+% running and visualizing a test case. Each test case can be uniquely
+% determined by a hash value, which makes it easy to distinguish the
+% instances of the same test case set up with different options.
+% QFS with linear relative permeabilities
+test = TestCase('qfs_wo', 'nkr', 1);
+hash = test.getTestCaseHash(false); disp(hash)
+hash = test.getTestCaseHash();      disp(hash)
+% QFS with quadratic relative permeabilities
+test = TestCase('qfs_wo', 'nkr', 2);
+hash = test.getTestCaseHash(false); disp(hash)
+hash = test.getTestCaseHash();      disp(hash)
+% Change permeability in first cell
+test.model.rock.perm(1) = test.model.rock.perm(1)*2;
+hash = test.getTestCaseHash(false); disp(hash)
+hash = test.getTestCaseHash();      disp(hash)
 
-%% Simulate
-problem = test.getPackedSimulationProblem();
-simulatePackedProblem(problem);
+%% Simulating a test case
+% This block of code contains all the necessary commands for setting up and
+% running a test case.
+test = TestCase('qfs_wo', 'nkr', 2, 'ncells', 75); % Quadr relperms, [75,75] cells
+problem = test.getPackedSimulationProblem();       % Get test case problem
+simulatePackedProblem(problem);                    % Simulate
 
-%% Interactive plotting
+%% Visualizing the test case
+% The TestCase method plot wraps around plotToolbar and generates visually
+% pleasing plots of the data.
 [wellSols, states, reports] = getPackedSimulatorOutput(problem);
 test.plot(states);
+% You can also use the TestCase methods to generate visually pleasing plots
+% without using plotToolbar
+test.figure();
+plotCellData(test.model.G, states{1}.pressure, 'edgeAlpha', 0.2);
+test.setAxisProperties(gca);
 
 %% Copyright Notice
 %
