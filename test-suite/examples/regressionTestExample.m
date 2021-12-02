@@ -1,5 +1,5 @@
 %% Add modules
-mrstModule add example-suite
+mrstModule add test-suite
 mrstModule add ad-core ad-props ad-blackoil
 mrstVerbose off % Supress extensive command window output
 
@@ -7,13 +7,14 @@ mrstVerbose off % Supress extensive command window output
 % Regression tests are set up in the same way as a TestCase, using the
 % setup function name as input. Optional arguments for the test case are
 % passed just as in the TestCase class.
-test = RegressionTest('gravity_segregation', 'ncells', 21*3);
+rtest = RegressionTest('gravity_segregation', 'ncells', 21*3);
+disp(rtest);
 % You can also set up a regression test from an instance of the TestCase
 % class. This allows for altering test case parameters before definig the
 % regression test
-testCase = TestCase('gravity_segregation');
-testCase.model.rock.poro(1) = 0.2;
-test2 = RegressionTest(testCase); %#ok
+test   = TestCase('gravity_segregation');
+test.model.rock.poro(1) = 0.2;
+rtest2 = RegressionTest(test); %#ok
 
 %% Running a single regression test
 % Running the test is done with a one-line command. This will first check
@@ -23,7 +24,7 @@ test2 = RegressionTest(testCase); %#ok
 % results from before the test are deleted. If you want to keep results
 % from before the test, you can set the property `deleteExisting` to false.
 % Results from the test are stored to disk.
-report = test.runRegressionTest();
+report = rtest.runRegressionTest();
 
 %% Inspect the report
 % The regression test report will always have a field `passed` equal to -1
@@ -42,13 +43,13 @@ end
 
 %% Running with different options
 % You can define a regression test using specific inputs to
-% `simulateScheduleAD`, such as a non-standard nonlinear solver. the
+% `simulateScheduleAD`, such as a non-standard nonlinear solver, with the
 % optional input argument `problemInput`. These will be passed directly to
 % the TestCase method `getPackSimulationProblem`.
 nls  = NonLinearSolver('useLineSearch', true);
-test = RegressionTest('qfs_wo', 'dt', 100*day, ...
+rtest = RegressionTest('qfs_wo', 'dt', 100*day, ...
                       'problemInput', {'NonLinearSolver', nls});
-report = test.runRegressionTest();
+report = rtest.runRegressionTest(); %#ok
 
 %% Defining a group of regression tests
 % In larger projects, it is convenient to define a set of regression tests
@@ -58,12 +59,12 @@ report = test.runRegressionTest();
 % TestCase, or as strings corresponding to names of test case setup
 % functions), or as instances of regression tests. When an input test is
 % given by a test case setup function name or an instance of TestCase,
-% optional inputs can be provided in with the argument `testOpt`. This
-% should be cell array with one element per test. We set up a group of
+% optional inputs can be provided with the argument `testOpt`. This should
+% be a cell array with one element per test. We set up a group of
 % regression tests using the quarter five-spot case with different
 % Brooks-Corey relative permeability exponents.
-test1 = TestCase('qfs_wo', 'nkr', 1, 'name', 'qfs_wo_1');
-test2 = TestCase('qfs_wo', 'nkr', 2, 'name', 'qfs_wo_2');
-test3 = TestCase('qfs_wo', 'nkr', 3, 'name', 'qfs_wo_3');
-testGroup = RegressionTestGroup('qfs-tests', {test1, test2, test3});
-testGroup.runRegressionTests();
+test1  = TestCase('qfs_wo', 'nkr', 1, 'name', 'qfs_wo_1');
+rtest2 = TestCase('qfs_wo', 'nkr', 2, 'name', 'qfs_wo_2');
+rtest3 = TestCase('qfs_wo', 'nkr', 3, 'name', 'qfs_wo_3');
+testGroup = RegressionTestGroup('qfs-tests', {test1, rtest2, rtest3});
+report = testGroup.runRegressionTests();
