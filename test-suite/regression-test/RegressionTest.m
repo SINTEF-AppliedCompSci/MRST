@@ -2,11 +2,15 @@ classdef RegressionTest
     
     properties
         group = 'general'
-        deleteExisting = true
         name
         test
         compareFn = []
-        tolerance = 0
+        compareStates   = true
+        compareWellSols = true
+        compareReports  = true
+        tolerance = struct('wellSols', 0, ...
+                           'states'  , 0, ...
+                           'reports' , 0)
         testCaseOpt = {}
         problemInput = {}
         verbose = true
@@ -31,12 +35,13 @@ classdef RegressionTest
             rt.testCaseOpt = testCaseOpt;
             
             if isempty(rt.compareFn)
-                rt.compareFn = @(test, pc, pe) compareResults(test, pc, pe, opt);
+                rt.compareFn = @(pc, pe, details) rt.compareResults(pc, pe, details);
             end
         end
     
         %-----------------------------------------------------------------%
-        function report = runRegressionTest(rt)
+        function report = runRegressionTest(rt, varargin)
+            opt = struct('deletePrevious', true);
             time = rt.getTimeString();
             testCase = rt.test;
             if ischar(testCase)
@@ -48,12 +53,12 @@ classdef RegressionTest
             % Get test case hash
             hash = rt.getRegressionTestHash(testCase);
             % Find existing resutls for test case
-            nameExt = rt.findExisting(hash, time);
-            if ~isempty(nameExt)
+            namePrev = rt.findExisting(hash, time);
+            if ~isempty(namePrev)
             % Existing resuls found - get result handler
-            probExt = testCase.getPackedSimulationProblem(                 ...
+            probPrev = testCase.getPackedSimulationProblem(                 ...
                               'Directory', directory                       , ...
-                              'Name'     , nameExt, rt.problemInput{:});
+                              'Name'     , namePrev, rt.problemInput{:});
             else
                 % No exising results found. Issue warning saying that this run
                 % will be inconclusive
@@ -73,16 +78,16 @@ classdef RegressionTest
             catch ex
                 details = ex.message;
             end
-            % Compare to existing results if they exist
-            if ~isempty(nameExt)
-                report = rt.compareResults(probCurr, probExt, details);
-                if report.passed == 1 && rt.deleteExisting
-                    % Delete existing results
-                    rmdir(fullfile(directory, nameExt), 's');
+            % Compare to previous results if they exist
+            if ~isempty(namePrev)
+                report = rt.compareFn(probCurr, probPrev, details);
+                if report.passed == 1 && opt.deletePrevious
+                    % Delete previous results
+                    rmdir(fullfile(directory, namePrev), 's');
                 end
             else
                 if ~isempty(details), details = [details, '. ']; end
-                details = [details, 'No existing results to compare againts'];
+                details = [details, 'No existing results to compare against'];
                 report  = struct('passed', -1, 'details', details);
             end
             if rt.verbose, rt.printFooter(report.passed); end
@@ -147,13 +152,13 @@ classdef RegressionTest
             existing = existing(~cellfun(@isempty, existing));
             if isempty(existing), return; end
             timeCurr = datetime(timeCurr, 'Format', fmt);
-            timeExt  = cellfun(@(ext) datetime(ext(1:numel(fmt)), ...
+            timePrev = cellfun(@(ext) datetime(ext(1:numel(fmt)), ...
                                                 'Format', fmt), existing);
-            if numel(timeExt) > 1
+            if numel(timePrev) > 1
                 warning(['More than one set of existing results found. '    , ...
                          'Using most recent results for regression testing.']);
 
-                [timeExt, ix] = sort(timeExt);
+                [timePrev, ix] = sort(timePrev);
                 existing      = existing(ix);
 
                 prompt = sprintf('Do you want to delete older results? y/n [y]: ');
@@ -167,55 +172,63 @@ classdef RegressionTest
                     end
                 end
             end
-            timeExt = timeExt(end);
-            assert(timeExt(end) < timeCurr, ...
+            timePrev = timePrev(end);
+            assert(timePrev(end) < timeCurr, ...
                    ['Previous results are stored with timestamp larger '   , ...
                     'than current time. I don''t know how o interpret this']);
             existing = existing{end};
         end
         
         %-----------------------------------------------------------------%
-        function report = compareResults(rt, problemCurr, problemExt, details)
-            % Parse deails
+        function report = compareResults(rt, problemCurr, problemPrev, details, varargin)
+            % Parse details
             if ~isempty(details), details = [details, '. ']; end
             % Get result handlers
             [wsc, stc, repc] = getPackedSimulatorOutput(problemCurr, 'readFromDisk', false);
-            [wse, ste, repe] = getPackedSimulatorOutput(problemExt , 'readFromDisk', false);
+            [wse, ste, repe] = getPackedSimulatorOutput(problemPrev , 'readFromDisk', false);
+            report = struct('passed', true, 'details', nan); % Initialize report
             % Use inf norm for comparing all fileds
             fun = @(v) norm(v, inf);
-            % Compare states
-            stRep = rt.compareStructsLocal(stc, ste, rt.tolerance,      ...
-                                         'fun'           , fun        , ...
-                                         'omit'          , {'wellSol'}, ...
-                                         'includeStructs', false      );
-            if ~stRep.passed, details = [details, 'states']; end
-            % Compare well solutions
-            wsRep = rt.compareStructsLocal(wsc, wse, rt.tolerance,  ...
-                                           'fun'           , fun  , ...
-                                           'includeStructs', false);
-            if ~wsRep.passed, details = [details, {'wellSols'}]; end
-            % Compare simulation reports
-            repRep = rt.compareReports(repc, repe, 0);
-            if ~repRep.passed, details = [details, {'reports'}]; end
+            if rt.compareWellSols
+                % Compare well solutions
+                wsRep = rt.compareStructsLocal(wsc, wse, rt.tolerance.wellSols,  ...
+                                               'fun'           , fun          , ...
+                                               'includeStructs', false        );
+                if ~wsRep.passed, details = [details, {'wellSols'}]; end
+                report.wellSols = wsRep;
+                report.passed   = report.passed && wsRep.passed;
+            end
+            if rt.compareStates
+                % Compare states
+                stRep = rt.compareStructsLocal(stc, ste, rt.tolerance.states, ...
+                                             'fun'           , fun          , ...
+                                             'omit'          , {'wellSol'}  , ...
+                                             'includeStructs', false        );
+                if ~stRep.passed, details = [details, 'states']; end
+                report.states = stRep;
+                report.passed = report.passed && stRep.passed;
+            end
+            if rt.compareReports
+                % Compare simulation reports
+                repRep = rt.compareSimulationReports(repc, repe, rt.tolerance.reports);
+                if ~repRep.passed, details = [details, {'reports'}]; end
+                report.reports = repRep;
+                report.passed  = report.passed && repRep.passed;
+            end
             if isempty(details)
                 details = '--';
             else
                 details = strjoin(details, ', ');
-                details = [details, ' differ in magnitude or number of '         , ...
-                                    'timesteps by more than prescribed tolerance.'];
+                details = [details, ' differ in magnitude or number of ' , ...
+                           'timesteps by more than prescribed tolerance.'];
             end
             % Make report
-            passed = (stRep.passed && wsRep.passed && repRep.passed)*1;
-            report = struct('passed'  , passed , ...
-                            'details' , details, ...
-                            'states'  , stRep  , ...
-                            'wellSols', wsRep  , ...
-                            'reports' , repRep);
+            report.passed  = report.passed*1;
+            report.details = details;
         end
         
         %-----------------------------------------------------------------%
         function printHeader(rt)
-           
             str = sprintf(' Running test %s of group %s ', rt.name, rt.group);
             pad = 8;
             fprintf('\n\n');
@@ -270,30 +283,40 @@ classdef RegressionTest
             n2 = struct2.numelData();
 
             n  = min(n1, n2);
-            if n == 0, report = struct('dsteps', n1 - n2, 'passed', false); return; end
-            structd = [];
+            if n == 0
+                report = struct('dsteps', n1 - n2, 'passed', false);
+                return;
+            end
+            structTmp = cell(n,1);
             for i = 1:n
                 st1 = struct1{i};
                 st2 = struct2{i};
-                structTmp = compareStructs(st1, st2, varargin{:});
-                structd   = addStates(structd, structTmp);
+                structTmp{i} = compareStructs(st1, st2, varargin{:});
+            end
+            structd = struct();
+            for name = fieldnames(structTmp{1})'
+                v = cellfun(@(st) st.(name{1}), structTmp);
+                structd.(name{1}) = v;
             end
             report = struct('dvalues', structd, 'dsteps', n1 - n2);
             report.passed = checkDifference(report, tol);
         end
 
         %-----------------------------------------------------------------%
-        function report = compareReports(report1, report2, tol)
+        function report = compareSimulationReports(report1, report2, tol)
             n1 = report1.numelData();
             n2 = report2.numelData();
-            if min(n1, n2) == 0, report = struct('dsteps', n1 - n2, 'passed', false); return; end
+            n  = min(n1, n2);
+            if n == 0
+                report = struct('dsteps', n1 - n2, 'passed', false);
+                return;
+            end
             names = {'nonlinearIterations', 'linearIterations'};
             out = struct();
             for name = names
                 out1 = getReportOutput(report1, 'type', name{1});
                 out2 = getReportOutput(report2, 'type', name{1});
-                n = min(numel(out1.total), numel(out2.total));
-                dout = norm(out1.total(1:n) - out2.total(1:n), inf);
+                dout = out1.total(1:n) - out2.total(1:n);
                 out.(name{1}) = dout;
             end
             report = struct('dvalues', out, 'dsteps', n1 - n2);
@@ -310,7 +333,9 @@ function ok = checkDifference(report, tol)
     ok = abs(report.dsteps) == 0;
     names = fieldnames(report.dvalues);
     for name = names'
-        ok = ok & report.dvalues.(name{1}) <= tol;
+        toltmp = tol;
+        if strcmpi(name{1}, 'dvalues'), toltmp = 0; end
+        ok = ok & norm(report.dvalues.(name{1}),inf) <= toltmp;
     end
 end
 
