@@ -9,20 +9,20 @@ classdef RegressionTestGroup
         %-----------------------------------------------------------------%
         function group = RegressionTestGroup(name, tests, varargin)
             [group, extra] = merge_options(group, varargin{:});
-            opt = struct('testOpt', {{}});
+            opt = struct('regTestOpt', {{}});
             opt = merge_options(opt, extra{:});
             group.name = name;
             group.tests = cell(numel(tests), 1);
             
-            if isempty(opt.testOpt) || ~iscell(opt.testOpt{1})
-                opt.testOpt = repmat({opt.testOpt}, group.numTests, 1);
+            if isempty(opt.regTestOpt) || ~iscell(opt.regTestOpt{1})
+                opt.regTestOpt = repmat({opt.regTestOpt}, group.numTests, 1);
             end
             for i = 1:group.numTests()
                 test = tests{i};
                 if ischar(test) || isa(test, 'TestCase')
-                    test = RegressionTest(test,                ...
-                                          'group', group.name, ...
-                                          opt.testOpt{i}{:}  );
+                    test = RegressionTest(test,                 ...
+                                          'group', group.name , ...
+                                          opt.regTestOpt{i}{:});
                 elseif ~isa(test, 'RegressionTest')
                     error(['Each test must be either strings corresponding ', ...
                            'to test case setup functions, or instances ', ...
