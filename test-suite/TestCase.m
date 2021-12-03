@@ -104,8 +104,10 @@ classdef TestCase
             % Get default properties
             props = test.defaultProperties('Figure');
             % Remove read-only properties
-            props = rmfield(props, {'XDisplay', ...
-                                    'Name'    });
+            if isfield(props, 'XDisplay')
+                props = rmfield(props, 'XDisplay');
+            end
+            props = rmfield(props, 'Name');
             % Set extra property Size
             props.Size = props.Position(3:4);
         end
