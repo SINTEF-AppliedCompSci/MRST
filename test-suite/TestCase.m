@@ -219,8 +219,9 @@ classdef TestCase
         %-----------------------------------------------------------------%
         function h = plot(test, v, varargin)
             % Plot filed v on test case grid using plotToolbar
-            opt = struct('Name'     , ''   , ...
-                         'plotWells', true , ...
+            opt = struct('Name'     , ''  , ...
+                         'plotWells', true, ...
+                         'wellOpts' , {{}}, ...
                          'camlight' , true);
             [opt, extra] = merge_options(opt, varargin{:});
             Name = test.name;
@@ -234,7 +235,7 @@ classdef TestCase
             G = test.getVisualizationGrid();
             plotToolbar(G, v, test.toolbarOptions{:}, extra{:});
             if opt.plotWells
-                test.plotWells();
+                test.plotWells(opt.wellOpts{:});
             end
             test.setAxisProperties(gca);
             if opt.camlight && G.griddim == 3 ...
