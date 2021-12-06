@@ -80,6 +80,6 @@ end
 function v = compareValues(v1, v2, opt)
     v = opt.fun(v1 - v2);
     if opt.relative
-        v = v./max(max(opt.fun(v1), opt.fun(v2)), 1);
+        v = v./max(max(opt.fun(v1), opt.fun(v2)), 1e-10);
     end
 end
