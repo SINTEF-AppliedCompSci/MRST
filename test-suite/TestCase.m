@@ -217,8 +217,14 @@ classdef TestCase
         end
         
         %-----------------------------------------------------------------%
-        function h = plot(test, v, varargin)
+        function h = plot(test, varargin)
             % Plot filed v on test case grid using plotToolbar
+            if nargin == 1 || ischar(varargin{1})
+                v = test.model.rock;
+            else
+                v = varargin{1};
+                varargin = varargin(2:end);
+            end
             opt = struct('Name'     , ''  , ...
                          'plotWells', true, ...
                          'wellOpts' , {{}}, ...
@@ -227,9 +233,6 @@ classdef TestCase
             Name = test.name;
             if ~isempty(opt.Name)
                 Name = [Name, ' ', opt.Name];
-            end
-            if nargin == 1
-                v = test.model.rock;
             end
             h = test.figure('Name', Name);
             G = test.getVisualizationGrid();
@@ -300,7 +303,7 @@ classdef TestCase
         end
         
         %-----------------------------------------------------------------%
-        function hash = getTestCaseHash(test, fullHash)
+        function [hash, s] = getTestCaseHash(test, fullHash)
             % Get hash of options struct, prepended with test case name
             skip = {'figureProperties', ...
                     'axisProperties'  , ...
@@ -309,7 +312,7 @@ classdef TestCase
             if nargin > 1 && ~fullHash
                 skip = [skip, {'model', 'state0', 'schedule'}];
             end
-            hash = obj2hash(test, 'skip', skip);
+            [hash, s] = obj2hash(test, 'skip', skip);
         end
         
         %-----------------------------------------------------------------%
