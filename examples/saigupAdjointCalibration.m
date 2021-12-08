@@ -25,17 +25,34 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
 % If simulation results are not already stored for the model, we perform a
 % full 3D simulation first.
 
-example = MRSTExample('saigup_wo');
-% example.plot(example.model.rock);
+trueEx = MRSTExample('saigup_wo');
+trueCase = trueEx.getPackedSimulationProblem();
+%clearPackedSimulatorOutput(trueProb)
+simulatePackedProblem(trueCase);
 
-problem = example.getPackedSimulationProblem();
-simulatePackedProblem(problem);
+[wellSolTrue, statesTrue] = getPackedSimulatorOutput(trueCase);
+modelTrue    = trueEx.model;
+scheduleTrue = trueCase.SimulatorSetup.schedule;
+WTrue        = scheduleTrue.control.W;
 
-[wellSolsRef, statesRef] = getPackedSimulatorOutput(problem);
-modelRef    = example.model;
-scheduleRef = problem.SimulatorSetup.schedule;
-Wref        = scheduleRef.control.W;
-% example.plot(statesRef,'step_index',numel(statesRef));
+% Random schedule
+trainEx   = makeRandomTraining(trueEx, 0.25, 0.05, false);
+trainCase = trainEx.getPackedSimulationProblem();
+%clearPackedSimulatorOutput(trainProb)
+simulatePackedProblem(trainCase);
+
+[wellSolTrain, statesTrain] = getPackedSimulatorOutput(trainCase);
+modelTrain     = trainEx.model;
+scheduleTrain  = trainCase.SimulatorSetup.schedule;
+WTrain         = scheduleTrain.control.W;
+
+%% Plot
+trueEx.plot(statesTrue,'step_index',numel(statesTrue));
+
+plotWellSols({wellSolTrain, wellSolTrue}, ...
+    {scheduleTrain.step.val, scheduleTrue.step.val},...
+    'datasetnames',{'training','reference'}, ...
+    'zoom', true, 'field', 'qWs', 'SelectedWells', 1:8);
 
 %% Create the network
 % We start by creating a network that connects injectors and producers.
@@ -44,7 +61,7 @@ Wref        = scheduleRef.control.W;
 
 % To create the network, we only need a single perforation from each well,
 % which we somewhat arbitrarily pick to be the 7th from the top.
-Wnw = Wref;
+Wnw = WTrue;
 for i = 1:numel(Wnw)
     Wnw(i).cells = Wnw(i).cells(7);
 end
@@ -58,97 +75,82 @@ end
 networkType  = 'injectors_to_producers';
 switch networkType
     case 'all_to_all'
-        ntwrk =  Network(Wnw, modelRef.G, 'type', networkType);
+        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType);
     case 'injectors_to_producers'
-        ntwrk =  Network(Wnw, modelRef.G, 'type', networkType,  ...
-                         'injectors', 1:8, 'producers', 9:17);
+        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType,  ...
+                         'injectors', 1:8, 'producers', 9:14);
     case 'fd_preprocessor'
-        ntwrk =  Network(Wnw,modelRef.G, 'type', networkType,  ...
-                         'problem', problem, 'flow_filter',1*stb/day);
+        ntwrk =  Network(Wnw,modelTrue.G, 'type', networkType,  ...
+                         'problem', trueCase, 'flow_filter',1*stb/day);
     case 'fd_postprocessor'
-        ntwrk =  Network(Wnw,modelRef.G, 'type', networkType,  ...
-                         'problem', problem,   ...
+        ntwrk =  Network(Wnw,modelTrue.G, 'type', networkType,  ...
+                         'problem', trueCase,   ...
                          'state_number',20,    ...
                          'flow_filter', 1*stb/day);
     otherwise
         error('\nType of network: %s is not implemented\n', networkType);             
 end
                      
-% Plot the network.
-% If based on flow diagnostics, we plot the network twice to show the
-% relative magnitude of the associated transmissibilities and pore volumes.
-figure; ntwrk.plotNetwork()
-
-%% Create the data-driven model
-% We subgrid each flow path into ten uniform cells and map the resulting
-% network onto a rectangular Cartesian grid having the same number of rows
-% as the number of flow paths.  The fluid model is copied from the model we
-% seek to match.
-
-% Grid and petrophysics
-% The grid is set to have an aspect ratio of [5 1 1] and a volum that
-% matches the bulk volume of the reservoir. The constant petrophysical
-% properties are dummy values primarily used to compute an initial guess
-% for matching parameters that have not be set by the network type.
-L    = nthroot(sum(modelRef.operators.pv./modelRef.rock.poro)*25,3);
-G    = cartGrid([10, 1, numedges(ntwrk.network)], [L, L/5 ,L/5]*meter^3);
-G    = computeGeometry(G);
-rock = makeRock(G, 200*milli*darcy, 0.12);
-
-% Fluid model with endpoint scaling of relative permeabilities
+%% Create the GPSNet
+% Each edge in the network is subgridded and mapped onto a row in a
+% rectangular Cartesian gird having the same number of rows as the number
+% of network edges. The fluid model is copied from the reference model.
 gravity off
-fluid = modelRef.fluid;
-model = GenericBlackOilModel(G, rock, fluid,'gas', false);
-model = imposeRelpermScaling(model, 'SWL', .1, 'SWCR', .2, 'SWU', .9,...
-                             'SOWCR', .1, 'KRW', .9, 'KRO', .8);
-model.OutputStateFunctions = {};
+%S0 = mean(statesTrain{1}.s); S0=S0/sum(S0);
+p0 = mean(statesTrain{1}.pressure);
+gpsNet = NetworkModel(modelTrue, ntwrk, WTrain, 'p0', p0);%, 'S0', S0);
 
-% Create the network model
-% Here, we use a generic black-oil type model and it is thus important to
-% validate the model to dynamically construct the correct number of phases
-% and components and set up all the necessary state functions.
-cellsPerPath = 10;
-ntwrkModel = NetworkModel(model, cellsPerPath, ntwrk.network, Wref);
-model      = ntwrkModel.model;
-model      = model.validateModel();
-W          = ntwrkModel.W;
-state0     = initState(model.G, W , 350*barsa,[0.05,0.95]);
+% Reset the initial saturation, so that we have water in the left half of
+% the model and oil in the right half. This will better reflect the
+% situation with injectors completed in the water zone.
+[I,~,~]=gridLogicalIndices(gpsNet.model.G);
+gpsNet.state0.s(I<=5,:)=repmat([1 0], sum(I<=5),1);
+figure, gpsNet.plotGrid(gpsNet.state0.s(:,1)); colorbar
 
-% Simulation tolerances
-model.toleranceCNV = 1e-6;
-%model.FacilityModel.toleranceWellRate = 1e-4;
-%model.FacilityModel.toleranceWellMS  = 1e-4;
+%% Plot the GPSNet model: network and simulation grid
+%fig1 = figure;
+clf
+subplot(2,2,1)
+G = trueEx.getVisualizationGrid();
+plotCellData(G, log10(trueEx.model.rock.perm(:,1)),'EdgeColor','none');
+plotWell(G, trueEx.schedule.control(1).W,'color','k','FontSize',10);
+view(-85,65); 
+axis tight off; set(gca,'Clipping',false)
 
-% Simulation schedule
-% We use the first 70 time steps from the fine-scale simulation to train
-% the network model. The remaining time steps will be used for prediction.
-schedule = simpleSchedule(scheduleRef.step.val(1:70), 'W', W);
+subplot(2,2,3), ax=gca;
+cmap=ntwrk.plotNetwork();
+axis tight off; set(ax,'Clipping',false)
+ax.Children(2).NodeFontSize=10;
+view(-90,90);
 
-% Set up the problem structure
-prob = struct('model', model, 'schedule', schedule, 'state0', state0);                               
+subplot(2,2,4), ax=gca;
+ntwrk.plotNetwork('circle'); 
+axis equal tight off; set(ax,'Clipping',false)
+ax.Children(1).NodeFontSize=10;
 
-% Plot the initial data
-%figure
-%plotCellData(model.G, state0.s(:,2))
-%colorbar, view(0,0);axis equal tight;  daspect([1,0.1,0.1])
+subplot(2,2,2), ax=gca;
+gpsNet.plotGrid([]);
+colormap(ax,min(cmap+.2,1));
+for i=1:6, ax.Children(i).Position(1) = 3100; end
+for i=7:14, ax.Children(i).Position(1)= -150; end
+set(ax.Children(1:14),'FontSize',10);
 
-
-%% Specify the parameters to be matched
+%% Specify training schedule and parameters to be matched
 % We need to specify which of the parameters in the model we wish to match
 % and any scaling and box limits that will applied to these in the BFGS
 % optimization. These are specified through through the ModelParameter
-% class from the optimization module.
+% class from the optimization module. For the training we use the random
+% schedule
+trainSetup = gpsNetSimulationSetup(gpsNet, scheduleTrain);
+predSetup  = gpsNetSimulationSetup(gpsNet, scheduleTrue);
 
 % Parameter lumping
 % In the GPSNet type of models, we only match a single pore volume and a
 % single transmissibility for each network edge. We thus need a mapping
-% between edges and cells/faces in the Cartesian grid to describe the
-% corresponding lumping of parameters in this grid.
-[cellEdgeNo, cellIx] = reorganizeIndices(ntwrkModel.Graph.Edges.Cell_Indices);
-[faceEdgeNo, faceIx] = reorganizeIndices(ntwrkModel.Graph.Edges.Face_Indices);
-
-nc =  model.G.cells.num;
-nf =  numel(model.operators.T);
+% between edges and all associated cells/faces in the Cartesian grid to
+% describe the corresponding lumping of parameters in this grid.
+[cellEdgeNo, cellIx] = gpsNet.getMapping('cells');
+[faceEdgeNo, faceIx] = gpsNet.getMapping('faces');
 
 % Select configuration for sensitivity computations
 config = {
@@ -156,20 +158,17 @@ config = {
     'porevolume',       1,   'linear',       [],  cellEdgeNo,   cellIx,  [.001 2]
     'conntrans',        1,   'log',          [],          [],       [],  [.001 20]
     'transmissibility', 1,   'log'   ,       [],  faceEdgeNo,   faceIx,  [.001 20]
-    'swl',              1,   'linear',       [],  ones(nc,1),       [],  [.5 2]
-    'swcr',             1,   'linear',       [],  ones(nc,1),       [],  [.5 2]
-    'swu',              1,   'linear',       [],  ones(nc,1),       [],  [.5 2]
-    'sowcr',            1,   'linear',       [],  ones(nc,1),       [],  [.5 2]
-    'krw',              1,   'linear',       [],  ones(nc,1),       [],  [.5 2]
-    'kro',              1,   'linear',       [],  ones(nc,1),       [],  [.5 2]
-    'sw',               1,   'linear',   [0 .3],  cellEdgeNo,   cellIx,  [0 10]};
-    %'pressure'          1,   'linear',       [],  cellEdgeNo,   cellIx,  [.5 2]};
-parameters = [];
+    'sw',               1,   'linear',    [0,1],          [],       [],  []};
+prmsTrain = []; prmsTrue = [];
 for k = 1:size(config,1)
     if config{k, 2} == 0, continue, end
-    parameters = addParameter(parameters, prob, ...
-        'name',    config{k,1}, 'scaling',       config{k,3}, ...
-        'boxLims', config{k,4}, 'lumping',       config{k,5}, ...
+    prmsTrain = addParameter(prmsTrain, trainSetup, ...
+        'name',    config{k,1}, 'scaling', config{k,3}, ...
+        'boxLims', config{k,4}, 'lumping', config{k,5}, ...
+        'subset',  config{k,6}, 'relativeLimits',config{k,7});
+    prmsTrue = addParameter(prmsTrue, predSetup, ...
+        'name',    config{k,1}, 'scaling', config{k,3}, ...
+        'boxLims', config{k,4}, 'lumping', config{k,5}, ...
         'subset',  config{k,6}, 'relativeLimits',config{k,7});
 end
  
@@ -179,66 +178,70 @@ end
 % a given simulation and a reference state. For an oil-water system, the
 % match is computed based on three quantities (water/oil rate and bhp) and
 % these must be given an associated weight.
-weighting =  {'WaterRateWeight',  day/4, ...
-              'OilRateWeight',    day/4, ...
-              'BHPWeight',        .5/barsa};
+weighting =  {'WaterRateWeight',  day/2000, ...
+              'OilRateWeight',    day/1000, ...
+              'BHPWeight',        1/(50*barsa)};
 mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
     matchObservedOW(model, states, schedule, states_ref,...
                     'computePartials', tt, 'tstep', tstep, weighting{:},...
                     'state',state,'from_states',false);
 
-%% Evaluate the mismatch for the initial model
-% To evaluate the initial mismatch, we first extract the network parameters
-% from the initial specification, scale them to the unit interval, and pass
-% them onto a library function from the optimization module that performs
-% the forward simulation and evaluates the mismatch using mismatchFn.
-
-% Extract and scale parameters
-% Remember to overwrite pore volumes and transmissibilities if initial
-% values for these have been computed by flow diagnostics
-values = applyFunction(@(p)p.getParameterValue(prob), parameters);
-values{2} =  5*values{2};
-if any(strcmp(networkType,{'fd_preprocessor','fd_postprocessor'}))
-    values{1} =  pv/cellsPerPath;
-    values{3} =  TT;
-end
-for k = numel(values):-1:1    
-    u{k} = parameters{k}.scale(values{k});
-end
-paramVec = vertcat(u{:});
-
-%{
-% Perform a forward simulation and evaluate the mismatch
-[misfitVal_0,~,wellSols_0,states_0] = ...
-    evaluateMatch(paramVec,mismatchFn,prob,parameters, statesRef,'Gradient','none');
-
-% Plot well curves for the reference and the initial model
-plotWellSols({wellSolsRef, wellSols_0},...
-    {scheduleRef.step.val, schedule.step.val}, ...
-    'datasetnames', {'reference','initial'}, 'zoom', true, ...
-    'field', 'qOs', 'SelectedWells', 9);
-%}
+%% Evaluate the initial misfit in training data and prediction data
+% To define the initial model, we extract the network parameters from the
+% initial specification, scale them to the unit interval, and organize them
+% into a vector that can be passed onto mismatchFn
+pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 5);
+ 
+% Evaluate the initial mismatch for the training data
+[misfitT0,~,wellSolsT0] = ...
+    evaluateMatch(pinit,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
+[misfitE0,~,wellSolsE0] = ...
+    evaluateMatch(pinit,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
 
 %% Model calibration
-% Calibrate the model using the BFGS method
-objh = @(p) evaluateMatch(p, mismatchFn, prob, parameters, statesRef);
+% Calibrate the model using the BFGS method. This is a computationally
+% expensive operation that may run for several hours if you choose a large
+% number of iterations. Here, we therefore only apply 10 iterations. 
+objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,prmsTrain,statesTrain);
+[v, popt, history] = unitBoxBFGS(pinit, objh, 'objChangeTol', 1e-8, ...
+    'gradTol', 1e-5, 'maxIt', 2, 'lbfgsStrategy', 'dynamic', ...
+    'lbfgsNum', 5, 'outputHessian', true, 'logPlot', true);
+%{
+objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,prmsTrain,statesTrain);
+its = [0 50 100:100:400]; misfit=0*its; misfit(1)=misfitE0;
+popt = pinit; history = {};
+for i=3:numel(its)
+    [v, popt, history] = unitBoxBFGS(popt, objh, 'objChangeTol', 1e-8, 'gradTol', 1e-5, ...
+        'maxIt', its(i)-its(i-1), 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5, ...
+        'outputHessian', true, 'logPlot', true, 'history', history, 'figNo',10);
+    misfit(i) = evaluateMatch(popt,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
+    save(sprintf('gpsnet-saigup-all-%d.mat',its(i)),'misfit','history','popt'); 
+end
+%}
+    
+%% Evaluate mismatch over the full simulation schedule 
+[misfitE, ~,wellSolsE] = ...
+    evaluateMatch(popt,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
+[misfitT,~,wellSolsT] = ...
+    evaluateMatch(popt,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
 
-[v, p_opt, history] = unitBoxBFGS(paramVec, objh,'objChangeTol',  1e-8, ...
-    'maxIt',30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+%% Plot well responses for training data
+trainSteps = scheduleTrain.step.val;
+fh = plotWellSols({wellSolTrain,wellSolsT0,wellSolsT}, ...
+    {trainSteps, trainSteps, trainSteps}, ...
+    'datasetnames', {'train','init','match'}, 'zoom', true, ...
+    'field', 'qWs', 'SelectedWells', [9,14]);
+set(fh, 'name','SAIGUP: GPSNet training')
 
-%% Evaluate mismatch over the full simulation schedule
-schedule = simpleSchedule(scheduleRef.step.val, 'W', W);
-prob.schedule = schedule;
 
-[~,~,wellSols_opt] = evaluateMatch(p_opt,   mismatchFn,prob,parameters,statesRef,'Gradient','none');
-[~,~,wellSols_0]   = evaluateMatch(paramVec,mismatchFn,prob,parameters,statesRef,'Gradient','none');
+%% Plot well responses for prediction case
+predSteps = scheduleTrue.step.val;
+fh = plotWellSols({wellSolTrue,wellSolsE0, wellSolsE}, ...
+    {predSteps, predSteps, predSteps}, ...
+    'datasetnames', {'reference','initial','predicted'}, 'zoom', true, ...
+    'field', 'qWs', 'SelectedWells', [9,14]);
+set(fh, 'name','SAIGUP: GPSNet prediction')
 
-%% Plot well curves
-plotWellSols({wellSolsRef,wellSols_0,wellSols_opt}, ...
-    {scheduleRef.step.val,schedule.step.val,schedule.step.val}, ...
-    'datasetnames', {'reference','initial','optimized'}, 'zoom', true, ...
-    'field', 'qOs', 'SelectedWells', 9);
-legend('reference model','initial DD model','optimize DD model')
 
 %% Copyright Notice
 %
