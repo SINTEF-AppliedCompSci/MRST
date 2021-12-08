@@ -1,9 +1,9 @@
-function hash = obj2hash(obj, varargin)
+function [hash, hashStruct] = obj2hash(obj, varargin)
 %Compute hash value (md5 checksum) of an object, including classes.
 %
 % SYNOPSIS:
-%   hash = obj2hash(obj)
-%   hash = obj2hash(obj, 'pn1', pv1, ...)
+%   [hash, hashStruct] = obj2hash(obj)
+%   [hash, hashStruct] = obj2hash(obj, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   This function computes the hash value (md5 checksum) of an object.
@@ -27,18 +27,22 @@ function hash = obj2hash(obj, varargin)
 % RETURNS:
 %   hash - string of 32 characters with the hexadecimal md5 checksum of
 %          obj. Specifically, if obj is
-%               * numerical, logical or a character array, the hash equals
-%                 the md5 checksum of obj (see note on maxSize above).
-%               * a cell array, the hash equals the combined hash of the
-%                 hash of each element of obj.
-%               * a struct, the hash equals the combined hash of the
-%                 hash of each of the fields of obj (see note on skipped
-%                 field names above).
-%               * none of the above, the hash equals the combined hash of
-%                 the hash of each of the properties of obj (see note on
-%                 skipped field names above). If obj has no public
-%                 properties, the function will fall back to hasing
-%                 class(obj)
+%               1) numerical, logical or a character array, the hash equals
+%                  the md5 checksum of obj (see note on maxSize above).
+%               2) a cell array, the hash equals the combined hash of the
+%                  hash of each element of obj.
+%               3) a struct, the hash equals the combined hash of the
+%                  hash of each of the fields of obj (see note on skipped
+%                  field names above).
+%               4) none of the above, the hash equals the combined hash of
+%                  the hash of each of the properties of obj (see note on
+%                  skipped field names above). If obj has no public
+%                  properties, the function will fall back to hasing
+%                  class(obj)
+%  hashStruct - Structure with the hash of each of the fields or properties
+%               if obj is either 3 or 4 above. Empty otherwise.
+%
+%  hash - string of 32 characters with the hexadecimal md5 checksum of
 %
 % EXAMPLES:
 %   obj  = struct('f1', rand(10), 'f2', {{'yes', 'no', struct('a', 2)}});
@@ -48,7 +52,7 @@ function hash = obj2hash(obj, varargin)
 %   rock  = makeRock(G, 100*milli*darcy, 0.1);
 %   fluid = initSimpleADIFluid();
 %   model = GenericBlackOilModel(G, rock, fluid);
-%   hash  = obj2hash(model);
+%   [hash, hashStruct] = obj2hash(model);
 %
 % SEE ALSO:
 %   `md5sum`
@@ -79,6 +83,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Avoid empty hash values
     if isempty(obj), obj = '[]'; end
+    % Initialize second return variable
+    hashStruct = [];
     
     if isnumeric(obj) || islogical(obj) || ischar(obj)
         % Object is a type we can hash directly
@@ -108,6 +114,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         % Object is not of a type we can hash directly
         names = properties(obj);
+        if isa(obj, 'SimpleTimeStepSelector')
+            obj.reset(); % Ensure that timestep selector is reset
+        end
     end
     
     if isempty(names)
@@ -126,7 +135,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         prop    = obj.(names{i});
         hash{i} = obj2hash(prop, varargin{:});
     end
-    hash = hash(~cellfun(@isempty, hash));
+    % Extract names that was used in the hash
+    keep  = ~cellfun(@isempty, hash);
+    names = names(keep);
+    hash  = hash(keep);
+    % Make struct
+    hashStruct = cell2struct(hash, names', 2);
     % Hash the combined result
     hash = combineHashes(hash);
     
