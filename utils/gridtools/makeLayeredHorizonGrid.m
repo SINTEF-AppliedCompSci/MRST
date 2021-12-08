@@ -1,4 +1,4 @@
-function G = makeLayeredHorizonGrid(G2D, horizons, varargin)
+function [G, cellmap] = makeLayeredHorizonGrid(G2D, horizons, varargin)
 %Build 3D grid that adapts to a set of horizons from a 2D grid by making a
 %layered grid and interpolating z coordinates between horizons
 %
