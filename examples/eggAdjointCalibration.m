@@ -7,10 +7,11 @@
 % default setup of the example is to use flow diagnostic postprocessing of
 % the reference simulation to determine nonzero interwell connections.
 %
-% For the calibration, we use the Broyden–Fletcher–Goldfarb–Shanno (BFGS)
-% algorithm. This is an iterative line-search method that gradually
-% improves an approximation to the Hessian matrix of the mismatch function,
-% obtained only from adjoint gradients via a generalized secant method.
+% For the calibration, we use the limited-memory
+% Broyden–Fletcher–Goldfarb–Shanno (L-BFGS) algorithm. This is an iterative
+% line-search method that gradually improves an approximation to the
+% Hessian matrix of the mismatch function, obtained only from adjoint
+% gradients via a generalized secant method.
 %
 % This example was first introduced in MRST 2021b.
 mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
@@ -27,7 +28,7 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
 % True schedule, which we seek to reproduce
 trueEx   = MRSTExample('egg_wo');
 trueCase = trueEx.getPackedSimulationProblem();
-%clearPackedSimulatorOutput(trueProb)
+%clearPackedSimulatorOutput(trueCase)
 simulatePackedProblem(trueCase);
 
 [wellSolTrue, statesTrue] = getPackedSimulatorOutput(trueCase);
@@ -35,10 +36,18 @@ modelTrue     = trueEx.model;
 scheduleTrue  = trueCase.SimulatorSetup.schedule;
 WTrue         = scheduleTrue.control.W;
 
-% Random schedule
-trainEx   = makeRandomTraining(trueEx, false);
+% Plot
+trueEx.plot(statesTrue,'step_index',numel(statesTrue));
+
+
+%% Random schedule
+% The basic schedule produces the reservoir with bhp controls that are very
+% close to the reservoir pressure. To avoid prescribing conditions that
+% result in injection from the producers, we introduce a bhp perturbation
+% that is nonsymmetric around the base case
+trainEx   = makeRandomTraining(trueEx, 0.25, @(x,y) y - 5*(x-.2)*barsa, false);
 trainCase = trainEx.getPackedSimulationProblem();
-%clearPackedSimulatorOutput(trainProb)
+%clearPackedSimulatorOutput(trainCase)
 simulatePackedProblem(trainCase);
 
 [wellSolTrain, statesTrain] = getPackedSimulatorOutput(trainCase);
@@ -46,13 +55,10 @@ modelTrain     = trainEx.model;
 scheduleTrain  = trainCase.SimulatorSetup.schedule;
 WTrain         = scheduleTrain.control.W;
 
-% Plot
-trueEx.plot(statesTrue,'step_index',numel(statesTrue))
-
 plotWellSols({wellSolTrain, wellSolTrue}, ...
     {scheduleTrain.step.val, scheduleTrue.step.val},...
     'datasetnames',{'training','reference'}, ...
-    'zoom', true, 'field', 'qWs', 'SelectedWells', 1:6);
+    'zoom', true, 'field', 'qWs', 'SelectedWells', [1 9]);
 
 %% Create the network
 % We start by creating a network that connects injectors and producers.
@@ -71,10 +77,8 @@ end
 % producers (and vice versa), connections specified manually by the user,
 % connections determined by a flow diagnostics analysis of the 3D
 % geological model, or connections based on flow diagnostics analysis of
-% the fine-scale reference simulation. Here, we use the second last
-% approach but supply code for all other options as well.
-
-networkType = 'fd_preprocessor';
+% the fine-scale reference simulation. 
+networkType = 'injectors_to_producers';
 switch networkType
     case 'all_to_all'
         ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType);
@@ -92,7 +96,7 @@ switch networkType
                          'problem', trueCase,                   ...
                          'flow_filter',1*stb/day);
     case 'fd_postprocessor'
-        ntwrk = Network(Wnw, modelRef.G, 'type', networkType, ...
+        ntwrk = Network(Wnw, modelTrue.G, 'type', networkType, ...
                          'problem', trueCase,                 ...
                          'state_number',40,                   ...
                          'flow_filter', 1*stb/day);
@@ -199,35 +203,41 @@ pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 7);
 %% Model calibration
 % Calibrate the model using the BFGS method. This is a computationally
 % expensive operation that may run for several hours if you choose a large
-% number of iterations. Here, we therefore only apply 25 iterations. 
+% number of iterations. Here, we therefore only apply 25 iterations, which
+% may take up to ten minutes to run, depending on your computer.
 objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,prmsTrain,statesTrain);
-[v, popt, history] = unitBoxBFGS(pinit, objh, 'objChangeTol', 1e-8, 'gradTol', 1e-5, ...
-    'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5, ...
-    'outputHessian', true, 'logPlot', true);
+[v, popt, history] = unitBoxBFGS(pinit, objh, 'objChangeTol', 1e-8, ...
+    'gradTol', 1e-5, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', ...
+    'lbfgsNum', 5, 'outputHessian', true, 'logPlot', true);
 
 %% Evaluate mismatch over the full simulation schedule 
-[misfitE, ~,wellSolsE] = ...
+[misfitE, ~,wellSolsE,solsAll] = ...
     evaluateMatch(popt,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
 [misfitT,~,wellSolsT] = ...
     evaluateMatch(popt,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
 
 %% Plot well responses for training data
 trainSteps = scheduleTrain.step.val;
-fh = plotWellSols({wellSolTrain,wellSolsT0,wellSolsT}, ...
-    {trainSteps, trainSteps, trainSteps}, ...
-    'datasetnames', {'train','init','match'}, 'zoom', true, ...
-    'field', 'qWs', 'SelectedWells', 7:8);
+fh = plotWellSols({wellSolTrain,wellSolsT0,wellSolsT}, trainSteps, ...
+    'datasetnames', {'data','init','match'}, 'zoom', true, ...
+    'field', 'qWs', 'SelectedWells', 9:10);
 set(fh, 'name','Egg: GPSNet training')
 
 
 %% Plot well responses for prediction case
 predSteps = scheduleTrue.step.val;
-fh = plotWellSols({wellSolTrue,wellSolsE0, wellSolsE}, ...
-    {predSteps, predSteps, predSteps}, ...
-    'datasetnames', {'reference','initial','predicted'}, 'zoom', true, ...
-    'field', 'qOs', 'SelectedWells', 7:8);
+fh = plotWellSols({wellSolTrue,wellSolsE0, wellSolsE}, predSteps, ...
+    'datasetnames', {'data','init','match'}, 'zoom', true, ...
+    'field', 'qWs', 'SelectedWells', 9:10);
 set(fh, 'name','Egg: GPSNet prediction')
 
+%% Plot the evolving saturation
+figure
+gpsNet.plotGrid(solsE{1}.s(:,1)); colormap(flipud(winter)); caxis([0 1])
+for i=2:numel(solsE)
+    cla
+    gpsNet.plotGrid(solsE{i}.s(:,1)); drawnow; pause(0.1);
+end
 %% Copyright Notice
 %
 % <html>
