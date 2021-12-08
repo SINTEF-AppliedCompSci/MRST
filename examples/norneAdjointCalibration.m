@@ -39,7 +39,7 @@ scheduleTrue  = trueCase.SimulatorSetup.schedule;
 WTrue         = scheduleTrue.control.W;
 
 % Random schedule
-trainEx   = makeRandomTraining(trueEx, false);
+trainEx   = makeRandomTraining(trueEx, 0.25, 0.05, false);
 trainCase = trainEx.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trainProb)
 simulatePackedProblem(trainCase);
