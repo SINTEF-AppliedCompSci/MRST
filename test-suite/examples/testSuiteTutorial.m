@@ -5,7 +5,7 @@
 % the TestCase class.
 
 %% Add necessary modules
-mrstModule add example-suite
+mrstModule add test-suite
 mrstModule add ad-core ad-props ad-blackoil
 mrstModule add mrst-gui
 mrstVerbose off
@@ -21,7 +21,7 @@ setup0 = qfs_wo(true , 'nkr', 1); % Get options and description only
 disp(setup0);
 
 setup  = qfs_wo(false, 'nkr', 1); %#ok Get full setup
-setup  = qfs_wo('nkr', 1);        % Omitting optOnly argument also gives full setup
+setup  = qfs_wo('nkr', 1);        % Omitting optOnly also gives full setup
 disp(setup);
 
 %% Setting up a test case
@@ -53,11 +53,12 @@ simulatePackedProblem(problem);                    % Simulate
 % The TestCase method plot wraps around plotToolbar and generates visually
 % pleasing plots of the data.
 [wellSols, states, reports] = getPackedSimulatorOutput(problem);
-test.plot(states);
+test.plot(states); colormap(bone);
 % You can also use the TestCase methods to generate visually pleasing plots
 % without using plotToolbar
 test.figure();
 plotCellData(test.model.G, states{1}.pressure, 'edgeAlpha', 0.2);
+test.plotWells();
 test.setAxisProperties(gca);
 
 %% Copyright Notice

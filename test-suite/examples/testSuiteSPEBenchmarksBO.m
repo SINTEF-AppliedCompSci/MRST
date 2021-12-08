@@ -1,7 +1,7 @@
 %% Minimal example showing how to run multiple examples using MRSTExample
 
 %% Add required modules
-mrstModule add example-suite
+mrstModule add test-suite
 mrstModule add ad-core ad-props ad-blackoil deckformat
 mrstModule add mrst-gui
 mrstVerbose on
