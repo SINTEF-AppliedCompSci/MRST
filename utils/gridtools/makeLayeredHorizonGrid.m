@@ -3,11 +3,11 @@ function [G, cellmap] = makeLayeredHorizonGrid(G2D, horizons, varargin)
 %layered grid and interpolating z coordinates between horizons
 %
 % SYNOPSIS:
-%   G = makeLayeredHorizonGrid(G2D, horizons)
-%   G = makeLayeredHorizonGrid(G2D, horizons, 'pn', pv)
+%   [G, cellmap] = makeLayeredHorizonGrid(G2D, horizons)
+%   [G, cellmap] = makeLayeredHorizonGrid(G2D, horizons, 'pn', pv)
 %
 % PARAMETERS:
-%  G        - A 2D grid to be extruded to 3D
+%  G2D      - A 2D grid to be extruded to 3D
 %  horizons - A cell array of structures describing the surfaces that make
 %             up the individual horizons. There must at least be two such
 %             horizons. The structure should contain three fields (x,y,z)
@@ -36,7 +36,12 @@ function [G, cellmap] = makeLayeredHorizonGrid(G2D, horizons, varargin)
 % DESCRIPTION:
 %
 % RETURNS:
-%   G - A valid MRST grid structure
+%   G       - A valid MRST grid structure
+%   cellmap - A map from cells in the grid G3D with collapsed cells due to
+%             collapsing horizons, (with G2D.cells.num*sum(layers) numer of
+%             cells), to cells in the returned grid where these are
+%             removed. Specifically, `cellmap(i)` is the cell ID of `G3D`
+%             that corresponds to cell `i` in `G`.
 %
 % EXAMPLES:
 %   [y,x,z]  = peaks(30);
