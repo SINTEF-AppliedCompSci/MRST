@@ -17,4 +17,16 @@ The changes needed in the DFN.m code are summarized below:
          
          cnt = [cnt(2) cnt(5)];
   
-3. 
+3. Line 90 of DFN.m (pts = rand(n,2);) needs to be changed to:
+
+         if isempty(opt.pos)
+         
+                  pts = [Scale(rand(n,1),opt.bbx(1),opt.bbx(3)),Scale(rand(n,1),...   % location bbox(0,1)
+                  
+                  opt.bbx(2),opt.bbx(4))];
+                  
+         else
+         
+                  pts = opt.pos;
+                  
+         end
