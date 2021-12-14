@@ -3,7 +3,7 @@ The changes needed in the DFN.m code are summarized below:
 
 1. Lines 47-49 of DFN.m need to be changed to: 
 
-opt = Option(varargin,'n',100,'minl',0.05,'mu',0.3,'maxl',0.6,...               % default arguments
+         opt = Option(varargin,'n',100,'minl',0.05,'mu',0.3,'maxl',0.6,...               % default arguments
 
          'bbx',[0,0,1,1],'polyDomain',{},'dim',2,'asep',0,'dsep',0,'mit',100,'scale',1,...
          
