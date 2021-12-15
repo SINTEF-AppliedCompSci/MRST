@@ -30,10 +30,12 @@ classdef RockSamplesHM < BaseSamplesHM & RockSamples
     
     properties
         
-        minPoroValue = 0;
-        minPermValue = 0;
+        minPoroValue = eps;
+        minPermValue = eps;
         maxPoroValue = inf;
         maxPermValue = inf;
+        
+        useKozenyCarman = false;
     end
     
     
@@ -80,6 +82,10 @@ classdef RockSamplesHM < BaseSamplesHM & RockSamples
                 end
                 sampleVectors(numCells+1:numCells*2, i) = rockData.poro(:);
             end
+            
+            if samples.useKozenyCarman
+                sampleVectors = sampleVectors(numCells+1:numCells*2, :);
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -96,11 +102,19 @@ classdef RockSamplesHM < BaseSamplesHM & RockSamples
                 numCells = numel(samples.data{1}.poro);
             end
             
+            if samples.useKozenyCarman
+                assert(size(newSampleVectors, 1) == numCells, ...
+                    'number of rows of new sample does not match old sample size');
+                
+                % Expand vector sizes
+                newSampleVectors = repmat(newSampleVectors, 2, 1);
+            end
+                
             assert(size(newSampleVectors, 1) == numCells*2, ...
                 'number of rows of new sample does not match old sample size');
-            
+
             for i = 1:samples.num
-                
+                                
                 if samples.transformSampleVectors
                     perm = exp(newSampleVectors(1:numCells, i));
                     permData = convertFrom(perm, milli*darcy);
@@ -115,6 +129,10 @@ classdef RockSamplesHM < BaseSamplesHM & RockSamples
                 permData(permData > samples.maxPermValue) = samples.maxPermValue;
                 poroData(poroData < samples.minPoroValue) = samples.minPoroValue;
                 poroData(poroData > samples.maxPoroValue) = samples.maxPoroValue;
+                
+                if samples.useKozenyCarman
+                    permData =  poroData.^3.*(1e-5)^2./(0.81*72*(1-poroData).^2);
+                end
                 
                 if rockIsField
                     samples.data{i}.rock.perm(:) = permData;
