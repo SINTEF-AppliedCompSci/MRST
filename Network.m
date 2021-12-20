@@ -286,7 +286,7 @@ classdef Network
                         'Network contains no pore volumes');
                     data = obj.network.Edges.pv;
                     lineWidth = opt.maxWidth*data/max(data);
-                case 'otherwise'
+                otherwise
                     error('Plot type not defined');
             end
             
