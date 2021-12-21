@@ -8,7 +8,7 @@ function [description, options, state0, model, schedule, plotOptions] = injector
 %                                    'cellsPerConnection', cellsPerConnection)
 %
 % DESCRIPTION:
-%   This function maps a full reservoir model into a redced GPSNet-type 
+%   This function maps a full reservoir model into a reduced GPSNet-type 
 %   network model with a *single* communication path between all pairs of
 %   injector and producer wells. The full reference model is also required 
 %   to be a MRSTExample object.
@@ -78,7 +78,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      's0', [0.2, 0.8], ...
                      'perm', 200*milli*darcy, ...
                      'poro', 0.1, ...
-                     'plotNetwork',  false);
+                     'plotNetwork',  false, ...
+                     'plottype', 'default');
     options = merge_options(options, varargin{:});
     
     if isempty(options.referenceExample)
@@ -119,36 +120,31 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Plot the network
     if options.plotNetwork
-        figure; network.plotNetwork()
+        figure; network.plotNetwork(options.plottype)
     end
     
     %% Build network model
     % We split each flow path into ten cells and define a computational 2D grid
     % in which each flow path is represented with a single row. We use the same
     % fluid model as in the full reference model.
-    % 
-    % The grid is set to have an aspect ratio of [5 1 1] and a volum that
-    % matches the bulk volume of the reservoir. 
-    L = nthroot(sum(options.referenceExample.model.operators.pv./options.referenceExample.model.rock.poro)*25, 3);
-    G = cartGrid([options.cellsPerConnection, 1, numedges(network.network)], ...
-                 [L, L/5, L/5]*meter^3);
-    G = computeGeometry(G);
-    rock = makeRock(G, options.perm, options.poro);
-
-    % Fluid model
-    gravity off
-    fluid = options.referenceExample.model.fluid;
-    model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
-    model.OutputStateFunctions = {};
-
-    % Map the network onto the MRST model
-    networkModel = NetworkModel(model, options.cellsPerConnection, network.network, Wnetwork);
-    model = networkModel.model;
-    model = model.validateModel();
-    W = networkModel.W;
-    state0 = initState(G, W, options.p0, options.s0);
-    schedule = simpleSchedule(options.referenceExample.schedule.step.val(:), 'W', W);
     
+    
+    % Creat the network model
+    networkModel = NetworkModel(options.referenceExample.model, network, ...
+                                options.referenceExample.schedule.control.W, ...
+                                options.cellsPerConnection, ...
+                                'p0', options.p0, ...
+                                'S0', options.s0);
+    
+    % Create schedule for the network model
+    networkSetup = gpsNetSimulationSetup(networkModel, options.referenceExample.schedule);
+    
+                            
+    % Decompose the networkModel to the MRSTExample structure 
+    model = networkSetup.model;
+    state0 = networkSetup.state0;
+    schedule = networkSetup.schedule;
+        
     % Return the NetworkModel through the options struct
     options.networkModel = networkModel;
 
