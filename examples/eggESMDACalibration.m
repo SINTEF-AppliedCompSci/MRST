@@ -25,9 +25,11 @@ warning('This example requires some time to run.')
 rerunReferenceModel = false; 
 plotReferenceModel = true;
 regenerateInitialEnsemble = false;
+forceRun = true; 
+
 
 %% Define reference realization and where to store reference data
-% Here, we choose which realization from the Egg ensemble we use as
+% We choose which realization from the Egg ensemble we use as
 % reference data, and define where to store the data generated from this
 % example.
 
@@ -47,8 +49,9 @@ historyMatchingDirectory = fullfile(topDirectory, ...
 
 referenceExample = MRSTExample('egg_wo', 'realization', referenceEggRealization);
 
-% We consider only the first 48 time steps from the reference model, since
-% most of the model dynamics play out during that periode.
+% Most of the dynamics in the Egg model plays out during the first half or 
+% so of the total time span. We therefore consider just a subset of the 
+% schedule from the reference model.
 referenceExample.schedule = simpleSchedule(referenceExample.schedule.step.val(5:53), ...
                                            'W', referenceExample.schedule.control.W);
 numTotalTimesteps = numel(referenceExample.schedule.step.val);
@@ -103,12 +106,12 @@ baseNetworkModel = MRSTExample('injector_to_producer_network', ...
 % either the 3D geological model (preproccessing) or the fine-scale
 % reference simulation (postprocessing).
 %
-% Since the flow diagnostics analalysis will only identify communications
+% Since the flow diagnostics analysis will only identify communications
 % between a subset of all injector-producer pairs, the ensemble members
 % will consist of networks of different sizes and shapes. We therefore map
 % all the resulting networks back to the injectors-to-producers network.
 % The closed connections are given parameters that ensure valid
-% simulations, but that give negligible contribution to the fluid flows.
+% simulations, but that give negligible contribution to the fluid flow.
 %
 % For initial values for the well production indices, we use the mean
 % contribution from the perforated cells of the full model as the value for
@@ -117,32 +120,39 @@ baseNetworkModel = MRSTExample('injector_to_producer_network', ...
 % convenience.
 %
 % We store the initial ensemble parameters in the appropriate Sample
-% objects designed for history matching through the ensemble module. For 
+% objects designed for history matching from the ensemble module. For 
 % this, we use a class that are designed specifically for network models
 % for holding the relevant parameters. We also specify maximum and minimum
 % allowed values to avoid that simulations break down due to nonphysical
 % configurations.
-
+%
+% For details, see createEggSamplesFromFlowDiagnostics.m
 
 initializationType = 'fd_preprocessor';
 %initializationType = 'fd_postprocessor';
-eggRealizations = [1:100];
+eggRealizations = [1:10];
+%eggRealizations = [1:100];
+
+if (numel(eggRealizations) < 50)
+    warning('A small ensemble can be used to investigate what is going on in the example, but you should use closer to 100 ensemble members for good results.');
+end
 
 samples = createEggSamplesFromFlowDiagnostics(...
     baseNetworkModel, eggRealizations, initializationType, ...
     'regenerateInitialEnsemble', regenerateInitialEnsemble, ...
-    'fullEnsembleDirectory', fullEnsembleDirectory ...
+    'fullEnsembleDirectory', fullEnsembleDirectory, ...
+    'WItype', 'mean' ...
 );
 
 %% Create QoI object and define observation uncertainty
 % The quantity of interest for an ensemble simulation defines which data we
-% will keep from after simulating each realization.
+% will keep after simulating each ensemble member.
 % Here, this will be the production rates and bhp.
-% This will also correspond to the data that we use in the history mathcing
+% This will also correspond to the data that we use in the history matching
 % for calibration.
 %
-% In history matching, the observations are always considered to contain
-% some noise, or uncertainty, and history matching algorithms, such as
+% In history matching, the observations are always assumed to contain
+% some noise or uncertainty, and history matching algorithms, such as
 % ES-MDA, is constructed to calibrate model parameters with respect to the
 % uncertainty of the observations. In this example, we consider the
 % reference data to be exact, but we still need to give a measure of the
@@ -162,11 +172,11 @@ qoi = WellQoIHM('wellNames', wellNames, ...
             
 %% Create the ensemble object
 % Here, we gather all the information we have made until now. The ensemble
-% consists of the baseExample that defines everything all the ensemble
-% members have in common (geological model, grid, fluid, simulation
-% methods, and so on). We also specify the alpha parameters for ES-MDA,
-% choose parallel simulation strategy, etc. More information about input
-% parameters can be found in the base class MRSTEnsemble.m.
+% consists of the baseExample that defines everything the ensemble members
+% have in common (geological model, grid, fluid, simulation methods, and so
+% on). We also specify the alpha parameters for ES-MDA, choose parallel
+% simulation strategy, etc. More information about input parameters can be 
+% found in the base class MRSTEnsemble.m.
 
 % The maxWorkers argument determines the maximum number of simultaneous 
 % processes which will be used to simulate the ensemble. Increasing this
@@ -180,8 +190,8 @@ ensemble = MRSTHistoryMatchingEnsemble(baseNetworkModel, samples, qoi, ...
     'perturbObservations', false, ...
     'alpha', [28/3 7 4 2], ...
     'directory', historyMatchingDirectory, ...
-    'simulationStrategy', 'spmd', ...
-    'maxWorkers', 8, ...
+    'simulationStrategy', 'background', ...
+    'maxWorkers', 4, ...
     'reset', true, ...
     'verbose', true, ...
     'verboseSimulation', false);
@@ -197,16 +207,7 @@ ensemble = MRSTHistoryMatchingEnsemble(baseNetworkModel, samples, qoi, ...
 % Running simulations for all ensemble members will take a long time,
 % prompt the user before beginning simulations. 
 
-% prompt = sprintf(['Do you want to simulate %d ensemble members?',...
-%                   '\nThis action may take a long time. y/n [n]: '], ...
-%                   ensemble.num);
-% str = input(prompt,'s');
-% if ~strcmpi(str, 'y') || runAll
-%     fprintf(['\nSimulations will not be run. \nYou will need to run ',...
-%     'these simulations for the rest of the example to work.\n']);
-% else
-    ensemble.simulateEnsembleMembers('progressTitle', 'Simulating prior ensemble');
-% end
+ensemble.simulateEnsembleMembers('progressTitle', 'Simulating prior ensemble');
 
 %% Configure the schedule used during history matching
 % During the calibration, we only use every second observation, and we only
@@ -222,33 +223,14 @@ ensemble.updateHistoryMatchingInterval(observationIndices);
 % given as 'alpha' to the ensemble, running intermediate ensemble 
 % simulations as it goes.
 
-% prompt = sprintf(['Do you want to run history matching for %d ensemble members?',...
-%                   '\nThis action may take a long time. y/n [n]: '], ...
-%                   ensemble.num);
-% str = input(prompt,'s');
-% if ~strcmpi(str, 'y') 
-%     fprintf(['\nHistory matching will not be run. \nYou will need to run ',...
-%     'the history matching for the rest of the example to work\n']);
-% else
-    ensemble.doHistoryMatching()
-% end
+ensemble.doHistoryMatching()
+
 
 %% Run the posterior ensemble using the calibrated parameters
 % We specify that we want to run the posterior for the complete simulation
 % time span.
-
-% prompt = sprintf(['Do you want to simulate %d ensemble members?',...
-%                   '\nThis action may take a long time. y/n [n]: '], ...
-%                   ensemble.num);
-% str = input(prompt,'s');
-% if ~strcmpi(str, 'y')
-%     fprintf(['\nSimulations will not be run.\nYou will need to run ',...
-%     'these simulations for the rest of the example to work.\n']);
-% else
-    ensemble.updateHistoryMatchingInterval(1:totalNumberOfTimesteps);
-    ensemble.simulateEnsembleMembers('progressTitle', 'Simulating posterior ensemble');
-% end
-
+ensemble.updateHistoryMatchingInterval(1:totalNumberOfTimesteps);
+ensemble.simulateEnsembleMembers('progressTitle', 'Simulating posterior ensemble');
 
 %% Plot prior and posterior ensemble results
 %
@@ -270,7 +252,7 @@ plotWells(12).qWs = true;
 % [plotWells(producers).qOs] = deal(true);
 % [plotWells(producers).qWs] = deal(true);
 % [plotWells(injectors).bhp] = deal(true);
-% 
+
 
 close all
 disp('Plotting in progress, please wait...');
