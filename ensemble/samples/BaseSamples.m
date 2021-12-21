@@ -190,6 +190,46 @@ classdef BaseSamples
             meanSample.num = 1;
             
         end
+        
+          function varSample = getVarianceSample(sample)
+            % Computes the variance of the sample distributions and structure
+            % the output in the same form as the relevant sample object.
+            %
+            % SYNOPSIS:
+            %   meanSamples = sample.getMeanSamples()
+            %
+            % RETURNS:
+            %   meanSamples - same object type as sample but with one num
+            %   only.
+            %
+            % NOTE:
+            %   This function ust be implemented by each specific sample
+            %   type.
+                        
+            if isinf(sample.num)
+                error('Function cannot be used when generating samples on the fly');
+            elseif ~iscell(sample.data)
+                error('Function currently only implemented for cell array samples');
+            end
+            
+            meanSample = sample.getMeanSample();
+
+            fields = fieldnames(sample.data{1});
+            varData = sample.data{1};
+            for f = 1:numel(fields)
+                varData.(fields{f}) = (varData.(fields{f}) - meanSample.data{1}.(fields{f})).^2;
+                for i = 2:sample.num
+                    varData.(fields{f}) = varData.(fields{f}) + ...
+                        (sample.data{i}.(fields{f}) - meanSample.data{1}.(fields{f})).^2;
+                end
+                varData.(fields{f}) = varData.(fields{f})./(sample.num-1);
+            end
+            
+            varSample = sample;
+            varSample.data = {varData};
+            varSample.num = 1;
+            
+        end
     end
 end
     
