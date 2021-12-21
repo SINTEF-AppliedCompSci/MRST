@@ -287,12 +287,58 @@ disp('Plotting completed');
 
 
 
+
+
+
 %% Running model using the mean parameter values
+% (optional)
 %  Often with model calibration, we wish to have a model with a single set
 %  of parameters at the end. We therefore compute the mean of the prior and
 %  the posterior and run the network model to compare the usefulness of the
 %  mean parameter distributions.
 
+meanPriorSample = samples.getMeanSample();
+meanPosteriorSample = ensemble.samples.getMeanSample();
+
+%% Define new ensemble object 
+%  Even though we now are interested in single simulations of the prior and
+%  posterior means, respectively, we use the history matching ensemble
+%  class to easily run the simulation and get the plotting.
+%  We also reuse the QoI object from before.
+
+meanSimulationsDirectory = fullfile(topDirectory, ...
+    ['means_network_ensemble_egg_', num2str(referenceEggRealization)]);
+
+meanEnsemble = MRSTHistoryMatchingEnsemble(baseNetworkModel, meanPriorSample, qoi, ...
+    'observationProblem', referenceProblem, ...
+    'perturbObservations', false, ...
+    'directory', meanSimulationsDirectory, ...
+    'simulationStrategy', 'serial', ...
+    'reset', true, ...
+    'verboseSimulation', true);
+
+% Run simulation with the mean of the prior parameters
+meanEnsemble.simulateEnsembleMembers();
+
+%% Manually update the ensemble samples to the posterior mean
+%  When doing history matching, the ensemble class computes a new set of
+%  parameters and updates the ensemble samples behind the scenes. Here, we
+%  already have the new sample and update the ensemble samples directly.
+meanEnsemble.updateHistoryMatchingIterations(meanPosteriorSample);
+
+% Run simulation with the mean of the posterior parameters
+meanEnsemble.simulateEnsembleMembers();
+
+%% Plot the results using the prior and posterior mean parameters
+meanEnsemble.plotQoI('subplots', false, 'clearFigure', false, ...
+    'cmapName', 'lines', ...
+    'plotTruth', true, ...
+    'observationIndices', observationIndices, ...
+    'plotWells', plotWells, ... 
+    'legend', {'observations', 'truth', ...
+    'posterior parameters mean', 'prior parameters mean'}, ...
+    'Position', [700 200 560 420]);
+disp('Plotting completed');
 
 
 %%
