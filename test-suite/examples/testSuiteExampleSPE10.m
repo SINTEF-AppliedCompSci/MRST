@@ -1,5 +1,5 @@
 %% Add required modules
-mrstModule add example-suite
+mrstModule add test-suite
 mrstModule add spe10
 mrstModule add ad-core ad-props ad-blackoil
 mrstModule add mrst-gui
