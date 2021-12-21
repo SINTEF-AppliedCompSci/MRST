@@ -6,4 +6,4 @@ An ensemble is defined by a
 * Quantity of interest (QoI): Description of the simulation output that we aim to estimate the uncertainty of
 
 The module facilitates ensembles that can be used for a wide range of applications,
-and has support for (multi-level) Monte Carlo simulations and ensemble-based history matching.
+and has support for (multi-level) Monte Carlo simulations and ensemble-based model calibration.
