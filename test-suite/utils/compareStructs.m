@@ -2,7 +2,7 @@ function out = compareStructs(in1, in2, varargin)
     
     opt = struct('fun'     , @abs , ...
                  'relative', false, ...
-                 'omit'    , {{}} , ...
+                 'skip'    , {{}} , ...
                  'includeStructs', true);
     opt = merge_options(opt, varargin{:});
     
@@ -71,8 +71,8 @@ function keep = getValidFields(in, opt)
             keep(i) = keepfun(v{i});
         end 
     end
-    if ~isempty(opt.omit)
-        keep = keep & cellfun(@(n) ~any(strcmpi(n, opt.omit)), fieldnames(in));
+    if ~isempty(opt.skip)
+        keep = keep & cellfun(@(n) ~any(strcmpi(n, opt.skip)), fieldnames(in));
     end
 end
 
