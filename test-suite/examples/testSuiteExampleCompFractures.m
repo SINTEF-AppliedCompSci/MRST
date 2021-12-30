@@ -53,6 +53,6 @@ statesDiff = cellfun(@(sFI, sSI) compare(sFI, sSI), statesFI, statesSI, ...
                                                 'UniformOutput', false);
                                             
 %% Plot results
-test.plot(statesFI  , 'Name', 'Fully implicit'     ); colormap(bone);
-test.plot(statesSI  , 'Name', 'Sequential implicit'); colormap(bone);
-test.plot(statesDiff, 'Name', 'Difference'         ); colormap(bone);
+testFI.plot(statesFI  , 'Name', 'Fully implicit'     ); colormap(bone);
+testSI.plot(statesSI  , 'Name', 'Sequential implicit'); colormap(bone);
+testFI.plot(statesDiff, 'Name', 'Difference'         ); colormap(flipud(bone));
