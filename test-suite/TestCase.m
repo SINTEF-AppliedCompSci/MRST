@@ -15,20 +15,24 @@ classdef TestCase
         toolbarOptions    % Options that can be passed to plotToolbar
         visualizationGrid % Optional grid for plotting
     end
+
+    properties (Access = private)
+        baseName  % Name of the setup function called by the constructor
+    end
     
     methods
         %-----------------------------------------------------------------%
         function test = TestCase(name, varargin)
             if nargin == 0, return; end
             % Set test name
-            test.name = lower(name);
+            test.baseName = lower(name);
             % Merge options
             opt = struct('plot', false, 'readFromDisk', true);
             [opt , varargin] = merge_options(opt, varargin{:});
             [test, extra   ] = merge_options(test, varargin{:});
             if isempty(test.verbose), test.verbose = mrstVerbose(); end
             if test.verbose
-                fprintf('Setting up %s test \n\n', test.name);
+                fprintf('Setting up %s test \n\n', test.baseName);
                 timer = tic();
             end
             if opt.readFromDisk
@@ -55,6 +59,7 @@ classdef TestCase
             % Set up test case and set properties
             setup = feval(lower(name), extra{:});
             test.description = setup.description;
+            test.name        = setup.name;
             test.state0      = setup.state0;
             test.model       = setup.model;
             test.schedule    = setup.schedule;
@@ -323,8 +328,9 @@ classdef TestCase
         function ok = save(test)
             % Get test case hash value
             hash = test.getTestCaseHash(false);
-            % Store in default data directory under 'example-suite'
-            pth = fullfile(mrstDataDirectory(), 'example-suite');
+            % Store in default data directory under 'test-suite'
+            pth = fullfile(mrstDataDirectory(), 'test-suite', ...
+                           test.baseName, test.name);
             if ~exist(pth, 'dir')
                 mkdir(pth)
             end
@@ -340,7 +346,8 @@ classdef TestCase
             end
             % Test case is stored with a filename equal to its hash value
             hash = test.getTestCaseHash(false);
-            pth  = fullfile(mrstDataDirectory(), 'test-suite', test.name);
+            pth  = fullfile(mrstDataDirectory(), 'test-suite', ...
+                            test.baseName, test.name);
             fn   = [fullfile(pth, hash), '.mat'];
             tc   = [];
             if isfile(fn)
@@ -360,12 +367,16 @@ classdef TestCase
         %-----------------------------------------------------------------%
         function problem = getPackedSimulationProblem(test, varargin)
         % Make packed problem with reasonable simulation setup
-            opt = struct('Name'           , [], ...
-                         'LinearSolver'   , [], ...
-                         'NonLinearSolver', []);
+            opt = struct('Name'           , test.name, ...
+                         'useHash'        , true     , ...
+                         'LinearSolver'   , []       , ...
+                         'NonLinearSolver', []       );
             [opt, extra] = merge_options(opt, varargin{:});
-            if isempty(opt.Name)
-                opt.Name = [test.name, '_', test.getTestCaseHash()];
+            if opt.useHash
+                if ~isempty(opt.Name)
+                    opt.Name = [opt.Name, '_'];
+                end
+                opt.Name = [opt.Name, test.getTestCaseHash()];
             end
             has_ls  = ~isempty(opt.LinearSolver);    % Linear solver given
             has_nls = ~isempty(opt.NonLinearSolver); % Nonlinear solver given
@@ -396,10 +407,10 @@ classdef TestCase
             if numel(desc) < numel(test.description)
                 desc = [desc, ' ...'];
             end
-            problem = packSimulationProblem(                          ...
-                test.state0, test.model, test.schedule, test.name,    ...
-                    'Name'           , opt.Name                     , ...
-                    'Description'    , desc                         , ...
+            problem = packSimulationProblem(test.state0, test.model, ...
+                    test.schedule, test.baseName,  ...
+                    'Name'           , opt.Name,   ...
+                    'Description'    , desc,       ...
                     'NonLinearSolver', opt.NonLinearSolver, extra{:});
         end
         
