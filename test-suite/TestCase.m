@@ -150,6 +150,7 @@ classdef TestCase
             xmax = max(x);
             xyz = 'XYZ';
             for i = 1:G.griddim
+                props.([xyz(i), 'LimSpec']) = 'tight';
                 props.([xyz(i), 'LimitMethod']) = 'tight';
                 props.([xyz(i), 'LimMode'])     = 'auto';
             end
@@ -193,7 +194,10 @@ classdef TestCase
             % Set properties to test case figure axis
             names = fieldnames(test.axisProperties);
             for i = 1:numel(names)
-                set(ax, names{i}, test.axisProperties.(names{i}));
+                try
+                    set(ax, names{i}, test.axisProperties.(names{i}));
+                catch
+                end
             end
         end
         
