@@ -13,15 +13,15 @@ mrstVerbose off
 %% Using a test case setup function
 % We consider a quarter five-spot setup posed on a 1000 x 1000 m domain.
 % This is implemented in the test case setup function `qfs_wo`. Providing
-% the optional input argument `optOnly` determines if we should return the
-% options and descriptions only (true), or the full setup (true). See the
-% function `testcase_template` to get an overwiew of the general body of a
-% test case setup function.
-setup0 = qfs_wo(true , 'nkr', 1); % Get options and description only
+% the optional input argument `fullSetup` determines if we should return
+% the options and descriptions only (false), or the full setup (true). See
+% the function `testcase_template` to get an overwiew of the general body
+% of a test case setup function.
+setup0 = qfs_wo(false, 'nkr', 1); % Get options and depscription only
 disp(setup0);
 
-setup  = qfs_wo(false, 'nkr', 1); %#ok Get full setup
-setup  = qfs_wo('nkr', 1);        % Omitting optOnly also gives full setup
+setup  = qfs_wo(true, 'nkr', 1);  %#ok Get full setup
+setup  = qfs_wo('nkr', 1);        % Omitting fullSetup also gives full setup
 disp(setup);
 
 %% Setting up a test case
