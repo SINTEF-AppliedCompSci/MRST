@@ -1,10 +1,32 @@
 function setup = norne_field_bo(varargin)
-%Example from the example suite, see description below. Warning: This
-%example will likely not run without tweaking the solvers (see
-%`fieldModelNorneExample`).
+% Setup function the full-field simulation model of Norne
+%
+% SYNOPSIS:
+%   setup = norne_field_bo('pn1', pv1, ...)
+%   setup = norne_field_bo(fullSetup, 'pn1', pv1, ...)
+%
+% DESCRIPTION:
+%   Setup of the full black-oil simulation model of the Norne field using
+%   open data published by the Open Porous Media (OPM) project. The
+%   reservoir model is a good example of the complexities one will
+%   encounter in real-life simulation models including faults, displaced
+%   layering with large differences in petrophysical parameters in
+%   different layers, pinched cells, internal gaps, non-neighboring
+%   connections, etc.
+%
+%   Facts about Norne: https://www.norskpetroleum.no/en/facts/field/norne/
+%
+%   Warning: This example will likely not run without tweaking the solvers
+%   (see fieldModelNorneExample).
+%
+% RETURNS:
+%   setup - test case with the following fields: name, description,
+%      options, state0, model, schedule, and plotOptions.
+%      If the optional input fullSetup (see synopsis) is false, the
+%      returned setup only contains name, description, and options.
 %
 % SEE ALSO:
-%   `MRSTExample`, `example_template`, `exampleSuiteTutorial`.
+%   TestCase, testcase_template, testSuiteTutorial, norne_simple_wo
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -28,41 +50,53 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     description ...
         = ['The full Norne field model. Made available through the ', ...
            'Open Porous Media Project, https://opm-project.org/'    ];
+
     % Optional input arguments
     options = struct();
-    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
-    if optOnly, return; end
+    [options, fullSetup, setup] = processTestCaseInput(mfilename, ...
+        options, description, varargin{:});
+    if ~fullSetup, return; end
+
     % Define module dependencies
     require ad-core ad-blackoil ad-props deckformat
     gravity reset on
     mrstVerbose on
     useMex = true;
+    
+    % Read data from deck
     [deck, output] = getDeckOPMData('norne', 'NORNE_ATW2013');    
     opm = mrstPath('opm-tests');
     assert(~isempty(opm), 'You must register https://github.com/opm/opm-tests as a module!');
+
     % Build model from EGRID/INIT files
     egrid = readEclipseOutputFileUnFmt([output.opm.location, '.EGRID']);
     init  = readEclipseOutputFileUnFmt([output.opm.location, '.INIT']);
     [Ge, rock_ecl, Ne, Te] = initGridFromEclipseOutput(init, egrid, 'outputSimGrid', true);
     Gviz = computeGeometry(Ge{1}); % Visualization grid
     Gsim = Ge{2};                  % Simulation grid
+
     % Rock
     rock = initEclipseRock(deck);
     rock = compressRock(rock, Gsim.cells.indexMap);
+
     % Fluid
     fluid = initDeckADIFluid(deck, 'useMex', useMex);
+
     % Setup model, but skip setting up the operators since we do not have a
     % proper grid
     model = GenericBlackOilModel(Gsim, [], fluid, 'disgas', true, 'vapoil', true, 'inputdata', deck);
+
     % Finally set up the connectivity graph from output
     model.rock = rock;
     model.operators = setupOperatorsTPFA(Gsim, rock, 'neighbors', Ne, 'trans', Te);
+
     % Set up everything
-    [state0, model, schedule] = initEclipseProblemAD(deck                      , ...
-                                                     'model'           , model , ...
-                                                     'TimestepStrategy', 'ds'  , ...
-                                                     'useCPR'          , true  , ...
-                                                     'useMex'          , useMex);
+    [state0, model, schedule] = ...
+        initEclipseProblemAD(deck, ...
+                             'model'           , model , ...
+                             'TimestepStrategy', 'ds'  , ...
+                             'useCPR'          , true  , ...
+                             'useMex'          , useMex);
     % Set tolerances
     model.toleranceCNV = 1e-2;
     model.toleranceMB = 1e-7;
@@ -92,7 +126,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     RvMax = model.PVTPropertyFunctions.getStateFunction('RvMax');
     RvMax.rvReduction = 0.5; % Not tested, but in the deck
     model.PVTPropertyFunctions = model.PVTPropertyFunctions.setStateFunction('RvMax', RvMax);
-    % PLotting
+
+    % Plotting
     plotOptions = {'View'              , [85, 30]  , ...
                    'PlotBoxAspectRatio', [1,1,0.3] , ...
                    'Size'              , [700, 600], ...

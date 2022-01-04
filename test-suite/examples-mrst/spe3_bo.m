@@ -1,8 +1,32 @@
 function setup = spe3_bo(varargin)
-%Example from the example suite, see description below.
+% Setup function for the first SPE Comparative Solution Project (SPE 1)
+%
+% SYNOPSIS:
+%   setup = spe3_bo('pn1', pv1, ...)
+%   setup = spe3_bo(fullSetup, 'pn1', pv1, ...)
+%
+% DESCRIPTION:
+%   Setup for the third SPE Comparative Solution Project (D.E. Kenyon and
+%   G.A. Behie, Third SPE Comparative Solution Project: Gas cycling of
+%   retrograde condensate reservoirs, JPT, August 1987 (981)', doi:
+%   10.2118/12278-PA).
+%
+%   The model is a live-gas black-oil version of the SPE 3 benchmark, which
+%   originally described a compositional model for a condensate reservoir.
+%   The reservoir model has 9x9x4 cells, describing four layers of
+%   different permeability and thickness.
+%
+%   Configurable parameters: none.
+%
+% RETURNS:
+%   setup - test case with the following fields: name, description,
+%      options, state0, model, schedule, and plotOptions.
+%      If the optional input fullSetup (see synopsis) is false, the
+%      returned setup only contains name, description, and options.
 %
 % SEE ALSO:
-%   `MRSTExample`, `example_template`, `exampleSuiteTutorial`,
+%   TestCase, testcase_template, testSuiteTutorial, spe1_bo
+
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -28,16 +52,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          '"Third SPE Comparative Solution Project: Gas Cycling of ' , ...
          'Retrograde Condensate Reservoirs," JPT, August 1987 (981)', ...
          'doi:10.2118/12278-PA'                                     ];
+
     % Optional input arguments
     options = struct();
-    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
-    if optOnly, return; end
+    [options, fullSetup, setup] = processTestCaseInput(mfilename, ...
+        options, description, varargin{:});
+    if ~fullSetup, return; end
+    
     % Define module dependencies
     require ad-core ad-props ad-blackoil deckformat
-    % Get initial state, model and schedule
+    
+    % Get initial state, model, and schedule
     pth = getDatasetPath('spe3');
     fn  = fullfile(pth, 'BENCH_SPE3.DATA');
     [state0, model, schedule] = initEclipseProblemAD(fn);
+    
     % Set plot options
     plotOptions = {'PlotBoxAspectRatio', [1,1,0.25], ...
                    'View'              , [-15, 20] };

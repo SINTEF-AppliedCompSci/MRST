@@ -1,8 +1,25 @@
 function setup = buckley_leverett_wo(varargin)
-%Example from the example suite, see description below.
+% Setup function for standard 1D Buckley-Leverett problem
+%
+% SYNOPSIS:
+%   setup = buckley_leverett_wo('pn1', pv1, ...)
+%   setup = buckley_leverett_wo(fullSetup, 'pn1', pv1, ...)
+%
+% DESCRIPTION:
+%   Setup of a standard 1D Buckley-Leveret case an immisicble two-phase
+%   fluid. The configurable parameters include:
+%      'ncells' - number of cells in x/y direction (default: 100)
+%      'nkr'    - Brooks-Corey relperm exponent    (default: 2)
+%      'cfl'    - CFL number relating dt and dx    (default: 1)
+%
+% RETURNS:
+%   setup - test case with the following fields: name, description,
+%      options, state0, model, schedule, and plotOptions.
+%      If the optional input fullSetup (see synopsis) is false, the
+%      returned setup only contains name, description, and options.
 %
 % SEE ALSO:
-%   `MRSTExample`, `example_template`, `exampleSuiteTutorial`.
+%   TestCase, testcase_template, testSuiteTutorial.
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -28,8 +45,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     options = struct('ncells', 100, ... % Number of cells
                      'nkr'   , 2  , ... % Brooks-Corey relperm exponent
                      'cfl'   , 1  );    % CFL number
-    [options, optOnly, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
-    if optOnly, return; end
+    [options, fullSetup, setup] = processTestCaseInput(mfilename, options, description, varargin{:});
+    if ~fullSetup, return; end
     % Define module dependencies
     require ad-core ad-props ad-blackoil
     % Model

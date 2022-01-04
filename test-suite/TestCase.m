@@ -37,7 +37,7 @@ classdef TestCase
             end
             if opt.readFromDisk
                 % Get test options and description
-                setup = feval(lower(name), true, extra{:});
+                setup = feval(lower(name), false, extra{:});
                 test.options     = setup.options;
                 test.description = setup.description;
                 % Check if test exists on disk and load it
