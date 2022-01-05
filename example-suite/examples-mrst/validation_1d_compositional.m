@@ -48,7 +48,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid.rhoGS = 10;
     % Define model
     eos = initDeckEOSModel(deck);
-    model = GenericOverallCompositionModel(G, rock, fluid, eos.fluid, 'water', false);
+    model = GenericOverallCompositionModel(G, rock, fluid, eos, 'water', false);
     model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', false);
     % Get Schedule
     schedule = convertDeckScheduleToMRST(model, deck);
@@ -66,7 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     z0 = [0.6, 0.1, 0.3];
     T  = 150 + 273.15;
     p  = 75*barsa;
-    state0 = initCompositionalState(G, p, T, 1, z0, eos);
+    state0 = initCompositionalState(G, p, T, [1, 0], z0, eos);
     % Plotting
     plotOptions = {'plot1d'            , true          , ...
                    'lockCaxis'         , true          , ...

@@ -117,7 +117,7 @@ methods
         model.oil = false;
 
         if doSetup
-            model.operators = setupOperatorsTPFA(G, model.rock);
+            model = model.setupOperators();
         end
     end
 
@@ -426,6 +426,9 @@ methods
             G = model.G;
         end
         model.operators = setupOperatorsTPFA(G, rock, varargin{:});
+        % Store hashes of grid and rock for consistency check later
+        model.operators.hashG    = obj2hash(G);
+        model.operators.hashRock = obj2hash(rock);
     end
 
     % --------------------------------------------------------------------%

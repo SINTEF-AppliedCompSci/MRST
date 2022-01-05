@@ -108,7 +108,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Properties
     props = deck.PROPS;
-
+    if ~isfield(props, 'DENSITY')
+        props.DENSITY = [600, 999.014, 1]*kilogram/(meter^3);
+    end
     for fld = assignable_fields(prioritise(fieldnames(props)))
         try
             fluid = feval(['assign', fld{1}], fluid, props.(fld{1}), reg);

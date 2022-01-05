@@ -301,6 +301,22 @@ methods
         if strcmpi(model.stateFunctionEvaluationMode, 'full')
             model = model.setupStateFunctionGraph();
         end
+        if all(isfield(model.operators, {'hashG', 'hashRock'}))
+            % Consistency check: Check if grid and/or rock has changed from
+            % when we computed the discrete operators, and issue a warning
+            % if this is the case.
+            gridOK = strcmpi(obj2hash(model.G)   , model.operators.hashG   );
+            rockOK = strcmpi(obj2hash(model.rock), model.operators.hashRock);
+            if ~(gridOK && rockOK)
+                str = {'model.G', 'model.rock'};
+                str = strjoin(str([~gridOK, ~rockOK]), ' and ');
+                pl = {'s', ''}; if ~gridOK && ~rockOK, pl = fliplr(pl); end
+                warning(['%s differ%s from the one%s used to set up ', ...
+                         'the discrete operators.\n'                 , ...
+                         'You may want to recompute operators: '     , ...
+                         'model = model.setupOperators()'], str, pl{1}, pl{2});
+            end
+        end
     end
     
     function model = setupStateFunctionGroupings(model, setDefaults) %#ok
