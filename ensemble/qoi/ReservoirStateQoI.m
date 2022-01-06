@@ -98,7 +98,7 @@ classdef ReservoirStateQoI < BaseQoI
         function n = norm(qoi, u)
             n = sum(abs(u).*qoi.dx,1);
             if ~isnan(qoi.dt)
-                n = bsxfun(n, qoi.dt);
+                n = bsxfun(@times, n, qoi.dt);
             end
             n = sum(n);
         end
@@ -120,11 +120,11 @@ classdef ReservoirStateQoI < BaseQoI
             end
             if isa(ensemble, 'MRSTEnsemble') || isa(ensemble, 'MRSTEnsembleV2')
                 setup = ensemble.setup;
-            elseif isa(ensemble, 'MRSTExample') 
+            elseif isa(ensemble, 'TestCase') 
                 setup = ensemble;
             else
                 error(['Input ensemble must either be an instance of ', ...
-                      'class ''MRSTEnsemble'' or ''MRSTExample'''     ]);
+                      'class ''MRSTEnsemble'' or ''TestCase'''     ]);
             end
             for i = 1:numel(opt.names)
                 ui = u.(opt.names{i});

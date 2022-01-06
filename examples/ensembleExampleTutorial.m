@@ -1,10 +1,10 @@
-mrstModule add ad-core ad-props ad-blackoil example-suite ensemble ...
+mrstModule add ad-core ad-props ad-blackoil test-suite ensemble ...
     mrst-gui
 mrstVerbose on
 
 %%
-example = MRSTExample('qfs_wo');
-problem = example.getPackedSimulationProblem();
+baseCase = TestCase('qfs_wo');
+problem = baseCase.getPackedSimulationProblem();
 
 %% Generate an ensemble
 % The stochastic component (or uncertain parameter) of any ensemble
@@ -82,12 +82,12 @@ problem = samplesCell.setSample(data, problem);  % Set sample to problem
 disp(data);
 
 % Inspect rock samples
-example.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
+baseCase.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
 for i = 1:5
     data    = samplesCell.getSample(i, problem);   % Get sample number i
     problem = samplesCell.setSample(data, problem); % Set sample to problem
     % Inspect rock sample
-    example.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
+    baseCase.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
 end
 
 %% Quantity of interest
@@ -122,13 +122,13 @@ disp(qoiWell);
 % sample to illustrate the steps required to obtain a single problem
 % realization, running the problem, and obtaining the quantity of interest.
 
-problem = example.getPackedSimulationProblem(); % Get packed problem
+problem = baseCase.getPackedSimulationProblem(); % Get packed problem
 data    = samplesCell.getSample(13, problem);   % Get sample numer 13
 % Like the rock structure of a model, the sample has a perm and poro field
 disp(data);
 problem = samplesCell.setSample(data, problem);  % Set sample to problem
 % Inspect rock sample
-example.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
+baseCase.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
 simulatePackedProblem(problem); % Simulate
 
 % To inspect the quantities of interest directly, we first need to
@@ -149,10 +149,10 @@ wellData  = qoiWellValidated.computeQoI(problem);  % Producer oil production rat
 % example, or simply by creating a plot from scratch.
 close all
 % Water saturation
-example.plot(stateData); colormap(bone);
+baseCase.plot(stateData); colormap(bone);
 
 % Oil production rate
-time = cumsum(example.schedule.step.val)/day;
+time = cumsum(baseCase.schedule.step.val)/day;
 figure(), plot(time, wellData.qOs*day, 'LineWidth', 1.5); % Convert to days
 xlim([0, time(end)]), box on, grid on, xlabel('Time (days)');
 
@@ -160,16 +160,16 @@ xlim([0, time(end)]), box on, grid on, xlabel('Time (days)');
 % ... or, we can plot the results using the plotting functions in the QoI
 % classes.
 close all
-qoiWellValidated.plotQoI(example, wellData);
-example.figure();
-qoiStateValidated.plotQoI(example, stateData);
+qoiWellValidated.plotQoI(baseCase, wellData);
+baseCase.figure();
+qoiStateValidated.plotQoI(baseCase, stateData);
 
 %% Set up the ensemble
 % The MRSTEnsemble class conveniently combines a problem setup, a
 % samples object and a QoI, and implements the functionality for everything
 % related to setting up and simulating the ensemble members and computing 
 % their corresponding QoI. The first input parameter can either be an
-% instance of an MRSTExample, or the name of an MRSTExample function. In 
+% instance of an TestCase, or the name of an TestCase function. In 
 % the latter case, MRSTEnsemble will first set up the example, and any 
 % input arguments not used by the MRSTEnsemble class itself will be passed
 % on to the MRSTExample class when creating the example instance.
@@ -186,7 +186,7 @@ qoiStateValidated.plotQoI(example, stateData);
 %      system, this option is changed to 'background'.
 % The optional parameter 'reset' is used to delete any existing results and
 % start the ensemble simulation from scratch.
-ensemble = MRSTEnsemble(example, samplesRH, qoiState       , ...
+ensemble = MRSTEnsemble(baseCase, samplesRH, qoiState       , ...
                         'directory'         , dataDir     , ...
                         'simulationStrategy', 'background', ...
                         'reset'             , true       );
@@ -202,15 +202,16 @@ close all, ensemble.simulateEnsembleMembers('plotProgress', true);
 %      ensemble.simulationEnsembleMembers(20:30 'plotProress', true);
 % for a given range of ensemble members (here ensemble members 20 to 30).
 
+
 %% Plot results
 close all
-[x,y] = ndgrid(linspace(0,1000, example.options.ncells));
-[s_avg, s] = ensemble.qoi.computeMean();
+[x,y] = ndgrid(linspace(0,1000, baseCase.options.ncells));
+[s_avg, s_var, s] = ensemble.qoi.getQoIMean();
 for i = 1:10:ensembleSize
-    example.plot(s{i}{2}); caxis([0,1]);
+    baseCase.plot(s{i}.sW); caxis([0,1]);
     title(sprintf('Water saturation after 300 days, member %d', i));
 end
-example.plot(s_avg{2}); caxis([0,1]);
+baseCase.plot(s_avg.sW); caxis([0,1]);
 title('Water saturation after 300 days, ensemble avg');
 
 %% References

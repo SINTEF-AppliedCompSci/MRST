@@ -151,8 +151,8 @@ classdef BaseQoI
             % range of ensemble member IDs (if any).
             %
             % SYNOPSIS:
-            %   u_mean = qoi.computeMean(range)
-            %   [u_mean, u] = qoi.computeMean(range)
+            %   u_mean = qoi.getQoIMean(range)
+            %   [u_mean, u] = qoi.getQoIMean(range)
             %
             % OPTINAL PARAMETERS:
             %   range - A range of ensemble IDs enabling the possibility to

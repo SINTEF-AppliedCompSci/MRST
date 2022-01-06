@@ -2,7 +2,7 @@ classdef MRSTEnsemble < BaseEnsemble
     % Class that facilitates ensembles in MRST.
     %
     % SYNOPSIS:
-    %   ensembles = Ensemble(mrstExample, samples, qoi)
+    %   ensembles = Ensemble(baseCase, samples, qoi)
     %
     % DESCRIPTION:
     %   This class is used to organize, set-up, run and post-process 
@@ -11,11 +11,11 @@ classdef MRSTEnsemble < BaseEnsemble
     %   uncertainty, and history matching.
     % 
     % REQUIRED PARAMETERS:
-    %   mrstExample - Instance of MRSTExample, or a function name that 
-    %                 generates a MRSTExample, that serves as a base 
-    %                 problem for the ensemble. If will contain all aspects
-    %                 and configurations that will be common for all
-    %                 ensemble members
+    %   baseCase - Instance of TestCase from the test-suite module, or a
+    %              function name that generates a TestCase, that serves as
+    %              a base problem for the ensemble. If will contain all 
+    %              aspects and configurations that will be common for all
+    %              ensemble members
     %
     %   samples - Sample object, typically of a superclass of BaseSamples.
     %             It represents stochastic parameters or configurations
@@ -78,7 +78,7 @@ classdef MRSTEnsemble < BaseEnsemble
     %   Class instance.
     %
     % SEE ALSO:
-    %   `MRSTExample`, `BaseSamples`, `BaseQoI`
+    %   `TestCase`, `BaseSamples`, `BaseQoI`
     
     properties
         qoi
@@ -88,7 +88,7 @@ classdef MRSTEnsemble < BaseEnsemble
     
     methods
         %-----------------------------------------------------------------%
-        function ensemble = MRSTEnsemble(mrstExample, samples, qoi, varargin)
+        function ensemble = MRSTEnsemble(baseCase, samples, qoi, varargin)
             % handle local options
             opt  = struct('reset',             false, ...
                           'prepareSimulation', true,  ...
@@ -96,12 +96,12 @@ classdef MRSTEnsemble < BaseEnsemble
                           'exampleArgs',       {{}});
             [opt, other] = merge_options(opt, varargin{:});
             % Set example. This defines the base problem
-            if isa(mrstExample, 'MRSTExample')
+            if isa(baseCase, 'TestCase')
                 % Example given
-                setup = mrstExample;
+                setup = baseCase;
             else
                 % Example name given - set up example
-                setup = MRSTExample(mrstExample, opt.exampleArgs{:});
+                setup = TestCase(baseCase, opt.exampleArgs{:});
             end
             
             % Call BaseEnsemble
