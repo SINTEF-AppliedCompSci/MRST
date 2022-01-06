@@ -6,7 +6,7 @@
 % To show this we create a small ensemble of a 3D reservoir modelling two
 % phase flow (oil and water) between two injectors and two producers.
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble 
+    test-suite incomp ensemble 
 
 mrstVerbose off
 
@@ -25,7 +25,7 @@ simulateExample = true;
 plotSimulation = true;
 rerunBaseProblemFromScratch = true;
 
-baseExample = MRSTExample(baseProblemName, baseProblemOptions{:});
+baseExample = TestCase(baseProblemName, baseProblemOptions{:});
 
 if simulateExample
     problem = baseExample.getPackedSimulationProblem();

@@ -6,7 +6,7 @@
 % perforated cells can be different between each well). We also ensure that
 % we can handle a schedule that varies with time.
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble 
+    test-suite incomp ensemble 
 
 mrstVerbose off
 
@@ -27,7 +27,7 @@ simulateExample = false;
 plotSimulation = true;
 rerunBaseProblemFromScratch = true;
 
-baseExample = MRSTExample(baseProblemName, randomScheduleProblemOptions{:});
+baseExample = TestCase(baseProblemName, randomScheduleProblemOptions{:});
 
 if simulateExample
     problem = baseExample.getPackedSimulationProblem();
@@ -59,6 +59,7 @@ qoi = WellQoI(...
 % its data property now holds well properties. In this example, we have
 % stochastic well production indices (WI).
 
+ensembleSize = 20;
 wellSampleData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
     wellSampleData{i}.WI = rand(1,4)*1e-11;

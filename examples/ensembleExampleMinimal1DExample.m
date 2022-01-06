@@ -4,7 +4,7 @@
 % located at each end of the reservoir.
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble
+    test-suite incomp ensemble
 
 mrstVerbose off
 
@@ -13,11 +13,11 @@ mrstVerbose off
 % ensemble, and here we have implemented our own super simple example (see 
 % example_template.m for the MRSTExample template).
 
-baseProblemName = 'ensemble_base_problem_1d_reservoir';
+baseCaseName = 'ensemble_base_problem_1d_reservoir';
 numCells = 30;
-baseProblemOptions = {'ncells', numCells};
+baseCaseOptions = {'ncells', numCells};
 
-baseExample = MRSTExample(baseProblemName, baseProblemOptions{:});
+baseCase = TestCase(baseCaseName, baseCaseOptions{:});
 
 % Change these flags to investigate the baseExample
 simulateExample = false;
@@ -25,7 +25,7 @@ plotExample = false;
 rerunBaseProblemFromScratch = false;
 
 if simulateExample
-    problem = baseExample.getPackedSimulationProblem();
+    problem = baseCase.getPackedSimulationProblem();
     if rerunBaseProblemFromScratch
         clearPackedSimulatorOutput(problem);
     end
@@ -33,7 +33,7 @@ if simulateExample
 
     [wellSols, states, reports] = getPackedSimulatorOutput(problem);
     if plotExample
-        baseExample.plot(states);
+        baseCase.plot(states);
     end
 end
 
@@ -44,7 +44,7 @@ ensembleSize = 20;
 
 configData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    configData{i}.poro = gaussianField(baseExample.model.G.cartDims, [0.2 0.4]); 
+    configData{i}.poro = gaussianField(baseCase.model.G.cartDims, [0.2 0.4]); 
     configData{i}.perm = configData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.poro).^2);
 end
 
@@ -58,7 +58,7 @@ disp(qoi);
 
 %% Create the ensemble
 
-ensemble = MRSTEnsemble(baseExample, samples, qoi, ... 
+ensemble = MRSTEnsemble(baseCase, samples, qoi, ... 
     'simulationStrategy', 'parallel', ...
     'maxWorkers', 8, ...
     'verbose', true, ...

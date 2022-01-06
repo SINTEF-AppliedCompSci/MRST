@@ -8,6 +8,10 @@
 % simulations with uncertain rock properties (each connection has
 % homogeneous rock properties) and well production indices.
 
+%% TODO: 
+% Update example according to Network models and test-suite module
+%% 
+
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
     example-suite incomp ensemble dd-models diagnostics
 

@@ -4,18 +4,18 @@
 
 %% Add modules
 mrstModule add ad-core ad-props ad-blackoil
-mrstModule add example-suite ensemble
+mrstModule add test-suite ensemble
 mrstModule add mrst-gui
 mrstVerbose on
 
 %% Set up base problem
-example = MRSTExample('egg_wo');
+baseCase = TestCase('egg_wo');
 % Extract interesting part of the schedule
-steps = cumsum(example.schedule.step.val) <= 1500*day;
-example.schedule.step.val     = example.schedule.step.val(steps);
-example.schedule.step.control = example.schedule.step.val(steps);
+steps = cumsum(baseCase.schedule.step.val) <= 1500*day;
+baseCase.schedule.step.val     = baseCase.schedule.step.val(steps);
+baseCase.schedule.step.control = baseCase.schedule.step.val(steps);
 % Plot setup
-example.plot(example.model.rock, 'log10', true); colormap(pink);
+baseCase.plot(baseCase.model.rock, 'log10', true); colormap(pink);
 material dull
 
 %% Set up samples
@@ -40,11 +40,11 @@ disp(samples)
 
 %% Set up QoI
 % For our QoI, we choose the total oil production rate
-is_prod = vertcat(example.schedule.control(1).W.sign) < 0;
+is_prod = vertcat(baseCase.schedule.control(1).W.sign) < 0;
 qoi = WellQoI('wellIndices', is_prod, 'names', 'qOs');
     
 %% Set up ensemble
-ensemble = MRSTEnsemble(example, samples, qoi, ...
+ensemble = MRSTEnsemble(baseCase, samples, qoi, ...
                'simulationStrategy', 'background'); % Run in the background
 
 %% Simulate the ensemble members
@@ -62,7 +62,7 @@ f = gcf; f.Position(4) = f.Position(4)*2;
 mrstModule add sequential diagnostics
 solver = @(problem) pressureSolverAD(problem);
 
-ensembleFD = MRSTEnsemble(example, samples, qoi, ...
+ensembleFD = MRSTEnsemble(baseCase, samples, qoi, ...
                'solve'             , solver  , ...
                'directory'         , [ensemble.directory, '_fd'], ...
                'simulationStrategy', 'background'); % Run in the background

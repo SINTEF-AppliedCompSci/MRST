@@ -1,17 +1,18 @@
-function [description, options, state0, model, schedule, plotOptions] = ensemble_base_problem_3d_reservoir(varargin)
+function setup = ensemble_base_problem_3d_reservoir(varargin)
 % Creates a 3D model with two-phase flow between two injectors and two
 % producers.
 %
 % SYNOPSIS:
-%   [description, options, state0, model, schedule, plotOptions] = base_function_1d_reservoir('pn1', pv1, ...)
+%   setup = ensemble_base_problem_3d_reservoir('pn1', pv1, ...)
+%   setup = ensemble_base_problem_3d_reservoir(fullSetup, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
 %   
 %   Very simple example that generates a 3D reservoir with a two-phase flow
 %   problem. It has two injectors and two producers, of which one of the
 %   injectors are not in a corner. May be used as a stand-alone example 
-%   definition, or to construct an instance of `MRSTExample` as 
-%   example = MRSTExample('ensemble_base_problem_3D_reservoir');
+%   definition, or to construct an instance of `TestCase` as 
+%   example = TestCase('ensemble_base_problem_3D_reservoir');
 %   At the time of writing, the main purpose is to use this example for a
 %   base in an example ensemble simulation.
 %
@@ -19,31 +20,13 @@ function [description, options, state0, model, schedule, plotOptions] = ensemble
 %   This example currently does not take any optional inputs
 %
 % RETURNS:
-%   description - One-line example description, displayed in list-examples,
-%                 and the only input argument if the function is called as
-%                 description = my_example_wog()
-%
-%   options     - A struct of the optional input parameters, with defaults
-%                 for all arguments that were not passed as optional
-%                 parameters. Returned for convenient access to the example
-%                 configuration.
-%
-%   state0, model, schedule - Initial state, model, and simulation schedule
-%                             that can be passed to `simulateScheduleAD`
-%
-%   plotOptions - Cell array on the form {'pn1', pv1, ...} with arguments
-%                 that can be used in any of the following ways
-%                   - set(myAxis, 'pn1, vn1, ...)
-%                   - figure('pn1', vn1, ...)
-%                   - plotToolbar(G, state, 'pn1', vn1, ...)
-%                 In addition to the standard optional parameters of
-%                 `figure`, {'Size', [width, height]} can also be provided,
-%                 which `MRSTExample` interprets as
-%                 [pos(1:2), [width, height]], where
-%                 pos = get(0, 'DefaultFigurePosition')
+%   setup - test case with the following fields: name, description,
+%           options, state0, model, schedule, and plotOptions.
+%           If the optional input fullSetup (see synopsis) is false, the
+%           returned setup only contains name, description, and options.
 %
 % SEE ALSO:
-%   `MRSTExample`, `listExamples`, `exampleSuiteTutorial`
+%   `TestCase`, `testcase_template`, `testSuiteTutorial`
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -73,9 +56,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % must return a (possibly empy) options struct
     options = struct('longWells', false, ...
                      'randomSchedule', false);
-    options = merge_options(options, varargin{:});
-    if nargout <= 2, return; end
-    
+ 
+                 
+    [options, fullSetup, setup] = processTestCaseInput(mfilename, ...
+        options, description, varargin{:});
+    if ~fullSetup, return; end    
+   
     
     % Define any module dependencies for the example. The following are
     % typically always needed
@@ -161,7 +147,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
     %% Plot options
-    % plotOptions are only by MRSTExample. In case of empty plotOptions,
-    % MRSTExample will attempt to set reasonable defaults
+    % plotOptions are only by TestCase. In case of empty plotOptions,
+    % TestCase will attempt to set reasonable defaults
     plotOptions = {};
+    
+     %% Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
+
 end
