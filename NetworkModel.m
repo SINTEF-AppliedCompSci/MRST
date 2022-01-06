@@ -47,6 +47,12 @@ classdef NetworkModel
             %                 number of components as the fluid model.
             %                 Default: S_o=1, all other phases zero.
             %
+            %   'fluid'     - Struct containing custom fluid model to be
+            %                 used instead of the fine-scale fluid model
+            %
+            %   'scaling'   - cell array containing arguments used for
+            %                 permeability scaling of custom fluid model
+            %
             %   'Verbose'   - Indicate whether extra output is to be printed, such as
             %                 reports on how the faces and cell indices have been
             %                 assigned to each connection, and so on.
@@ -66,9 +72,11 @@ classdef NetworkModel
                 nc = varargin{1};
                 varargin = varargin(2:end);
             end
-            opt = struct('Verbose',  mrstVerbose(), ...
-                         'p0',       100*barsa,     ...
-                         'S0',       []);
+            opt = struct('Verbose',  mrstVerbose(),   ...
+                         'p0',       100*barsa,       ...
+                         'S0',       [],              ...
+                         'fluid',    modelTrue.fluid, ...
+                         'scaling',  []);
             opt = merge_options(opt, varargin{:});
 
             % Get the network graph and extract properties
@@ -90,22 +98,28 @@ classdef NetworkModel
             G = computeGeometry(G);
 
             % Fluid model with endpoint scaling of relative permeabilities.
-            % The fluid model is copied from the model we seek to match.
+            % Unless a fluid model is supplied as an optional input
+            % parameter, the fluid model is copied from the model we seek
+            % to match.
             poro = mean(modelTrue.rock.poro);
             perm = mean(modelTrue.rock.perm(:,1));
             model = GenericBlackOilModel(G, makeRock(G, perm, poro), ...
-                modelTrue.fluid,'gas',modelTrue.gas);
-            pts   = modelTrue.fluid.krPts;
-            if isfield(pts,'o')
-                model = imposeRelpermScaling(model, ...
-                    'SWL', pts.w(1), 'SWCR', pts.w(2), ...
-                    'SWU', pts.w(3), 'SOWCR', pts.o(2), ...
-                    'KRW',  pts.w(4), 'KRO', pts.o(4));
-            elseif isfield(pts,'ow')
-                model = imposeRelpermScaling(model, ...
-                    'SWL', pts.w(1), 'SWCR', pts.w(2), ...
-                    'SWU', pts.w(3), 'SOWCR', pts.ow(2), ...
-                    'KRW',  pts.ow(4), 'KRO', pts.ow(4));
+                opt.fluid,'gas',modelTrue.gas);
+            if ~isempty(opt.scaling)
+                model = imposeRelpermScaling(model, opt.scaling{:});
+            else
+                pts   = opt.fluid.krPts;
+                if isfield(pts,'o')
+                    model = imposeRelpermScaling(model, ...
+                        'SWL', pts.w(1,1), 'SWCR',  pts.w(1,2), ...
+                        'SWU', pts.w(1,3), 'SOWCR', pts.o(1,2), ...
+                        'KRW', pts.w(1,4), 'KRO',   pts.o(1,4));
+                elseif isfield(pts,'ow')
+                    model = imposeRelpermScaling(model, ...
+                        'SWL', pts.w(1,1),  'SWCR',  pts.w(1,2),  ...
+                        'SWU', pts.w(1,3),  'SOWCR', pts.ow(1,2), ...
+                        'KRW', pts.ow(1,4), 'KRO',   pts.ow(1,4));
+                end
             end
             model.OutputStateFunctions = {};
  
