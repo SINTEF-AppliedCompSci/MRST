@@ -28,7 +28,10 @@ disp(setup);
 % The TestCase class implements useful functionality for setting up,
 % running and visualizing a test case. Each test case can be uniquely
 % determined by a hash value, which makes it easy to distinguish the
-% instances of the same test case set up with different options.
+% instances of the same test case set up with different options. We get the
+% test case hash using the method `getTestCaseHash`. This takes an optional
+% argument `fullSetup` that determines if we should include the entire test
+% case in the hash computation, or just the name, description and options.
 % QFS with linear relative permeabilities
 test = TestCase('qfs_wo', 'nkr', 1);
 hash = test.getTestCaseHash(false); disp(hash)
