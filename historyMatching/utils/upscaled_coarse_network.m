@@ -145,8 +145,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         options.(wellUpscalingMethods{i}) = [tmpSchedule.control(1).W.WI];
     end
 
-    % plotOptions are only by MRSTExample. In case of empty plotOptions,
-    % MRSTExample will attempt to set reasonable defaults
+    % plotOptions are only by TestCase. In case of empty plotOptions,
+    % TestCase will attempt to set reasonable defaults
     plotOptions = {};
     
     % Pack setup
