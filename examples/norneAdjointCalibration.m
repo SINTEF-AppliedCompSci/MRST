@@ -184,7 +184,7 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
 % To define the initial model, we extract the network parameters from the
 % initial specification, scale them to the unit interval, and organize them
 % into a vector that can be passed onto mismatchFn
-pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 0.5);
+pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 'connscale', 0.5);
  
 % Evaluate the initial mismatch for the training data
 [misfitT0,~,wellSolsT0] = ...
