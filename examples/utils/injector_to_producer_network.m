@@ -1,20 +1,19 @@
-function [description, options, state0, model, schedule, plotOptions] = injector_to_producer_network(varargin)
+function setup = injector_to_producer_network(varargin)
 % Injector-producer networks created from a full reservoir model. See
 % description below.
 %
 % SYNOPSIS:
-%   [description, options, state0, model, schedule, plotOptions] = ...
-%       injector_to_producer_network('referenceModel', referenceModel, ...
-%                                    'cellsPerConnection', cellsPerConnection)
+%   setup = injector_to_producer_network('referenceCase', referenceCase)
+%   setup = injector_to_producer_network(fullSetup, 'referenceCase', referenceCase)
 %
 % DESCRIPTION:
 %   This function maps a full reservoir model into a reduced GPSNet-type 
 %   network model with a *single* communication path between all pairs of
-%   injector and producer wells. The full reference model is also required 
-%   to be a MRSTExample object.
+%   injector and producer wells. The full reference case is also required 
+%   to be a TestCase object.
 %
 % REQUIRED PARAMETERS:
-%   'referenceModel' - A full reservoir model as a MRSTExample object.
+%   'referenceCase' - A full reservoir model as a TestCase object.
 % 
 % OPTIONAL PARAMETERS:   
 %   'cellsPerConnection' - Number of cells in each connection
@@ -25,32 +24,13 @@ function [description, options, state0, model, schedule, plotOptions] = injector
 %   'plotNetwork' - true or false
 %
 % RETURNS:
-%   description - One-line example description, displayed in list-examples,
-%                 and the only input argument if the function is called as
-%                 description = injector_to_producer_network(referenceModel);
-%
-%   options     - A struct of the optional input parameters, with defaults
-%                 for all arguments that were not passed as optional
-%                 parameters. Returned for convenient access to the example
-%                 configuration.
-%                 Also includes the NetworkModel object itself
-%
-%   state0, model, schedule - Initial state, model, and simulation schedule
-%                             that can be passed to `simulateScheduleAD`
-%
-%   plotOptions - Cell array on the form {'pn1', pv1, ...} with arguments
-%                 that can be used in any of the following ways
-%                   - set(myAxis, 'pn1, vn1, ...)
-%                   - figure('pn1', vn1, ...)
-%                   - plotToolbar(G, state, 'pn1', vn1, ...)
-%                 In addition to the standard optional parameters of
-%                 `figure`, {'Size', [width, height]} can also be provided,
-%                 which `MRSTExample` interprets as
-%                 [pos(1:2), [width, height]], where
-%                 pos = get(0, 'DefaultFigurePosition')
+%   setup - test case with the following fields: name, description,
+%      options, state0, model, schedule, and plotOptions.
+%      If the optional input fullSetup (see synopsis) is false, the
+%      returned setup only contains name, description, and options.
 %
 % SEE ALSO:
-%   `MRSTExample`, `listExamples`, `exampleSuiteTutorial`
+%   `TestCase`, `testcase_template`, `testSuiteTutorial`
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -72,7 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     
     % Optional input parameters with default values
-    options = struct('referenceExample', {{}}, ...
+    options = struct('referenceCase', {{}}, ...
                      'cellsPerConnection', 10,  ...
                      'p0', 400*barsa, ...
                      's0', [0.2, 0.8], ...
@@ -80,23 +60,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      'poro', 0.1, ...
                      'plotNetwork',  false, ...
                      'plottype', 'default');
-    options = merge_options(options, varargin{:});
+    description = ['Creates an injector_to_producer network of model X'];
+    [options, fullSetup, setup] = processTestCaseInput(mfilename, ...
+        options, description, varargin{:});
     
-    if isempty(options.referenceExample)
-        error("'referenceExample' is a required input to this example but is currently missing");
+    if isempty(options.referenceCase)
+        error("'referenceCase' is a required input to this example but is currently missing");
     end
-    if iscell(options.referenceExample)
-        options.referenceExample = options.referenceExample{1};
+    if iscell(options.referenceCase)
+        options.referenceCase = options.referenceCase{1};
     end
     
-    if ~isa(options.referenceExample, 'MRSTExample')
-        error("'referenceExample' is required to be a MRSTExample object");
+    if ~isa(options.referenceCase, 'TestCase')
+        error("'referenceCase' is required to be a TestCase object");
     end
     
     % One line description
-    description = ['Creates a injector_to_producer network of ', options.referenceExample.name];
+    setup.description = ['Creates a injector_to_producer network of ', options.referenceCase.name];
 
-    if nargout <= 2, return; end
+    if ~fullSetup, return; end
     
     % Module dependencies
     require ad-core ad-props ad-blackoil network-models
@@ -104,7 +86,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %% Create network
     % To create the network, we only need a single perforation from each well,
     % which we somewhat arbitrarily pick from the top.
-    Wnetwork = options.referenceExample.schedule.control.W;
+    Wnetwork = options.referenceCase.schedule.control.W;
     for i = 1:numel(Wnetwork)
         Wnetwork(i).cells = Wnetwork(i).cells(end);
     end
@@ -114,7 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     networkType = 'injectors_to_producers';
     injectors = find([Wnetwork.sign] ==   1);
     producers = find([Wnetwork.sign] ==  -1);
-    network = Network(Wnetwork, options.referenceExample.model.G, ...
+    network = Network(Wnetwork, options.referenceCase.model.G, ...
                       'type', networkType, ...
                       'injectors', injectors, 'producers', producers);
 
@@ -130,25 +112,28 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     
     % Creat the network model
-    networkModel = NetworkModel(options.referenceExample.model, network, ...
-                                options.referenceExample.schedule.control.W, ...
+    networkModel = NetworkModel(options.referenceCase.model, network, ...
+                                options.referenceCase.schedule.control.W, ...
                                 options.cellsPerConnection, ...
                                 'p0', options.p0, ...
                                 'S0', options.s0);
     
     % Create schedule for the network model
-    networkSetup = gpsNetSimulationSetup(networkModel, options.referenceExample.schedule);
-    
-                            
-    % Decompose the networkModel to the MRSTExample structure 
-    model = networkSetup.model;
-    state0 = networkSetup.state0;
-    schedule = networkSetup.schedule;
+    networkSetup = gpsNetSimulationSetup(networkModel, options.referenceCase.schedule);
         
     % Return the NetworkModel through the options struct
     options.networkModel = networkModel;
 
-    % plotOptions are only by MRSTExample. In case of empty plotOptions,
-    % MRSTExample will attempt to set reasonable defaults
+    % plotOptions are only by TestCase. In case of empty plotOptions,
+    % TestCase will attempt to set reasonable defaults
     plotOptions = {};
+    
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', setup.description, ...
+                              'options'    , options, ...
+                              'state0'     , networkSetup.state0, ...
+                              'model'      , networkSetup.model, ...
+                              'schedule'   , networkSetup.schedule, ...
+                              'plotOptions', plotOptions);
 end

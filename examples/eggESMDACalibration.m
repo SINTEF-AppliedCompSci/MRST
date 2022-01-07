@@ -15,7 +15,7 @@
 
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble network-models diagnostics optimization
+    test-suite incomp ensemble network-models diagnostics optimization
 
 mrstVerbose off
 
@@ -47,16 +47,16 @@ historyMatchingDirectory = fullfile(topDirectory, ...
 % consists of a 3D oil-water model of a highly chanalized reservoir, driven
 % by four producer wells and eight injectors.
 
-referenceExample = MRSTExample('egg_wo', 'realization', referenceEggRealization);
+referenceCase = TestCase('egg_wo', 'realization', referenceEggRealization);
 
 % Most of the dynamics in the Egg model plays out during the first half or 
 % so of the total time span. We therefore consider just a subset of the 
 % schedule from the reference model.
-referenceExample.schedule = simpleSchedule(referenceExample.schedule.step.val(5:53), ...
-                                           'W', referenceExample.schedule.control.W);
-numTotalTimesteps = numel(referenceExample.schedule.step.val);
+referenceCase.schedule = simpleSchedule(referenceCase.schedule.step.val(5:53), ...
+                                           'W', referenceCase.schedule.control.W);
+numTotalTimesteps = numel(referenceCase.schedule.step.val);
 
-referenceProblem = referenceExample.getPackedSimulationProblem('Directory', referenceDirectory);
+referenceProblem = referenceCase.getPackedSimulationProblem('Directory', referenceDirectory);
 
 if rerunReferenceModel
     clearPackedSimulatorOutput(referenceProblem, 'prompt',  false);
@@ -65,7 +65,7 @@ simulatePackedProblem(referenceProblem);
 
 if plotReferenceModel
     [refWellSols, refStates, refReports] = getPackedSimulatorOutput(referenceProblem);
-    referenceExample.plot(refStates);
+    referenceCase.plot(refStates);
     plotWellSols(refWellSols);
 end
 
@@ -85,14 +85,14 @@ end
 % reference model defined here will not be used. We therefore assign dummy
 % values for these parameters.
 %
-% The model is structured according to the MRSTExample class, which
+% The model is structured according to the TestCase class, which
 % integrates directly into the ensemble module.
 % For details, see the function injector_to_producer_network.m
 
-baseNetworkModel = MRSTExample('injector_to_producer_network', ...
-                               'cellsPerConnection', 10, ...
-                               'referenceExample', referenceExample, ...
-                               'plotNetwork', true);
+baseNetworkModel = TestCase('injector_to_producer_network', ...
+                            'cellsPerConnection', 10, ...
+                            'referenceCase', referenceCase, ...
+                            'plotNetwork', true);
 
 %% Create sample object with initial networks obtained through flow diagnostics
 % We obtain the prior distribution of the model parameters from building
@@ -163,7 +163,7 @@ obsStdDevFlux = 50*stb()/day();
 obsStdDevBhp  = 1*barsa();
 obsStdDev = [obsStdDevFlux, obsStdDevFlux, obsStdDevBhp];
 
-wellNames = {referenceExample.schedule.control.W.name};
+wellNames = {referenceCase.schedule.control.W.name};
 
 % Quantity of interest
 qoi = WellQoIHM('wellNames', wellNames, ...

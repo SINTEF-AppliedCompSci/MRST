@@ -48,7 +48,8 @@ function samples = createEggSamplesFromFlowDiagnostics( ...
         % existing data
         overrideExistingParamFile = (size(poreVolumes, 1) < ensembleSize);
         
-        
+    end
+    
     if overrideExistingParamFile
         % Use flow diagnostic analysis to obtain initial parameters
         fprintf('Running flow diagnostics analysis. This may take some time.\n');
@@ -73,19 +74,19 @@ function samples = createEggSamplesFromFlowDiagnostics( ...
         for eggRealization = eggRealizations
 
             % Create the full Egg model realization
-            ensembleExample = MRSTExample('egg_wo', 'realization', eggRealization);
+            ensembleCase = TestCase('egg_wo', 'realization', eggRealization);
 
             % We consider only the timesteps up until the step specified
             % in the variable 'postprocStateNumber'
-            ensembleExample.schedule = simpleSchedule(ensembleExample.schedule.step.val(1:opt.postprocStateNumber), ...
-                                                       'W', ensembleExample.schedule.control.W);
+            ensembleCase.schedule = simpleSchedule(ensembleCase.schedule.step.val(1:opt.postprocStateNumber), ...
+                                                       'W', ensembleCase.schedule.control.W);
            % Pack the problem 
-           ensembleProblem = ensembleExample.getPackedSimulationProblem('Directory', ...
+           ensembleProblem = ensembleCase.getPackedSimulationProblem('Directory', ...
                 fullfile(opt.fullEnsembleDirectory, ['full_egg_', num2str(eggRealization)]));
 
             % Configure wells to only have one perforation and store sum of the
             % well production indices to use as prior.
-            WtmpNetwork = ensembleExample.schedule.control.W;
+            WtmpNetwork = ensembleCase.schedule.control.W;
             for i = 1:numel(WtmpNetwork)
                 WtmpNetwork(i).cells = WtmpNetwork(i).cells(7);
                 wellProductionIndicesSum(eggRealization, i) = sum(WtmpNetwork(i).WI);
@@ -111,7 +112,7 @@ function samples = createEggSamplesFromFlowDiagnostics( ...
                     tmpNetwork = Network(WtmpNetwork, ensembleProblem.SimulatorSetup.model.G, ...
                                          'type', initializationType,         ...
                                          'problem', ensembleProblem,        ...
-                                         'state_number',postprocStateNumber,     ...
+                                         'state_number', opt.postprocStateNumber,     ...
                                          'flow_filter', 1*stb/day);
                 otherwise
                     error('\nNetwork of type %s is not implemented\n', initializationType);    
