@@ -11,7 +11,7 @@
 % transmissibilities, and well production indices.
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble optimization upscaling coarsegrid
+    test-suite incomp ensemble optimization upscaling coarsegrid
 
 mrstVerbose off
 
@@ -41,7 +41,7 @@ historyMatchingDirectory = fullfile(topDirectory, ...
 % consists of a 3D oil-water model of a highly chanalized reservoir, driven
 % by four producer wells and eight injectors.
 
-referenceExample = MRSTExample('egg_wo', 'realization', referenceEggRealization);
+referenceCase = TestCase('egg_wo', 'realization', referenceEggRealization);
 
 % We consider only the first 48 time steps from the reference model, since
 % most of the model dynamics play out during that periode.
@@ -49,10 +49,10 @@ numTotalTimesteps = 48;
 
 %referenceExample.schedule = simpleSchedule(referenceExample.schedule.step.val(5:53), ...
 %                                           'W', referenceExample.schedule.control.W);
-referenceExample.schedule = simpleSchedule(referenceExample.schedule.step.val(1:48), ...
-                                           'W', referenceExample.schedule.control.W);
+referenceCase.schedule = simpleSchedule(referenceCase.schedule.step.val(1:48), ...
+                                           'W', referenceCase.schedule.control.W);
     
-referenceProblem = referenceExample.getPackedSimulationProblem('Directory', referenceDirectory);
+referenceProblem = referenceCase.getPackedSimulationProblem('Directory', referenceDirectory);
 
 if rerunReferenceModel
     clearPackedSimulatorOutput(referenceProblem, 'prompt',  false);
@@ -61,7 +61,7 @@ simulatePackedProblem(referenceProblem);
 
 if plotReferenceModel
     [refWellSols, refStates, refReports] = getPackedSimulatorOutput(referenceProblem);
-    referenceExample.plot(refStates);
+    referenceCase.plot(refStates);
     plotWellSols(refWellSols);
 end
 
@@ -74,7 +74,7 @@ end
 % enabling us to plot both the observations and the full reference data
 % (the "truth") easily within the ensemble module.
 
-wellNames = {referenceExample.schedule.control(1).W.name};
+wellNames = {referenceCase.schedule.control(1).W.name};
 numWells = numel(wellNames);
 fieldNames = {'qOs', 'qWs', 'bhp'};
 
@@ -111,10 +111,10 @@ truthResultHandler{1} = {referenceObservations};
 % integrates directly into the esemble module.
 % For details, see the function upscaled_coarse_network
 
-baseUpscaledModel = MRSTExample('upscaled_coarse_network', ...
-                                'partition', [6 6 1], ...
-                                'referenceExample', referenceExample, ...
-                                'plotCoarseModel', true);
+baseUpscaledModel = TestCase('upscaled_coarse_network', ...
+                             'partition', [6 6 1], ...
+                             'referenceCase', referenceCase, ...
+                             'plotCoarseModel', true);
                             
                             
 %% Build initial ensemble of coarse models through upscaling
@@ -181,19 +181,19 @@ else
     
     
     for eggRealization = eggRealizations
-        fullRealization = MRSTExample('egg_wo', 'realization', eggRealization);
+        fullRealization = TestCase('egg_wo', 'realization', eggRealization);
         
         % Use the same time steps as the reference model, but keep the well
         % configurations
-        fullRealization.schedule = simpleSchedule(referenceExample.schedule.step.val, ...
+        fullRealization.schedule = simpleSchedule(referenceCase.schedule.step.val, ...
                                                   'W', fullRealization.schedule.control.W);
 
         %fullRealization.schedule.control.W(1).WI
         
-        coarseRealization = MRSTExample('upscaled_coarse_network', ...
-                                        'partition', [6 6 1], ...
-                                        'referenceExample', fullRealization, ...
-                                        'plotCoarseModel', false);
+        coarseRealization = TestCase('upscaled_coarse_network', ...
+                                     'partition', [6 6 1], ...
+                                     'referenceCase', fullRealization, ...
+                                     'plotCoarseModel', false);
 
         poreVolumes(eggRealization, :) = coarseRealization.model.operators.pv(:);
         transmissibilities(eggRealization, :) = coarseRealization.model.operators.T(:);

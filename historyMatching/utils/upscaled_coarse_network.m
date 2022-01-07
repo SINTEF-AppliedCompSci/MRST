@@ -1,49 +1,32 @@
-function [description, options, state0, model, schedule, plotOptions] = upscaled_coarse_network(varargin)
+function setup = upscaled_coarse_network(varargin)
 % A rich network model represented by a very coarse grid obtained through
 % upscaling of a full reservoir model. See description below.
 %
 % SYNOPSIS:
-%   [description, options, state0, model, schedule, plotOptions] = ...
-%       upscaled_coarse_network('referenceModel', referenceModel)
+%   setup = upscaled_coarse_network('referenceCase', referenceCase)
+%   setup = upscaled_coarse_network(fullSetup, 'referenceCase', referenceCase)
 %
 % DESCRIPTION:
 %   This function maps a full reservoir model into a rich network model
-%   represented by a very coarse computational grid. The full reference model is also required 
-%   to be a MRSTExample object.
+%   represented by a very coarse computational grid. The full reference 
+%   model is also required to be a TestCase object.
 %
 % REQUIRED PARAMETERS:
-%   'referenceModel' - A full reservoir model as a MRSTExample object.
+%   'referenceCase' - A full reservoir model as a TestCase object.
 % 
 % OPTIONAL PARAMETERS:   
 %   'plotCoarseModel' - true or false
 %
 % RETURNS:
-%   description - One-line example description, displayed in list-examples,
-%                 and the only input argument if the function is called as
-%                 description = injector_to_producer_network(referenceModel);
+%   setup - test case with the following fields: name, description,
+%      options, state0, model, schedule, and plotOptions.
+%      If the optional input fullSetup (see synopsis) is false, the
+%      returned setup only contains name, description, and options.
 %
-%   options     - A struct of the optional input parameters, with defaults
-%                 for all arguments that were not passed as optional
-%                 parameters. Returned for convenient access to the example
-%                 configuration.
-%                 Also includes the NetworkModel object itself
-%
-%   state0, model, schedule - Initial state, model, and simulation schedule
-%                             that can be passed to `simulateScheduleAD`
-%
-%   plotOptions - Cell array on the form {'pn1', pv1, ...} with arguments
-%                 that can be used in any of the following ways
-%                   - set(myAxis, 'pn1, vn1, ...)
-%                   - figure('pn1', vn1, ...)
-%                   - plotToolbar(G, state, 'pn1', vn1, ...)
-%                 In addition to the standard optional parameters of
-%                 `figure`, {'Size', [width, height]} can also be provided,
-%                 which `MRSTExample` interprets as
-%                 [pos(1:2), [width, height]], where
-%                 pos = get(0, 'DefaultFigurePosition')
+%      Note that setup.options also includes the NetworkModel object itself
 %
 % SEE ALSO:
-%   `MRSTExample`, `listExamples`, `exampleSuiteTutorial`
+%   TestCase, testcase_template, testSuiteTutorial.
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -65,27 +48,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     
     % Optional input parameters with default values
-    options = struct('referenceExample', {{}}, ...
+    options = struct('referenceCase', {{}}, ...
                      'partition', [], ...
                      'wellUpscaleMethod', 'mean', ...
                      'plotCoarseModel',  false);
-    options = merge_options(options, varargin{:});
+
+    description = ['Creates a coarse network model of model X'];
+    [options, fullSetup, setup] = processTestCaseInput(mfilename, ...
+        options, description, varargin{:});
     
-    if isempty(options.referenceExample)
-        error("'referenceExample' is a required input to this example but is currently missing");
+    if isempty(options.referenceCase)
+        error("'referenceCase' is a required input to this example but is currently missing");
     end
-    if iscell(options.referenceExample)
-        options.referenceExample = options.referenceExample{1};
+    if iscell(options.referenceCase)
+        options.referenceCase = options.referenceCase{1};
     end
     
-    if ~isa(options.referenceExample, 'MRSTExample')
-        error("'referenceExample' is required to be a MRSTExample object");
+    if ~isa(options.referenceCase, 'TestCase')
+        error("'referenceCase' is required to be a TestCase object");
     end
     
     % One line description
-    description = ['Creates a coarse model of ', options.referenceExample.name];
+    setup.description = ['Creates a coarse network model of ', options.referenceCase.name];
 
-    if nargout <= 2, return; end
+    if ~fullSetup, return; end
     
     % Module dependencies
     require ad-core ad-props ad-blackoil upscaling coarsegrid
@@ -93,16 +79,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %% Create coarse model
     if isempty(options.partition)
         % Just specify an arbitrary partition based on the reference model
-        options.partition = max(floor(options.referenceExample.model.G.cartDims./10), [1 1 1]);
+        options.partition = max(floor(options.referenceCase.model.G.cartDims./10), [1 1 1]);
     end
     
     % Make coarse grid based on the partition
-    blockIx = partitionUI(options.referenceExample.model.G, options.partition);
-    blockIx = processPartition(options.referenceExample.model.G, blockIx);
+    blockIx = partitionUI(options.referenceCase.model.G, options.partition);
+    blockIx = processPartition(options.referenceCase.model.G, blockIx);
     blockIx = compressPartition(blockIx);
     
    % Perform a simple upscaling to obtain a coarse model
-   model = upscaleModelTPFA(options.referenceExample.model, blockIx);
+   model = upscaleModelTPFA(options.referenceCase.model, blockIx);
    model.AutoDiffBackend = AutoDiffBackend();
    
     % We want to be able to include rel-perm scaling as tunabale 
@@ -121,11 +107,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if options.plotCoarseModel
         figure('position',[100 100 1000 400])
         axes('position',[.02 .05 .48 .9]);
-        plotGrid(options.referenceExample.model.G, 'EdgeAlpha',.2); 
+        plotGrid(options.referenceCase.model.G, 'EdgeAlpha',.2); 
         view(174,60);
-        title('Fine-scale grid (18553 cells)')
-        plotWell(options.referenceExample.model.G, ...
-                 options.referenceExample.schedule.control(1).W, ...
+        title(['Fine-scale grid (', num2str(options.referenceCase.model.G.cells.num), ' cells)'])
+        plotWell(options.referenceCase.model.G, ...
+                 options.referenceCase.schedule.control(1).W, ...
                  'Color', 'k', 'FontSize', 10); 
         axis off tight
         camlight headlight
@@ -133,10 +119,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         axes('position',[.5 .05 .48 .9]);
         %plotCellData(cModel.G, cModel.rock.poro, 'EdgeColor', 'none');
         plotGrid(model.G, 'EdgeAlpha',.8);
-        title('Coarse-scale grid (33 cells)')
+        title(['Coarse-scale grid (', num2str(model.G.cells.num), ' cells)'])
         view(174,60); 
-        plotWell(options.referenceExample.model.G, ...
-                 options.referenceExample.schedule.control(1).W, ...
+        plotWell(options.referenceCase.model.G, ...
+                 options.referenceCase.schedule.control(1).W, ...
                  'Color', 'k', 'FontSize', 10); 
         axis off tight
         camlight headlight
@@ -144,17 +130,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     %% Compute state and schedule using upscaling
     state0 = upscaleState(model, ...
-                          options.referenceExample.model, ...
-                          options.referenceExample.state0);
+                          options.referenceCase.model, ...
+                          options.referenceCase.state0);
     schedule = upscaleSchedule(model, ...
-                               options.referenceExample.schedule, ...
+                               options.referenceCase.schedule, ...
                                'wellUpscaleMethod', options.wellUpscaleMethod);
     
     % Temporarily store all alternatives for upscaling:
     wellUpscalingMethods = {'sum', 'mean', 'harmonic'};
     for i=1:numel(wellUpscalingMethods)
         tmpSchedule = upscaleSchedule(model, ...
-                               options.referenceExample.schedule, ...
+                               options.referenceCase.schedule, ...
                                'wellUpscaleMethod', wellUpscalingMethods{i});
         options.(wellUpscalingMethods{i}) = [tmpSchedule.control(1).W.WI];
     end
@@ -162,4 +148,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % plotOptions are only by MRSTExample. In case of empty plotOptions,
     % MRSTExample will attempt to set reasonable defaults
     plotOptions = {};
+    
+    % Pack setup
+    setup = packTestCaseSetup(mfilename,                  ...
+                              'description', setup.description, ...
+                              'options'    , options    , ...
+                              'state0'     , state0     , ...
+                              'model'      , model      , ...
+                              'schedule'   , schedule   , ...
+                              'plotOptions', plotOptions);
 end

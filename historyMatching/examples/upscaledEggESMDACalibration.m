@@ -11,7 +11,7 @@
 % transmissibilities, and well production indices.
 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble optimization upscaling coarsegrid
+    test-suite incomp ensemble optimization upscaling coarsegrid
 
 mrstVerbose off
 
@@ -38,33 +38,34 @@ historyMatchingDirectory = fullfile(topDirectory, ...
 originalScheduleDirectory = fullfile(topDirectory, 'original_schedule_truth', ...
     ['egg_realization_', num2str(referenceEggRealization)]);
 
+
 %% Setup full 3D reference model
 % The reference model is one of the realizations from the Egg ensemble. It
 % consists of a 3D oil-water model of a highly chanalized reservoir, driven
 % by four producer wells and eight injectors.
 
-referenceExample = MRSTExample('egg_wo', 'realization', referenceEggRealization);
+referenceCase = TestCase('egg_wo', 'realization', referenceEggRealization);
 
 % We consider only the first 48 time steps from the reference model, since
 % most of the model dynamics play out during that periode.
 numTotalTimesteps = 48;
 
-referenceExample.schedule = simpleSchedule(referenceExample.schedule.step.val(1:48), ...
-                                           'W', referenceExample.schedule.control.W);
+referenceCase.schedule = simpleSchedule(referenceCase.schedule.step.val(1:48), ...
+                                           'W', referenceCase.schedule.control.W);
     
 %% Create random schedule
 
-originalSchedule = referenceExample.schedule;
-schedule = referenceExample.schedule;
+originalSchedule = referenceCase.schedule;
+schedule = referenceCase.schedule;
 
 % Define new schedule after every fourth timestep
 schedule.step.control= ceil(0.25*(1:numel(schedule.step.val))');
 
 rng(0)
-referenceExample.schedule = ensembleModulePerturbSchedule(schedule);
+referenceCase.schedule = ensembleModulePerturbSchedule(schedule);
 
 %% Pack and run reference problem
-referenceProblem = referenceExample.getPackedSimulationProblem('Directory', referenceDirectory);
+referenceProblem = referenceCase.getPackedSimulationProblem('Directory', referenceDirectory);
 
 if rerunReferenceModel
     clearPackedSimulatorOutput(referenceProblem, 'prompt',  false);
@@ -73,7 +74,7 @@ simulatePackedProblem(referenceProblem);
 
 if plotReferenceModel
     [refWellSols, refStates, refReports] = getPackedSimulatorOutput(referenceProblem);
-    referenceExample.plot(refStates);
+    referenceCase.plot(refStates);
     plotWellSols(refWellSols);
 end
 
@@ -86,10 +87,10 @@ end
 % integrates directly into the esemble module.
 % For details, see the function upscaled_coarse_network
 
-baseUpscaledModel = MRSTExample('upscaled_coarse_network', ...
-                                'partition', [6 6 1], ...
-                                'referenceExample', referenceExample, ...
-                                'plotCoarseModel', true);
+baseUpscaledModel = TestCase('upscaled_coarse_network', ...
+                             'partition', [6 6 1], ...
+                             'referenceCase', referenceCase, ...
+                             'plotCoarseModel', true);
                             
                             
 %% Build initial ensemble of coarse models through upscaling
@@ -114,7 +115,7 @@ baseUpscaledModel = MRSTExample('upscaled_coarse_network', ...
 % All this is done in the following utility function:
 
 samples = priorSamplesForUpscaledEggModel(baseUpscaledModel, ...
-                                          referenceExample, ...
+                                          referenceCase, ...
                                           regenerateInitialEnsemble);
 
 
@@ -140,7 +141,7 @@ obsStdDevBhp  = 1*barsa();
 obsStdDev = [obsStdDevFlux, obsStdDevFlux, obsStdDevBhp];
 
 % Quantity of interest
-qoi = WellQoIHM('wellNames', {referenceExample.schedule.control(1).W.name}, ...
+qoi = WellQoIHM('wellNames', {referenceCase.schedule.control(1).W.name}, ...
                 'names', {'qOs', 'qWs', 'bhp'}, ...
                 'observationCov', obsStdDev.^2);
 
@@ -234,10 +235,10 @@ disp('Plotting completed');
 % Setup a new reference case using the original schedule, and then run the
 % same schedule using the calibrated parameters
 
-orginalReferenceExample = MRSTExample('egg_wo', 'realization', referenceEggRealization);
-orginalReferenceExample.schedule = originalSchedule;
+orginalReferenceCase = TestCase('egg_wo', 'realization', referenceEggRealization);
+orginalReferenceCase.schedule = originalSchedule;
 
-originalReferenceProblem = orginalReferenceExample.getPackedSimulationProblem('Directory', originalScheduleDirectory);
+originalReferenceProblem = orginalReferenceCase.getPackedSimulationProblem('Directory', originalScheduleDirectory);
 
 rerunOriginalSchedule = true;
 if rerunOriginalSchedule
@@ -254,9 +255,9 @@ simulatePackedProblem(originalReferenceProblem);
 calibratedSimulationsDirectory = fullfile(topDirectory, ...
     ['original_schedule_upscale_ensemble_egg_', num2str(referenceEggRealization)]);
 
-origSchedbaseUpscaledModel = MRSTExample('upscaled_coarse_network', ...
+origSchedbaseUpscaledModel = TestCase('upscaled_coarse_network', ...
                                 'partition', [6 6 1], ...
-                                'referenceExample', orginalReferenceExample, ...
+                                'referenceCase', orginalReferenceCase, ...
                                 'plotCoarseModel', false);
 
 originalScheduleEnsemble = MRSTHistoryMatchingEnsemble(...
