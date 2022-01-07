@@ -110,7 +110,7 @@ end
 % rectangular Cartesian gird having the same number of rows as the number
 % of network edges. The fluid model is copied from the reference model.
 gravity off
-gpsNet = NetworkModel(modelTrue, ntwrk, WTrain);
+gpsNet = GPSNet(modelTrue, ntwrk, WTrain);
 
 %% Plot the GPSNet model: network and simulation grid
 fig1 = figure;

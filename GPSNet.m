@@ -1,5 +1,5 @@
-classdef NetworkModel
-    %NetworkModel - Model class implementing GPSNet type of network model
+classdef GPSNet
+    %GPSNet - Model class implementing GPSNet type of network model
     %   Detailed explanation goes here
 
     properties
@@ -13,12 +13,12 @@ classdef NetworkModel
     end
 
     methods
-        function obj = NetworkModel(modelTrue, network, W_in, varargin)
-            % Creates a NetworkModel
+        function obj = GPSNet(modelTrue, network, W_in, varargin)
+            % Creates a GPSNet
             %
             % SYNOPSIS:
-            %     obj =  NetworkModel(model, network, W);
-            %     obj =  NetworkModel(model, network, W, nc);
+            %     obj =  GPSNet(model, network, W);
+            %     obj =  GPSNet(model, network, W, nc);
             %
             % DESCRIPTION:
             % The function creates a GPSNet model starting from a model class that

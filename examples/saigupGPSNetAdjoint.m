@@ -98,7 +98,7 @@ end
 gravity off
 %S0 = mean(statesTrain{1}.s); S0=S0/sum(S0);
 p0 = mean(statesTrain{1}.pressure);
-gpsNet = NetworkModel(modelTrue, ntwrk, WTrain, 'p0', p0);%, 'S0', S0);
+gpsNet = GPSNet(modelTrue, ntwrk, WTrain, 'p0', p0);%, 'S0', S0);
 
 % Reset the initial saturation, so that we have water in the left half of
 % the model and oil in the right half. This will better reflect the
