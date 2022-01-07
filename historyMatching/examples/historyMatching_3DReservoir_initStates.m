@@ -4,7 +4,7 @@
 % parameters are initial saturation of oil defined through the
 % State0Samples class
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble 
+    test-suite incomp ensemble 
 
 mrstVerbose off
 
@@ -23,7 +23,7 @@ directoryTruth = fullfile(mrstOutputDirectory(), ...
 topDirectory = fullfile(mrstOutputDirectory(), ...
                         'historyMatching', 'tutorial', 'state0', trueProblemName);
                       
-trueExample = MRSTExample(trueProblemName);
+trueExample = testCase(trueProblemName);
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = false;

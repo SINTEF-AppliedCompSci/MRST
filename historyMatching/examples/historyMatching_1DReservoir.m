@@ -1,7 +1,7 @@
 %% History mathing of 1D reservoir simulation
 % In this example, we use well production data to estimate 
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble
+    test-suite incomp ensemble
 
 mrstVerbose off
 
@@ -21,7 +21,7 @@ directoryTruth = fullfile(mrstOutputDirectory(), ...
                           'historyMatching', 'truth', ...
                           trueProblemName);
                   
-trueExample = MRSTExample(trueProblemName, trueProblemOptions{:});
+trueExample = TestCase(trueProblemName, trueProblemOptions{:});
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = true;

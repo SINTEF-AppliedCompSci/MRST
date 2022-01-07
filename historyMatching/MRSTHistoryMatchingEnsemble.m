@@ -31,7 +31,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
     methods
         
         %-----------------------------------------------------------------%
-        function ensemble = MRSTHistoryMatchingEnsemble(mrstExample, samples, qoi, varargin)
+        function ensemble = MRSTHistoryMatchingEnsemble(baseCase, samples, qoi, varargin)
             
             opt = struct('prepareSimulation', true, ...
                          'observationProblem', struct([]), ...
@@ -39,7 +39,7 @@ classdef MRSTHistoryMatchingEnsemble < MRSTEnsemble
             
             [opt, extra] = merge_options(opt, varargin{:});
             
-            ensemble = ensemble@MRSTEnsemble(mrstExample, samples, qoi, ...
+            ensemble = ensemble@MRSTEnsemble(baseCase, samples, qoi, ...
                                              extra{:}, 'prepareSimulation', false);
             
             % Check that the history-matching-specific input values make

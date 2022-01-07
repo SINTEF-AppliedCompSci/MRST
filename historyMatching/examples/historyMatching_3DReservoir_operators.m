@@ -4,7 +4,7 @@
 % parameters are transmissibility and porevolume defined through the
 % OperatorSamples class
 mrstModule add ad-core ad-blackoil mrst-gui ad-props ...
-    example-suite incomp ensemble 
+    test-suite incomp ensemble 
 
 mrstVerbose off
 
@@ -23,7 +23,7 @@ directoryTruth = fullfile(mrstOutputDirectory(), ...
 topDirectory = fullfile(mrstOutputDirectory(), ...
                         'historyMatching', 'tutorial', 'operators', trueProblemName);
                       
-trueExample = MRSTExample(trueProblemName);
+trueExample = TestCase(trueProblemName);
 trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = false;
