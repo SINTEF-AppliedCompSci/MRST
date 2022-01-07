@@ -337,7 +337,7 @@ classdef NetworkModel
             %
             % SYNOPSIS:
             %   pvec = getScaledParameterVector(setup, params)
-            %   pvec = getScaledParameterVector(setup, params, connscale)
+            %   pvec = getScaledParameterVector(setup, params, 'pn', pv)
             %
             % DESCRIPTION:
             %   The function does the same as getScaledParameterVector from
@@ -351,15 +351,24 @@ classdef NetworkModel
             % PARAMETERS:
             %   setup  - simulation setup structure
             %   params - cell array of ModelParameter instances
-            %   connscale - optional parameter, scales well connectivities
+            %
+            % OPTIONAL PARAMETERS:
+            %   'connscale' - scales well connectivities. Either a scalar
+            %              value or one value per connection in params
+            %   'randSw' - random initial guess for the water saturation
             %
             % OUTPUT:
             %   pvec - array containing scaled parameters
             
-            if nargin==3
-                connscale = 1;
+            opt = struct('connscale',  ones(numel(params),1), ...
+                         'randSw',     false);
+            opt = merge_options(opt, varargin{:});
+
+            if numel(opt.connscale)==1
+                opt.connscale = opt.connscale*ones(numel(params),1);
             else
-                connscale = varargin{1};
+                assert(numel(opt.connscale)==numel(params), ...
+                    'Number of scaling parameters not equal number of connections');
             end
             values = applyFunction(@(p)p.getParameterValue(setup), params);
             
@@ -375,7 +384,11 @@ classdef NetworkModel
                             values{k} = obj.graph.Edges.T;
                         end
                     case 'conntrans'
-                        values{k} = connscale*values{k};
+                        values{k} = opt.connscale(k)*values{k};
+                    case 'sw'
+                        if opt.randSw
+                            values{k} =  rand(size(values{k}));
+                        end
                 end
                 u{k} = params{k}.scale(values{k});
             end
