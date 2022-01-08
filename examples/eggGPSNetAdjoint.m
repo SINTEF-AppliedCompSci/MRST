@@ -26,18 +26,18 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
 % and 100.
 
 % True schedule, which we seek to reproduce
-trueEx   = TestCase('egg_wo');
-trueCase = trueEx.getPackedSimulationProblem();
+predCase  = TestCase('egg_wo');
+predProbl = predCase.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trueCase)
-simulatePackedProblem(trueCase);
+simulatePackedProblem(predProbl);
 
-[wellSolTrue, statesTrue] = getPackedSimulatorOutput(trueCase);
-modelTrue     = trueEx.model;
-scheduleTrue  = trueCase.SimulatorSetup.schedule;
-WTrue         = scheduleTrue.control.W;
+[wellSolPred, statesPred] = getPackedSimulatorOutput(predProbl);
+predModel     = predCase.model;
+predSchedule  = predProbl.SimulatorSetup.schedule;
+Wpred         = predSchedule.control.W;
 
 % Plot
-trueEx.plot(statesTrue,'step_index',numel(statesTrue));
+predCase.plot(statesPred,'step_index',numel(statesPred));
 
 
 %% Random schedule
@@ -45,18 +45,18 @@ trueEx.plot(statesTrue,'step_index',numel(statesTrue));
 % close to the reservoir pressure. To avoid prescribing conditions that
 % result in injection from the producers, we introduce a bhp perturbation
 % that is nonsymmetric around the base case
-trainEx   = makeRandomTraining(trueEx, 0.25, @(x,y) y - 5*(x-.2)*barsa, false);
-trainCase = trainEx.getPackedSimulationProblem();
+trainCase  = makeRandomTraining(predCase, 0.25, @(x,y) y - 5*(x-.2)*barsa, false);
+trainProbl = trainCase.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trainCase)
-simulatePackedProblem(trainCase);
+simulatePackedProblem(trainProbl);
 
-[wellSolTrain, statesTrain] = getPackedSimulatorOutput(trainCase);
-modelTrain     = trainEx.model;
-scheduleTrain  = trainCase.SimulatorSetup.schedule;
-WTrain         = scheduleTrain.control.W;
+[wellSolTrain, statesTrain] = getPackedSimulatorOutput(trainProbl);
+trainModel     = trainCase.model;
+predSchedule  = trainProbl.SimulatorSetup.schedule;
+Wtrain         = predSchedule.control.W;
 
-plotWellSols({wellSolTrain, wellSolTrue}, ...
-    {scheduleTrain.step.val, scheduleTrue.step.val},...
+plotWellSols({wellSolTrain, wellSolPred}, ...
+    {predSchedule.step.val, predSchedule.step.val},...
     'datasetnames',{'training','reference'}, ...
     'zoom', true, 'field', 'qWs', 'SelectedWells', [1 9]);
 
@@ -67,7 +67,7 @@ plotWellSols({wellSolTrain, wellSolTrue}, ...
 
 % To create the network, we only need a single perforation from each well,
 % which we somewhat arbitrarily pick from the top.
-Wnw = WTrue;
+Wnw = Wpred;
 for i = 1:numel(Wnw)
     Wnw(i).cells = Wnw(i).cells(7);
 end
@@ -81,23 +81,23 @@ end
 networkType = 'injectors_to_producers';
 switch networkType
     case 'all_to_all'
-        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType);
+        ntwrk =  Network(Wnw, predModel.G, 'type', networkType);
     case 'injectors_to_producers'
-        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType, ...
+        ntwrk =  Network(Wnw, predModel.G, 'type', networkType, ...
                          'injectors', 1:8, 'producers', 9:12);
     case 'user_defined_edges'
         edges = [1 9;2 9;2 10;3 9;3 11;
                  4 9; 4 10; 4 11; 4 12;
                  5 10; 5 12; 6 11; 7 11; 7 12; 8 12];
-        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType, ...
+        ntwrk =  Network(Wnw, predModel.G, 'type', networkType, ...
                          'edges',edges);
     case 'fd_preprocessor'
-         ntwrk = Network(Wnw, modelTrue.G, 'type', networkType, ...
-                         'problem', trueCase,                   ...
+         ntwrk = Network(Wnw, predModel.G, 'type', networkType, ...
+                         'problem', predProbl,                   ...
                          'flow_filter',1*stb/day);
     case 'fd_postprocessor'
-        ntwrk = Network(Wnw, modelTrue.G, 'type', networkType, ...
-                         'problem', trueCase,                 ...
+        ntwrk = Network(Wnw, predModel.G, 'type', networkType, ...
+                         'problem', predProbl,                 ...
                          'state_number',40,                   ...
                          'flow_filter', 1*stb/day);
     otherwise
@@ -110,14 +110,14 @@ end
 % rectangular Cartesian gird having the same number of rows as the number
 % of network edges. The fluid model is copied from the reference model.
 gravity off
-gpsNet = GPSNet(modelTrue, ntwrk, WTrain);
+gpsNet = GPSNet(predModel, ntwrk, Wtrain);
 
 %% Plot the GPSNet model: network and simulation grid
 fig1 = figure;
 subplot(2,2,1)
-G = trueEx.getVisualizationGrid();
-plotCellData(G, log10(trueEx.model.rock.perm(:,1)),'EdgeColor','none');
-plotWell(G, trueEx.schedule.control(1).W,'color','k','FontSize',8);
+G = predCase.getVisualizationGrid();
+plotCellData(G, log10(predCase.model.rock.perm(:,1)),'EdgeColor','none');
+plotWell(G, predCase.schedule.control(1).W,'color','k','FontSize',8);
 view(85,65); 
 axis tight off; set(gca,'Clipping',false)
 
@@ -144,8 +144,8 @@ set(ax.Children(1:12),'FontSize',8);
 % optimization. These are specified through through the ModelParameter
 % class from the optimization module. For the training we use the random
 % schedule
-trainSetup = gpsNetSimulationSetup(gpsNet, scheduleTrain);
-predSetup  = gpsNetSimulationSetup(gpsNet, scheduleTrue);
+trainSetup = gpsNetSimulationSetup(gpsNet, predSchedule);
+predSetup  = gpsNetSimulationSetup(gpsNet, predSchedule);
 
 % Parameter lumping
 % In the GPSNet type of models, we only match a single pore volume and a
@@ -160,14 +160,14 @@ config = {
     'porevolume',       1,   'linear',       [],  cellEdgeNo,   cellIx,   [.01  5]
     'conntrans',        1,   'log',          [],          [],       [],   [.001 20]
     'transmissibility', 1,   'log'   ,       [],  faceEdgeNo,   faceIx,   [.001 100]};
-prmsTrain = []; prmsTrue = [];
+trainPrms = []; predPrms = [];
 for k = 1:size(config,1)
     if config{k, 2} == 0, continue, end
     prmsTrain = addParameter(prmsTrain, trainSetup, ...
         'name',    config{k,1}, 'scaling', config{k,3}, ...
         'boxLims', config{k,4}, 'lumping', config{k,5}, ...
         'subset',  config{k,6}, 'relativeLimits',config{k,7});
-    prmsTrue = addParameter(prmsTrue, predSetup, ...
+    predPrms = addParameter(predPrms, predSetup, ...
         'name',    config{k,1}, 'scaling', config{k,3}, ...
         'boxLims', config{k,4}, 'lumping', config{k,5}, ...
         'subset',  config{k,6}, 'relativeLimits',config{k,7});
@@ -194,10 +194,10 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
 pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 'connscale', 7);
  
 % Evaluate the initial mismatch for the training data
-[misfitT0,~,wellSolsT0] = ...
+[misfitT0,~,wellSolT0] = ...
     evaluateMatch(pinit,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
-[misfitE0,~,wellSolsE0] = ...
-    evaluateMatch(pinit,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
+[misfitP0,~,wellSolP0] = ...
+    evaluateMatch(pinit,mismatchFn,predSetup,predPrms,statesPred,'Gradient','none');
 
 
 %% Model calibration
@@ -211,32 +211,32 @@ objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,prmsTrain,statesTrain);
     'lbfgsNum', 5, 'outputHessian', true, 'logPlot', true);
 
 %% Evaluate mismatch over the full simulation schedule 
-[misfitE, ~,wellSolsE,solsAll] = ...
-    evaluateMatch(popt,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
 [misfitT,~,wellSolsT] = ...
     evaluateMatch(popt,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
+[misfitP, ~,wellSolP,solsP] = ...
+    evaluateMatch(popt,mismatchFn,predSetup,predPrms,statesPred,'Gradient','none');
 
 %% Plot well responses for training data
-trainSteps = scheduleTrain.step.val;
-fh = plotWellSols({wellSolTrain,wellSolsT0,wellSolsT}, trainSteps, ...
+trainSteps = predSchedule.step.val;
+fh = plotWellSols({wellSolTrain,wellSolT0,wellSolsT}, trainSteps, ...
     'datasetnames', {'data','init','match'}, 'zoom', true, ...
     'field', 'qWs', 'SelectedWells', 9:10);
 set(fh, 'name','Egg: GPSNet training')
 
 
 %% Plot well responses for prediction case
-predSteps = scheduleTrue.step.val;
-fh = plotWellSols({wellSolTrue,wellSolsE0, wellSolsE}, predSteps, ...
+predSteps = predSchedule.step.val;
+fh = plotWellSols({wellSolPred,wellSolP0, wellSolP}, predSteps, ...
     'datasetnames', {'data','init','match'}, 'zoom', true, ...
     'field', 'qWs', 'SelectedWells', 9:10);
 set(fh, 'name','Egg: GPSNet prediction')
 
 %% Plot the evolving saturation
 figure
-gpsNet.plotGrid(solsE{1}.s(:,1)); colormap(flipud(winter)); caxis([0 1])
-for i=2:numel(solsE)
+gpsNet.plotGrid(solsP{1}.s(:,1)); colormap(flipud(winter)); caxis([0 1])
+for i=2:numel(solsP)
     cla
-    gpsNet.plotGrid(solsE{i}.s(:,1)); drawnow; pause(0.1);
+    gpsNet.plotGrid(solsP{i}.s(:,1)); drawnow; pause(0.1);
 end
 %% Copyright Notice
 %

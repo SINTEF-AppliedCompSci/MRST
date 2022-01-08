@@ -28,32 +28,32 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics...
 % specified controls.
 
 % True schedule, which we seek to reproduce
-trueEx   = TestCase('norne_simple_wo');
-trueCase = trueEx.getPackedSimulationProblem();
+predCase  = TestCase('norne_simple_wo');
+predProbl = predCase.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trueProb)
-simulatePackedProblem(trueCase);
+simulatePackedProblem(predProbl);
 
-[wellSolTrue, statesTrue] = getPackedSimulatorOutput(trueCase);
-modelTrue     = trueEx.model;
-scheduleTrue  = trueCase.SimulatorSetup.schedule;
-WTrue         = scheduleTrue.control.W;
+[wellSolPred, statesPred] = getPackedSimulatorOutput(predProbl);
+predModel     = predCase.model;
+predSchedule  = predProbl.SimulatorSetup.schedule;
+Wpred         = predSchedule.control.W;
 
 % Random schedule
-trainEx   = makeRandomTraining(trueEx, 0.25, 0.05, false);
-trainCase = trainEx.getPackedSimulationProblem();
+trainCase  = makeRandomTraining(predCase, 0.25, 0.05, false);
+trainProbl = trainCase.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trainProb)
-simulatePackedProblem(trainCase);
+simulatePackedProblem(trainProbl);
 
-[wellSolTrain, statesTrain] = getPackedSimulatorOutput(trainCase);
-modelTrain     = trainEx.model;
-scheduleTrain  = trainCase.SimulatorSetup.schedule;
-WTrain         = scheduleTrain.control.W;
+[wellSolTrain, statesTrain] = getPackedSimulatorOutput(trainProbl);
+trainModel     = trainCase.model;
+trainSchedule  = trainProbl.SimulatorSetup.schedule;
+Wtrain         = trainSchedule.control.W;
 
 % Plot
-trueEx.plot(statesTrue,'step_index',numel(statesTrue))
+predCase.plot(statesPred,'step_index',numel(statesPred))
 
-plotWellSols({wellSolTrain, wellSolTrue}, ...
-    {scheduleTrain.step.val, scheduleTrue.step.val},...
+plotWellSols({wellSolTrain, wellSolPred}, ...
+    {trainSchedule.step.val, predSchedule.step.val},...
     'datasetnames',{'training','reference'}, ...
     'zoom', true, 'field', 'qWs', 'SelectedWells', 1:6);
 
@@ -65,7 +65,7 @@ plotWellSols({wellSolTrain, wellSolTrue}, ...
 
 % To create the network, we only need a single perforation from each well,
 % which we somewhat arbitrarily pick to be the middle perforation.
-Wnw = WTrue;
+Wnw = Wpred;
 for i = 1:numel(Wnw)
     Wnw(i).cells = Wnw(i).cells(round(numel(Wnw(i).cells)/2));
 end
@@ -76,21 +76,21 @@ end
 networkType = 'injectors_to_producers';
 switch networkType
     case 'all_to_all'
-        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType);
+        ntwrk =  Network(Wnw, predModel.G, 'type', networkType);
     case 'injectors_to_producers'
-        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType, ...
+        ntwrk =  Network(Wnw, predModel.G, 'type', networkType, ...
                          'injectors', 1:6, 'producers', 7:11);
     case 'user_defined_edges'
         edges = [rldecode((1:6)',5*ones(6,1)), repmat((7:11)',6,1)];
         edges = sortrows([edges; edges],'ascend');
-        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType, ...
+        ntwrk =  Network(Wnw, predModel.G, 'type', networkType, ...
                          'edges',edges);
     case 'fd_preprocessor'
-        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType, ...
-                         'problem', trueCase, 'flow_filter', 1*stb/day);
+        ntwrk =  Network(Wnw, predModel.G, 'type', networkType, ...
+                         'problem', predProbl, 'flow_filter', 1*stb/day);
     case 'fd_postprocessor'
-        ntwrk =  Network(Wnw, modelTrue.G, 'type', networkType, ...
-                         'problem', trueCase,  ...
+        ntwrk =  Network(Wnw, predModel.G, 'type', networkType, ...
+                         'problem', predProbl,  ...
                          'state_number', 6,   ...
                          'flow_filter',1*stb/day);
     otherwise
@@ -102,14 +102,14 @@ end
 % rectangular Cartesian gird having the same number of rows as the number
 % of network edges. The fluid model is copied from the reference model.
 gravity off
-gpsNet = GPSNet(modelTrue, ntwrk, WTrain);
+gpsNet = GPSNet(predModel, ntwrk, Wtrain);
 
 %% Plot the GPSNet model: network and simulation grid
 fig1 = figure;
 subplot(2,2,1)
-G = trueEx.getVisualizationGrid();
-plotCellData(G, trueEx.model.rock.poro,'EdgeColor','none');
-plotWell(G, trueEx.schedule.control(1).W,'color','k','FontSize',10);
+G = predCase.getVisualizationGrid();
+plotCellData(G, predCase.model.rock.poro,'EdgeColor','none');
+plotWell(G, predCase.schedule.control(1).W,'color','k','FontSize',10);
 view(85,65); 
 axis tight off; set(gca,'Clipping',false); zoom(1.2);
 
@@ -135,8 +135,8 @@ ax.Position([2 4]) = ax.Position([2 4])+[-.075 .1];
 % optimization. These are specified through through the ModelParameter
 % class from the optimization module. For the training we use the random
 % schedule
-trainSetup = gpsNetSimulationSetup(gpsNet, scheduleTrain);
-predSetup  = gpsNetSimulationSetup(gpsNet, scheduleTrue);
+trainSetup = gpsNetSimulationSetup(gpsNet, trainSchedule);
+predSetup  = gpsNetSimulationSetup(gpsNet, predSchedule);
 
 % Parameter lumping
 % In the GPSNet type of models, we only match a single pore volume and a
@@ -151,14 +151,14 @@ config = {
     'porevolume',       1,   'linear',       [],  cellEdgeNo,   cellIx,   [.001 4]
     'conntrans',        1,   'log',          [],          [],       [],   [.001 100]
     'transmissibility', 1,   'log'   ,       [],  faceEdgeNo,   faceIx,   [.001 100]};
-prmsTrain = []; prmsTrue = [];
+prmsTrain = []; prmsPred = [];
 for k = 1:size(config,1)
     if config{k, 2} == 0, continue, end
     prmsTrain = addParameter(prmsTrain, trainSetup, ...
         'name',    config{k,1}, 'scaling', config{k,3}, ...
         'boxLims', config{k,4}, 'lumping', config{k,5}, ...
         'subset',  config{k,6}, 'relativeLimits',config{k,7});
-    prmsTrue = addParameter(prmsTrue, predSetup, ...
+    prmsPred = addParameter(prmsPred, predSetup, ...
         'name',    config{k,1}, 'scaling', config{k,3}, ...
         'boxLims', config{k,4}, 'lumping', config{k,5}, ...
         'subset',  config{k,6}, 'relativeLimits',config{k,7});
@@ -187,10 +187,10 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
 pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 'connscale', 0.5);
  
 % Evaluate the initial mismatch for the training data
-[misfitT0,~,wellSolsT0] = ...
+[misfitT0,~,wellSolT0] = ...
     evaluateMatch(pinit,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
-[misfitE0,~,wellSolsE0] = ...
-    evaluateMatch(pinit,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
+[misfitP0,~,wellSolP0] = ...
+    evaluateMatch(pinit,mismatchFn,predSetup,prmsPred,statesPred,'Gradient','none');
 
 %% Model calibration
 % Calibrate the model using the BFGS method. This is a computationally
@@ -203,14 +203,14 @@ objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,prmsTrain,statesTrain);
     'outputHessian', true, 'logPlot', true);
 
 %% Evaluate mismatch over the full simulation schedule 
-[misfitE, ~,wellSolsE] = ...
-    evaluateMatch(popt,mismatchFn,predSetup,prmsTrue,statesTrue,'Gradient','none');
-[misfitT,~,wellSolsT] = ...
+[misfitT,~,wellSolT] = ...
     evaluateMatch(popt,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
+[misfitP, ~,wellSolP] = ...
+    evaluateMatch(popt,mismatchFn,predSetup,prmsPred,statesPred,'Gradient','none');
 
 %% Plot well responses for training data
-trainSteps = scheduleTrain.step.val;
-fh = plotWellSols({wellSolTrain,wellSolsT0,wellSolsT}, ...
+trainSteps = trainSchedule.step.val;
+fh = plotWellSols({wellSolTrain,wellSolT0,wellSolT}, ...
     {trainSteps, trainSteps, trainSteps}, ...
     'datasetnames', {'train','init','match'}, 'zoom', true, ...
     'field', 'qWs', 'SelectedWells', 7:8);
@@ -218,9 +218,37 @@ set(fh, 'name','Norne: GPSNet training')
 
 
 %% Plot well responses for prediction case
-predSteps = scheduleTrue.step.val;
-fh = plotWellSols({wellSolTrue,wellSolsE0, wellSolsE}, ...
+predSteps = predSchedule.step.val;
+fh = plotWellSols({wellSolPred,wellSolP0, wellSolP}, ...
     {predSteps, predSteps, predSteps}, ...
     'datasetnames', {'reference','initial','predicted'}, 'zoom', true, ...
     'field', 'qOs', 'SelectedWells', 7:8);
 set(fh, 'name','Norne: GPSNet prediction')
+
+%% Copyright Notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
