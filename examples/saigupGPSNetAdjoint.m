@@ -13,7 +13,7 @@
 %
 % This example was first introduced in MRST 2021b.
 mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
-    ad-props incomp optimization example-suite linearsolvers 
+    ad-props incomp optimization test-suite linearsolvers 
 
 %% Setup 3D reference model
 % Our reference model is the standard SAIGUP test case from the
@@ -25,7 +25,7 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
 % If simulation results are not already stored for the model, we perform a
 % full 3D simulation first.
 
-trueEx = MRSTExample('saigup_wo');
+trueEx = TestCase('saigup_wo');
 trueCase = trueEx.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trueProb)
 simulatePackedProblem(trueCase);

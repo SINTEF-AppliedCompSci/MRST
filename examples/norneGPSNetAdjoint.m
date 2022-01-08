@@ -12,7 +12,7 @@
 % This example was first introduced in MRST 2021b.
 mrstModule add ad-core ad-blackoil deckformat diagnostics...
                mrst-gui ad-props incomp optimization...
-               network-models example-suite linearsolvers 
+               network-models test-suite linearsolvers 
 
 %% Setup 3D reference model
 % The reference model is a single stochastic realization of the Norne field
@@ -28,7 +28,7 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics...
 % specified controls.
 
 % True schedule, which we seek to reproduce
-trueEx   = MRSTExample('norne_simple_wo');
+trueEx   = TestCase('norne_simple_wo');
 trueCase = trueEx.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trueProb)
 simulatePackedProblem(trueCase);

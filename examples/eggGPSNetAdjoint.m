@@ -15,7 +15,7 @@
 %
 % This example was first introduced in MRST 2021b.
 mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
-    ad-props incomp optimization network-models example-suite linearsolvers
+    ad-props incomp optimization network-models test-suite linearsolvers
 
 %% Setup 3D reference model
 % The Egg data set consists of a base case and an ensemble of one hundred
@@ -26,7 +26,7 @@ mrstModule add ad-core ad-blackoil deckformat diagnostics mrst-gui ...
 % and 100.
 
 % True schedule, which we seek to reproduce
-trueEx   = MRSTExample('egg_wo');
+trueEx   = TestCase('egg_wo');
 trueCase = trueEx.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trueCase)
 simulatePackedProblem(trueCase);

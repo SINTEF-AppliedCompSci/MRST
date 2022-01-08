@@ -12,7 +12,7 @@
 % This example was first introduced in MRST 2022a.
 mrstModule add ad-core ad-blackoil deckformat diagnostics...
                mrst-gui ad-props incomp optimization...
-               network-models example-suite linearsolvers 
+               network-models test-suite linearsolvers 
          
 %% Setup 3D reference model
 % The reference model is a single stochastic realization of the OLYMPUS
