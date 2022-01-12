@@ -22,10 +22,11 @@ classdef DomainDecompositionModel < WrapperModel
         acceptanceFactor = 1 % Assume converged if we are past iteration 3
                              % and all(values < acceptanceFactor*tolerances)
         % Parallel properties
+        cluster = 'local'   
         pool       % Paralell pool
         domains    % Domains per worker
         localModel % Local copy of model (one for each worker)
-        NumWorkers % Number of workers
+        NumWorkers  = maxNumCompThreads() % Number of workers
     end
     
     methods
@@ -130,7 +131,7 @@ classdef DomainDecompositionModel < WrapperModel
         %-----------------------------------------------------------------%
         function state = prepareState(model, state, iteration)
             % Initialize total subdomain iterations
-            if iteration == 1
+            if iteration == 1 || ~isfield(state, 'iterations')
                 state.iterations = zeros(model.G.cells.num,1);
             end
             % Remove fractional derivatives if they exist
@@ -193,8 +194,8 @@ classdef DomainDecompositionModel < WrapperModel
         function [state, report] = solveSubDomainsParallel(model, state0, dt, drivingForces, state)
             % Solve the subdomains in parallel mode using spmd
             % Initialize
-            stateInit = stripState(state);
-            state0    = stripState(state0);
+            stateInit = stripState(state , true);
+            state0    = stripState(state0, true);
             sds = model.subdomainSetup;
             lm  = model.localModel;
             add = model.getAddStatesFun(stateInit);
@@ -208,7 +209,7 @@ classdef DomainDecompositionModel < WrapperModel
                 for i = 1:numel(lm.domains)
                     % Solve subdomain
                     [stateInit, stateFinal, subreports{i}, iterations, submodel] = lm.solveSubDomain(sds{i}, state0, dt, drivingForces, stateInit, stateFinal, iterations);
-                    if isa(submodel, 'SequentialPressureTransportModel');
+                    if isa(submodel, 'SequentialPressureTransportModel')
                         mappings = submodel.pressureModel.mappings;
                     else
                         mappings = submodel.mappings;
@@ -344,6 +345,15 @@ classdef DomainDecompositionModel < WrapperModel
                     setup{i}.Model.parentModel.G = G;
                 end
                 lm.domains = dom;
+%                 nc    = lm.G.cells.num;
+%                 lm.G = [];
+%                 lm.G.cells.num = nc;
+%                 lm.parentModel.G = [];
+%                 lm.parentModel.G.cells.num = nc;
+%                 lm.parentModel.operators = [];
+%                 lm.parentModel = lm.parentModel.removeStateFunctionGroupings();
+%                 lm.parentModel.FacilityModel.ReservoirModel.G = [];
+%                 lm.parentModel.FacilityModel.ReservoirModel = lm.parentModel.FacilityModel.ReservoirModel.removeStateFunctionGroupings();
             end
             model.localModel = lm;
             model.subdomainSetup = setup;
@@ -438,18 +448,62 @@ classdef DomainDecompositionModel < WrapperModel
             % Validate model
             model = validateModel@WrapperModel(model, varargin{:});
             if model.parallel
+                
+                pc = parcluster(model.cluster);
+                
                 % Set parallel properties
                 if isempty(model.pool)
-                    model.pool = gcp();
-                    model.NumWorkers = model.pool.NumWorkers;
+                    
+                    model.NumWorkers = min(model.NumWorkers, pc.NumWorkers);
+                    p = gcp('nocreate');
+                    if isempty(p)
+                        p = pc.parpool(model.NumWorkers);
+                    else
+                        if p.NumWorkers < model.NumWorkers
+                            p.delete();
+                            p = pc.parpool(model.NumWorkers);
+                        end
+                    end
+                    model.pool = p;
                 end
+
+                model.NumWorkers = model.pool.NumWorkers;
                 model = validateModel@WrapperModel(model, varargin{:});
+                
                 m   = model;
-                m.G = [];
+                
+                nc            = m.G.cells.num;
+                m.G           = [];
+                m.G.cells.num = nc;
+                m.pool        = [];
+                
                 rmodel = getReservoirModel(m);
-                if isfield(rmodel, 'FacilityModel')
-                    rmodel.FacilityModel = [];
-                end
+                
+%                 rmodel.G.nodes = [];
+                rmodel.FacilityModel.ReservoirModel.G             = [];
+                rmodel.FacilityModel.ReservoirModel.operators     = [];
+                rmodel.FacilityModel.ReservoirModel.FacilityModel = [];
+                
+                m = setReservoirModel(m, rmodel);
+                clear rmodel
+%                 m.parentModel.G = [];
+%                 m.parentModel.G.cells.num = nc;
+%                 m.parentModel.operators = [];
+%                 m.parentModel = m.parentModel.removeStateFunctionGroupings();
+%                 m.parentModel.FacilityModel.ReservoirModel.G = [];
+%                 m.parentModel.FacilityModel.ReservoirModel = m.parentModel.FacilityModel.ReservoirModel.removeStateFunctionGroupings();
+
+%                 nc  = m.G.cells.num;
+%                 m.G = [];
+%                 m.G.cells.num = nc;
+%                 m.parentModel.G = [];
+%                 m.parentModel.G.cells.num = nc;
+%                 m.parentModel.operators = [];
+%                 m.parentModel = m.parentModel.removeStateFunctionGroupings();
+%                 m.parentModel.FacilityModel.ReservoirModel.G = [];
+%                 m.parentModel.FacilityModel.ReservoirModel = m.parentModel.FacilityModel.ReservoirModel.removeStateFunctionGroupings();
+
+                
                 spmd
                     % Distribute model to all workers
                     lm = m;
@@ -538,7 +592,7 @@ classdef DomainDecompositionModel < WrapperModel
             for i = 1:2:numel(tolerances)
                 n = tolerances{i};
                 f = tolerances{i+1};
-                assert(f <= 1, 'Subdomain tolerance fraction must be <= 1')
+%                 assert(f <= 1, 'Subdomain tolerance fraction must be <= 1')
                 if isprop(rmodel, n)
                     rmodel.(n) = rmodel.(n).*f;
                 elseif hasFacility && isprop(rmodel.FacilityModel, n)
@@ -565,10 +619,13 @@ end
 % Helpers
 
 %-------------------------------------------------------------------------%
-function state = stripState(state)
+function state = stripState(state, removeFlux)
     % Strip state to reduce communication overhead
-    fields = {'sMax', 'iterations', 'FacilityState', ...
-        'eos', 'FacilityState', 'switched', 'switchCount', 'dpRel', 'dpAbs'};
+    fields = {'sMax', 'iterations', 'FacilityState', 'eos', ...
+              'switched', 'switchCount', 'dpRel', 'dpAbs'};
+    if removeFlux
+        fields{end+1} = 'flux';
+    end
     for f = fields
         if isfield(state, f{1})
             state = rmfield(state, f{1});
