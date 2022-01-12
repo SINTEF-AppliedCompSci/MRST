@@ -1,0 +1,315 @@
+** 2016-02-16, 4:02:02 PM, yx2785
+** 2016-02-16, 7:51:41 PM, yx2785
+** 2016-02-16, 8:05:29 PM, yx2785
+** 2021-10-23, 11:43:01 PM, hrashi1
+** 2021-10-23, 11:53:26 PM, hrashi1
+** 2021-10-23, 11:57:49 PM, hrashi1
+** 2021-10-23, 11:59:16 PM, hrashi1
+** 2021-10-24, 12:20:03 AM, hrashi1
+** 2021-10-24, 12:20:33 AM, hrashi1
+** 2021-10-25, 12:50:16 PM, hrashi1
+** 2021-12-28, 8:56:39 PM, ahass16
+RESULTS SIMULATOR GEM 201710
+
+
+
+
+
+
+
+
+
+********************************************************************************
+
+
+** I/O Control Section                                                        **
+
+
+********************************************************************************
+
+DIM MDALP 10000000
+TITLE1 'Shale Gas Reservoir'
+INUNIT FIELD
+
+** WSRF WELL 1
+WSRF GRID TIME
+** OUTSRF GRID 'CH4' PERM PRES SG SO SW
+OUTSRF GRID KRG KRO KRW PERM PRES SG SO SW VISG VISO VISW 
+            ZFACG 
+OUTSRF RES NONE
+WPRN GRID 0
+OUTPRN GRID COMPRG DENG VISG VISW ZFACG 
+OUTPRN RES NONE
+RESULTS XOFFSET  0.0000
+
+RESULTS YOFFSET  0.0000
+
+RESULTS ROTATION 0.0000
+
+RESULTS AXES-DIRECTIONS 1.0 -1.0 1.0
+
+*****************************************************************************
+** Definition of fundamental cartesian grid                                **
+*****************************************************************************
+GRID VARI 40 20 78
+*INCLUDE 'DI_DJ_DK.txt'
+*KDIR *DOWN 
+*DEPTH  *TOP 1 1 1  6000.00
+*POR  *CON  0.07
+	*MOD 
+		1:40  1:20  20 = 0.33
+		1:40  1:20  59 = 0.33
+*PERMI *CON 0.01   
+    *MOD 
+		1:40  1:20  20 = 1e4
+		1:40  1:20  59 = 1e4
+*PERMJ *EQUALSI
+*PERMK *EQUALSI
+**CPOR        3.0E-6
+**PRPOR       14.7          1
+********************************************************************************
+********************************************************************************
+** Component Property Section                                                 **
+** Model and number of components
+MODEL PR
+NC 3 3
+*VISCOR *HZYT
+COMPNAME 'C1' 'CO2' 'NC10' 
+HCFLAG
+0 0 0 
+TRES 175.0 
+PVC3 0
+MW
+16.043 44.009 142.281 
+AC
+0.0114 0.2239 0.4884 
+PCRIT
+45.39 72.80 20.75 
+VCRIT
+0.098 0.0941 0.6097 
+TCRIT
+190.56 304.12 617.70 
+BIN
+0.045 
+0.105 0.115 
+
+PHASEID OIL
+
+
+**--------------------------------------------------ROCK FLUID-------------------
+*ROCKFLUID
+RPT 1
+**        Sw       krw      krow
+SWT
+ SMOOTHEND LINEAR
+0	0	1
+0.0625	0.00390625	0.87890625
+0.125	0.015625	0.765625
+0.1875	0.03515625	0.66015625
+0.25	0.0625	0.5625
+0.3125	0.09765625	0.47265625
+0.375	0.140625	0.390625
+0.4375	0.19140625	0.31640625
+0.5	0.25	0.25
+0.5625	0.31640625	0.19140625
+0.625	0.390625	0.140625
+0.6875	0.47265625	0.09765625
+0.75	0.5625	0.0625
+0.8125	0.66015625	0.03515625
+0.875	0.765625	0.015625
+0.9375	0.87890625	0.00390625
+1	1	0
+**        Sl       krg      krog
+SLT
+ SMOOTHEND LINEAR						**Pcog = 0 (MRST's fluid model)
+0	1	0
+0.0625	0.87890625	0.00390625
+0.125	0.765625	0.015625
+0.1875	0.66015625	0.03515625
+0.25	0.5625	0.0625
+0.3125	0.47265625	0.09765625
+0.375	0.390625	0.140625
+0.4375	0.31640625	0.19140625
+0.5	0.25	0.25
+0.5625	0.19140625	0.31640625
+0.625	0.140625	0.390625
+0.6875	0.09765625	0.47265625
+0.75	0.0625	0.5625
+0.8125	0.03515625	0.66015625
+0.875	0.015625	0.765625
+0.9375	0.00390625	0.87890625
+1	0	1
+ 
+
+
+********************************************************************************
+
+
+** Initial Conditions Section                                                 **
+
+
+********************************************************************************
+*INITIAL
+
+USER_INPUT
+*SW *CON    0.23
+*PRES *CON  5700
+*ZGLOBALC 'C1' CON       0.25
+*ZGLOBALC 'CO2' CON      0.25
+*ZGLOBALC 'NC10' CON      0.50
+
+********************************************************************************
+
+
+** Numerical Control Section                                                  **
+
+
+********************************************************************************
+
+
+NUMERICAL
+
+NORTH 400
+ITERMAX 200
+*CONVERGE  *MAXRES  1e-5
+*SORDER   *REDBLACK
+*SDEGREE              1
+
+*PRECC             1.0000000E-06
+*CONVERGE *PRESS   0.5
+*CONVERGE *HC      0.01
+*CONVERGE *WATER   0.01
+
+*NORM     *PRESS   100.0
+*NORM     *SATUR   0.15
+*NORM     *GMOLAR  0.15
+
+*AIM *OFF
+********************************************************************************
+
+
+** Well and Recurrent Data Section                                            **
+
+**--------------------------------------------------WELL DATA-----------
+*RUN
+*DATE 2014 4 18
+       *DTMAX   16.0
+       *DTMIN   1e-8
+       *DTWELL  1e-5
+	*AIMSET *CON 3
+    *AIMWELL  *WELLNN
+** 	*WELL  1 	'Producer_Bottom'
+**
+**WELL  'Producer_Bottom'
+*WELL  1 	'Producer_Bottom'
+*WELL  2 	'Injector_Top'
+*PRODUCER 'Producer_Bottom'
+
+OPERATE  MIN  BHP  2500.0  CONT
+	**            rad  	 geofac  wfrac  skin
+	GEOMETRY  *K  0.033  0.37  	 1.0    0.0  
+	
+PERF       GEO  1
+** UBA              ff          Status  Connection  
+	20 10 59         1.0  OPEN    FLOW-TO  'SURFACE'
+	
+		
+*TIME 0.000610351562500000
+*TIME 0.00122070312500000
+*TIME 0.00244140625000000
+*TIME 0.00488281250000000
+*TIME 0.00976562500000000
+*TIME 0.0195312500000000
+*TIME 0.0390625000000000
+*TIME 0.0781250000000000
+*TIME 0.156250000000000
+*TIME 0.312500000000000
+*TIME 0.625000000000000
+*TIME 1.25000000000000
+*TIME 2.50000000000000
+*TIME 5
+*TIME 10
+*TIME 20
+*TIME 40
+*TIME 60
+*TIME 80
+*TIME 100
+*TIME 120
+*TIME 140
+*TIME 160
+*TIME 180
+*TIME 200
+*TIME 220
+*TIME 240
+*TIME 260
+*TIME 280
+*TIME 300
+*TIME 320
+*TIME 340
+*TIME 360
+*TIME 380
+*TIME 400
+*TIME 420
+*TIME 440
+*TIME 460
+*TIME 480
+*TIME 500
+*TIME 520
+*TIME 540
+*TIME 560
+*TIME 580
+*TIME 600
+*TIME 620
+*TIME 640
+*TIME 660
+*TIME 680
+*TIME 700
+*TIME 720
+*TIME 740
+*TIME 760
+*TIME 780
+*TIME 800
+*TIME 820
+*TIME 840
+*TIME 860
+*TIME 880
+*TIME 900
+*TIME 920
+*TIME 940
+*TIME 960
+*TIME 980
+*TIME 1000
+*TIME 1020
+*TIME 1040
+*TIME 1060
+*TIME 1080
+*TIME 1100
+*TIME 1120
+*TIME 1140
+*TIME 1160
+*TIME 1180
+*TIME 1200
+*TIME 1220
+*TIME 1240
+*TIME 1260
+*TIME 1280
+*TIME 1300
+*TIME 1320
+*TIME 1340
+*TIME 1360
+*TIME 1380
+*TIME 1400
+*TIME 1420
+*TIME 1440
+*TIME 1461
+
+
+stop
+
+RESULTS RELPERMCORR NUMROCKTYPE 1
+RESULTS RELPERMCORR CORRVALS 0 0 0 0 0 0 0 0
+RESULTS RELPERMCORR CORRVALS 1 1 1 -99999 1 1 1 1
+RESULTS RELPERMCORR CORRVALS_HONARPOUR -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999
+RESULTS RELPERMCORR NOSWC false
+RESULTS RELPERMCORR CALINDEX  2
+RESULTS RELPERMCORR STOP
