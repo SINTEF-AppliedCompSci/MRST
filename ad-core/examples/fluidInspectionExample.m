@@ -5,7 +5,7 @@
 % densities) as functions of saturation and pressure. 
 %
 % Load the blackoil module and others to create test data.
-mrstModule add ad-blackoil ad-core ad-props deckformat example-suite
+mrstModule add ad-blackoil ad-core ad-props deckformat test-suite
 
 %% Inspect the SPE1 fluid model
 % The SPE1 fluid model is a three-phase blackoil model with solution gas.

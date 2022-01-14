@@ -6,7 +6,7 @@
 % Jansen, J. D., et al. "The egg model–a geological ensemble for reservoir
 % simulation." Geoscience Data Journal 1.2 (2014): 192-195.
 
-mrstModule add ad-core ad-blackoil deckformat example-suite
+mrstModule add ad-core ad-blackoil deckformat test-suite
 % Realizations can be set to 0 for base cae, or a number between 1 and 100
 % for different permeabilities.
 realization = 0;

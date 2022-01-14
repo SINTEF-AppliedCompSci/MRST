@@ -11,7 +11,7 @@
 % and friction models can be included per segment.
 
 % Load necessary modules
-mrstModule add ad-blackoil ad-props deckformat ad-core mrst-gui example-suite
+mrstModule add ad-blackoil ad-props deckformat ad-core mrst-gui test-suite
 
 %% Set up model based on SPE 1
 % We use the SPE 1 example to get a simple black-oil case to modify. For
