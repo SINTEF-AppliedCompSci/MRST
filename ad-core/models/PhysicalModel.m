@@ -271,6 +271,7 @@ methods
         % SYNOPSIS:
         %   model = model.validateModel();
         %   model = model.validateModel(forces);
+        %   model = model.validateModel(forces, consistencyCheck);
         %
         % DESCRIPTION:
         %   Validate that a model is suitable for simulation. If the
@@ -280,6 +281,10 @@ methods
         %
         %   Second input may be the forces struct argument. This function
         %   should NOT require forces arg to run, however.
+        %   
+        %   Third input is a flag indicating if we should check that the
+        %   model operators are consistent with the grid/rock. If the
+        %   consistency check fails, the method will issue a warning.
         %
         % PARAMETERS:
         %   model  - Class instance to be validated.
@@ -289,6 +294,11 @@ methods
         %            which implements the coupling between wells and the
         %            reservoir for `ReservoirModel` subclasses of
         %            `PhysicalModel`.
+        %   consistencyCheck - (OPTIONAL): Flag indicating if we should
+        %            check that model.G and model.rock are identical to
+        %            those used for setting up model.operators. Defaults to
+        %            false if not provided.
+        %
         % RETURNS:
         %   model - Class instance. If returned, this model is ready for
         %           simulation. It may have been changed in the process.
@@ -301,10 +311,15 @@ methods
         if strcmpi(model.stateFunctionEvaluationMode, 'full')
             model = model.setupStateFunctionGraph();
         end
+        % Optional consistency check
+        consistencyCheck = false;
+        if nargin > 1 && islogical(varargin{end})
+            consistencyCheck = varargin{end};
+        end
+        if ~consistencyCheck, return; end
         if all(isfield(model.operators, {'hashG', 'hashRock'}))
-            % Consistency check: Check if grid and/or rock has changed from
-            % when we computed the discrete operators, and issue a warning
-            % if this is the case.
+            % Issue a warning if grid and/or rock has changed from when we
+            % computed the discrete operators.
             gridOK = strcmpi(obj2hash(model.G)   , model.operators.hashG   );
             rockOK = strcmpi(obj2hash(model.rock), model.operators.hashRock);
             if ~(gridOK && rockOK)

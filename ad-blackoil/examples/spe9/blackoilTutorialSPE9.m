@@ -26,7 +26,7 @@
 %   Symposium,  12-15 February 1995, San Antonio, Texas. SPE 29110-MS, doi:
 %   10.2118/29110-MS
 
-mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat example-suite
+mrstModule add ad-blackoil ad-core mrst-gui ad-props deckformat test-suite
 
 %% Set up model
 % This <Ninth SPE Comparative Solution Project> consists of a water

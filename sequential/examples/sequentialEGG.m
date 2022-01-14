@@ -8,7 +8,7 @@
 % geological ensemble for reservoir simulation." Geoscience Data Journal
 % 1.2 (2014): 192-195.
 
-mrstModule add ad-core ad-blackoil spe10 sequential mrst-gui example-suite
+mrstModule add ad-core ad-blackoil spe10 sequential mrst-gui test-suite
 
 % Set up pressure and transport linear solvers
 if ~isempty(mrstPath('agmg'))

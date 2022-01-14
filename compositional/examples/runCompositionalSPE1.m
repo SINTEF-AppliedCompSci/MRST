@@ -4,7 +4,7 @@
 % equilibrium constants.
 
 %% First, setup the base case
-mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui example-suite
+mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui test-suite
 [G, rock, fluid, deck, state] = setupSPE1();
 
 model = ThreePhaseBlackOilModel(G, rock, fluid, 'disgas', true);

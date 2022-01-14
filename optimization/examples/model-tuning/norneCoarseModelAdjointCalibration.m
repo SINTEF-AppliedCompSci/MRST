@@ -8,7 +8,7 @@
 mrstModule add ad-core ad-blackoil deckformat ...
                agglom upscaling coarsegrid...
                mrst-gui ad-props incomp optimization...
-               example-suite linearsolvers 
+               test-suite linearsolvers 
 
 %% Setup reference model
 % The reference model is a single stochastic realization of the Norne field
@@ -17,20 +17,20 @@ mrstModule add ad-core ad-blackoil deckformat ...
 % and an idealized field development plan consisting of a simple pattern of
 % eleven vertical wells that run under constant bhp or rate controls.
 
-example = MRSTExample('norne_simple_wo');
+test = TestCase('norne_simple_wo');
 
 % % Modify the setup to use longer time steps in order to speed up script
 % execution
-totTime  = sum(example.schedule.step.val);
+totTime  = sum(test.schedule.step.val);
 nstep    = 48;
-example.schedule.step = struct('val',     ones(nstep,1)*(totTime/nstep), ...
+test.schedule.step = struct('val',     ones(nstep,1)*(totTime/nstep), ...
                                'control', ones(nstep, 1));
 % ix  = repmat(1:numel(schedule.step.val), [4 1]);
 % schedule.step.val     = schedule.step.val(ix(:))/4;
 % schedule.step.control = schedule.step.control(ix(:));
 % problem.SimulatorSetup.schedule = schedule;
 % example.schedule = schedule;
-problem  = example.getPackedSimulationProblem();
+problem  = test.getPackedSimulationProblem();
 % Simulate
 simulatePackedProblem(problem);
 
@@ -40,7 +40,7 @@ scheduleRef = problem.SimulatorSetup.schedule;
 Wref        = scheduleRef.control.W;
 
 % Plot
-example.plot(statesRef, 'step_index', numel(statesRef))
+test.plot(statesRef, 'step_index', numel(statesRef))
 
 %% Coarse-scale model
 % We make a coarse grid defined by a uniform 6 x 8 x 1 partition 
@@ -82,7 +82,7 @@ plotWell(modelRef.G, Wref, 'Color', 'k', 'FontSize', 10); axis off tight
 mrstColorbar(cModel.rock.poro,'South');
 
 %% Simulate initial upscaled coarse model for full time
-cState0   = upscaleState(cModel, modelRef, example.state0);
+cState0   = upscaleState(cModel, modelRef, test.state0);
 cSchedule = upscaleSchedule(cModel, scheduleRef);
 [cWellSols, cStates] = simulateScheduleAD(cState0, cModel, cSchedule);
 plotWellSols({wellSolsRef, cWellSols}, ...
