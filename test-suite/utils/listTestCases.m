@@ -1,5 +1,5 @@
-function examples = listExampleSuite()
-    % List examples in suite
+function tests = listTestCases()
+% List test cases in test-suite
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -20,36 +20,23 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    pth = mrstPath('example-suite');
+    pth = mrstPath('test-suite');
     
-    examples_mrst = getExamplesInPath(fullfile(pth, 'examples-mrst'),'MRST');
-    names = {examples_mrst.name};
-    desc = {examples_mrst.description};
+    tests = getTestCasesInPath(fullfile(pth, 'setup-functions'),'MRST');
+    names = {tests.name};
+    desc = {tests.description};
     
     printTable(names, desc, 'MRST');
-    
-    examples_user = getExamplesInPath(fullfile(pth, 'examples-user'),'USER-DEFINED');
-    
-    if isempty(examples_user)
-        names = {'user_example'};
-        desc  = {'No user-defined examples'};
-    else 
-        names = {examples_user.name};
-        desc = {examples_user.description};
-    end
-     
-    printTable(names, desc, 'USER-DEFINED');
-    examples = [examples_mrst, examples_user];
     
 end
 
 %-------------------------------------------------------------------------%
-function examples = getExamplesInPath(pth,grp)
+function examples = getTestCasesInPath(pth,grp)
     list = dir(fullfile(pth, '*.m'));
     list = list(~[list.isdir]);
 
     [~, name] = cellfun(@fileparts, {list.name}, 'UniformOutput', false);
-    desc = cellfun(@(name) feval(name, true), name, 'UniformOutput', false);
+    desc = cellfun(@(name) feval(name, false), name, 'UniformOutput', false);
     desc = cellfun(@(desc) desc.description, desc, 'UniformOutput', false);
     examples = struct('name', name, 'description', desc, 'group', grp);
 end
@@ -63,7 +50,7 @@ function printTable(names, descriptions, group)
     nt =  2 + nn + 3 + nd + 2;
     bline = [repmat('=', 1, nt), '\n'];
     fprintf(bline);
-    header = sprintf('%s EXAMPLES', group);
+    header = sprintf('%s TEST CASES', group);
     nh = numel(header);
     fprintf('|');
     ntmp = round(nt/2 - nh/2);
