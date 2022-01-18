@@ -1,3 +1,5 @@
+mrstModule add static-modeling
+
 % Use maximum likelihood estimation to determine optimal parameters of a 
 % probability distribution.  Whereas any probability distribution with any
 % type and number of parameters could in principle be used, we here

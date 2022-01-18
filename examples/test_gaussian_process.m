@@ -1,24 +1,45 @@
-%% Generate 1D gaussian random field
-num_samples = 1000;
-corr_fun = @(x) exp(-abs(x)/0.3); % we use exponential correllation function
+mrstModule add static-modeling
 
+% In this example, we generate some realizations of 1D and 2D Gaussian random field
+
+%% Generate 1D gaussian random field
+
+% In order to simulate a stationary Gaussian process, we need to specify the
+% covarance function, which descibes the covariance between points as a
+% function of their mutual distance.  A typical example is the use of an
+% exponential correlation function, which we specify as a lambda function below.
+num_samples = 1000;
+corr_fun = @(x) exp(-abs(x)/0.3); % we use exponential correlation function
+
+% We use the correlation function an number of samples as arguments to the
+% 'GaussianProcess1D' function to produce a realization of the 1D random field.
 field_1D_A = GaussianProcess1D(num_samples, corr_fun);
 
+% We repeat the process using a different covariance function, namely the
+% Gaussian correlation function.
 corr_fun = @(x) exp(-(x/0.05).^2);
-
 field_1D_B = GaussianProcess1D(num_samples, corr_fun);
+
+% Plot the results
 clf;
 subplot(1,2,1); plot(field_1D_A); title('Exponential correllation');
 subplot(1,2,2); plot(field_1D_B); title('Gaussian correllation');
 
-%% Generate 3D gaussian random field
+%% Generate 2D gaussian random field
+
+% We now generate some 2D realizations
+
 num_samples = 400;
 
-% generating field
+% generating field using a Gaussian covariance function.  The main
+% difference from the 1D case is that the correlation function now takes a
+% 2-component vector.   Only the norm of the vector will be used by the
+% correlation function, though.
 corr_fun = @(xy) exp(-sum(xy.^2, 2)/0.0001);
 fieldA = GaussianProcessND([num_samples, num_samples], corr_fun);
 
-% Re-generating field, changing correllation length
+% Re-generating field, changing correllation length but keeping the shape of
+% the correlation function (Gaussian)
 corr_fun = @(xy) exp(-sum(xy.^2, 2)/0.01);
 fieldB = GaussianProcessND([num_samples, num_samples], corr_fun);
 
@@ -26,6 +47,7 @@ fieldB = GaussianProcessND([num_samples, num_samples], corr_fun);
 corr_fun = @(xy) exp(-sqrt(sum(xy.^2, 2))/0.1);
 fieldC = GaussianProcessND([num_samples, num_samples], corr_fun);
 
+% plotting the results and comparing
 
 figure;
 subplot(1,3,1); surf(fieldA, 'edgealpha', 0); view(0, 90); 
