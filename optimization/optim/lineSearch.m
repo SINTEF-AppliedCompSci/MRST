@@ -127,7 +127,7 @@ if ~lineSearchDone
     fprintf('Line search unable to succeed in %d iterations ...\n', maxIt);
     % Although line search did not succeed in maxIt iterations, we ensure
     % to return the greater of p1 and p2's objective value none the less.
-    if p1.v > p2.v
+    if p1.v < p2.v
         u = u0 + p1.a*d;
         % and we will re-compute the gradients for these controls
         [v, g]  = f(u);
