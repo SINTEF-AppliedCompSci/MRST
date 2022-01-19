@@ -15,6 +15,7 @@ classdef OptimizationProblem < BaseEnsemble
                                 % of the form: u = fetchVariablesFun(problem) 
         
         mainDirectory  
+        regularization 
     end
     properties (SetAccess = protected)
         %background    = false; % 	 % if true, assume run in background, disable plotting
@@ -24,7 +25,6 @@ classdef OptimizationProblem < BaseEnsemble
         memberConstraintValues
         iterationConstraintValues
         realizations
-        regularization 
     end
     
     methods
@@ -64,7 +64,8 @@ classdef OptimizationProblem < BaseEnsemble
             
             getHandler = @(nm, loc)ResultHandler('dataPrefix', nm, ...
                                                  'dataDirectory', p.mainDirectory, ...
-                                                 'dataFolder', loc);
+                                                 'dataFolder', loc, ...
+                                                 'extension', '.mat');
             p.memberObjectiveValues    = getHandler('objective', '1');
             p.iterationObjectiveValues = getHandler('objective', '');
             p.iterationControls        = getHandler('controls',  '');
@@ -82,8 +83,8 @@ classdef OptimizationProblem < BaseEnsemble
         %------------------------------------------------------------------
         function problem = getSampleProblem(p, seed, varargin)
             % check if problem(s) is/are explicitly given:
-            if isfield(p.samples, 'getSampleProblem') || ...
-                    ismethod(p.samples, 'getSampleProblem')
+            if (isstruct(p.samples)&&isfield(p.samples, 'getSampleProblem')) || ...
+               (isobject(p.samples)&&ismethod(p.samples, 'getSampleProblem'))
                 problem = getSampleProblem@BaseEnsemble(p, seed, varargin{:});
             else
                 % assume problem(s) are given explicitly
@@ -112,7 +113,7 @@ classdef OptimizationProblem < BaseEnsemble
         
         function varargout = getScaledObjective(p, us, isConstraint)
             % Main routine used by optimizer
-            if nargout < 3
+            if nargin < 3
                 isConstraint = false;
             end
             objScaling = 1;          
@@ -361,13 +362,21 @@ classdef OptimizationProblem < BaseEnsemble
                 for cNo = 1:max(ids)
                     p = p.switchDirectory(cNo);
                     p.memberObjectiveValues.resetData();
+                    if isa(p.memberConstraintValues, 'ResultHandler')
+                        p.memberConstraintValues.resetData();
+                    end
                     flag = reset@BaseEnsemble(p, 'prompt', false, 'prepareSimulation', false);
                 end
                 p.directory = fullfile(p.mainDirectory, '1');
                 p.iterationObjectiveValues.resetData();
                 p.iterationControls.resetData();
+                if isa(p.iterationConstraintValues, 'ResultHandler')
+                    p.iterationConstraintValues.resetData;
+                end
                 if opt.prepareSimulation
+                    warning('off')
                     p.prepareEnsembleSimulation();
+                    warning('on')
                 end
             end
         end 
