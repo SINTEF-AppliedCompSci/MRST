@@ -98,7 +98,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [mv, m_ix] = max(abs(eq)./pv);
             CNV(ph) = B_avg*dt*mv;
             % Total mass balance error
-            MB(ph) = abs(B_avg*sum(eq))/pvtot;
+            MB(ph) = abs(B_avg*dt*sum(eq))/pvtot;
             evaluated(eq_ix) = true;
             if v > 1
                 fprintf('CNV_%s: %d is the worst cell at %g\n',...

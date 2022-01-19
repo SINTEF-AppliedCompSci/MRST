@@ -1,10 +1,10 @@
 %% Parameter tuning of a very coarse upscaling of the Egg model   
 mrstModule add ad-core ad-blackoil deckformat agglom upscaling coarsegrid...
-        mrst-gui ad-props incomp optimization example-suite linearsolvers 
+        mrst-gui ad-props incomp optimization test-suite linearsolvers 
 
 %% Setup reference model
-example  = MRSTExample('egg_wo', 'realization', 1);
-problem  = example.getPackedSimulationProblem();
+test    = TestCase('egg_wo', 'realization', 1);
+problem = test.getPackedSimulationProblem();
 
 % We focus on the first 60 steps
 schedule = problem.SimulatorSetup.schedule;
@@ -58,7 +58,7 @@ axis off tight, view(174,60), camlight headlight
 title('Coarse-scale grid (33 cells)')
 
 %% Simulate initial upscaled coarse model and compare to reference
-stateCoarse0   = upscaleState(modelCoarse, modelRef, example.state0);
+stateCoarse0   = upscaleState(modelCoarse, modelRef, test.state0);
 scheduleCoarse = upscaleSchedule(modelCoarse, schedule, 'wellUpscaleMethod', 'sum');
 [wsCoarse, statesCoarse] = simulateScheduleAD(stateCoarse0, modelCoarse, scheduleCoarse);
 
@@ -136,7 +136,7 @@ colorbar('south');
                         
 %% Compare reference, initial coarse and optimizes coarse for a different schedule 
 rng(100);
-W = example.schedule.control.W;
+W = test.schedule.control.W;
 s_new = perturbedSimpleSchedule(dt, 'W', Wref, ...
     'pressureFac', .01, 'rateFac', .2, 'perturbStep', ones(numel(dt),1));
 ws_new1 = simulateScheduleAD(problem.SimulatorSetup.state0, modelRef, s_new, ...

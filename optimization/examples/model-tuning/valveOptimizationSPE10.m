@@ -1,11 +1,11 @@
 %% Example illustrating using parameter sensitivities for optimizing valves
 %  (potentially long run time)
 mrstModule add ad-core ad-blackoil deckformat mrst-gui ad-props optimization ... 
-    example-suite linearsolvers spe10
+    test-suite linearsolvers spe10
 
 %% Setup model
-example  = MRSTExample('spe10_wo', 'layers', 1);
-problem  = example.getPackedSimulationProblem();
+test    = TestCase('spe10_wo', 'layers', 1);
+problem = test.getPackedSimulationProblem();
 model = problem.SimulatorSetup.model;
 % Consider 1 injector (south) and one producer (north)
 W = addWell([], model.G, model.rock, 1:60:220*60, 'Name', 'I', 'Type', 'rate', 'Val', 30/day, ...

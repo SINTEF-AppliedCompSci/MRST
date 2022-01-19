@@ -127,6 +127,11 @@ function [wellSols, states, schedulereport] = ...
 %                        - report: Possibly updated report
 %                        - isAltered: Flag indicated whether the schedule
 %                          was updated or not
+%
+%   'checkOperators'   - Flag indicating if we should check that model.G
+%                        and model.rock are identical to those used to
+%                        define model.operators before the simulation
+%                        starts. Defaults to true.
 %                       
 % RETURNS:
 %   wellSols         - Well solution at each control step (or timestep if
@@ -180,7 +185,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'processOutputFn',   [], ...
                  'restartStep',       1,  ...
                  'outputOffset',      [], ...
-                 'LinearSolver',      []);
+                 'LinearSolver',      [], ...
+                 'checkOperators',    true);
 
     opt = merge_options(opt, varargin{:});
 
@@ -237,7 +243,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     dispif(opt.Verbose, 'Validating model...\n')
     ctrl = schedule.control(schedule.step.control(1));
     [forces, fstruct] = model.getDrivingForces(ctrl);
-    model = model.validateModel(fstruct);
+    model = model.validateModel(fstruct, opt.checkOperators);
     dispif(opt.Verbose, 'Model has been validated.\n')
     % Check dependencies
     dispif(opt.Verbose, 'Checking state functions and dependencies...\n')

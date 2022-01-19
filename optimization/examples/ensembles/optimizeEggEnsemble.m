@@ -12,9 +12,17 @@
 % both targets and limits (that become active during at least one
 % simulation) are adjusted to optimize the objective.
 
-mrstModule add ad-core ad-blackoil ad-props mrst-gui optimization example-suite ensemble
+mrstModule add ad-core ad-blackoil ad-props mrst-gui optimization test-suite
 mrstVerbose false
 
+%% setup optmization-problem
+% Select objective function handle. If simulations/adjoints are to be run in 
+% seperate matlab-sessions, anonymous functions should be avoided. Extra objective 
+% arguments can be added through 'objectiveOpts'.
+objective      = @NPVOW;
+objectiveOpts  = {'OilPrice',           50/stb, ...
+                  'WaterInjectionCost'   3/stb, ...
+                  'WaterProductionCost', 3/stb};
               
 % Provide handle to function that sets up problem-structure as a function
 % of realization number. The function setupFnEggEnsemble also sets up a
@@ -32,13 +40,7 @@ initialGuess = problem_tmp.SimulatorSetup.schedule;
 
 % Provide indices to the realizations that should be included in the
 % optimization. Here we use four
-%realizations = [10 20 30 40];
-realizations = [10 20];
-% Make samples-struct that sets up problems
-samples = struct(...
-    'getSampleProblem', @(directory, seed)setupFnEggEnsemble(seed, directory, realizations), ...
-    'num',              numel(realizations)); 
-
+realizations = [10 20 30 40];
 
 % Setup target/limit upper and lower bounds (initial schedule should lie 
 % within bounds). All upper/lower limits that are finite in schedule, and 
@@ -50,50 +52,65 @@ W_tmp = initialGuess.control(1).W;
 bnds = processBounds(W_tmp, 'rate(inj)', [1 150]/day, ...       % target rate bounds
                             'bhp(inj)', [400 420]*barsa, ...    % upper bhp limit bounds
                             'bhp(prod)', [380 400]*barsa);      % target bhp bounds                            
-
-schedule = problem_tmp.SimulatorSetup.schedule;
-[maps, u] = setupSimulationControlMappings(schedule, bnds);
-
-%% setup optmization-problem
-% Select objective function with price options 
-objectiveOpts  = {'OilPrice',           50/stb, ...
-                  'WaterInjectionCost'   3/stb, ...
-                  'WaterProductionCost', 3/stb};
-% provide handle
-objFun = @(model, states, schedule, varargin)NPVOW(model, states, schedule, varargin{:}, objectiveOpts{:});
+                                                
 % It can be advantageous to provide an objective value guess (at least order 
 % of magnitude), to help the optimizer in setting an initial step-length. 
+% This value should be set as
 objectiveScaling = 1e8;
-objStruct = struct('function', objFun, ...
-                   'scaling', objectiveScaling);
 
-% Function-evaluations can be run in multiple matlab-sessions. See option
-% 'simulationStrategy' in BaseEnsemble, Here all simualtions are run in the
-% same session
+% Function-evaluations can be run in seperate matlab-sessions. Depending on
+% problem size, this number should not be gratear than maxNumCompThreads().
+% Here, we run evaluations in the same session as the optimizer:
+nWorkers = maxNumCompThreads() -1;
+if nWorkers < 2
+    % don't bother for just a single thread 
+    nWorkers = 0;
+end
 
 % Finally, set up the optimization-problem
-p = OptimizationProblem(samples, ...
-                        'name',             'EnsembleOptimizeEgg', ...      % problem name                                
-                        'objective',        objStruct,  ...                
-                        'maps',                  maps,  ...
-                        'setupType',     'simulation',  ...
-                        'clearStates',           true,  ...
-                        'verboseSimulation',     true)   %#ok
+p = OptimizationProblem('EggEnsembleOptimization', ...      % problem name                                
+                        'objective',        objective, ...                
+                        'objectiveOpts',    objectiveOpts, ...                    
+                        'setupFn',          setupFn, ...
+                        'initialGuess',     initialGuess, ...
+                        'realizations',     realizations, ...
+                        'bounds',           bnds, ...
+                        'objectiveScaling', objectiveScaling, ...
+                        'nWorkers',         nWorkers)       %#ok
                     
-%% Run optimization in a sepatate session 
-% limit the optimization to 10 iterations (~40 simulations)
-[u, extra] = p.optimize(problem_tmp, 'background', true, 'maxIt', 10);
-% run p.reset to clear all data saved during optimization
+%% Run optimization 
+% note that this requires aprox 10 times number of realizations simulations
+% and adjoints
+runBackground = true;
+if ~runBackground
+    scheduleOpt = p.optimize('stepInit', .5, 'maxIt', 7);
+else
+    p.optimizeBackground('stepInit', .5, 'maxIt', 7);
+end
 
 %% While optimization is running, progress can be checked with 
 figure, p.plotObjectiveValues();
 
+%% or for continous plotting
+figure, p.monitorProgress();
+ 
 %% Once the optimization is done, we can inspect the optimization results
-% plot wellsols at last iteration
-itNo = max(p.iterationObjectiveValues.getValidIds);
-if ~isempty(itNo)
-    figure, p.plotWellSols(itNo);
+% get objective value for each iteration 
+p = p.refreshControlList();
+values = p.loadAllFiles('NPVOW.mat', 'value');
+isfin   = cellfun(@isfinite, values);
+if any(isfin)
+    values = cell2mat(values(isfin));
+    % plot well-solutions for initial schedule
+    p.plotWellSols(1);
+    % plot well-solution for best performing schedule
+    [~, ix] = max(values);
+    if ix ~= 1
+        p.plotWellSols(ix);
+    end
 end
+
+% to delete all output: p.cleanup()
 
 %% Copyright Notice
 %
