@@ -30,11 +30,6 @@ opt     = struct('WaterRateWeight',     [] , ...
              
 opt     = merge_options(opt, varargin{:});
 
-
-% pressure and saturaton vectors just used for place-holding
-%p  = zeros(G.cells.num, 1);
-%sW = zeros(G.cells.num, 1);
-
 dts   = schedule.step.val;
 totTime = sum(dts);
 
@@ -51,41 +46,50 @@ end
 obj = repmat({[]}, numSteps, 1);
 
 for step = 1:numSteps
-    %sol = wellSols{tSteps(step)};
-    %[qWs, qOs, bhp] = deal(vertcat(sol.qWs), vertcat(sol.qOs), vertcat(sol.bhp) );
     sol_obs = observed{tSteps(step)};
-    nw = numel([sol_obs.wellSol.bhp]);
-    [qWs_obs, qOs_obs, bhp_obs] = deal( vertcatIfPresent(sol_obs.wellSol, 'qWs', nw), ...
-                                        vertcatIfPresent(sol_obs.wellSol, 'qOs', nw), ...
-                                        vertcatIfPresent(sol_obs.wellSol, 'bhp', nw) );
-
+    nw      = numel(sol_obs.wellSol);
     if opt.matchOnlyProducers
         matchCases = (vertcat(sol.sign) < 0);
     else
         matchCases = true(nw,1);
     end
-    matchCases = matchCases([sol_obs.wellSol.status]);
+    qWs_obs = vertcatIfPresent(sol_obs.wellSol, 'qWs', nw);
+    qOs_obs = vertcatIfPresent(sol_obs.wellSol, 'qOs', nw);
+    bhp_obs = vertcatIfPresent(sol_obs.wellSol, 'bhp', nw);
+    status_obs = vertcat(sol_obs.wellSol.status);
+    
     [ww, wo, wp] = getWeights(qWs_obs, qOs_obs, bhp_obs, opt);
-                                   
-     if opt.ComputePartials
+    
+    if opt.ComputePartials
         if(opt.from_states)
             init=true;
             state = model.getStateAD( states{tSteps(step)}, init);
         else
             state = opt.state;
         end
-        qWs=model.FacilityModel.getProp(state,'qWs');
-        qOs=model.FacilityModel.getProp(state,'qOs');
-        bhp=model.FacilityModel.getProp(state,'bhp');
+        qWs = model.FacilityModel.getProp(state,'qWs');
+        qOs = model.FacilityModel.getProp(state,'qOs');
+        bhp = model.FacilityModel.getProp(state,'bhp');
         assert(not(isnumeric(qWs))); 
+        status = vertcat(state.wellSol.status);
      else
         state = states{tSteps(step)};
         [qWs, qOs, bhp] = deal( vertcatIfPresent(state.wellSol, 'qWs', nw), ...
                                 vertcatIfPresent(state.wellSol, 'qOs', nw), ...
                                 vertcatIfPresent(state.wellSol, 'bhp', nw) );
-       assert(isnumeric(qWs));                     
-     end
-    
+       assert(isnumeric(qWs));
+       status = vertcat(state.wellSol.status);
+    end
+
+    if all(status == status_obs) 
+        if any(~status)
+            matchCases = matchCases(status);
+        end
+    else % problematic status ignore bhp, treat qWs, qOs as zero
+        [bhp, bhp_obs] = expandToFull(bhp, bhp_obs, status, status_obs, true);
+        [qWs, qWs_obs] = expandToFull(qWs, qWs_obs, status, status_obs, false);
+        [qOs, qOs_obs] = expandToFull(qOs, qOs_obs, status, status_obs, false);
+    end
     dt = dts(step);
     obj{step} = (dt/(totTime*nnz(matchCases)))*sum( ...
                                 (ww*matchCases.*(qWs-qWs_obs)).^2 + ...
@@ -102,10 +106,30 @@ if isfield(sol, fn)
     assert(numel(v)==nw);
     v = v(vertcat(sol.status));
 else
-    v = 0;
+    v = zeros(nnz(sol.status),1);
 end
 end
 
+%--------------------------------------------------------------------------
+
+function [v, v_obs] = expandToFull(v, v_obs, status, status_obs, setToZero)
+tmp = zeros(size(status));
+if isa(v, 'ADI')
+    tmp = double2ADI(tmp, v);
+end
+tmp(status) = v;
+v = tmp;
+%
+tmp = zeros(size(status));
+tmp(status_obs) = v_obs;
+v_obs = tmp;
+if setToZero
+    ix = status ~= status_obs;
+    v(ix)     = 0;
+    v_obs(ix) = 0;
+end
+
+end
 %--------------------------------------------------------------------------
 
 function  [ww, wo, wp] = getWeights(qWs, qOs, bhp, opt)
