@@ -4,9 +4,17 @@ opt = struct('computeGradient',          false, ...
              'parameters',                  [], ...
              'adjointLinearSolver',         [], ...
              'clearStatesAfterAdjoint', false,  ...
-             'maps',                        []);
+             'maps',                        [], ...
+             'nSteps',                      []);
 opt = merge_options(opt, varargin{:});         
          
+if ~isempty(opt.nSteps)
+    problem.SimulatorSetup.schedule.step.val = ...
+         problem.SimulatorSetup.schedule.step.val(1:opt.nSteps);
+    problem.SimulatorSetup.schedule.step.control = ...
+         problem.SimulatorSetup.schedule.step.control(1:opt.nSteps);
+end
+
 % simulate       
 if isfield(problem, 'OutputHandlers')
     simulatePackedProblem(problem); 
@@ -32,7 +40,11 @@ if opt.computeGradient || nargout == 2
     if isempty(opt.parameters) % assume standard type
         gradient = computeGradientAdjointAD(setup.state0, states, setup.model, ...
                    setup.schedule, objh, 'OutputPerTimestep', true);
-        ws  = problem.OutputHandlers.wellSols;
+        if isfield(problem, 'OutputHandlers')
+            ws  = problem.OutputHandlers.wellSols;
+        else
+            ws = applyFunction(@(s)s.wellSol, states);
+        end
         obj.gradient = processAdjointGradients(gradient, ws, 'controlIx', ...
                                                 setup.schedule.step.control);
         if ~isempty(opt.maps)
@@ -54,7 +66,7 @@ if opt.computeGradient || nargout == 2
         end
         obj.gradient = vertcat(scaledGradient{:});
     end
-    if opt.clearStatesAfterAdjoint
+    if opt.clearStatesAfterAdjoint && isa(states, 'ResultHandler')
         states.resetData();
     end
 end
