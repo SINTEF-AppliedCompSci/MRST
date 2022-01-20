@@ -134,11 +134,59 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         scheduleMRST.step.val     = scheduleMRST.step.val(1:opt.StepLimit);
         scheduleMRST.step.control = scheduleMRST.step.control(1:opt.StepLimit);
     end
-    
+
+    ectrls = scheduleDeck.control;
+    has_wpi = any(arrayfun(@(x) ~isempty(x.WPIMULT), ectrls));
+    if has_wpi
+        IJK = gridLogicalIndices(model.G);
+        for ctrl = 1:nc
+            wpi = ectrls(ctrl).WPIMULT;
+            W = scheduleMRST.control(ctrl).W;
+            for j = 1:numel(wpi)
+                mult = wpi{j};
+                disp(mult)
+                W = apply_wpimult(W, IJK, mult);
+            end
+            scheduleMRST.control(ctrl).W = W;
+        end
+    end
     if opt.EnsureConsistent
         scheduleMRST = makeScheduleConsistent(scheduleMRST, ...
                             'DepthReorder', opt.DepthReorder, ...
                             'ReorderStrategy', opt.ReorderStrategy, ...
                             'G', model.G);
+    end
+end
+
+function W = apply_wpimult(W, IJK, wpi)
+    wnames = {W.name};
+    for i = 1:size(wpi, 1)
+        [name, val, I, J, K, start, stop] = deal(wpi{i, :});
+        well = find(strcmp(wnames, name));
+        assert(numel(well) == 1);
+        assert(val > 1e-10);
+        assert(isfinite(val));
+        w = W(well);
+        N = numel(w.WI);
+        wc = w.cells;
+        if start < 1
+            start = 1;
+        end
+        if stop < 1
+            stop = N;
+        end
+        rng = (1:N)';
+        active = rng >= start & rng <= stop;
+        if I > 0
+            active = active & IJK{1}(wc) == I;
+        end
+        if J > 0
+            active = active & IJK{2}(wc) == J;
+        end
+        if K > 0
+            active = active & IJK{3}(wc) == K;
+        end
+        w.WI(active) = w.WI(active)*val;
+        W(well) = w;
     end
 end
