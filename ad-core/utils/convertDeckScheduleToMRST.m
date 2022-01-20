@@ -135,30 +135,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         scheduleMRST.step.control = scheduleMRST.step.control(1:opt.StepLimit);
     end
 
-    ectrls = scheduleDeck.control;
-    has_wpi = any(arrayfun(@(x) ~isempty(x.WPIMULT), ectrls));
-    if has_wpi
-        IJK = gridLogicalIndices(model.G);
-        for ctrl = 1:nc
-            wpi = ectrls(ctrl).WPIMULT;
-            W = scheduleMRST.control(ctrl).W;
-            for j = 1:numel(wpi)
-                mult = wpi{j};
-                disp(mult)
-                W = apply_wpimult(W, IJK, mult);
-            end
-            scheduleMRST.control(ctrl).W = W;
-        end
-    end
     if opt.EnsureConsistent
         scheduleMRST = makeScheduleConsistent(scheduleMRST, ...
                             'DepthReorder', opt.DepthReorder, ...
                             'ReorderStrategy', opt.ReorderStrategy, ...
                             'G', model.G);
+        % Apply productivity modifiers post consistency. Algorithm assumes
+        % that the wells have been made consistent.
+        ectrls = scheduleDeck.control;
+        has_wpi = any(arrayfun(@(x) ~isempty(x.WPIMULT), ectrls));
+        if has_wpi
+            IJK = gridLogicalIndices(model.G);
+            W_prev = scheduleMRST.control(1).W;
+            for ctrl = 1:nc
+                wpi = ectrls(ctrl).WPIMULT;
+                W = scheduleMRST.control(ctrl).W;
+                for j = 1:numel(wpi)
+                    mult = wpi{j};
+                    W = apply_wpimult(W, IJK, mult, W_prev);
+                end
+                scheduleMRST.control(ctrl).W = W;
+                W_prev = W;
+            end
+        end
     end
 end
 
-function W = apply_wpimult(W, IJK, wpi)
+function W = apply_wpimult(W, IJK, wpi, W_prev)
     wnames = {W.name};
     for i = 1:size(wpi, 1)
         [name, val, I, J, K, start, stop] = deal(wpi{i, :});
@@ -186,7 +189,11 @@ function W = apply_wpimult(W, IJK, wpi)
         if K > 0
             active = active & IJK{3}(wc) == K;
         end
-        w.WI(active) = w.WI(active)*val;
+        WI = W_prev(well).WI;
+        new_perf = WI == 0;
+        % Added for this control.
+        WI(new_perf) = w.WI(new_perf);
+        w.WI(active) = WI(active)*val;
         W(well) = w;
     end
 end
