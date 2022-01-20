@@ -78,6 +78,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'WSURFACT', w = readWSurfact(fid, w);
       case 'WSOLVENT', w = readWSolvent(fid, w);
       case 'WTEMP'   , w = readWTemp   (fid, w);
+      case 'WPIMULT' , w = readWPIMult (fid, w);
       case {'WELTARG', 'WELLTARG'}
          w = readWelTarg(fid, w);
 
@@ -545,6 +546,19 @@ function w = readWelSegs(fid, w)
    else
       w.WELSEGS{i,2} = sgmt;
    end
+end
+%--------------------------------------------------------------------------
+
+function w = readWPIMult(fid, w)
+   %            1          2       3     4     5
+   template = {'Default', '1.0', '-1', '-1', '-1', ...
+      ...
+      ...     % 6       7     8       9      10
+               '-1', '-1'};
+
+   numeric  = 2:7;
+   wpimult  = toDouble(readDefaultedKW(fid, template), numeric);
+   w.WPIMULT{end+1} = wpimult;
 end
 
 %--------------------------------------------------------------------------
