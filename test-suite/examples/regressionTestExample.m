@@ -63,8 +63,8 @@ report = rtest.runRegressionTest(); %#ok
 % be a cell array with one element per test. We set up a group of
 % regression tests using the quarter five-spot case with different
 % Brooks-Corey relative permeability exponents.
-test1  = TestCase('qfs_wo', 'nkr', 1, 'name', 'qfs_wo_1');
+rtest1  = TestCase('qfs_wo', 'nkr', 1, 'name', 'qfs_wo_1');
 rtest2 = TestCase('qfs_wo', 'nkr', 2, 'name', 'qfs_wo_2');
 rtest3 = TestCase('qfs_wo', 'nkr', 3, 'name', 'qfs_wo_3');
-testGroup = RegressionTestGroup('qfs-tests', {test1, rtest2, rtest3});
+testGroup = RegressionTestGroup('qfs-tests', {rtest1, rtest2, rtest3});
 report = testGroup.runRegressionTests();
