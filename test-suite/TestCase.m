@@ -59,11 +59,11 @@ classdef TestCase
             % Set up test case and set properties
             setup = feval(lower(name), extra{:});
             test.description = setup.description;
-            test.name        = setup.name;
             test.state0      = setup.state0;
             test.model       = setup.model;
             test.schedule    = setup.schedule;
             test.options     = setup.options;
+            if isempty(test.name), test.name = setup.name; end
             if test.verbose
                 time = toc(timer);
                 fprintf('Test case set up in %s\n\n', formatTimeRange(time));
