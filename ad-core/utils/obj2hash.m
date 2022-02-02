@@ -83,8 +83,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
     % Set verbosity if not sepcified
     if isempty(opt.verbose), opt.verbose = mrstVerbose(); end
-    % Avoid empty hash values
-    if isempty(obj), obj = '[]'; end
     % Check if we are on octave
     octave = mrstPlatform(); octave = octave.octave;
     % Function will call itself recursively, so the actual function is
@@ -100,6 +98,8 @@ function [hash, hashStruct] = obj2hash_local(obj, skip, maxSize, verbose, octave
 % Local version without optional input arguments and checks
     % Initialize second return variable
     hashStruct = [];
+    % Avoid empty hash values
+    if isempty(obj), obj = '[]'; end
     % Make function handle for recursive calls
     o2h = @(obj) obj2hash_local(obj, skip, maxSize, verbose, octave);
     if isnumeric(obj) || islogical(obj) || ischar(obj)
