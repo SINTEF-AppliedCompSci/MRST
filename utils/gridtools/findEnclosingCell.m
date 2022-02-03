@@ -1,14 +1,19 @@
-function c = findEnclosingCell(G, pt)
+function c = findEnclosingCell(G, pt, cells)
 % Find cell(s) containing points. The cells must be convex.
 %
 % SYNOPSIS:
 %   c = findEnclosingCell(G, pt)
+%   c = findEnclosingCell(G, pt, cells)
 %
 % PARAMETERS:
 %   G  - Valid grid structure with normals, face and cell centroids. The 
 %        cells must be convex.
 %
 %   pt - Set of point coordinates, represented as an n-by-dim array.
+%
+% OPTIONAL PARAMETERS
+%   cells - Subset of grid cells, either as cell indices or a logical mask.
+%           Default is cells = 1:G.cells.num
 %
 % RETURNS:
 %   c  - Set of grid cells. Specifically, c(k), k=1:n, contains pt(k,:). If
@@ -38,18 +43,24 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-% Get the normals for each face in each cell
-cells = (1:G.cells.num)';
+% Check cell input
+if nargin < 3,       cells = (1:G.cells.num)';  end
+if islogical(cells), cells = find(cells);       end
+assert(min(cells) >= 1 && max(cells) <= G.cells.num, ...
+       'Cell subset is ouside [1,G.cells.num]');
 
+% Get the normals for each face in each cell
 % Map for expanding faces to cell faces
-cfmap = G.cells.faces(:, 1);
+fno = mcolon(G.cells.facePos(cells), G.cells.facePos(cells+1)-1);
+cfmap = G.cells.faces(fno, 1);
 
 % Map normals and face centroids to cell face numbering
 n = G.faces.normals(cfmap, :);
 cfc = G.faces.centroids(cfmap, :);
 
 % Expand cell centroids
-j = rldecode(cells, diff(G.cells.facePos));
+ncf = diff(G.cells.facePos); ncf = ncf(cells);
+j = rldecode(cells, ncf);
 cc = G.cells.centroids(j, :);
 
 % Compute sign of dot product
@@ -59,7 +70,7 @@ sgn = sign(dot(cfc-cc, n, 2));
 n = bsxfun(@times, sgn, n);
 
 % Expand cell numbers 
-cellno = rldecode(cells, diff(G.cells.facePos));
+cellno = rldecode(cells, ncf);
 
 % Initialize
 c = zeros(size(pt, 1), 1);
