@@ -443,7 +443,7 @@ function schedule = directionReorder(schedule, wellNo, opt, strategy)
     
     pts = zeros(size(centroids));
     ijk_names = 'ijk';
-    unitscale = @(x) (x - min(x))./(max(x) - min(x));
+    unitscale = @(x) (x - min(x))./max(max(x) - min(x), 1e-12);
     for i = 1:G.griddim
         if strcmpi(direction(i), ijk_names(i))
             pts(:, i) = unitscale(ijk(:, i));
