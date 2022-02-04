@@ -15,6 +15,9 @@ classdef PVTPropertyFunctions < StateFunctionGrouping
         function props = PVTPropertyFunctions(model)
             props@StateFunctionGrouping('PVTProps');
             pvt = props.getRegionPVT(model);
+            if all(pvt == 1)
+                pvt = [];
+            end
 
             % PVT properties
             isBO = isa(model, 'ThreePhaseBlackOilModel') && (model.disgas || model.vapoil);
