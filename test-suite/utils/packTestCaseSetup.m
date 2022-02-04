@@ -20,7 +20,7 @@ function setup = packTestCaseSetup(name, varargin)
 %   setup - Test case struct with all parameters described above
 %
 % SEE ALSO:
-%   `testcase_template`, `TestCase`
+%   `testcase_template`, `TestCase`, `processTestCaseInput`
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
