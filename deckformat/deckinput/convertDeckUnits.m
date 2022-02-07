@@ -740,6 +740,9 @@ function ctrl = convertControl(ctrl, u)
          case { 'VFPINJ', 'VFPPROD' }
             ctrl.(key) = feval(['convert', key], ctrl.(key), u);
 
+         case 'WPIMULT'
+              % No units.
+
          otherwise
             error(id('SCHEDULE:NoConverter'), ...
                   'No known unit conversion in SCHEDULE for ''%s''.', key);
