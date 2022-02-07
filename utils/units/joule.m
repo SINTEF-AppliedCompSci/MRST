@@ -1,5 +1,6 @@
 function E = joule()
-%Units of energy
+%Compute numerical value, in units of Joule, of one Joule.
+%
 % SYNOPSIS:
 %   E = joule()
 %
@@ -7,7 +8,7 @@ function E = joule()
 %   None.
 %
 % RETURNS:
-%   E - Temperature of one Kelvin (in units of Kelvin, == 1).
+%   E - Energy of one Joule in units of Joule (== 1).
 %
 % NOTE:
 %   The primary purpose of this utility function is to make examples
@@ -32,5 +33,5 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    E = 1;
+    E = 1 * Newton*meter;
 end
