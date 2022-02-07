@@ -152,17 +152,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             for ctrl = 1:nc
                 wpi = ectrls(ctrl).WPIMULT;
                 W = scheduleMRST.control(ctrl).W;
-                for j = 1:numel(wpi)
-                    mult = wpi{j};
-                    [W, WI_raw, WI_prev] = apply_wpimult(W, IJK, mult, WI_raw, WI_prev);
-                end
+                [W, WI_raw, WI_prev] = apply_wpimult(W, IJK, wpi, WI_raw, WI_prev);
                 scheduleMRST.control(ctrl).W = W;
+                % [WI_raw{3}, WI_prev{3}, scheduleMRST.control(ctrl).W(3).WI]
             end
         end
     end
 end
 
-function [W, WI_raw, WI_now] = apply_wpimult(W, IJK, wpi, WI_raw, WI_now)
+function [W, WI_raw, WI_now] = apply_wpimult(W, IJK, WPIMULT, WI_raw, WI_now)
     wnames = {W.name};
     % Need to keep track of two things: Last defined unmodified WI and
     % current WI with multipliers. Unmodified is needed to know when we
@@ -183,36 +181,39 @@ function [W, WI_raw, WI_now] = apply_wpimult(W, IJK, wpi, WI_raw, WI_now)
         WI_now{well} = WI;
     end
     % Loop over and apply WI mults
-    for i = 1:size(wpi, 1)
-        [name, val, I, J, K, start, stop] = deal(wpi{i, :});
-        well = find(strcmp(wnames, name));
-        assert(numel(well) == 1);
-        assert(val > 1e-10);
-        assert(isfinite(val));
-        w = W(well);
-        N = numel(w.WI);
-        wc = w.cells;
-        if start < 1
-            start = 1;
+    for i_w = 1:numel(WPIMULT)
+        wpi = WPIMULT{i_w};
+        for i = 1:size(wpi, 1)
+            [name, val, I, J, K, start, stop] = deal(wpi{i, :});
+            well = find(strcmp(wnames, name));
+            assert(numel(well) == 1);
+            assert(val > 1e-10);
+            assert(isfinite(val));
+            w = W(well);
+            N = numel(w.WI);
+            wc = w.cells;
+            if start < 1
+                start = 1;
+            end
+            if stop < 1
+                stop = N;
+            end
+            rng = (1:N)';
+            active = rng >= start & rng <= stop;
+            if I > 0
+                active = active & IJK{1}(wc) == I;
+            end
+            if J > 0
+                active = active & IJK{2}(wc) == J;
+            end
+            if K > 0
+                active = active & IJK{3}(wc) == K;
+            end
+            WI = WI_now{well};
+            % Apply mult after masking
+            WI(active) = WI(active)*val;
+            WI_now{well} = WI;
         end
-        if stop < 1
-            stop = N;
-        end
-        rng = (1:N)';
-        active = rng >= start & rng <= stop;
-        if I > 0
-            active = active & IJK{1}(wc) == I;
-        end
-        if J > 0
-            active = active & IJK{2}(wc) == J;
-        end
-        if K > 0
-            active = active & IJK{3}(wc) == K;
-        end
-        WI = WI_now{well};
-        % Apply mult after masking
-        WI(active) = WI(active)*val;
-        WI_now{well} = WI;
     end
     % Finally make sure that all wells have the updated WIs
     for well = 1:numel(W)
