@@ -32,85 +32,82 @@ objectiveOpts  = {'OilPrice',           50/stb, ...
 %   * well-rates drop below 0.1 m^3/day
 setupFn = @setupFnEggEnsemble;
 
+realizations = [10 20 30 40];
+samples = struct(...
+    'getSampleProblem', @(dd, seed)setupFnEggEnsemble(seed, dd, realizations), ...
+    'num', numel(realizations));
+
 % Provide initial guess in terms of a schedule. Only control-targets and
 % limits are used, so this can be the schedule for any of the simulation 
 % problems
-problem_tmp = setupFn(1);
-initialGuess = problem_tmp.SimulatorSetup.schedule;
+problem_tmp = setupFn(realizations(1));
+schedule = problem_tmp.SimulatorSetup.schedule;
 
-% Provide indices to the realizations that should be included in the
-% optimization. Here we use four
-realizations = [10 20 30 40];
 
 % Setup target/limit upper and lower bounds (initial schedule should lie 
 % within bounds). All upper/lower limits that are finite in schedule, and 
-% defined below, will become active if they become active during at least 
+% defined below, will contribute to gradient if they become active during at least 
 % one of the simulations. Bounds can be set up individually for any 
 % target/limit of any well. The function processBounds simplifies the setup, 
 % when bounds are equal across all injectors/producers.
-W_tmp = initialGuess.control(1).W;
+W_tmp = schedule.control(1).W;
 bnds = processBounds(W_tmp, 'rate(inj)', [1 150]/day, ...       % target rate bounds
                             'bhp(inj)', [400 420]*barsa, ...    % upper bhp limit bounds
                             'bhp(prod)', [380 400]*barsa);      % target bhp bounds                            
                                                 
+maps = setupSimulationControlMappings(schedule, bnds);                        
 % It can be advantageous to provide an objective value guess (at least order 
 % of magnitude), to help the optimizer in setting an initial step-length. 
 % This value should be set as
-objectiveScaling = 1e8;
+objectiveScaling = 5e8;
 
-% Function-evaluations can be run in seperate matlab-sessions. Depending on
-% problem size, this number should not be gratear than maxNumCompThreads().
-% Here, we run evaluations in the same session as the optimizer:
-nWorkers = maxNumCompThreads() -1;
-if nWorkers < 2
-    % don't bother for just a single thread 
-    nWorkers = 0;
+objFun = @(model, states, schedule, varargin)NPVOW(model, states, schedule, varargin{:}, objectiveOpts{:});
+objStruct = struct('function', objFun, ...
+                   'scaling', objectiveScaling);
+
+% Function-evaluations can be run in seperate matlab-sessions. 
+if maxNumCompThreads() > 2
+    simStrategy = 'background';
+else
+    simStrategy = 'serial';
 end
 
 % Finally, set up the optimization-problem
-p = OptimizationProblem('EggEnsembleOptimization', ...      % problem name                                
-                        'objective',        objective, ...                
-                        'objectiveOpts',    objectiveOpts, ...                    
-                        'setupFn',          setupFn, ...
-                        'initialGuess',     initialGuess, ...
-                        'realizations',     realizations, ...
-                        'bounds',           bnds, ...
-                        'objectiveScaling', objectiveScaling, ...
-                        'nWorkers',         nWorkers)       %#ok
-                    
+p = OptimizationProblem(samples, ...
+                        'name', 'EggEnsembleOptimization', ...                                   
+                        'objective',        objStruct, ...                
+                        'maps',             maps,...
+                        'setupType',     'simulation', ...
+                        'verboseSimulation',     true, ...
+                        'simulationStrategy',  simStrategy)   %#ok
+                          
 %% Run optimization 
 % note that this requires aprox 10 times number of realizations simulations
 % and adjoints
+
+%p.reset('prompt', false); % un-comment to rerun optimization
+
+% optimization can be run in seperate session:
 runBackground = true;
-if ~runBackground
-    scheduleOpt = p.optimize('stepInit', .5, 'maxIt', 7);
-else
-    p.optimizeBackground('stepInit', .5, 'maxIt', 7);
-end
+u = p.maximizeObjective(problem_tmp, 'maxIt', 6, 'background', runBackground);
+
 
 %% While optimization is running, progress can be checked with 
 figure, p.plotObjectiveValues();
 
-%% or for continous plotting
-figure, p.monitorProgress();
  
 %% Once the optimization is done, we can inspect the optimization results
-% get objective value for each iteration 
-p = p.refreshControlList();
-values = p.loadAllFiles('NPVOW.mat', 'value');
-isfin   = cellfun(@isfinite, values);
-if any(isfin)
-    values = cell2mat(values(isfin));
-    % plot well-solutions for initial schedule
-    p.plotWellSols(1);
-    % plot well-solution for best performing schedule
-    [~, ix] = max(values);
-    if ix ~= 1
-        p.plotWellSols(ix);
+
+ids = p.iterationObjectiveValues.getValidIds;
+if ~isempty(ids)
+    % initial schedule well solutions
+    p.plotWellSols(problem_tmp, 1);
+    if max(ids) > 1
+        % optimized schedule well solutions
+        p.plotWellSols(problem_tmp, max(ids));
     end
 end
 
-% to delete all output: p.cleanup()
 
 %% Copyright Notice
 %
