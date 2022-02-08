@@ -110,6 +110,7 @@ if nargout > 1
             end
             return
         case 'AdjointAD'
+            setupNew.model = setupNew.model.validateModel();
             gradient = computeSensitivitiesAdjointAD(setupNew, states, parameters, objh,...
                                                         'LinearSolver',opt.AdjointLinearSolver);            
             % do scaling of gradient

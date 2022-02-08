@@ -106,7 +106,7 @@ for step = nstep:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nstep - step + 1, nstep);
     [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
         getObjective, setup.schedule, lambda, step);
-    eqdth = partialWRTparam(modelParam, getState, scheduleParam, step, param);
+    [eqdth, modelParam] = partialWRTparam(modelParam, getState, scheduleParam, step, param);
     for kp = 1:numel(param)
         %if ~isInitStateParam(kp)
             nm = param{kp}.name;
@@ -155,7 +155,7 @@ end
 end
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
-function eqdth = partialWRTparam(model, getState, schedule, step, params)
+function [eqdth, model] = partialWRTparam(model, getState, schedule, step, params)
 validforces = model.getValidDrivingForces();
 current = getState(step);
 before  = getState(step - 1);
@@ -166,7 +166,16 @@ cNo      = schedule.step.control(step);
 control = schedule.control(cNo);
 forces  = model.getDrivingForces(control);
 forces  = merge_options(validforces, forces{:});
-model   = model.validateModel(forces);
+
+reValidate = step == numel(schedule.step.val) || ...
+             cNo ~= schedule.step.control(step+1);
+if reValidate
+    if ~isempty(model.FacilityModel)
+        model.FacilityModel = model.FacilityModel.validateModel(forces);
+    else
+        model = model.validateModel(forces);
+    end
+end
 % Initial state typically lacks wellSol-field, so add if needed
 if step == 1
     before = model.validateState(before);
