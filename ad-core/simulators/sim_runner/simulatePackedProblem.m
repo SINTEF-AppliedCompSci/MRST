@@ -111,8 +111,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         timer = tic();
         if isfinite(restartStep)
             mods = mrstModule();
-            mrstModule('add', problem.Modules{:});
-            if ~opt.continueOnError
+            try
+                mrstModule('add', problem.Modules{:});
                 simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls,...
                     'restartStep', restartStep,...
                     'OutputHandler', state_handler, ...
@@ -121,24 +121,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     'outputOffset', restartOffset, ...
                     problem.SimulatorSetup.ExtraArguments{:}, ...
                     'OutputMinisteps', doMinisteps);
-            else
-                try
-                    simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls,...
-                        'restartStep', restartStep,...
-                        'OutputHandler', state_handler, ...
-                        'WellOutputHandler', wellSol_handler, ...
-                        'ReportHandler', report_handler, ...
-                        'outputOffset', restartOffset, ...
-                        problem.SimulatorSetup.ExtraArguments{:}, ...
-                        'OutputMinisteps', doMinisteps);
-                catch ex
-                    mrstModule('reset', mods{:});
-                    msg = ex.message;
-                    ok = false;
-                    fprintf('!!! Simulation resulted in fatal error !!!\n Exception thrown: %s\n', msg);
-                    if ~opt.continueOnError
-                        rethrow(ex);
-                    end
+            catch ex
+                mrstModule('reset', mods{:});
+                msg = ex.message;
+                ok = false;
+                fprintf('!!! Simulation resulted in fatal error !!!\n Exception thrown: %s\n', msg);
+                if ~opt.continueOnError
+                    rethrow(ex);
                 end
             end
             if ok
