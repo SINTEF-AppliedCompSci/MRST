@@ -75,21 +75,37 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
-    opt = struct('skip'   , {{}}       , ...
-                 'maxSize', 1e8        , ...
-                 'verbose', mrstVerbose);
-    opt = merge_options(opt, varargin{:});
     
-    % Avoid empty hash values
-    if isempty(obj), obj = '[]'; end
+    % Optional input arguments
+    opt = struct('skip'   , {{}}, ...
+                 'maxSize', 1e8 , ...
+                 'verbose', []  );
+    opt = merge_options(opt, varargin{:});
+    % Set verbosity if not sepcified
+    if isempty(opt.verbose), opt.verbose = mrstVerbose(); end
+    % Check if we are on octave
+    octave = mrstPlatform(); octave = octave.octave;
+    % Function will call itself recursively, so the actual function is
+    % implemented in a local version that avoids redoing merge_options,
+    % verbosity check, platform check, etc.
+    [hash, hashStruct] ...
+        = obj2hash_local(obj, opt.skip, opt.maxSize, opt.verbose, octave);
+    
+end
+
+%-------------------------------------------------------------------------%
+function [hash, hashStruct] = obj2hash_local(obj, skip, maxSize, verbose, octave)
+% Local version without optional input arguments and checks
     % Initialize second return variable
     hashStruct = [];
-    
+    % Avoid empty hash values
+    if isempty(obj), obj = '[]'; end
+    % Make function handle for recursive calls
+    o2h = @(obj) obj2hash_local(obj, skip, maxSize, verbose, octave);
     if isnumeric(obj) || islogical(obj) || ischar(obj)
         % Object is a type we can hash directly
-        if nnz(obj) > opt.maxSize
-            if opt.verbose
+        if nnz(obj) > maxSize
+            if verbose
                 warning(['Object has too many nonzero elements (%d), '  , ...
                          'falling back to hashing class name'], nnz(obj));
             end
@@ -99,14 +115,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         return
     elseif iscell(obj)
         % Compute hash of each cell array element and hash combined result
-        hash = cellfun(@(o) obj2hash(o, varargin{:}), ...
-                       obj, 'UniformOutput', false  );
+        hash = cellfun(@(o) o2h(o), obj, 'UniformOutput', false);
         hash = combineHashes(hash);
         return
     elseif isstruct(obj)
         % Object is a struct. We will have to loop through all fields
         if numel(obj) > 1
-            hash = arrayfun(@(obj) obj2hash(obj), obj, 'UniformOutput', false);
+            hash = arrayfun(@(o) o2h(o), obj, 'UniformOutput', false);
             hash = combineHashes(hash);
             return
         end
@@ -121,19 +136,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     if isempty(names)
         % Object has no public properties. Hash the class name instead
-        hash = obj2hash(class(obj));
+        hash = obj2hash(class(obj), 'verbose', false);
         return;
     end
     
     % Exclude any fields we have asked to skip
-    names = setdiff(names, opt.skip);
+    names = names(~ismember(names, skip));
     hash  = cell(1, numel(names));
     % Loop through all fields/properties and compute hash
     for i = 1:numel(names)
         % Avoid protected (returned by properties(obj) in Octave)
-        if ~isprop(obj, names{i}) && ~isfield(obj, names{i}), continue; end
+        if octave && ~isprop(obj, names{i}) && ~isfield(obj, names{i})
+            continue
+        end
         prop    = obj.(names{i});
-        hash{i} = obj2hash(prop, varargin{:});
+        hash{i} = o2h(prop);
     end
     % Extract names that was used in the hash
     keep  = ~cellfun(@isempty, hash);
@@ -143,7 +160,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     hashStruct = cell2struct(hash, names', 2);
     % Hash the combined result
     hash = combineHashes(hash);
-    
 end
 
 %-------------------------------------------------------------------------%

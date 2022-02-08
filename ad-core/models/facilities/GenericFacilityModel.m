@@ -244,7 +244,7 @@ classdef GenericFacilityModel < FacilityModel
             wsign = vertcat(map.W.sign);
             surface_value = value(wrates);
             
-            zeroTarget = targets == 0 & (is_surface_control | is_resv);
+            zeroTarget = value(targets) == 0 & (is_surface_control | is_resv);
             zeroBHP = (is_bhp & sign(surface_value) ~= wsign & wsign ~= 0 & surface_value ~= 0);
             zeroRates = zeroTarget | ... % Actual target zero
                         zeroBHP | ... % Bad flow direction

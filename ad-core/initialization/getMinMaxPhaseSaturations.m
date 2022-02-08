@@ -42,8 +42,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             sat_reg = model.FlowPropertyFunctions.RelativePermeability.regions(cells(1));
             [s_min, s_max] = getMinMaxPhaseSaturationsFromRelPerm(model, 1e-6, sat_reg);
         end
-        s_min = repmat(s_min, nc, 1);
-        s_max = repmat(s_max, nc, 1);
+        if size(s_min, 1) == 1
+            s_min = repmat(s_min, nc, 1);
+        end
+        if size(s_max, 1) == 1
+            s_max = repmat(s_max, nc, 1);
+        end
     end
     f = model.fluid;
     wix = model.getPhaseIndex('W');

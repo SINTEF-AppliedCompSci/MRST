@@ -15,7 +15,6 @@ classdef PVTPropertyFunctions < StateFunctionGrouping
         function props = PVTPropertyFunctions(model)
             props@StateFunctionGrouping('PVTProps');
             pvt = props.getRegionPVT(model);
-
             % PVT properties
             isBO = isa(model, 'ThreePhaseBlackOilModel') && (model.disgas || model.vapoil);
             props = props.setStateFunction('Density', BlackOilDensity(model, pvt));

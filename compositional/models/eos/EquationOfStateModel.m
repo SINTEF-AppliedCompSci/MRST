@@ -118,6 +118,23 @@ classdef EquationOfStateModel < PhysicalModel
                 end
             end
         end
+        
+        function t = shortname(model)
+            switch model.eosType
+                case 1
+                    t = 'pr';
+                case 2
+                    t = 'srk';
+                case 3
+                    t = 'zj';
+                case 4
+                    t = 'rk';
+                case 5
+                    t = 'prcorr';
+                otherwise
+                    t = model.eosType;
+            end
+        end
 
         function Z = computeCompressibilityZ(model, p, xy, A, B, Si, Bi, isLiquid)
             if iscell(xy)

@@ -1,5 +1,46 @@
 function output = getReportOutput(reports, varargin)
-    % Get output from report after call to simulateScheduleAD
+%Get output from report after call to simulateScheduleAD
+% SYNOPSIS:
+%   output = getReportOutput(reports, 'pn1', pv1', ...)
+%
+% REQUIRED PARAMETERS:
+%   reports - Simulation reports as returned (or retrieved from disk) from
+%             `simulateScheduleAD`.
+%
+% OPTIONAL PARAMETERS:
+%   solver - Get report output for a solver (e.g., 'TransportSolver').
+%            Assumes results are stored as
+%            reports{i}.StepReports{j}.NonlinearReport{k}.(solver)
+%   get    - Function that takes in a nonlinear report and returns the
+%            quantity of interest.
+%   type   - String to set a predefined get function. Options are
+%               * nonlinearIterations (default)
+%               * linearIterations
+%               * nonlinearSolverTime
+%               * linearSolverTime
+%
+% RETURNS:
+%   output - A structure with the following fields
+%               * total : total per timestep or ministep
+%               * wasted: total that was part of a timestep/ministep that
+%                         did not converge
+%               * cuts  : number of timestep cuts (not applicable for
+%                         ministeps)
+%               * time  : reservoir time
+%
+% EXAMPLES:
+%   % Assuming simulation `reports` is a cell array of simulation reports
+%   for each timstep of a simulation, run with `simulateScheduleAD`:
+%
+%   % Get nonlinear iterations per timestep
+%   nlit = getReportOutput(reports);
+%
+%   % Get linear solver time for each ministep
+%   ltime = getReportOutput(reports, 'type', 'linearSolverTime', 'ministeps', true);
+%
+%   % Get linear solver time for each transport timestep (assuming this was
+%   a sequential simulation)
+%   lit = getReportOutput(reports, 'solver', 'TransportSolver', 'type', 'linearIterations');
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -20,43 +61,41 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('solver', []                   , ... % Sepcify solver (e.g. TransportSolver)
-                 'get'   , []                   , ... % Getter. Can be user-defined function
-                 'type'  , 'nonlinearIterations', ... % Used to pick preimplemented getters (se below)
-                 'ministeps', true);                  % ministeps
+    opt = struct('solver'   , []                   , ... % Sepcify solver (e.g. TransportSolver)
+                 'get'      , []                   , ... % Getter. Can be user-defined function
+                 'type'     , 'nonlinearIterations', ... % Used to pick preimplemented getters (se below)
+                 'ministeps', false                );    % Ouput data per ministep instead of timestep
     opt = merge_options(opt, varargin{:});
     if isfield(reports, 'ControlstepReports')
         reports = reports.ControlstepReports;
     end
-    nr = numel(reports);
+    % Check input
+    assert(~(opt.ministeps && ~isempty(opt.solver)), ['Output per ', ...
+        'ministep for a specific nonlinear solver is not implemented yet']);
     if isa(reports, 'ResultHandler')
+        assert(~opt.ministeps, ['Output per ministep for '  , ...
+            'result-handler report data not implemented -- ', ...
+            'please load reports first']                    );
         nr = reports.numelData();
+    else
+        nr = numel(reports);
     end
     [opt, scalar] = checkOptions(opt, reports{1});
     % Loop through timesteps and get output
-    time=[];
-    if(opt.ministeps)
-        out = {};
-        for t = 1:nr
-            ns = numel(reports{t}.StepReports);
-            for k = 1:ns
-                outs = getStepReportData(reports{t}.StepReports{k}, opt);
-                out{end+1,1} = [outs,not(reports{t}.StepReports{k}.Converged)];
-                time(end+1) = reports{t}.StepReports{k}.Timestep;
-            end
-        end         
-    else
-        out = cell(nr,1);
-        for t = 1:nr
-            out{t} = getControlStepReportData(reports{t}, opt);
-            time(end+1) = reports{t}.StepReports{k}.TimeStep;
-        end
+    [out, time] = deal(cell(nr,1));
+    for t = 1:nr
+        [out{t}, time{t}] = getControlStepReportData(reports{t}, opt);
     end
+    % Unpack data
+    if opt.ministeps, out = vertcat(out{:}); end
+    time = vertcat(time{:});
     [total, wasted, cuts, steps] = unpack(out, scalar);
-    output = struct('total', total, 'wasted', wasted, 'cuts', cuts,'time',cumsum(time));
-    if ~isempty(opt.solver)
-        output.steps = steps;
-    end
+    % Make output struct
+    output = struct('total' , total , ...
+                    'wasted', wasted, ...
+                    'cuts'  , cuts  , ...
+                    'time'  , time  );
+    if ~isempty(opt.solver), output.steps = steps; end
 end
 
 %-------------------------------------------------------------------------%
@@ -64,7 +103,9 @@ end
 
 %-------------------------------------------------------------------------%
 function [opt, scalar] = checkOptions(opt, sample)
-    % Check that requested solver output exists in reports
+% Check that requested solver output exists in reports
+    assert(isfield(sample, 'StepReports'), ['Each report must be a ', ...
+        'struct with at least a `StepReport` field']);
     if ~isempty(opt.solver) && ~isfield(sample.StepReports{1}.NonlinearReport{1}, opt.solver)
         warning('Did not find %s output in reports, switching to default', opt.solver)
         opt.solver = [];
@@ -89,12 +130,13 @@ function [opt, scalar] = checkOptions(opt, sample)
     catch
         error('Invalid report outuput requested');
     end
-    v = getControlStepReportData(sample, opt);
+    if opt.ministeps, v = v{1}; end
     scalar = size(v,1) == 1;
 end
 
 %-------------------------------------------------------------------------%
 function [total, wasted, cuts, steps] = unpack(out, scalar)
+% Unpack data in out
     if scalar
         out    = cell2mat(out);
         total  = out(:,1);
@@ -110,42 +152,55 @@ function [total, wasted, cuts, steps] = unpack(out, scalar)
 end
 
 %-------------------------------------------------------------------------%
-function output = getControlStepReportData(report, opt)
-    % Get total output data from a timestep
-    % output(1) = total data for all step reports)
-    % output(2) = total data for steps that did not result in covergence
-    % output(3) = steps for stepreport if ~isempty(opt.solver)
-    % output(4) = timestep cuts for control step
-    output  = zeros(1,4);
+function [output, time] = getControlStepReportData(report, opt)
+% Get total output data from a timestep
+% output(1) = total data for all step reports)
+% output(2) = total data for steps that did not result in covergence
+% output(3) = steps for stepreport if ~isempty(opt.solver)
+% output(4) = timestep cuts for control step
     if ~isfield(report, 'StepReports')
+        output = zeros(1,4);
+        time   = 0;
         return
     end
     stepreports = report.StepReports;
-    for i = 1:numel(stepreports)
-        out = getStepReportData(stepreports{i}, opt);
-        if size(output,1) < size(out,1)
+    ns          = numel(stepreports);
+    if opt.ministeps
+        output = {};
+        time   = [];
+        add    = @(oA, oB) [oA; oB];
+    else
+        output = zeros(1,4);
+        time   = 0;
+        add    = @(oA, oB) oA + oB;
+    end
+    
+    for i = 1:ns
+        [out, t] = getStepReportData(stepreports{i}, opt);
+        if ~opt.ministeps && size(output,1) < size(out,1)
             output = zeros(size(out,1), 4);
         end
-        output(:,1:3) = output(:,1:3) + out(:,1:3);
-        if numel(out) == 4
-            output(:,4) = output(:,4) + out(:,4);
-        else
-            output(:,4) = output(:,4) + ~stepreports{i}.Converged;
+        if numel(out) == 3
+            out(4) = ~stepreports{i}.Converged;
         end
+        output = add(output, out);
+        time   = add(time, t);
     end
 end
 
 %-------------------------------------------------------------------------%
-function out = getStepReportData(stepreport, opt)
-    % Get total iterations from a report step
-    out = 0;
+function [out, time] = getStepReportData(stepreport, opt)
+% Get total iterations from a report step
+    [out, time] = deal(0);
     if ~isempty(opt.solver)
         % Solver field is nonempty - get report iterations for the solver
         reports    = stepreport.NonlinearReport;
         solver     = opt.solver;
         opt.solver = [];
         for r = 1:numel(reports)
-            out = out + getControlStepReportData(reports{r}.(solver), opt);
+            [o, t] = getControlStepReportData(reports{r}.(solver), opt);
+            out  = out + o;
+            time = time + t;
         end
         out(3) = numel(reports);
     else
@@ -154,12 +209,14 @@ function out = getStepReportData(stepreport, opt)
         for i = 1:numel(reports)
             out = out + opt.get(reports{i});
         end
-        out = [out, out.*(~stepreport.Converged), nan(numel(out),1)];
+        out  = [out, out.*(~stepreport.Converged), nan(numel(out),1)];
+        time = stepreport.LocalTime;
     end
 end
 
 %-------------------------------------------------------------------------%
 function iterations = getNonLinearIterations(report)
+% Getter for nonlinear iterations
     % Count as one iteration if we actually solved the Newton step, not
     % just checked for convergence
     iterations = report.Solved;
@@ -167,6 +224,7 @@ end
 
 %-------------------------------------------------------------------------%
 function time = getNonlinearSolverTime(report)
+% Getter for nonlinear solver time
     % Get total nonlinear solver time, which equals assembly time + time
     % spent by the linear solver
     time = 0;
@@ -177,18 +235,20 @@ end
 
 %-------------------------------------------------------------------------%
 function iterations = getLinearIterations(report)
+% Getter for linear iterations
     % Get total nonlinear iterations if we actually solved the Newton step,
     % not just checked for convergence
     iterations = 0;
     if report.Solved
         if(isfield(report.LinearSolver,'Iterations'))
-            iterations = report.LinearSolver.Iterations;
+            iterations = report.LinearSolver.Iterations(1);
         end
     end
 end
 
 %-------------------------------------------------------------------------%
 function time = getLinearSolverTime(report)
+% Getter for linear solver time
     % Get total nonlinear iterations if we actually solved the Newton step,
     % not just checked for convergence
     time = 0;

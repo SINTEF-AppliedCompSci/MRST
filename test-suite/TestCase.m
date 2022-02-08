@@ -7,8 +7,10 @@ classdef TestCase
         state0      % Initial state
         model       % Model
         schedule    % Simulation schedule
-        options     % Options passed to test case get (stored for reference)
+        options     % Options passed to setup function
         verbose     % Verbose flag
+        extra       % Anything that does not fit into the other categories 
+                    % above (e.g., reference data)
         % Properties for plotting
         figureProperties  % Figure propreties (defaults set by constructor)
         axisProperties    % Axis properties (defaults set by constructor)
@@ -56,14 +58,17 @@ classdef TestCase
                              'test case, setting up from scratch \n\n']);
                 end
             end
-            % Set up test case and set properties
+            % Set up test case
             setup = feval(lower(name), extra{:});
+            % Set properties to TestCase object
+            if isempty(test.name), test.name = setup.name; end
             test.description = setup.description;
-            test.name        = setup.name;
             test.state0      = setup.state0;
             test.model       = setup.model;
             test.schedule    = setup.schedule;
             test.options     = setup.options;
+            test.extra       = setup.extra;
+            % Print progress
             if test.verbose
                 time = toc(timer);
                 fprintf('Test case set up in %s\n\n', formatTimeRange(time));
@@ -314,12 +319,13 @@ classdef TestCase
         %-----------------------------------------------------------------%
         function [hash, s] = getTestCaseHash(test, fullHash)
             % Get hash of options struct, prepended with test case name
-            skip = {'figureProperties', ...
-                    'axisProperties'  , ...
-                    'toolbarOptions'  , ...
-                    'verbose'         };
+            skip = {'figureProperties' , ...
+                    'axisProperties'   , ...
+                    'toolbarOptions'   , ...
+                    'visualizationGrid', ...
+                    'verbose'          };
             if nargin > 1 && ~fullHash
-                skip = [skip, {'model', 'state0', 'schedule'}];
+                skip = [skip, {'model', 'state0', 'schedule', 'extra'}];
             end
             [hash, s] = obj2hash(test, 'skip', skip);
         end
@@ -356,7 +362,7 @@ classdef TestCase
                     fprintf('Found a saved version of this test case. Loading, ...');
                 end
                 data = load(fn);
-                tc   = data.example;
+                tc   = data.test;
             elseif throwError
                 % The file does no exists - throw an error
                 error(['Could not find test case '   , ...
@@ -371,7 +377,7 @@ classdef TestCase
                          'useHash'        , true     , ...
                          'LinearSolver'   , []       , ...
                          'NonLinearSolver', []       );
-            [opt, extra] = merge_options(opt, varargin{:});
+            [opt, varargin] = merge_options(opt, varargin{:});
             if opt.useHash
                 if ~isempty(opt.Name)
                     opt.Name = [opt.Name, '_'];
@@ -411,7 +417,7 @@ classdef TestCase
                     test.schedule, test.baseName,  ...
                     'Name'           , opt.Name,   ...
                     'Description'    , desc,       ...
-                    'NonLinearSolver', opt.NonLinearSolver, extra{:});
+                    'NonLinearSolver', opt.NonLinearSolver, varargin{:});
         end
         
     end
