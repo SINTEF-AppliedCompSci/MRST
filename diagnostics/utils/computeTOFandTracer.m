@@ -294,9 +294,6 @@ p  = opt.partitionBoundary;
 if isempty(p)
     p = ones(numel(f), 1);
 end
-% ensure p is numbered from 1 upward, with an increment of 1 (assumed in code below)
-assert(p(1) == 1)
-assert(unique(diff(unique(p))) == 1);
 
 assert(numel(p)==numel(f), 'Boundary partition must correspond to bc.faces');
 % check if partition is only a subset
@@ -304,33 +301,29 @@ if any(~(p>=1))
     ix = p>=1;
     [p, f, c] = deal(p(ix), f(ix), c(ix));
 end
+if max(p)>1
+    % reorder according to increasing partition number
+    [p, order] = sort(p);
+    [f,c] = deal(f(order), c(order));
+end
+
 bflux = -state.flux(f).*fsgn; 
 maxp = max(p);
 if opt.splitBoundary
     % treat all boundary partitions as both injecting and producing
     [inpart, outpart] = deal(1:maxp);
-
-    pix = bflux >= 0;
-    in_tmp = sortrows([c(pix), p(pix)], 2);
-    incells = arrayfun(@(ix) in_tmp(in_tmp(:,2)==ix, 1), 1:max(p), ...
-                       'uniformoutput', false);
-    out_tmp = sortrows([c(~pix), p(~pix)], 2);
-    outcells = arrayfun(@(ix) out_tmp(out_tmp(:,2)==ix, 1), 1:max(p), ...
-                        'uniformoutput', false);
+     pix = bflux >= 0;
+     np  = accumarray(p(pix),  ones(nnz(pix),1));
+     nn  = accumarray(p(~pix), ones(nnz(~pix),1)); 
+     incells  = mat2cell(c(pix),  np, 1);
+     outcells = mat2cell(c(~pix), nn, 1);
 else
    % distribute partitions to out/in according to net flow 
-   sgn = accumarray(p, bflux); % sum up net flux per partition
-   [inpart, outpart] = deal(find(sgn>=0), find(sgn<0));
-
-   % determine which cells belong to which partition
-   tmp = sortrows([c, p], 2);
-   cells = arrayfun(@(ix) tmp(tmp(:,2)==ix, 1), 1:max(p), ...
-                    'uniformoutput', false);
-
-   [incells, outcells] = deal(cell(1, numel(cells)));
-   incells(inpart) = cells(inpart);
-   outcells(outpart) = cells(outpart);
-   
+    sgn   = accumarray(p, bflux); % sun up to net flux per partition
+    n     = accumarray(p, ones(size(p)));
+    cells = mat2cell(c, n, 1);
+    [inpart, outpart] = deal(find(sgn>=0), find(sgn<0));
+    [incells, outcells] = deal(cells(inpart), cells(outpart));
 end
 [incells, outcells] = deal(reshape(incells, 1, []), reshape(outcells, 1, []));
 end
