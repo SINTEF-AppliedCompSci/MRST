@@ -130,6 +130,7 @@ if any(isInitParam)
     state0 = model.validateState(setup.state0);
     % set wellSols just to make subsequent function-calls happy, sensitivities wrt wellSols doesn't make sense anyway
     state0.wellSol = states{1}.wellSol;
+    state0 = model.getStateAD(state0);
     dt = schedule.step.val(1);
     
     linProblem = model.getAdjointEquations(state0, states{1}, dt, forces,...

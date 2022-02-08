@@ -42,11 +42,11 @@ for k = 1:numel(flds)
     bnds.(flds{k}) = [lower.(flds{k}), upper.(flds{k})];
 end
 % if producer bounds are positive, assume absolute, so change sign and pos 
-pflds =  {'wrat', 'orat', 'grat', 'lrat'};
-for k = 1:numel(pflds)
-    ix = any(bnds.(pflds{k})>0, 2);
-    if any(ix)
-        bnds.(pflds{k})(ix,:) = -bnds.(pflds{k})(ix, [2 1]);
-    end
-end     
+% pflds =  {'wrat', 'orat', 'grat', 'lrat'};
+% for k = 1:numel(pflds)
+%     ix = any(bnds.(pflds{k})>0, 2);
+%     if any(ix)
+%         bnds.(pflds{k})(ix,:) = -bnds.(pflds{k})(ix, [2 1]);
+%     end
+% end     
 end

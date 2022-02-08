@@ -178,7 +178,7 @@ methods
 
         % Define primary variables
         if opt.reverseMode
-            [state0, primaryVars] = model.getReverseStateAD(state0);
+            primaryVars = state0.primaryVariables;
             state = model.getStateAD(state, false);
         else
             [state, primaryVars] = model.getStateAD(state, ~opt.resOnly);
@@ -910,8 +910,12 @@ methods
             % get forces and merge with valid forces
             forces_p = model.getDrivingForces(lookupCtrl(stepNo + 1));
             forces_p = merge_options(validforces, forces_p{:});
+            %model_p = model;
+            [current, primaryVars] = model.getReverseStateAD(current);
+            assert(isequal(current.primaryVariables, primaryVars))
+            model = model.validateModel(forces_p);
             problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
-                                'iteration', inf, 'reverseMode', true);
+                                'iteration', inf, 'reverseMode', true);                
         else
             problem_p = [];
         end

@@ -128,7 +128,6 @@ if isempty(opt.history)
     
     % Perform initial evaluation of objective and gradient:
     [v0,g0] = f(u0);
-    [v ,u ] = deal(v0,u0);
     % If not provided, set initial step
     step = opt.stepInit;
     if isnan(step) || step <= 0
@@ -157,6 +156,7 @@ else
     HiPrev = history.hess{max(it-1,1)};
     opt.maxIt = opt.maxIt + it;
 end
+[v, u] = deal(v0,u0);
 if opt.plotEvolution >0
     evFig = figure;
     plotInfo(evFig, history, opt.logPlot)
@@ -179,6 +179,9 @@ while ~success
         % Update Hessian approximation
         if opt.useBFGS %&& lsinfo.flag == 1
             [du, dg] = deal(u-u0, g-g0);
+            % if any of the gradient entries are not defined, we set 
+            % the difference to zero 
+            dg(~isfinite(dg)) = 0;
             if du'*dg > sqrt(eps)*norm(du)*norm(dg)
                 HiPrev = Hi;
                 if isa(Hi, 'LimitedMemoryHessian')

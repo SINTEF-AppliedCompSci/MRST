@@ -107,7 +107,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             cntrScale = getControlEqScaling({ws.type}, model.FacilityModel);
             eqNo      = strcmp('well', report.Types);
             st        = vertcat(ws.status);
-            dg{eqNo}  = cntrScale(st).*dg{eqNo};
+            if(not(all(eqNo ==0)))
+                dg{eqNo}  = cntrScale(st).*dg{eqNo};
+            end
         end
         gradstep(step, :) = getRequestedGradients(dg, report, opt.ControlVariables);
     end
@@ -152,7 +154,7 @@ function g = getRequestedGradients(dg, report, wantGradFor)
         g = cell(1, ng);
         for i = 1:ng
             n = wantGradFor{i};
-            g{i} = vertcat(dg{strcmpi(report.Types, n)});
+            g{i} = -vertcat(dg{strcmpi(report.Types, n)});
         end
     end
 end
