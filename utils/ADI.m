@@ -284,7 +284,7 @@ classdef ADI
              h.jac = v.lMultDiag(polyval(polyder(p),v.val),v.jac);
              assert(isa(v,'ADI'));
          else
-             error("polyval with adi coefficents not valid")
+             error('polyval with adi coefficents not valid')
          end
       end
       
