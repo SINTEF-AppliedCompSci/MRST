@@ -170,7 +170,7 @@ forces  = merge_options(validforces, forces{:});
 reValidate = step == numel(schedule.step.val) || ...
              cNo ~= schedule.step.control(step+1);
 if reValidate
-    if ~isempty(model.FacilityModel)
+    if isa(model, 'ReservoirModel') && ~isempty(model.FacilityModel)
         model.FacilityModel = model.FacilityModel.validateModel(forces);
     else
         model = model.validateModel(forces);

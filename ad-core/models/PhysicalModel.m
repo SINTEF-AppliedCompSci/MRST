@@ -889,7 +889,7 @@ methods
         % get forces and merge with valid forces
         forces = model.getDrivingForces(lookupCtrl(stepNo));
         forces = merge_options(validforces, forces{:});
-        if ~isempty(model.FacilityModel)
+        if isa(model, 'ReservoirModel') && ~isempty(model.FacilityModel)
             model.FacilityModel = model.FacilityModel.validateModel(forces);
         else
             model = model.validateModel(forces);
@@ -920,7 +920,7 @@ methods
                 % get forces and merge with valid forces
                 forces_p = model.getDrivingForces(lookupCtrl(stepNo + 1));
                 forces_p = merge_options(validforces, forces_p{:});
-                if ~isempty(model.FacilityModel)
+                if isa(model, 'ReservoirModel') && ~isempty(model.FacilityModel)
                     model.FacilityModel = model.FacilityModel.validateModel(forces_p);
                 else
                     model = model.validateModel(forces_p);
