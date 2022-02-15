@@ -82,12 +82,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
     % A test case setup function consists of three parts: definition of
     % description and options, definition of module dependencies, setting
     % up the initial state, model schedule and options for plotting, and
     % packing the test case setup.
     
-    % Setp 1: Test case description and options
+    % Step 1: Test case description and options
     %---------------------------------------------------------------------%
     % Always include this block (with obvious modifications)
     %---------------------------------------------------------------------%
@@ -101,11 +102,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      'nstep' , 5   );
     % Process optinal input arguments
     [options, fullSetup, setup] = processTestCaseInput(mfilename, ...
-        options, description, varargin{:});
+                                        options, description, varargin{:});
     if ~fullSetup, return; end
     %---------------------------------------------------------------------%
     
-    % Setp 2: Define any module dependencies for the test case and set up
+    % Step 2: Define any module dependencies for the test case and set up
     %---------------------------------------------------------------------%
     % initial state, model and schedule.
     % The following dependencies are typically always needed
@@ -115,6 +116,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % plotOptions are only used by TestCase. In case of empty
     % plotOptions, TestCase will attempt to set reasonable defaults
     plotOptions = {};
+    %---------------------------------------------------------------------%
     
     % Step 3: Pack test case setup
     %---------------------------------------------------------------------%
@@ -132,4 +134,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                               'schedule'   , schedule   , ...
                               'plotOptions', plotOptions);
     %---------------------------------------------------------------------%
+    
 end
