@@ -4,6 +4,8 @@ function varargout = unstructuredSurf(G, data, varargin)
 % SYNOPSIS:
 %       unstructuredSurf(G, data)
 %       unstructuredSurf(G, data, 'pn1', pv1, ...)
+%       unstructuredSurf(G, data, cells)
+%       unstructuredSurf(G, data, cells, 'pn1', pv1, ...)
 %   h = unstructuredSurf(...)
 %
 % PARAMETERS:
@@ -62,6 +64,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Optional input arguments
     %---------------------------------------------------------------------%
+    cells = (1:G.cells.num)';
+    if nargin > 2 && ~ischar(varargin{1})
+        cells    = varargin{1};
+        if islogical(cells), cells = find(cells); end
+        assert(isnumeric(cells) &&                           ...
+               min(cells) >= 1 && max(cells) <= G.cells.num, ...
+              'Input argument `cells` must be in the range [1, G.cells.num]');
+        varargin = varargin(2:end);
+    end
     opt          = struct('extrapolation', 'linear');
     [opt, extra] = merge_options(opt, varargin{:});
     % Check that we have a 2D grid
@@ -76,7 +87,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                'extrapolation', opt.extrapolation);
     end
     G.nodes.coords(:,3) = data;
-    h = plotPatches(G, (1:G.cells.num)', data, extra{:});
+    h = plotPatches(G, cells, data, extra{:});
     %---------------------------------------------------------------------%
     
     % Return handle to patch object
