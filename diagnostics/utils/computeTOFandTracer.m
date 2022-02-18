@@ -304,7 +304,7 @@ end
 if max(p)>1
     % reorder according to increasing partition number
     [p, order] = sort(p);
-    [f,c] = deal(f(order), c(order));
+    [f,c,fsgn] = deal(f(order), c(order), fsgn(order));
 end
 
 bflux = -state.flux(f).*fsgn; 
