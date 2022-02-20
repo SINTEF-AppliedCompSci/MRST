@@ -232,7 +232,7 @@ if opt.computeWellTOFs
         D.outtof = t(:, curix+nw+1:curix+nw+no);
     end
     if opt.firstArrival
-        curix = curix + nw + ni;
+        curix = curix + nw + no;
         D.pfa = t(:, curix+1:curix+nw);
         if hasBC
             D.outfa = t(:, curix+nw+1:end);
