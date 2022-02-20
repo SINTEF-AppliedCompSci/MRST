@@ -7,18 +7,18 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %
 % DESCRIPTION:
 %   Construct the basis for flow diagnostic by computing
-%     1) time-of-flight        :   \nablaÂ·(v T) = \phi,
-%     2) reverse time-of-flight:  -\nablaÂ·(v T) = \phi,
-%     3) stationary tracer     :  Â±\nablaÂ·(v C) = 0
+%     1) time-of-flight        :   \nabla·(v T) = \phi,
+%     2) reverse time-of-flight:  -\nabla·(v T) = \phi,
+%     3) stationary tracer     :  ±\nabla·(v C) = 0
 %   using a first-order finite-volume method with upwind flux. A majority
 %   vote is also used to partition the volume and assign each cell to a
 %   unique tracer. Optionally, the routine can also compute time-of-flight
 %   values for each influence region by solving localized time-of-flight
 %   equations
-%         \nablaÂ·(v C_i T) = \phi C_i,
+%         \nabla·(v C_i T) = \phi C_i,
 %   where C_i is the tracer concentration of each influence region.
 %
-%   Finally, first arrival time is computed by a graph algorithm.
+%   Optionally, first arrival time is computed by a graph algorithm.
 %
 % REQUIRED PARAMETERS:
 %   G     - Grid structure.
@@ -54,6 +54,7 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %
 %   computeWellTOFs - Boolean variable. If true, time-of-flight values are
 %           computed individually for each influence region by solving
+%           localized time-of-flight equations.
 %
 %   firstArrival - Boolean variable. If true, compute first-arrival time by
 %           a graph algorithm.

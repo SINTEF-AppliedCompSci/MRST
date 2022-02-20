@@ -15,7 +15,7 @@
 % using mrst ResultHandlers.
 %
 
-mrstModule add diagnostics ad-core ad-props ad-blackoil incomp mrst-gui
+mrstModule add diagnostics ad-core ad-props ad-blackoil incomp mrst-gui example-suite
 
 m = ModelEnsemble('egg', 'nMembers', 50, 'setupFn', @setupEggFn);
 % after initial setup, m = ModelEnsemble('egg') is sufficient
@@ -36,7 +36,7 @@ g = EnsembleGUI(m);
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

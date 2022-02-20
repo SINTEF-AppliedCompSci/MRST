@@ -2,6 +2,7 @@ classdef WellCaseSelector < UIItem
     properties
         Callback
         listbox
+        ixMax=0
     end
     properties (Dependent)
         ix
@@ -38,7 +39,7 @@ classdef WellCaseSelector < UIItem
                          'controlWidths', controlLayout, 'Title', opt.Title, ...
                          'Position', opt.Position, 'Visible', 'off', extraOpt{:});
             
-            s.names = opt.names;                            
+            s.names = opt.names;
             s.listbox      = listbox;
             s.fixedHeight = true;
             % main callback
@@ -73,7 +74,8 @@ classdef WellCaseSelector < UIItem
         function newCallback(s, src, event)
             nn = numel(s.names);
             if nargin < 4
-                name = sprintf('case_%d', nn);
+                s.ixMax = s.ixMax+1;
+                name    = sprintf('case_%d', s.ixMax);
             end
             s.names = [s.names; {name}];
             s.Callback(src, event);
@@ -86,6 +88,9 @@ classdef WellCaseSelector < UIItem
             else
                 tmp = s.ix;
                 s.Callback(src, event);
+                if tmp==numel(s.names)
+                    s.ixMax=s.ixMax-1;
+                end
                 s.names(tmp) = [];
                 s.ix = min(tmp)-1;
             end
@@ -94,7 +99,7 @@ classdef WellCaseSelector < UIItem
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

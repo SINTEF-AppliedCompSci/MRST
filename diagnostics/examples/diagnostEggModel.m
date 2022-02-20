@@ -8,11 +8,12 @@
 % For details on the EggModel and the corresponding ensemble, see
 % Jansen, J. D., et al. "The egg model–a geological ensemble for reservoir
 % simulation." Geoscience Data Journal 1.2 (2014): 192-195.
-%
 
 %% We first solve the base case using a pressure solver
 % Set up pressure solver and solve base case.
-mrstModule add deckformat ad-blackoil ad-core sequential diagnostics
+mrstModule add deckformat ad-blackoil ad-core ...
+   sequential diagnostics example-suite
+
 [G, rock, fluid, deck, state0] = setupEGG('realization', 0);
 model = PressureOilWaterModel(G, rock, fluid);
 schedule = convertDeckScheduleToMRST(model, deck);
@@ -147,7 +148,7 @@ plotWell(G, W(wsign < 0), 'fontsize', 0, 'color', 'c')
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

@@ -28,7 +28,7 @@
 % * When you are happy with your well(s) and have saved them, launch diagnostics by pressing the 
 %   "Launch diagnostics" button. 
 
-mrstModule add diagnostics mrst-gui ad-core ad-blackoil wellpaths
+mrstModule add diagnostics mrst-gui ad-core ad-blackoil wellpaths example-suite
 
 gravity off
 tmp = setupEggFn(1);
@@ -40,7 +40,7 @@ d = TrajectoryGUI(model, W, 'state0', state0);
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

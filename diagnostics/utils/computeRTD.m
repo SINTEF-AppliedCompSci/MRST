@@ -31,7 +31,7 @@ function dist = computeRTD(state, G, pv, D, WP, W, varargin)
 % SEE ALSO
 %  estimateRTD
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -254,7 +254,7 @@ if reverse
 end
 nc = G.cells.num;
 N  = G.faces.neighbors;
-if size(N, 1) ~= numel(state.flux) % flux on interior faces
+if size(N, 1) ~= size(state.flux, 1) % flux on interior faces
     N = N(~any(N==0, 2),:);
 end
 % get index to relevant faces

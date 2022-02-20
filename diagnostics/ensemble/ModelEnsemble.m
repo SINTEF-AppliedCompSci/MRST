@@ -198,7 +198,7 @@ classdef ModelEnsemble < handle
                 isComputed = stat.status(:, strcmp(stat.fields, 'RTD'));
                 opt.memberIx = opt.memberIx(~isComputed(opt.memberIx));
                 if isempty(opt.memberIx)
-                    fprintf('Diagnostics already comptued\n');
+                    fprintf('Diagnostics already computed\n');
                     return;
                 end
             end
@@ -938,7 +938,7 @@ out = struct('model', model, 'W', W, 'state0', state0, 'schedule', schedule);
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

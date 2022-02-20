@@ -97,7 +97,7 @@ function [state, varargout] = solveStationaryPressure(G, state, operators, W, fl
 %                    obviously be provided for this to work.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -350,7 +350,7 @@ end
 
 function state = computeBasis(state, eqs, linsolve)
     % hack in multiple rhs
-    numVars = cellfun(@numval, eqs)';
+    numVars = cellfun(@numelValue, eqs)';
 
     eqs{1}.val = zeros(numVars(1), numVars(3));
     eqs{2}.val = zeros(numVars(2), numVars(3));
@@ -377,7 +377,6 @@ end
 function grad = SolveAdjointTOFEqs(eqs, D, objk, scaling, msbasis, linsolve, linsolveTOF)
     ni = size(D.itracer, 2);
     np = size(D.ptracer, 2);
-    numVars = cellfun(@numval, eqs)';
 
     % First three equations are pressure, well flux and well closure
     % Fourth is forward TOF

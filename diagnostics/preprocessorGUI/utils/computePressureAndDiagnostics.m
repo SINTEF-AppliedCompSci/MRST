@@ -27,7 +27,7 @@ function [state, diagnostics] = computePressureAndDiagnostics(model, varargin)
 %                 (interaction allocation/volumes) and 'wellCommuniaction'
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -101,9 +101,9 @@ if ~isempty(opt.D)
 else
     D  = computeTOFandTracer(state, model.G, model.rock, 'wells', W, ...
                                  'maxTOF',              [], ...
-                                 'computeWellTOFs',   true, ...
-                                 'processCycles',     true, ...
-                                 'firstArrival',      true);
+                                 'computeWellTOFs',   opt.computeWellTOFs, ...
+                                 'processCycles',     opt.processCycles, ...
+                                 'firstArrival',      opt.firstArrival);
 end
 if ~isempty(opt.WP)
     WP = opt.WP;

@@ -105,7 +105,7 @@
 %   `plotCellData`, `plotFaces`
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -149,6 +149,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'pauseTime',     0.150, ...
                  'lockCaxis',     false, ...
                  'plot1d',        false, ...
+                 'surf',          false, ...
                  'plotmarkers',   false, ...
                  'skipAugmented', false, ...
                  'field',         '',    ...
@@ -266,7 +267,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      'ClickedCallback', @toggleTransform, ...
                      'cdata', geticon('abs'), 'State', boolToOnOff(opt.abs));
 
-    % Abs button
+    % Filter zero button
     nonzerotoggleh = uitoggletool(ht, 'TooltipString', 'Filter zero values',...
                      'ClickedCallback', @toggleTransform, ...
                      'cdata', geticon('nonzero'), 'State', boolToOnOff(opt.filterzero));
@@ -280,11 +281,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     gridToggle = uitoggletool(ht, 'TooltipString', 'Show grid boundary outline',...
                    'ClickedCallback', @replotPatch,...
                    'cdata', geticon('outline'), 'State', boolToOnOff(opt.outline));
-
+    
+    if Grid.griddim == 2
+        % Surface plot button
+        surfToggle = uitoggletool(ht, 'TooltipString', 'Surface plot',...
+                       'ClickedCallback', @replotPatch,...
+                       'cdata', geticon('outline'), 'State', boolToOnOff(opt.surf));
+    end
+    
     % Histogram button
     uipushtool(ht, 'TooltipString', 'Dynamic histogram of currently displayed data',...
                    'ClickedCallback', @plotHistogram,...
                    'cdata', geticon('hist'));
+               
     % Limiting dataset
     uipushtool(ht, 'TooltipString', 'Set limits on displayed dataset',...
                    'ClickedCallback', @limitDataset,...
@@ -379,6 +388,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             clickh([], []);
         end
     end
+    
  function injectDataset(newGrid, newDataset, varargin)
      G = newGrid;
      if numel(varargin)
@@ -666,10 +676,13 @@ function limitLogical(src, event)
             logicalsubset.(f{i}) = 1:Mv(i);
         end
     end
-    si = uicontrol(fi, 'Position', [0,   40, 100, 300], 'String', 1:Mv(1) , 'Style', 'listbox', 'Max', Mv(1), 'Value', logicalsubset.i, 'TooltipString', 'I');
-    sj = uicontrol(fi, 'Position', [100, 40, 100, 300], 'String', 1:Mv(2) , 'Style', 'listbox', 'Max', Mv(2), 'Value', logicalsubset.j, 'TooltipString', 'J');
+
+    integer_labels = @(arr) arrayfun(@(i) sprintf('%d', i), arr, 'UniformOutput', false);
+
+    si = uicontrol(fi, 'Position', [0,   40, 100, 300], 'String', integer_labels(1:Mv(1)) , 'Style', 'listbox', 'Max', Mv(1), 'Value', logicalsubset.i, 'TooltipString', 'I');
+    sj = uicontrol(fi, 'Position', [100, 40, 100, 300], 'String', integer_labels(1:Mv(2)) , 'Style', 'listbox', 'Max', Mv(2), 'Value', logicalsubset.j, 'TooltipString', 'J');
     if G.griddim == 3
-        sk = uicontrol(fi, 'Position', [200, 40, 100, 300], 'String', 1:Mv(3) , 'Style', 'listbox', 'Max', Mv(3), 'Value', logicalsubset.k, 'TooltipString', 'K');
+        sk = uicontrol(fi, 'Position', [200, 40, 100, 300], 'String', integer_labels(1:Mv(3)) , 'Style', 'listbox', 'Max', Mv(3), 'Value', logicalsubset.k, 'TooltipString', 'K');
     end
 
     uicontrol(fi, 'Style', 'pushbutton', 'Position', [100, 0, 100, 40], 'string', 'Apply', 'callback', @(src, event) uiresume(fi))
@@ -720,6 +733,12 @@ end
 
 function replotPatch(varargin)
 
+    if G.griddim == 2 && strcmpi(get(surfToggle, 'State'), 'on')
+        plotFn = @(d, subset, varargin) unstructuredSurf(G, d, subset, 'extrapolation', 'nearest', varargin{:});
+    else
+        plotFn = @(d, subset, varargin) plotCellData(G, d, subset, varargin{:});
+    end
+    
     [d, fun, subset] = getData(); %#ok<ASGLU>
     set(0, 'CurrentFigure', mainFig)
 
@@ -778,7 +797,7 @@ function replotPatch(varargin)
                     'LineStyle', get(ph, 'LineStyle'),...
                     'LineWidth', get(ph, 'LineWidth')};
             if size(d, 1) == G.cells.num
-                ph2 = plotCellData(G, d, subset, varg{:});
+                ph2 = plotFn(d, subset, varg{:});
             else
                 ph2 = plotNodeData(G, d, 'cells', find(subset), varg{:});
             end
@@ -788,7 +807,7 @@ function replotPatch(varargin)
             deleteHandle(ph);
             if size(d, 1) == G.cells.num
                 if sum(subset)
-                    ph = plotCellData(G, d, subset, 'EdgeColor', 'none', varargin{:});
+                    ph = plotFn(d, subset, 'EdgeColor', 'none', varargin{:});
                 end
             else
                 ph = plotNodeData(G, d, 'cells', find(subset), 'EdgeColor', 'none', varargin{:});
@@ -919,13 +938,8 @@ function handleFigureResize(src, event)
 end
 
 function cdata = geticon(name)
-    n = mfilename('fullpath');
-    if exist('strsplit', 'file')
-        tmp = strsplit(n, filesep);
-    else
-        tmp = regexp(n, filesep, 'split');
-    end
-    icon = fullfile(tmp{1:end-1}, 'icons', [name '.gif']);
+    this_dir = fileparts(mfilename('fullpath'));
+    icon = fullfile(this_dir, 'icons', [name '.gif']);
     [cdata, map] = imread(icon);
     if islogical(cdata)
         cdata = uint8(255*cdata);

@@ -9,7 +9,7 @@
 % See also PostProcessDiagnosticsECLIPSE.m
 %
 %% Load relevant modules
-mrstModule add ad-blackoil ad-core deckformat mrst-gui ad-props diagnostics
+mrstModule add ad-blackoil ad-core deckformat mrst-gui ad-props diagnostics example-suite
 
 %% Get Eclipse deck for EGG
 % Here we perform simulations on a single realization of the EGG model
@@ -49,7 +49,7 @@ PostProcessDiagnosticsMRST(problem);
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

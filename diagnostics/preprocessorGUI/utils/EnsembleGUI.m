@@ -67,8 +67,7 @@ classdef EnsembleGUI < handle
             ix = opt.diagnosticsNo;
             assert(isa(ensemble, 'ModelEnsemble'));
             if isempty(ensemble.diagnostics)
-                warning('Ensemble has no computed diagnostics, returning ...');
-                d = [];
+                warning('Ensemble has no computed diagnostics. Diagnostics must be precomputed by running ensemble.computeDiagnostics, returning ...');
                 return
             end
             
@@ -1260,7 +1259,7 @@ x(end)=hist_edges(nn+1); y(end)=0;
 end
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

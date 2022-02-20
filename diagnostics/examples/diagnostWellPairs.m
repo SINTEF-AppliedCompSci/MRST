@@ -51,8 +51,8 @@ plotWell(G,W,'height',2,'FontSize',14); axis tight;
 set(gca,'dataaspect',[1 1 0.06]), view(-60,15); axis off
 
 [hc,hh]=colorbarHist(rock.poro,[.0 .45],'South', 80);
-pos=get(hc,'Position'); set(hc,'Position',pos - [-.03 0 .25 .02],'FontSize',12);
-pos=get(hh,'Position'); set(hh,'Position',pos - [-.03 0.02 .25 0.03]);
+pos=get(hc,'Position'); set(hc,'Position',max(pos - [-.03 0 .25 .02], 0),'FontSize',12);
+pos=get(hh,'Position'); set(hh,'Position',max(pos - [-.03 0.02 .25 0.03], 0));
 set(gca,'Position',[.13 .17 .775 .785])
 
 %% Compute flow solution and diagnostic quantities
@@ -171,7 +171,7 @@ h = pie(avols(4:end)); set(h(2:2:end),'FontSize',16);
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

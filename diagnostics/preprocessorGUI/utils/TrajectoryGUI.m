@@ -6,8 +6,7 @@ classdef TrajectoryGUI < handle
         Data
         % graphics
         Figure
-        Axes1               % left axis  
-        Axes2               % right axis
+        Axes                = gobjects; % (1)left axis, (2) right axis, (3) bottom left  
         WellPlot1
         WellPlot2
         Menu
@@ -18,8 +17,8 @@ classdef TrajectoryGUI < handle
         % special graphics
         xyRegion            % interactive xy-subregion
         lineOnSlice         % interactive trajectory with slice    
-        trajInMain          % 'copy' of trajectory in Axes1
-        trajInMainPnt       % interactive point in Axes1
+        trajInMain          % 'copy' of trajectory in Axes(1)
+        trajInMainPnt       % interactive point in Axes(1)
         % selectors
         caseSelector
         wellSelector
@@ -100,18 +99,18 @@ classdef TrajectoryGUI < handle
                 end
             end
             % setup axes
-            d.Axes1 = axes('Parent', d.Figure, 'Units', 'pixels', 'ZDir', 'reverse');
-            d.Axes2 = axes('Parent', d.Figure, 'Units', 'pixels', 'ZDir', 'reverse');
+            d.Axes(1) = axes('Parent', d.Figure, 'Units', 'pixels', 'ZDir', 'reverse');
+            d.Axes(2) = axes('Parent', d.Figure, 'Units', 'pixels', 'ZDir', 'reverse');
             d.ccol  = model.rock.perm(:,1);
             d.Patch3D = CellDataPatch(model.G, d.ccol, ...
-                'Parent', d.Axes2, 'EdgeColor', [.3 .3 .3], ...
+                'Parent', d.Axes(2), 'EdgeColor', [.3 .3 .3], ...
                 'FaceAlpha', .2, 'EdgeAlpha', .3, ...
                 'BackFaceLighting', 'lit', ...
                 'Hittest', 'off');
             d.updateWellPlots();
             % setup interactive modes
             d.interactiveModes = setCustomInteractiveModes(d.Figure);
-            d.interactiveModes.rotate3d.setAllowAxesRotate(d.Axes2, false);
+            d.interactiveModes.rotate3d.setAllowAxesRotate(d.Axes(2), false);
             % Callbacks
             wsel.changedCallback = @d.enableSelectorsCallback;
             wsel.Callback        = @d.wellSelectorCallback;
@@ -119,6 +118,7 @@ classdef TrajectoryGUI < handle
             ssel.Callback        = @d.sliceControlCallback;
             psel.Callback        = @d.propertySelectorCallback;
             xsel.Callback        = @d.proxySelectorCallback;
+            
             d.Figure.SizeChangedFcn        = @d.layout;
             d.layout();
             
@@ -129,23 +129,27 @@ classdef TrajectoryGUI < handle
             d.propertySelector = psel;
             d.proxySelector = xsel;
             
+            if ~hasObj
+                d.proxySelector.Visible = 'off';
+            else
+                d.Axes(3) = axes('Parent', d.Figure, 'Units', 'pixels');
+            end
+            
             % run callback for first selection
             d.wellSelectorCallback();
             % set various graphics
-            axis(d.Axes1, 'vis3d');
-            view(d.Axes1, 3);
-            daspect(d.Axes1, [1 1 .4]);
-            zoom(d.Axes1, .7)
-            zoom(d.Axes1, 'reset')
-            set(d.Axes1, {'XLimMode', 'YLimMode', 'ZLimMode'}, {'manual','manual','manual'});
-            zl = d.Axes1.ZLim;
-            d.Axes1.ZLim = zl + [-.15 .15]*diff(zl, [], 2);
+            axis(d.Axes(1), 'vis3d');
+            view(d.Axes(1), 3);
+            daspect(d.Axes(1), [1 1 .4]);
+            zoom(d.Axes(1), .7)
+            zoom(d.Axes(1), 'reset')
+            set(d.Axes(1), {'XLimMode', 'YLimMode', 'ZLimMode'}, {'manual','manual','manual'});
+            zl = d.Axes(1).ZLim;
+            d.Axes(1).ZLim = zl + [-.15 .15]*diff(zl, [], 2);
             % select PERMX for display
             d.propertySelector.propIx = 2;
             d.propertySelector.Callback();
-            if ~hasObj
-                d.proxySelector.Visible = 'off';
-            end
+
         end
         
         function set.wellNo(d, val)
@@ -196,9 +200,9 @@ classdef TrajectoryGUI < handle
                     d.WellPlot1.visibleCases = 1;
                     d.WellPlot2.visibleCases = 1;
                 case 'launch'
-                    casenm = d.caseSelector.listbox.String;
+                    casenm = d.caseSelector.listbox.String(d.caseNo);
                     DiagnosticsViewer(repmat({d.model}, [1, numel(casenm)]), ...
-                        d.wellCases, 'modelNames', casenm, 'includeAverage', false, ...
+                        d.wellCases(d.caseNo), 'modelNames', casenm, 'includeAverage', false, ...
                         'state0', repmat({d.state0}, [1, numel(casenm)]));
 
             end
@@ -256,7 +260,7 @@ classdef TrajectoryGUI < handle
                 if ~isempty(d.xyRegion)
                     d.xyRegion.Position = pos;
                 else
-                    d.xyRegion = InteractiveRectangle('Position', pos, 'Parent', d.Axes2);
+                    d.xyRegion = InteractiveRectangle('Position', pos, 'Parent', d.Axes(2));
                     d.xyRegion.Callback = @d.updateTrajectory;
                 end
             end
@@ -275,7 +279,7 @@ classdef TrajectoryGUI < handle
             cix = (cc(:,1) >= xlim(1) & cc(:,1) <= xlim(2)) &...
                 (cc(:,2) >= ylim(1) & cc(:,2) <= ylim(2));
             d.subGrid = extractSubgrid(d.model.G, cix);
-            set(d.Axes1, {'XLim', 'YLim'}, {xlim, ylim});
+            set(d.Axes(1), {'XLim', 'YLim'}, {xlim, ylim});
             zoom(d.Figure, 'reset');
             % end
             if ~isa(src, 'matlab.ui.Figure') || isempty(d.lineOnSlice)% redraw trajectory
@@ -286,7 +290,7 @@ classdef TrajectoryGUI < handle
                 if numel(d.caseNo) == 1
                     coord = d.wellCases{d.caseNo}(d.wellNo).trajectory;
                     d.lineOnSlice = InteractiveLineOnSurf(d.subGrid, 'XData', coord(:,1), ...
-                        'YData', coord(:,2), 'ZData', coord(:,3), 'Parent', d.Axes1, ...
+                        'YData', coord(:,2), 'ZData', coord(:,3), 'Parent', d.Axes(1), ...
                         'colorData', d.ccol(cix));
                     if isempty(d.wellAuxiliaries(d.wellNo).nPoints)
                         d.wellAuxiliaries(d.wellNo).nPoints = ...
@@ -331,8 +335,9 @@ classdef TrajectoryGUI < handle
         function propertySelectorCallback(d, src, event)
             pix = d.propertySelector.propIx;
             [v, lims] = deal(d.Data(pix).values, d.Data(pix).limits);
-            d.Patch3D.cells = d.propertySelector.minValue <= v & ...
-                              d.propertySelector.maxValue >= v;
+            subix = d.propertySelector.minValue <= v & ...
+                    d.propertySelector.maxValue >= v;
+            d.Patch3D.cells = subix;
             if d.propertySelector.logSwitch
                 [lims, v, flag] = makeSafeForLog(lims, v, 5);
                 if ~flag % values not good for log-plot, reset switch
@@ -343,9 +348,13 @@ classdef TrajectoryGUI < handle
             end
             d.ccol = v;
             d.Patch3D.colorData = v;
-            d.lineOnSlice.colorData = v(d.subGrid.cells.global);
+            % For the 2D slice do thresholding only on faces (not edges)
+            tmp = v(d.subGrid.cells.global);
+            ix  = subix(d.subGrid.cells.global);
+            tmp(~ix) = nan;
+            d.lineOnSlice.colorData = tmp;
             d.lineOnSlice.updateSlice();
-            set([d.Axes1, d.Axes2], 'CLim', lims);
+            set([d.Axes(1), d.Axes(2)], 'CLim', lims);
         end
         
         %-----------------------------------------------------------------
@@ -361,15 +370,17 @@ classdef TrajectoryGUI < handle
                 switch src.Tag
                     case 'objective'
                         % compute any uncomputed objectives
-                        cix = d.caseSelector.ix;
+                        cix = 1:numel(d.caseSelector.names);
                         for k = cix
                             if numel(d.objValues) < k || isempty(d.objValues{k})
+                                % reset wellmodels in case number of wells have changed
+                                d.obj.model.parentModel.parentModel.FacilityModel.WellModels = {};
                                 d.objValues{k} = d.obj.compute(d.wellCases{k}, 'computeGradient', false);
                             end
                         end
                         % plot resulting values
-                        plotObjectiveValues(d.objValues(cix), d.caseSelector.listbox.String(cix));
-                    case 'gradient'
+                        plotObjectiveValues(d.Axes(3), d.objValues, d.caseSelector.listbox.String);
+                    case {'gradient', 'control'}
                         if numel(d.caseNo) > 1
                             fprintf('Please select single case for gradient computations');
                             return
@@ -384,25 +395,31 @@ classdef TrajectoryGUI < handle
                             W = d.wellCases{d.caseNo};
                             W = rmfield(W, 'trajectory'); 
                             W(d.wellNo).posControl = setupPositionControl(d.model.G, W(d.wellNo), d.lineOnSlice);
-                            
+                            d.obj.model.parentModel.parentModel.FacilityModel.WellModels = {};
                             if ~(numel(d.objValues) < d.caseNo || isempty(d.objValues{d.caseNo}))
                                 tmp = d.obj.compute(W, 'computeGradient', true, ...
                                     'state', d.objValues{d.caseNo}.state, ...
                                     'D',     d.objValues{d.caseNo}.D);
                                 g = tmp.gradient.position{d.wellNo};
                                 d.objValues{d.caseNo}.gradient.position{d.wellNo} = g;
+                                d.objValues{d.caseNo}.gradient.well = tmp.gradient.well;
                             else
                                 d.objValues{d.caseNo} = d.obj.compute(W, 'computeGradient', true);
                                 g = d.objValues{d.caseNo}.gradient.position{d.wellNo};
                             end
                             % scale grad according to axis limits
                             d.objValues{d.caseNo}.gradPlotScale{d.wellNo} = ...
-                                getGradPlotScaling(g, get(d.Axes1, {'XLim', 'YLim', 'ZLim'}));
+                                getGradPlotScaling(g, get(d.Axes(1), {'XLim', 'YLim', 'ZLim'}));
                         end
-                        d.showGradientVectors();
-                        d.proxySelector.slider.Enable = 'on';
+                        if strcmp(src.Tag, 'gradient')
+                            d.showGradientVectors();
+                            d.proxySelector.slider.Enable = 'on';
+                        else
+                            plotControlGradients(d.Axes(3), d.wellCases{d.caseNo}, d.objValues{d.caseNo}.gradient.well)
+                        end
                     case 'slider'
-                        d.moveTrajAlongGradient(d.proxySelector.slider.Value);
+                        d.moveTrajAlongGradient(d.proxySelector.slider.Value);                        
+                        
                 end
             end
         end
@@ -412,7 +429,7 @@ classdef TrajectoryGUI < handle
                 l = d.lineOnSlice.trajectory;
                 [x,y] = deal(l.XData(1), l.YData(1));
                 if isempty(d.trajInMainPnt) && ~isempty(x)
-                    d.trajInMainPnt = InteractivePoint('Parent', d.Axes2, 'XData', x, 'YData', y, ...
+                    d.trajInMainPnt = InteractivePoint('Parent', d.Axes(2), 'XData', x, 'YData', y, ...
                         'Callback', @d.moveWellXY, ...
                         'moveCallback', @d.updateTrajInMain);
                 else
@@ -424,8 +441,8 @@ classdef TrajectoryGUI < handle
         end
         %-----------------------------------------------------------------
         function updateWellPlots(d)
-            d.WellPlot1 = WellPlotHandle(d.model.G, d.wellCases, 'Parent', d.Axes1);
-            d.WellPlot2 = WellPlotHandle(d.model.G, d.wellCases, 'Parent', d.Axes2);
+            d.WellPlot1 = WellPlotHandle(d.model.G, d.wellCases, 'Parent', d.Axes(1));
+            d.WellPlot2 = WellPlotHandle(d.model.G, d.wellCases, 'Parent', d.Axes(2));
             d.WellPlot1.closedColor = 'none';
             d.WellPlot2.closedColor = 'none';
             d.WellPlot1 = setSpecialWellPlotProps(d.WellPlot1);
@@ -439,7 +456,7 @@ classdef TrajectoryGUI < handle
                 x = x + (p(1)-x(1));
                 y = y + (p(2)-y(1));
                 if isempty(d.trajInMain) && ~isempty(x)
-                    d.trajInMain = line('Parent', d.Axes2, 'XData', x, 'YData', y, 'ZData', z, ...
+                    d.trajInMain = line('Parent', d.Axes(2), 'XData', x, 'YData', y, 'ZData', z, ...
                         'Color', 'm', 'LineWidth', 3);
                 else
                     set(d.trajInMain, {'XData', 'YData', 'ZData'}, {x,y,z});
@@ -465,8 +482,14 @@ classdef TrajectoryGUI < handle
             aPos1   = [mw+2*sp, 2*sp, max(10, aw), max(10, fip(4)-3*sp)];
             aPos2   = [mw+3*sp+aw, 2*sp, max(10, aw), max(10, fip(4)-3*sp)];
             d.Menu.Position = mPos;
-            d.Axes1.Position = aPos1;
-            d.Axes2.Position = aPos2;
+            d.Axes(1).Position = aPos1;
+            d.Axes(2).Position = aPos2;
+            if numel(d.Axes) == 3
+                mrg   = sp;
+                aPos3 = [mrg*[1 1.5], mw-mrg, round(3*(mw-mrg)/4)];
+                d.Axes(3).Position = aPos3;
+            end
+                
         end
         %-----------------------------------------------------------------
         function launchDiagnostics(d, ~, ~)
@@ -512,31 +535,31 @@ classdef TrajectoryGUI < handle
             gsc = g*d.objValues{d.caseNo}.gradPlotScale{d.wellNo};
             [u,v,w] = deal(gsc(1:3:end), gsc(2:3:end), gsc(3:3:end));
             cap = @(x,lims)max(lims(1),min(lims(2),x));
-            u = cap(x+u, d.Axes1.XLim)-x;
-            v = cap(y+v, d.Axes1.YLim)-y;
-            w = cap(z+w, d.Axes1.ZLim)-z;
-            hold(d.Axes1, 'on')
-            d.gradientVectors(1) = quiver3(d.Axes1,x,y,z,u,v,w, 'k', 'LineWidth', 2, ...
+            u = cap(x+u, d.Axes(1).XLim)-x;
+            v = cap(y+v, d.Axes(1).YLim)-y;
+            w = cap(z+w, d.Axes(1).ZLim)-z;
+            hold(d.Axes(1), 'on')
+            d.gradientVectors(1) = quiver3(d.Axes(1),x,y,z,u,v,w, 'k', 'LineWidth', 2, ...
                 'AutoScale', 'off', 'PickableParts', 'none', 'MaxHeadSize', .5);
             ngr = sqrt(sum(reshape(g, 3, []).^2));
             str = arrayfun(@(x)sprintf('  %1.2d $/m', x), ngr, 'UniformOutput', false);
             [d.gradientVectors(2 + (1:numel(x)))] = ...
-                text(d.Axes1, x+u/2,y+v/2,z+w/2, str, 'BackgroundColor', [.92 .92 .92], ...
+                text(d.Axes(1), x+u/2,y+v/2,z+w/2, str, 'BackgroundColor', [.92 .92 .92], ...
                     'PickableParts', 'none');
-            hold(d.Axes1, 'off')
-            %hold(d.Axes2, 'on')
-            d.gradientVectors(2) = copyobj(d.gradientVectors(1),d.Axes2);
-            %d.gradientVectors(2).Parent = d.Axes2;
-            %hold(d.Axes2, 'off')
+            hold(d.Axes(1), 'off')
+            %hold(d.Axes(2), 'on')
+            d.gradientVectors(2) = copyobj(d.gradientVectors(1),d.Axes(2));
+            %d.gradientVectors(2).Parent = d.Axes(2);
+            %hold(d.Axes(2), 'off')
         end
         %-----------------------------------------------------------------
         function moveTrajAlongGradient(d, val)
             if isvalid(d.lineOnSlice)
                 gv = d.gradientVectors(1);
                 cap = @(x,lims)max(lims(1),min(lims(2),x));
-                d.lineOnSlice.XData = cap(gv.XData + val*gv.UData, d.Axes1.XLim);
-                d.lineOnSlice.YData = cap(gv.YData + val*gv.VData, d.Axes1.YLim);
-                d.lineOnSlice.ZData = cap(gv.ZData + val*gv.WData, d.Axes1.ZLim);
+                d.lineOnSlice.XData = cap(gv.XData + val*gv.UData, d.Axes(1).XLim);
+                d.lineOnSlice.YData = cap(gv.YData + val*gv.VData, d.Axes(1).YLim);
+                d.lineOnSlice.ZData = cap(gv.ZData + val*gv.WData, d.Axes(1).ZLim);
                 d.lineOnSlice.resetLinePoints();
                 %ngr = sqrt(sum(reshape(d.objValues{d.caseNo}.gradient.position{d.wellNo}, 3, []).^2));
                 %dp  = val*[gv.UData(:), gv.VData(:), gv.WData(:)].';
@@ -569,8 +592,8 @@ for k =1:numel(tp)
     set([wp.(tp{k}).label], 'PickableParts', 'none');
 end
 % 'shade' color
-wp.injectorColor = 1-.5*(1-wp.injectorColor);
-wp.producerColor = 1-.5*(1-wp.producerColor);
+%wp.injectorColor = 1-.5*(1-wp.injectorColor);
+%wp.producerColor = 1-.5*(1-wp.producerColor);
 end
 %--------------------------------------------------------------------------
 function w = updateWellTrajectory(model, w, traj)
@@ -592,15 +615,19 @@ end
 w.cell_origin = ones(nc, 1);
 end
 %--------------------------------------------------------------------------
-function plotObjectiveValues(res, nms)
-figure, ax = gca;
-title('Proxy values')
+function plotObjectiveValues(ax, res, nms)
+%figure, ax = gca;
+cla(ax, 'reset')
+title(ax, 'Proxy values')
 v = cellfun(@(r)r.value, res);
-plot(ax, v, '--o', 'MarkerSize', 12, 'LineWidth', 2);
+plot(ax, v, '--o', 'MarkerSize', 10, 'LineWidth', 2);
 ax.XTick = 1:numel(v);
 ax.XTickLabel = nms;
-set(ax, 'FontSize', 14);
+set(ax, 'FontSize', 10);
 ax.XLim = [.5, numel(v)+.5];
+ax.YTickLabelRotation = 45;
+ax.XTickLabelRotation = 45;
+grid(ax, 'on');
 end
 %--------------------------------------------------------------------------
 function ps = setupPositionControl(G, w, ls)
@@ -653,10 +680,32 @@ else
     end
 end
 end
-    
-
+% -----------------------------------------------------------------   
+function plotControlGradients(ax, W, g)
+assert(numel(W) == numel(g), 'Non-mathcing gradient')
+isp = strcmp({W.type}, 'bhp');
+cla(ax, 'reset')
+%hold(ax,'on')
+%ax.YAxisLocation = 'right';
+yyaxis(ax, 'right')
+v = g.*isp(:)*barsa;
+bar(ax, v);
+set(ax, 'YLim', [-1 1]*max(abs(v)));
+%xticklabels({W.name});
+%xtickangle(45)
+ylabel(ax,'Gradients [$/bar]');
+yyaxis(ax, 'left')
+%ax.YAxisLocation = 'left';
+v = g.*(~isp(:))/day;
+bar(ax, v);
+ax.YLim = [-1 1]*max(abs(v));
+xticklabels(ax,{W.name});
+ax.XTickLabelRotation = 45;
+ylabel(ax,'Gradients [$(m^3/day)^{-1}]')
+grid(ax, 'on')
+end
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -681,21 +730,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %             pnts = w.trajectory(:, 1:2);
         %             pnts = uniquetol(pnts, 'ByRows', true);
         %             if size(pnts, 1) == 1
-        %                 dx = d.Axes1.XLim;
+        %                 dx = d.Axes(1).XLim;
         %                 pnts = [pnts(1)+[dx/5; -dx/5], pnts(2)*ones(2,1)];
         %             end
         %             if ~isempty(d.Line3D)&&isvalid(d.Line3D)
         %                 d.switchInteractionOff();
         %                 delete(d.Line3D);
         %             end
-        %             d.Line3D = InteractiveLine('XData', pnts(:,1), 'YData', pnts(:,2), 'Parent', d.Axes1);
+        %             d.Line3D = InteractiveLine('XData', pnts(:,1), 'YData', pnts(:,2), 'Parent', d.Axes(1));
         %             d.Line3D.Callback = @d.crossSection;
         %         end
         
         %%-----------------------------------------------------------------
         %         function putXYLine(d, ~, ~)
-        %             xx = d.Axes1.XLim;
-        %             yy = d.Axes1.YLim;
+        %             xx = d.Axes(1).XLim;
+        %             yy = d.Axes(1).YLim;
         %             pnts = [mean(xx) yy(1); mean(xx) yy(2)];
         %             if ~isempty(d.Line3D)&&isvalid(d.Line3D)
         %                 delete(d.Line3D);
@@ -703,12 +752,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         %             if ~isempty(d.Line2D)&&isvalid(d.Line2D)
         %                 delete(d.Line2D);
         %             end
-        %             d.Line3D = InteractiveLine('XData', pnts(:,1), 'YData', pnts(:,2), 'Parent', d.Axes1);
+        %             d.Line3D = InteractiveLine('XData', pnts(:,1), 'YData', pnts(:,2), 'Parent', d.Axes(1));
         %             d.crossSection();
         %             d.Line3D.Callback = @d.crossSection;
         %             d.empty2DLine();
         %             d.Line2D.smoothing = 'pchip';
-        %             d.Axes2.XLimMode = 'auto';
-        %             d.Axes2.YLimMode = 'auto';
+        %             d.Axes(2).XLimMode = 'auto';
+        %             d.Axes(2).YLimMode = 'auto';
         %         end
         %-----------------------------------------------------------------

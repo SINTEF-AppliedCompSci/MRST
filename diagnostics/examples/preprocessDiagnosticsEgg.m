@@ -19,8 +19,7 @@
 
 %% Load modules
 
-% mrstModule add ad-blackoil deckformat ad-core diagnostics
-mrstModule add diagnostics ad-core ad-blackoil
+mrstModule add diagnostics ad-core ad-blackoil example-suite
 %% Get the first 10 realisations of the Egg model
 
 % Here we setup the ensemble using the ModelEnsemble class. 
@@ -32,7 +31,7 @@ m = ModelEnsemble('egg', 'nMembers', 50, 'setupFn', @setupEggFn);
 
 % Input to the diagnostics viewer is generated using the ensemble class
 % setup function.
-realizations = [1:10];
+realizations = 1:10;
 
 [models, wells] = deal(cell(1, numel(realizations)));
 for k = 1: numel(realizations)
@@ -74,7 +73,7 @@ end
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
