@@ -18,9 +18,9 @@ sigma = 10 * meter; % parameter describing the correllation distance (for a
                     % Gaussian correllation function)
 xvals = linspace(0, D, num_measurements);  % Abscissa of the sample points
 
-%% defining correllation function and simulating sample data
+%% defining correlation function and simulating sample data
 
-% We define an correlation function (correllation between two samples as a
+% We define a correlation function (correlation between two samples as a
 % function of distance between the samples)
 corr_fun = @(x) exp(-(x/(sigma/D)).^2); % normalize sigma by distance 
 
