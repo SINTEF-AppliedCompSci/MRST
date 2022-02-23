@@ -35,7 +35,7 @@ classdef RegressionTest
             rt.testCaseOpt = testCaseOpt;
             
             if isempty(rt.compareFn)
-                rt.compareFn = @(pc, pe, details) rt.compareResults(pc, pe, details);
+                rt.compareFn = @(rtin, pc, pe, details) rt.compareResults(pc, pe, details);
             end
         end
     
@@ -84,7 +84,7 @@ classdef RegressionTest
             end
             % Compare to previous results if they exist
             if ~isempty(namePrev)
-                report = rt.compareFn(probCurr, probPrev, details);
+                report = rt.compareFn(rt, probCurr, probPrev, details);
                 if report.passed == 1 && opt.deletePrevious
                     % Delete previous results
                     rmdir(fullfile(directory, namePrev), 's');
@@ -193,7 +193,7 @@ classdef RegressionTest
             report = struct('passed', true, 'details', nan); % Initialize report
             % Use inf norm for comparing all fileds
             fun = @(v) norm(v, inf);
-            if rt.compareWellSols
+            if rt.compareWellSols && ~isempty(wsc{1})
                 % Compare well solutions
                 wsRep = rt.compareStructsLocal(wsc, wse, rt.tolerance.wellSols,  ...
                                                'fun'           , fun          , ...
@@ -283,8 +283,14 @@ classdef RegressionTest
         
         %-----------------------------------------------------------------%
         function report = compareStructsLocal(struct1, struct2, tol, varargin)
-            n1 = struct1.numelData();
-            n2 = struct2.numelData();
+            
+            if isa(struct1, 'Resulthandler')
+                n1 = struct1.numelData();
+                n2 = struct2.numelData();
+            else
+                n1 = numel(struct1);
+                n2 = numel(struct2);
+            end
 
             n  = min(n1, n2);
             if n == 0
