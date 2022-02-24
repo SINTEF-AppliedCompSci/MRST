@@ -481,7 +481,7 @@ end
 
 function res = get_varnames(prop)
 
-   fnames = fields(prop);
+   fnames = fieldnames(prop);
 
    % there should be three fields, one of which is named 'vals' (the sampled
    % table). The names of the other fields are the variable names)

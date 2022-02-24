@@ -117,7 +117,7 @@ end
 
 function obj = add_fields(obj, other)
 
-   to_add = fields(other);
+   to_add = fieldnames(other);
    for i = 1:numel(to_add)
       obj.(to_add{i}) = other.(to_add{i});
    end
