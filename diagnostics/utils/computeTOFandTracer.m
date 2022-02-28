@@ -100,6 +100,7 @@ function D = computeTOFandTracer(state, G, rock,  varargin)
 %       '[in/out]part'   - tracer partition for inflow/outflow
 %       '[in/out]tof'    - forward/backward for individual boundary bins
 %       '[in/out]fa'     - first-arrival for inflow/outflow boundary bins
+
 %{
 Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
 
