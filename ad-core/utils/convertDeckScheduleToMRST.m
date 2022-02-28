@@ -134,11 +134,92 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         scheduleMRST.step.val     = scheduleMRST.step.val(1:opt.StepLimit);
         scheduleMRST.step.control = scheduleMRST.step.control(1:opt.StepLimit);
     end
-    
+
     if opt.EnsureConsistent
         scheduleMRST = makeScheduleConsistent(scheduleMRST, ...
                             'DepthReorder', opt.DepthReorder, ...
                             'ReorderStrategy', opt.ReorderStrategy, ...
                             'G', model.G);
+        % Apply productivity modifiers post consistency. Algorithm assumes
+        % that the wells have been made consistent.
+        ectrls = scheduleDeck.control;
+        has_wpi = any(arrayfun(@(x) ~isempty(x.WPIMULT), ectrls));
+        if has_wpi
+            IJK = gridLogicalIndices(model.G);
+            W_prev = scheduleMRST.control(1).W;
+            WI_prev = applyFunction(@(x) x.WI, W_prev);
+            WI_raw = WI_prev;
+            for ctrl = 1:nc
+                wpi = ectrls(ctrl).WPIMULT;
+                W = scheduleMRST.control(ctrl).W;
+                [W, WI_raw, WI_prev] = apply_wpimult(W, IJK, wpi, WI_raw, WI_prev);
+                scheduleMRST.control(ctrl).W = W;
+                % [WI_raw{3}, WI_prev{3}, scheduleMRST.control(ctrl).W(3).WI]
+            end
+        end
+    end
+end
+
+function [W, WI_raw, WI_now] = apply_wpimult(W, IJK, WPIMULT, WI_raw, WI_now)
+    wnames = {W.name};
+    % Need to keep track of two things: Last defined unmodified WI and
+    % current WI with multipliers. Unmodified is needed to know when we
+    % need to reset WI since it has changed from the original definition.
+    for well = 1:numel(W)
+        WI_r = WI_raw{well};
+        WI = WI_now{well};
+        % Look at current WI relative to old WI (without mults applied)
+        WI_current = W(well).WI;
+        % If these are different, and the new one is non-zero, update it,
+        % since it means that we found a reset value (or a new one).
+        new_perf = WI_r ~= WI_current & WI_current > 0;
+        new_vals = WI_current(new_perf);
+        WI_r(new_perf) = new_vals;
+        WI(new_perf) = new_vals;
+        % Update storage
+        WI_raw{well} = WI_r;
+        WI_now{well} = WI;
+    end
+    % Loop over and apply WI mults
+    for i_w = 1:numel(WPIMULT)
+        wpi = WPIMULT{i_w};
+        for i = 1:size(wpi, 1)
+            [name, val, I, J, K, start, stop] = deal(wpi{i, :});
+            well = find(strcmp(wnames, name));
+            assert(numel(well) == 1);
+            assert(val > 1e-10);
+            assert(isfinite(val));
+            w = W(well);
+            N = numel(w.WI);
+            wc = w.cells;
+            if start < 1
+                start = 1;
+            end
+            if stop < 1
+                stop = N;
+            end
+            rng = (1:N)';
+            active = rng >= start & rng <= stop;
+            if I > 0
+                active = active & IJK{1}(wc) == I;
+            end
+            if J > 0
+                active = active & IJK{2}(wc) == J;
+            end
+            if K > 0
+                active = active & IJK{3}(wc) == K;
+            end
+            WI = WI_now{well};
+            % Apply mult after masking
+            WI(active) = WI(active)*val;
+            WI_now{well} = WI;
+        end
+    end
+    % Finally make sure that all wells have the updated WIs
+    for well = 1:numel(W)
+        w = W(well);
+        % Apply cstatus again, just to be sure.
+        w.WI = WI_now{well}.*w.cstatus;
+        W(well) = w;
     end
 end

@@ -70,4 +70,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                   'description', description, ...
                                   'options'    , options    );
     end
+    % Issue warning to tell the user about optional arguments passed that
+    % are not part of default test case options
+    if ~isempty(extra)
+        pl = ''; if numel(extra(1:2:end)) > 1, pl = 's'; end
+        warning(['Option%s %s \n not part of default test case ', ...
+                 'options. Storing to options.extra'],            ...
+                 pl, sprintf('\n * %s', extra{1 : 2 : end}))
+    end
+    
 end

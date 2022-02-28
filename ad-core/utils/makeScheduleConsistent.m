@@ -234,24 +234,26 @@ function schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag
                 nwc = numel(W_all(j).cells);
                 if cellsChangedFlag(j)
                     % Only some perforations are actually active.
-                    [isActivePerf, order] = ismember(W_all(j).cells, w.cells(w.cstatus));
+                    [keep, order] = ismember(W_all(j).cells, w.cells);
+                    perf_active = ismember(W_all(j).cells, w.cells(w.cstatus));
                     % Positions of currently active perforations in global
                     % cell list
                     order = order(order > 0);
                 else
                     % This well has the same number of perforations across
                     % all time-steps. We do not really need to do anything.
-                    isActivePerf = true(nwc, 1);
+                    keep = true(nwc, 1);
+                    perf_active = keep;
                     order = (1:nwc)';
                 end
-                W_all(j).cstatus = isActivePerf;
+                W_all(j).cstatus = perf_active;
                 for k = 1:numel(perffields)
                     pf = perffields{k};
-                    % Take the values from the active perforations
-                    if any(isActivePerf)
+                    % Take the values from the current set of perforations
+                    if any(keep)
                         if not(isempty(W(sub).(pf)))
-                            tmp = W(sub).(pf)(W(sub).cstatus, :);
-                            W_all(j).(pf)(isActivePerf, :) = tmp(order, :);
+                            tmp = W(sub).(pf);
+                            W_all(j).(pf)(keep, :) = tmp(order, :);
                         end
                     end
                 end
@@ -384,6 +386,9 @@ end
 
 function schedule = depthReorder(schedule, wellNo, opt)
     w = schedule.control(1).W(wellNo);
+    if isempty(opt.G)
+        return
+    end
     z = opt.G.cells.centroids(w.cells, 3);
     if issorted(z)
         return

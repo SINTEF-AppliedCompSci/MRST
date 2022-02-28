@@ -397,7 +397,16 @@ classdef TestCase
                 if isa(rmodel, 'WrapperModel')
                     rmodel = rmodel.getReservoirModel;
                 end
-                opt.LinearSolver = selectLinearSolverAD(rmodel);
+                try
+                    opt.LinearSolver = selectLinearSolverAD(rmodel);
+                catch ex
+                    warning(ex.identifier, ...
+                            ['Unable to select linear solver from ' , ...
+                             'model. Reason: %s \n'                 , ...
+                             'Proceeding with BackslashSolverAD'   ], ...
+                             ex.message                             );
+                    opt.linearSolver = BackslashSolverAD();
+                end
             end
             if ~has_nls
                 % Select default nonlinear solver
