@@ -889,7 +889,11 @@ methods
         % get forces and merge with valid forces
         forces = model.getDrivingForces(lookupCtrl(stepNo));
         forces = merge_options(validforces, forces{:});
-        model = model.validateModel(forces);
+        if isa(model, 'ReservoirModel') && ~isempty(model.FacilityModel)
+            model.FacilityModel = model.FacilityModel.validateModel(forces);
+        else
+            model = model.validateModel(forces);
+        end
 
         % Initial state typically lacks wellSol-field, so add if needed
         if stepNo == 1
@@ -907,13 +911,21 @@ methods
         if stepNo < numel(dt_steps)
             after    = getState(stepNo + 1);
             dt_next = dt_steps(stepNo + 1);
-            % get forces and merge with valid forces
-            forces_p = model.getDrivingForces(lookupCtrl(stepNo + 1));
-            forces_p = merge_options(validforces, forces_p{:});
-            %model_p = model;
             [current, primaryVars] = model.getReverseStateAD(current);
             assert(isequal(current.primaryVariables, primaryVars))
-            model = model.validateModel(forces_p);
+            % check if controls for for stepNo/stepNo+1 are different
+            if diff(schedule.step.control([stepNo;stepNo+1])) == 0
+                forces_p = forces;
+            else
+                % get forces and merge with valid forces
+                forces_p = model.getDrivingForces(lookupCtrl(stepNo + 1));
+                forces_p = merge_options(validforces, forces_p{:});
+                if isa(model, 'ReservoirModel') && ~isempty(model.FacilityModel)
+                    model.FacilityModel = model.FacilityModel.validateModel(forces_p);
+                else
+                    model = model.validateModel(forces_p);
+                end
+            end
             problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
                                 'iteration', inf, 'reverseMode', true);                
         else
