@@ -54,10 +54,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    if ~ ok
       ok = download(repo, rev, idir) && available();
-      
-      scriptdir = fullfile(mrstPath('example-suite'), 'setupFunctions','norne');      
-      copyfile(fullfile(idir,'NorneGeostat.m'), scriptdir);
-      copyfile(fullfile(idir,'FastGaussian.m'), scriptdir);
+   end
+
+   if ok
+      ok = copy_m_files(idir);
    end
 end
 
@@ -99,4 +99,25 @@ function ok = download(repo, rev, idir)
                            'All',true,'Dest', idir);
 
    ok = ~ isempty(sfiles);
+end
+
+%--------------------------------------------------------------------------
+
+function ok = copy_m_files(idir)
+   scriptdir = fullfile(mrstPath('test-suite'), ...
+                        'dataset-functions', 'norne');
+
+   mfiles = { 'NorneGeostat.m', 'FastGaussian.m' };
+
+   ok = true;
+   for mfile = reshape(mfiles, 1, [])
+      [stat, msg, id] = copyfile(fullfile(idir, mfile{1}), scriptdir);
+
+      if stat ~= 1
+         warning(id, ['Failed to copy supporting ensemble ', ...
+                      'M-File ''%s'': %s'], mfile{1}, msg);
+
+         ok = false;
+      end
+   end
 end
