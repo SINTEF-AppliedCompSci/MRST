@@ -32,6 +32,7 @@ function setup = egg_wo(varargin)
 %
 % SEE ALSO:
 %   TestCase, testcase_template, testSuiteTutorial.
+
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
