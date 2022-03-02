@@ -67,8 +67,8 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         end
 
         % --------------------------------------------------------------------%
-        function model = setupOperators(model, G, rock, varargin)
-            model.operators = setupOperatorsTPFA(G, rock, varargin{:});
+        function model = setupOperators(model)
+            model.operators = setupOperatorsTPFA(model.G, model.rock);
             if model.surfactant
                 % Operators used to compute capillary number
                 model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
