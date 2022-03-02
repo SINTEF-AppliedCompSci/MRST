@@ -31,13 +31,13 @@ predProbl = predCase.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trueCase)
 simulatePackedProblem(predProbl);
 
-[wellSolPred, statesPred] = getPackedSimulatorOutput(predProbl);
+[predWellSols, predStates] = getPackedSimulatorOutput(predProbl);
 predModel     = predCase.model;
 predSchedule  = predProbl.SimulatorSetup.schedule;
 Wpred         = predSchedule.control.W;
 
 % Plot
-predCase.plot(statesPred,'step_index',numel(statesPred));
+predCase.plot(predStates,'step_index',numel(predStates));
 
 
 %% Random schedule
@@ -50,12 +50,12 @@ trainProbl = trainCase.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trainCase)
 simulatePackedProblem(trainProbl);
 
-[wellSolTrain, statesTrain] = getPackedSimulatorOutput(trainProbl);
+[trainWellSols, trainStates] = getPackedSimulatorOutput(trainProbl);
 trainModel     = trainCase.model;
 predSchedule  = trainProbl.SimulatorSetup.schedule;
 Wtrain         = predSchedule.control.W;
 
-plotWellSols({wellSolTrain, wellSolPred}, ...
+plotWellSols({trainWellSols, predWellSols}, ...
     {predSchedule.step.val, predSchedule.step.val},...
     'datasetnames',{'training','reference'}, ...
     'zoom', true, 'field', 'qWs', 'SelectedWells', [1 9]);
@@ -163,7 +163,7 @@ config = {
 trainPrms = []; predPrms = [];
 for k = 1:size(config,1)
     if config{k, 2} == 0, continue, end
-    prmsTrain = addParameter(prmsTrain, trainSetup, ...
+    trainPrms = addParameter(trainPrms, trainSetup, ...
         'name',    config{k,1}, 'scaling', config{k,3}, ...
         'boxLims', config{k,4}, 'lumping', config{k,5}, ...
         'subset',  config{k,6}, 'relativeLimits',config{k,7});
@@ -191,13 +191,13 @@ mismatchFn = @(model, states, schedule, states_ref, tt, tstep, state) ...
 % To define the initial model, we extract the network parameters from the
 % initial specification, scale them to the unit interval, and organize them
 % into a vector that can be passed onto mismatchFn
-pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 'connscale', 7);
+pinit = gpsNet.getScaledParameterVector(trainSetup, trainPrms, 'connscale', 7);
  
 % Evaluate the initial mismatch for the training data
 [misfitT0,~,wellSolT0] = ...
-    evaluateMatch(pinit,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
+    evaluateMatch(pinit,mismatchFn,trainSetup,trainPrms,trainStates,'Gradient','none');
 [misfitP0,~,wellSolP0] = ...
-    evaluateMatch(pinit,mismatchFn,predSetup,predPrms,statesPred,'Gradient','none');
+    evaluateMatch(pinit,mismatchFn,predSetup,predPrms,predStates,'Gradient','none');
 
 
 %% Model calibration
@@ -205,20 +205,20 @@ pinit = gpsNet.getScaledParameterVector(trainSetup, prmsTrain, 'connscale', 7);
 % expensive operation that may run for several hours if you choose a large
 % number of iterations. Here, we therefore only apply 25 iterations, which
 % may take up to ten minutes to run, depending on your computer.
-objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,prmsTrain,statesTrain);
+objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,trainPrms,trainStates);
 [v, popt, history] = unitBoxBFGS(pinit, objh, 'objChangeTol', 1e-8, ...
     'gradTol', 1e-5, 'maxIt', 25, 'lbfgsStrategy', 'dynamic', ...
     'lbfgsNum', 5, 'outputHessian', true, 'logPlot', true);
 
 %% Evaluate mismatch over the full simulation schedule 
 [misfitT,~,wellSolsT] = ...
-    evaluateMatch(popt,mismatchFn,trainSetup,prmsTrain,statesTrain,'Gradient','none');
+    evaluateMatch(popt,mismatchFn,trainSetup,trainPrms,trainStates,'Gradient','none');
 [misfitP, ~,wellSolP,solsP] = ...
-    evaluateMatch(popt,mismatchFn,predSetup,predPrms,statesPred,'Gradient','none');
+    evaluateMatch(popt,mismatchFn,predSetup,predPrms,predStates,'Gradient','none');
 
 %% Plot well responses for training data
 trainSteps = predSchedule.step.val;
-fh = plotWellSols({wellSolTrain,wellSolT0,wellSolsT}, trainSteps, ...
+fh = plotWellSols({trainWellSols,wellSolT0,wellSolsT}, trainSteps, ...
     'datasetnames', {'data','init','match'}, 'zoom', true, ...
     'field', 'qWs', 'SelectedWells', 9:10);
 set(fh, 'name','Egg: GPSNet training')
@@ -226,7 +226,7 @@ set(fh, 'name','Egg: GPSNet training')
 
 %% Plot well responses for prediction case
 predSteps = predSchedule.step.val;
-fh = plotWellSols({wellSolPred,wellSolP0, wellSolP}, predSteps, ...
+fh = plotWellSols({predWellSols,wellSolP0, wellSolP}, predSteps, ...
     'datasetnames', {'data','init','match'}, 'zoom', true, ...
     'field', 'qWs', 'SelectedWells', 9:10);
 set(fh, 'name','Egg: GPSNet prediction')

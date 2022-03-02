@@ -30,7 +30,7 @@ predProbl = predCase.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trueProb)
 simulatePackedProblem(predProbl);
 
-[wellSolPred, statesPred] = getPackedSimulatorOutput(predProbl);
+[predWellSols, predStates] = getPackedSimulatorOutput(predProbl);
 predModel    = predCase.model;
 predSchedule = predProbl.SimulatorSetup.schedule;
 Wpred        = predSchedule.control.W;
@@ -41,15 +41,15 @@ trainProbl = trainCase.getPackedSimulationProblem();
 %clearPackedSimulatorOutput(trainProb)
 simulatePackedProblem(trainProbl);
 
-[wellSolTrain, statesTrain] = getPackedSimulatorOutput(trainProbl);
+[trainWellSols, trainStates] = getPackedSimulatorOutput(trainProbl);
 trainModel     = trainCase.model;
 trainSchedule  = trainProbl.SimulatorSetup.schedule;
 Wtrain         = trainSchedule.control.W;
 
 %% Plot
-predCase.plot(statesPred,'step_index',numel(statesPred));
+predCase.plot(predStates,'step_index',numel(predStates));
 
-plotWellSols({wellSolTrain, wellSolPred}, ...
+plotWellSols({trainWellSols, predWellSols}, ...
     {trainSchedule.step.val, predSchedule.step.val},...
     'datasetnames',{'training','reference'}, ...
     'zoom', true, 'field', 'qWs', 'SelectedWells', 1:8);
@@ -97,7 +97,7 @@ end
 % of network edges. The fluid model is copied from the reference model.
 gravity off
 %S0 = mean(statesTrain{1}.s); S0=S0/sum(S0);
-p0 = mean(statesTrain{1}.pressure);
+p0 = mean(trainStates{1}.pressure);
 gpsNet = GPSNet(predModel, ntwrk, Wtrain, 'p0', p0);%, 'S0', S0);
 
 % Reset the initial saturation, so that we have water in the left half of
@@ -194,28 +194,28 @@ pinit = gpsNet.getScaledParameterVector(trainSetup, trainPrms, 'connscale', 5);
  
 % Evaluate the initial mismatch for the training data
 [misfitT0,~,wellSolT0] = ...
-    evaluateMatch(pinit,mismatchFn,trainSetup,trainPrms,statesTrain,'Gradient','none');
+    evaluateMatch(pinit,mismatchFn,trainSetup,trainPrms,trainStates,'Gradient','none');
 [misfitP0,~,wellSolP0] = ...
-    evaluateMatch(pinit,mismatchFn,predSetup,predPrms,statesPred,'Gradient','none');
+    evaluateMatch(pinit,mismatchFn,predSetup,predPrms,predStates,'Gradient','none');
 
 %% Model calibration
 % Calibrate the model using the BFGS method. This is a computationally
 % expensive operation that may run for several hours if you choose a large
 % number of iterations. Here, we therefore only apply 10 iterations. 
-objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,trainPrms,statesTrain);
+objh = @(p)evaluateMatch(p,mismatchFn,trainSetup,trainPrms,trainStates);
 [v, popt, history] = unitBoxBFGS(pinit, objh, 'objChangeTol', 1e-8, ...
-    'gradTol', 1e-5, 'maxIt', 2, 'lbfgsStrategy', 'dynamic', ...
+    'gradTol', 1e-5, 'maxIt', 10, 'lbfgsStrategy', 'dynamic', ...
     'lbfgsNum', 5, 'outputHessian', true, 'logPlot', true);
     
 %% Evaluate mismatch over the full simulation schedule 
 [misfitT,~,wellSolT] = ...
-    evaluateMatch(popt,mismatchFn,trainSetup,trainPrms,statesTrain,'Gradient','none');
+    evaluateMatch(popt,mismatchFn,trainSetup,trainPrms,trainStates,'Gradient','none');
 [misfitP, ~,wellSolP] = ...
-    evaluateMatch(popt,mismatchFn,predSetup,predPrms,statesPred,'Gradient','none');
+    evaluateMatch(popt,mismatchFn,predSetup,predPrms,predStates,'Gradient','none');
 
 %% Plot well responses for training data
 trainSteps = trainSchedule.step.val;
-fh = plotWellSols({wellSolTrain,wellSolT0,wellSolT}, ...
+fh = plotWellSols({trainWellSols,wellSolT0,wellSolT}, ...
     {trainSteps, trainSteps, trainSteps}, ...
     'datasetnames', {'train','init','match'}, 'zoom', true, ...
     'field', 'qWs', 'SelectedWells', [9,14]);
@@ -224,7 +224,7 @@ set(fh, 'name','SAIGUP: GPSNet training')
 
 %% Plot well responses for prediction case
 predSteps = predSchedule.step.val;
-fh = plotWellSols({wellSolPred,wellSolP0, wellSolP}, ...
+fh = plotWellSols({predWellSols,wellSolP0, wellSolP}, ...
     {predSteps, predSteps, predSteps}, ...
     'datasetnames', {'reference','initial','predicted'}, 'zoom', true, ...
     'field', 'qWs', 'SelectedWells', [9,14]);
