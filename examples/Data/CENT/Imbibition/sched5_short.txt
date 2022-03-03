@@ -1,0 +1,12 @@
+HEADER
+'time'		'rotational speed'
+UNITS   	
+'hour'		'rpm'
+0   		674
+2       	952
+4       	1166
+7           1565
+10      	1917
+15      	2214
+20      	2475
+25         2475

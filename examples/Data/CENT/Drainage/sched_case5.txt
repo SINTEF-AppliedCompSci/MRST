@@ -1,0 +1,12 @@
+HEADER
+'time'		'rotational speed'
+UNITS   	
+'hour'		'rpm'
+0       	200
+5       	500
+10      	1000
+15      	2000
+20      	3000
+25      	5000
+30          5000
+

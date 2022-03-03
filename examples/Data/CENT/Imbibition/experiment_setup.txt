@@ -1,0 +1,6 @@
+## core position
+@COREORIENTATION	'Z'
+@CORECENTRE	13.5*cm
+## initial state
+@SWINIT	0.24
+@PREF	1.0*bar

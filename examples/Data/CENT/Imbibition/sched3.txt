@@ -1,0 +1,12 @@
+HEADER
+'time'	'reference acceleration'
+UNITS
+'hour'	'm/s^2'
+0.00	741
+4       1479
+8       2220
+14      3999
+38      6000
+62      8004
+86      10002
+

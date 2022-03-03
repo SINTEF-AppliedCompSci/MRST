@@ -1,0 +1,9 @@
+HEADER
+'time'	'pressure drop'	'average water saturation'
+UNITS
+'hour'	'bar'	'fraction'
+0.0		0.0			0.2
+0.25	0.0357		0.2
+2		0.17267		0.47081
+4		0.22924		0.51545
+
