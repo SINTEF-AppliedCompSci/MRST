@@ -90,6 +90,8 @@ isInitParam = cellfun(@(p)strcmp(p.belongsTo, 'state0'), param);
 if any(isInitParam)
     [initparam, param] = deal(param(isInitParam), param(~isInitParam));
 end
+% validate simulation model:
+setup.model = validateModel(setup.model);
 
 % inititialize parameters to ADI
 [modelParam, scheduleParam] = initModelParametersADI(setup, param);
