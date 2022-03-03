@@ -41,32 +41,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     printHeader(isDesktop)
 
     fprintf('\nUseful commands for getting started:\n');
-    fprintf(' - List all introductory examples:   ');
-    printMatlabLink(isDesktop, 'mrstExamples()');
-    
-    fprintf(' - List all modules:                 ');
-    printMatlabLink(isDesktop, 'mrstPath(''list'')');
 
-    fprintf(' - Load modules using GUI:           ');
-    printMatlabLink(isDesktop, 'mrstModule(''gui'')');
-
-    fprintf(' - Explore all available data sets   ');
-    printMatlabLink(isDesktop, 'mrstDatasetGUI()');
-
-    fprintf(' - List examples of a module:        ');
-    printMatlabLink(isDesktop, 'mrstExamples(''ad-blackoil'')');
-
-    fprintf(' - Explore modules and publications: ');
-    printMatlabLink(isDesktop, 'mrstExploreModules()');
-
-    fprintf(' - Show all examples in all modules: ');
-    printMatlabLink(isDesktop, 'mrstExamples(''all'')');
-
-    fprintf(' - Show settings for MRST:           ');
-    printMatlabLink(isDesktop, 'mrstSettings()');
-
-    fprintf(' - Display this message:             ');
-    printMatlabLink(isDesktop, 'mrstStartupMessage()');
+    [menu, nchar] = getUsefulCommands();
+    for row = menu .'
+       printCommand(isDesktop, row{:}, nchar);
+    end
     
     fprintf(['\nFor assistance and discussions about MRST, ', ...
              'please visit our mailing list at\n']);
@@ -114,6 +93,33 @@ function printHeader(isDesktop)
         printLink(isDesktop, 'www.mrst.no', 'www.mrst.no');
         fprintf('\n');
     end
+end
+
+%--------------------------------------------------------------------------
+
+function [menu, nchar] = getUsefulCommands(padding)
+   if nargin < 1, padding = 1; end
+
+   menu = { ...
+      'List all introductory examples',   'mrstExamples()'; ...
+      'List all modules',                 'mrstPath(''list'')'; ...
+      'Load modules using GUI',           'mrstModule(''gui'')'; ...
+      'Explore all available data sets',  'mrstDatasetGUI()'; ...
+      'List examples of a module',        'mrstExamples(''ad-blackoil'')'; ...
+      'Explore modules and publications', 'mrstExploreModules()'; ...
+      'Show all examples in all modules', 'mrstExamples(''all'')'; ...
+      'Show settings for MRST',           'mrstSettings()'; ...
+      'Display this message',             'mrstStartupMessage()'; ...
+   };
+
+   nchar = max(cellfun('prodofsize', menu(:, 1))) + padding;
+end
+
+%--------------------------------------------------------------------------
+
+function printCommand(isDesktop, summary, command, nchar)
+   fprintf(' - %-*s', nchar + 1, [summary, ':']); % +1 for the colon.
+   printMatlabLink(isDesktop, command);
 end
 
 %--------------------------------------------------------------------------
