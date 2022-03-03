@@ -46,7 +46,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     for row = menu .'
        printCommand(isDesktop, row{:}, nchar);
     end
-    
+
     fprintf(['\nFor assistance and discussions about MRST, ', ...
              'please visit our mailing list at\n']);
     fprintf('\t');
@@ -67,7 +67,7 @@ end
 %--------------------------------------------------------------------------
 
 function printHeader(isDesktop)
-    fprintf(['Welcome to the Matlab Reservoir Simulation ', ...
+    fprintf(['Welcome to the MATLAB Reservoir Simulation ', ...
              'Toolbox (MRST)!\nYou are using '])
 
     githead = fullfile(ROOTDIR, '.git', 'refs', 'heads', 'master');
