@@ -77,8 +77,8 @@ for step = 1:numSteps
                                 vertcatIfPresent(state.wellSol, 'qOs', nw), ...
                                 vertcatIfPresent(state.wellSol, 'qGs', nw),...
                                 vertcatIfPresent(state.wellSol, 'bhp', nw) );        
-        injInx  = (vertcat(sol.sign) > 0);
-        status = vertcat(sol.status);
+        injInx  = (vertcat(state.wellSol.sign) > 0);
+        status = vertcat(state.wellSol.status);
         qWs = qWs(status);
         qOs = qOs(status);
         qGs = qGs(status);
