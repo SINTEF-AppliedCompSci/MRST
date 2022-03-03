@@ -12,7 +12,7 @@
 % both targets and limits (that become active during at least one
 % simulation) are adjusted to optimize the objective.
 
-mrstModule add ad-core ad-blackoil ad-props mrst-gui optimization test-suite
+mrstModule add ad-core ad-blackoil ad-props mrst-gui optimization test-suite ensemble
 mrstVerbose false
 
 %% setup optmization-problem
