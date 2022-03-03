@@ -1,5 +1,5 @@
 %% Run an NPV-optimization problem over an ensemble of simple 1D-models
-mrstModule add ad-core ad-blackoil ad-props mrst-gui optimization
+mrstModule add ad-core ad-blackoil ad-props mrst-gui optimization ensemble
 
 
 %% setup optmization-problem
