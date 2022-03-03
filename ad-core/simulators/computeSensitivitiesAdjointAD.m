@@ -64,7 +64,8 @@ assert(isa(setup.model,'GenericReservoirModel'),...
 assert(isa(param{1}, 'ModelParameter'), ...
         'Parameters must be initialized using ''ModelParameter''.')
 
-opt = struct('LinearSolver', []);       
+opt = struct('LinearSolver', [], ...
+             'OutputPerTimestep', true);       
 opt = merge_options(opt, varargin{:});
 if mrstVerbose && setup.model.toleranceCNV >= 1e-3
    fprintf(['The accuracy in the gradient depend on the',...
@@ -101,6 +102,10 @@ modelParam = validateModel(modelParam);
 nstep    = numel(setup.schedule.step.val);
 lambda   = [];
 getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
+
+if opt.outputPerTimestep
+    sens = repmat(sens, [nstep,1]);
+end
 % run adjoint
 for step = nstep:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nstep - step + 1, nstep);
@@ -112,7 +117,11 @@ for step = nstep:-1:1
             nm = param{kp}.name;
             for nl = 1:numel(lami)
                 if isa(eqdth{nl}, 'ADI')
-                    sens.(nm) = sens.(nm) + eqdth{nl}.jac{kp}'*lami{nl};
+                    if ~opt.outputPerTimestep
+                        sens.(nm) = sens.(nm) + eqdth{nl}.jac{kp}'*lami{nl};
+                    else
+                        sens(step).(nm) = sens(step).(nm) + eqdth{nl}.jac{kp}'*lami{nl};
+                    end
                 end
             end
         %end        
