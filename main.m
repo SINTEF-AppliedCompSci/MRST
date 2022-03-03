@@ -1,20 +1,20 @@
 %% Automated History Matching of SCAL Experiments
 % 
-% Description : 
+%  Description : 
 %
-% Author : 
+%  Author : 
 %    Siroos Azizmohammadi
 %    Omidreza Amrollahinasab
 %
-% History :
-% \change{1.0}{09-Nov-2021}{Original}
+%  History :
+%  \change{1.0}{09-Nov-2021}{Original}
 %
 %  --------------------------------------------------
-% (c) 2021, Siroos Azizmohammadi,
-% Omidreza Amrollahinasab
+%  (c) 2021, Siroos Azizmohammadi,
+%  Omidreza Amrollahinasab
 %  Chair of Reservoir Engineering, University of Leoben, Austria
-%  email: info@dpe.ac.at
-%  url: dpe.ac.at
+%  email: siroos.azizmohammadi@unileoben.ac.at
+%  url: https://dpe.ac.at
 %  --------------------------------------------------
 %
 %%
