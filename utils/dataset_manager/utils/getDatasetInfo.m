@@ -1,19 +1,24 @@
 function [info, present] = getDatasetInfo(name)
-% Get info struct for a given dataset.
+%Retrieve Descriptive Information About a Named Dataset
 %
 % SYNOPSIS:
-%   [info, present] = getDatasetInfo('datasetname')
+%   info            = getDatasetInfo(name)
+%   [info, present] = getDatasetInfo(...)
 %
-% REQUIRED PARAMETERS:
-%   name    - Dataset name. Must be known to MRST.
-%
+% PARAMETERS:
+%   name - Dataset name.  Character vector or, if supported in the running
+%          MATLAB version, a string type.  Name must be known to MRST.
 %
 % RETURNS:
-%   info    - Info struct as defined by datasetInfoStruct with containing
-%             metadata about the dataset with the supplied name.
+%   info    - Descriptive structure defined by function `datasetInfoStruct`
+%             containing information about the named dataset.
+%
+%   present - Whether or not physical files pertaining to the named dataset
+%             already exist on the local computer system's disk in MRST's
+%             managed dataset location.
 %
 % SEE ALSO:
-%   `datasetInfoStruct`, `getDatasetPath`, `listDatasetExamples`
+%   `datasetInfoStruct`, `getDatasetPath`, `listDatasetExamples`.
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -34,9 +39,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-    dname = ['dataset_', lower(name)];
-    if exist(dname, 'file') == 2
+    dname = strcat('dataset_', lower(name));
+    if any(exist(dname, 'file') == [2, 3, 6]) % M, MEX, or P in path
         [info, present] = feval(dname);
     else
         error(['Dataset ''', name, ''' is not known to MRST.']);
