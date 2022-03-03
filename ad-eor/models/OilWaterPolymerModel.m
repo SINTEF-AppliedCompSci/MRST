@@ -128,6 +128,19 @@ classdef OilWaterPolymerModel < TwoPhaseOilWaterModel
         end
 
 
+        function [vars, names, origin] = getPrimaryVariables(model, state)
+        % Get primary variables from state, before a possible
+        % initialization as AD.
+           [vars, names, origin] = ...
+               getPrimaryVariables@TwoPhaseOilWaterModel(model, state);
+           names(4:end+1) = names(3:end);
+           names{3} = 'polymer';
+           vars(4:end+1) = vars(3:end);
+           vars{3} = model.getProps(state,'polymer');
+           origin(4:end+1) = origin(3:end);
+           origin{3} = class(model);
+        end
+
         function scaling = getScalingFactorsCPR(model, problem, names, solver)
             nNames = numel(names);
 

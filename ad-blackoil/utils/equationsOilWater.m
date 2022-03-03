@@ -92,8 +92,8 @@ if ~opt.resOnly
     if ~opt.reverseMode
         [p, sW, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sW, wellVars{:});
     else
-        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-        [p0, sW0, wellVars0{:}] = model.AutoDiffBackend.initVariablesAD(p0, sW0, wellVars0{:}); %#ok
+        %wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        %[p0, sW0, wellVars0{:}] = model.AutoDiffBackend.initVariablesAD(p0, sW0, wellVars0{:}); %#ok
     end
 end
 primaryVars = {'pressure', 'sW', wellVarNames{:}};
