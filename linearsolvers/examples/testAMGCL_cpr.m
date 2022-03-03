@@ -1,6 +1,6 @@
 %% Example demonstrating AMGCL on a few test problems
 mrstModule add msrsb incomp coarsegrid spe10 ...
-   linearsolvers ad-core ad-blackoil ad-props example-suite
+   linearsolvers ad-core ad-blackoil ad-props test-suite
 
 %% Setup problem
 testcase = 'spe10';
