@@ -6,19 +6,16 @@ function mrstStartupMessage()
 %
 % DESCRIPTION:
 %   Display the welcome message in the command window, indicating that MRST
-%   is activated and ready for use. Some helpful links functions are also
+%   is activated and ready for use.  Some helpful links functions are also
 %   provided to help new users getting started.
 %
-% EXAMPLES:
-%    mrstStartupMessage()
-%
 % NOTE:
-%    `mrstStartupMessage` is normally automatically run during the startup
-%    process. Seeing the output from `mrstStartupMesssage` indicates that
-%    MRST was successfully loaded and is ready for use.
+%   `mrstStartupMessage` is normally run automatically during the startup
+%   process.  Seeing the output from `mrstStartupMesssage` indicates that
+%   MRST was successfully loaded and is ready for use.
 %
 % SEE ALSO:
-%   `startup`, `mrstExamples`, `mrstModule`, `mrstPath`
+%   `startup`, `mrstExamples`, `mrstModule`, `mrstPath`.
 
 %{
 Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
@@ -97,9 +94,16 @@ function printHeader(isDesktop)
     githead = fullfile(ROOTDIR, '.git', 'refs', 'heads', 'master');
     if exist(githead, 'file')
         % User is using the git-version.
-        f = fopen(githead, 'r');
-        fprintf('the development version at commit %s\n', fgetl(f));
-        fclose(f);
+        fid = fopen(githead, 'rt');
+
+        if fid < 0
+            commit = '<unknown>';
+        else
+            commit = fgetl(fid);
+            fclose(fid);
+        end
+
+        fprintf('the development version at commit %s\n', commit);
     else
         % User is using a specific release. Give a bit of extra output.
         fprintf(['the release version 2021b. To download other ', ...
