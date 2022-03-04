@@ -25,6 +25,7 @@ classdef TestCase
     methods
         %-----------------------------------------------------------------%
         function test = TestCase(name, varargin)
+            
             if nargin == 0, return; end
             % Set test name
             test.baseName = lower(name);
@@ -76,17 +77,15 @@ classdef TestCase
             % Set visualization grid if given
             [test, plotOptions] = merge_options(test, setup.plotOptions{:});
             % Set figure properties
-            [test.figureProperties, plotOptions]                ...
-                = merge_options(test.defaultFigureProperties(), ...
-                                plotOptions{:}                   );
+            [test.figureProperties, plotOptions] ...
+                = test.processFigureProps(plotOptions{:});
             % Set axis properties
-            [test.axisProperties, plotOptions]                ...
-                = merge_options(test.defaultAxisProperties(), ...
-                                plotOptions{:}                 );
+            [test.axisProperties, plotOptions] ...
+                = test.processAxisProps(plotOptions{:});
             % Set toolbar options
             test.toolbarOptions ...
                 = merge_options(test.defaultToolbarOptions(), ...
-                                plotOptions{:}                 );
+                                plotOptions{:}              );
             names  = fieldnames(test.toolbarOptions);
             values = struct2cell(test.toolbarOptions);
             test.toolbarOptions = cell(1, 2*numel(names));
@@ -96,35 +95,43 @@ classdef TestCase
                 test.plot(test.model.rock, 'Name', 'rock'  , 'log10', true);
                 test.plot(test.state0    , 'Name', 'state0'               );
             end
+            
         end
         
         %-----------------------------------------------------------------%
-        function props = defaultProperties(test, name) %#ok
+        function [props, other] = validProperties(test, type, args, extra, readOnly) %#ok
         % Get default properties for given object
-            name  = ['factory', name];
-            props = get(groot, name);
-            names = cellfun(@(pname) pname(numel(name)+1:end)        , ...
+
+            type  = ['factory', type];
+            props = get(groot, type);
+            validNames = cellfun(@(pname) pname(numel(type)+1:end)        , ...
                              fieldnames(props), 'UniformOutput', false);
-            props = cell2struct(struct2cell(props), names);
+            if nargin > 2, validNames = [validNames; extra]; end
+            if nargin > 3, validNames = setdiff(validNames, readOnly); end
+
+            names = args(1:2:end);
+            keep  = reshape(ismember(names, validNames), 1, []);
+            keep  = reshape(repmat(keep,2,1), [], 1);
+            props = args(keep);
+            other = args(~keep);
+            if ~any(keep), props = struct(); return; end
+            props = cell2struct(props(2:2:end), props(1:2:end), 2);
+            
         end
                 
         %-----------------------------------------------------------------%
-        function props = defaultFigureProperties(test)
+        function [props, other] = processFigureProps(test, varargin)
         % Set default figure properties
+        
             % Get default properties
-            props = test.defaultProperties('Figure');
-            % Remove read-only properties
-            if isfield(props, 'XDisplay')
-                props = rmfield(props, 'XDisplay');
-            end
-            props = rmfield(props, 'Name');
-            % Set extra property Size
-            props.Size = props.Position(3:4);
+            [props, other] = test.validProperties('Figure', varargin, 'Size', 'XDisplay');
+
         end
         
         %-----------------------------------------------------------------%
         function h = figure(test, varargin)
         % Get test case figure
+        
             h     = figure(varargin{:});
             names = fieldnames(test.figureProperties);
             for i = 1:numel(names)
@@ -139,81 +146,64 @@ classdef TestCase
                     set(h, names{i}, test.figureProperties.(names{i}));
                 end
             end
+            
         end
         
         %-----------------------------------------------------------------%
-        function props = defaultAxisProperties(test)
+        function [props, other] = processAxisProps(test, varargin)
         % Get default axis properties
-            props = test.defaultProperties('Axes');
+        
+            [props, other] = test.validProperties('Axes', varargin, [], ...
+                {'Legend', 'Colormap', 'ZDir', 'PlotBoxAspectRatioMode'});
             % Get grid
             G = test.model.G;
             if ~isempty(test.visualizationGrid)
                 G = test.visualizationGrid;
             end
-            % Set XYZLim
-            if isfield(G, 'nodes')
-                x = G.nodes.coords;
-            else
-                x = G.faces.centroids;
-            end
-            xmin = min(x);
-            xmax = max(x);
             xyz = 'XYZ';
             for i = 1:G.griddim
-                props.([xyz(i), 'LimSpec']) = 'tight';
-                props.([xyz(i), 'LimitMethod']) = 'tight';
-                props.([xyz(i), 'LimMode'])     = 'auto';
+                % Set axis tight
+                nm = [xyz(i), 'LimSpec'];
+                if ~isfield(props, nm), props.(nm) = 'tight'; end
+                nm = [xyz(i), 'LimitMethod'];
+                if ~isfield(props, nm), props.(nm) = 'tight'; end
+                nm = [xyz(i), 'LimMode'];
+                if ~isfield(props, nm), props.(nm) = 'auto' ; end
             end
-            if isfield(test.schedule.control(1), 'W')
-                W = test.schedule.control(1).W;
-                if ~isempty(W) && G.griddim == 3
-                    dz = xmax(3) - xmin(3);
-                    props.ZLim(1) = props.ZLim(1) - dz*0.2;
+            % Set viewpoint
+            if ~isfield(props, 'View')
+                if G.griddim == 2
+                    props.View = [0, 90];
+                elseif G.griddim == 3
+                    props.View = [-37.5, 30];
                 end
             end
-            % Set aspect ratio
-            props.PlotBoxAspectRatio = [1,1,0.5];
-            % Set viewpoint
-            if G.griddim == 2
-                props.View = [0, 90];
-            elseif G.griddim == 3
-                props.View = [-37.5, 30];
-            end
             % Set axis projection
-            if G.griddim == 2
-                props.Projection = 'orthographic';
-            else
-                props.Projection = 'perspective';
+            if ~isfield(props, 'Projection')
+                if G.griddim == 2
+                    props.Projection = 'orthographic';
+                else
+                    props.Projection = 'perspective';
+                end
             end
-            props.Box = false;
-            % Remove read-only and other properties
-            pv = struct2cell(props);
-            pn = fieldnames(props);
-            rmnames = {'Legend', 'Colormap', 'ZDir', 'PlotBoxAspectRatioMode'};
-            rmtypes = {'matlab.graphics.GraphicsPlaceholder'};
-            keep = ~ismember(pn, rmnames);
-            for t = rmtypes
-                keep = keep & cellfun(@(prop) ~isa(prop, t{1}), pv);
-            end
-            pv = pv(keep); pn = pn(keep);
-            props = cell2struct(pv, pn);
+            
         end
         
         %-----------------------------------------------------------------%
         function ax = setAxisProperties(test, ax)
             % Set properties to test case figure axis
+            
             names = fieldnames(test.axisProperties);
             for i = 1:numel(names)
-                try
-                    set(ax, names{i}, test.axisProperties.(names{i}));
-                catch
-                end
+                set(ax, names{i}, test.axisProperties.(names{i}));
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function opt = defaultToolbarOptions(test) %#ok
-            % Get default toolbar options
+        % Get default toolbar options
+            
             opt = struct('log10'        , false, ...
                          'exp'          , false, ...
                          'abs'          , false, ...
@@ -223,16 +213,19 @@ classdef TestCase
                          'pauseTime'    , 0.150, ...
                          'lockCaxis'    , false, ...
                          'plot1d'       , false, ...
+                         'surf'         , false, ...
                          'plotmarkers'  , false, ...
                          'skipAugmented', false, ...
                          'field'        , 's:1', ...
                          'step_index'   , 1    , ...
                          'startplayback', false);
+        
         end
         
         %-----------------------------------------------------------------%
         function h = plot(test, varargin)
-            % Plot filed v on test case grid using plotToolbar
+        % Plot field v on test case grid using plotToolbar
+            
             if nargin == 1 || ischar(varargin{1})
                 v = test.model.rock;
             else
@@ -243,14 +236,14 @@ classdef TestCase
                          'plotWells', true, ...
                          'wellOpts' , {{}}, ...
                          'camlight' , true);
-            [opt, extra] = merge_options(opt, varargin{:});
+            [opt, varargin] = merge_options(opt, varargin{:});
             Name = test.name;
             if ~isempty(opt.Name)
                 Name = [Name, ' ', opt.Name];
             end
             h = test.figure('Name', Name);
             G = test.getVisualizationGrid();
-            plotToolbar(G, v, test.toolbarOptions{:}, extra{:});
+            plotToolbar(G, v, test.toolbarOptions{:}, varargin{:});
             if opt.plotWells
                 test.plotWells(opt.wellOpts{:});
             end
@@ -259,19 +252,23 @@ classdef TestCase
                     && ~all(test.axisProperties.View == [0,90])
                 camlight;
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function G = getVisualizationGrid(test)
+            
             if isempty(test.visualizationGrid)
                 G = test.model.G;
             else
                 G = test.visualizationGrid;
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function varargout = plotWells(test, varargin)
+            
             if ~isfield(test.schedule.control(1), 'W')
                 return;
             end
@@ -279,8 +276,9 @@ classdef TestCase
             if ~isempty(W)
                 G = test.getVisualizationGrid();
                 if G.griddim == 3
-                    dz = test.axisProperties.ZLim(2) ...
-                       - test.axisProperties.ZLim(1);
+                    ax = gca;
+                    dz = ax.ZLim(2) ...
+                       - ax.ZLim(1);
                     varargout = cell(nargout, 1);
                     [varargout{:}] = plotWell(G, W, 'color' , 'k'    , ...
                                        'height', 0.15*dz, ...
@@ -314,11 +312,13 @@ classdef TestCase
                     hold off
                 end
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function [hash, s] = getTestCaseHash(test, fullHash)
-            % Get hash of options struct, prepended with test case name
+        % Get hash of options struct, prepended with test case name
+        
             skip = {'figureProperties' , ...
                     'axisProperties'   , ...
                     'toolbarOptions'   , ...
@@ -328,10 +328,13 @@ classdef TestCase
                 skip = [skip, {'model', 'state0', 'schedule', 'extra'}];
             end
             [hash, s] = obj2hash(test, 'skip', skip);
+            
         end
         
         %-----------------------------------------------------------------%
         function ok = save(test)
+        % Save test case to disk
+        
             % Get test case hash value
             hash = test.getTestCaseHash(false);
             % Store in default data directory under 'test-suite'
@@ -342,10 +345,13 @@ classdef TestCase
             end
             save(fullfile(pth, hash), 'test', '-v7.3');
             ok = true;
+            
         end
         
         %-----------------------------------------------------------------%
         function tc = load(test, throwError)
+        % Load test case from disk
+        
             % Attempt to load test case
             if nargin < 2
                 throwError = true;
@@ -368,11 +374,13 @@ classdef TestCase
                 error(['Could not find test case '   , ...
                        'named %s with hash key %s'], test.name, hash);
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function problem = getPackedSimulationProblem(test, varargin)
         % Make packed problem with reasonable simulation setup
+        
             opt = struct('Name'           , test.name, ...
                          'useHash'        , true     , ...
                          'LinearSolver'   , []       , ...
@@ -427,6 +435,7 @@ classdef TestCase
                     'Name'           , opt.Name,   ...
                     'Description'    , desc,       ...
                     'NonLinearSolver', opt.NonLinearSolver, varargin{:});
+        
         end
         
     end
