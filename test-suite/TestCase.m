@@ -99,7 +99,7 @@ classdef TestCase
         end
         
         %-----------------------------------------------------------------%
-        function [props, other] = validProperties(test, type, args, extra, readOnly) %#ok
+        function [props, other, validNames] = validProperties(test, type, args, extra, readOnly) %#ok
         % Get default properties for given object
 
             type  = ['factory', type];
@@ -153,25 +153,27 @@ classdef TestCase
         function [props, other] = processAxisProps(test, varargin)
         % Get default axis properties
         
-            [props, other] = test.validProperties('Axes', varargin, [], ...
+            [props, other, validNames] = test.validProperties('Axes', varargin, [], ...
                 {'Legend', 'Colormap', 'ZDir', 'PlotBoxAspectRatioMode'});
             % Get grid
             G = test.model.G;
             if ~isempty(test.visualizationGrid)
                 G = test.visualizationGrid;
             end
+            
+            updateProp = @(name) ~isfield(props, name) && ismember(name, validNames);
             xyz = 'XYZ';
             for i = 1:G.griddim
                 % Set axis tight
                 nm = [xyz(i), 'LimSpec'];
-                if ~isfield(props, nm), props.(nm) = 'tight'; end
+                if updateProp(nm), props.(nm) = 'tight'; end
                 nm = [xyz(i), 'LimitMethod'];
-                if ~isfield(props, nm), props.(nm) = 'tight'; end
+                if updateProp(nm), props.(nm) = 'tight'; end
                 nm = [xyz(i), 'LimMode'];
-                if ~isfield(props, nm), props.(nm) = 'auto' ; end
+                if updateProp(nm), props.(nm) = 'auto' ; end
             end
             % Set viewpoint
-            if ~isfield(props, 'View')
+            if updateProp('View')
                 if G.griddim == 2
                     props.View = [0, 90];
                 elseif G.griddim == 3
@@ -179,7 +181,7 @@ classdef TestCase
                 end
             end
             % Set axis projection
-            if ~isfield(props, 'Projection')
+            if updateProp(nm)
                 if G.griddim == 2
                     props.Projection = 'orthographic';
                 else
