@@ -5,8 +5,12 @@ function [partition, cells] = makeGridPartition(model, cells, varargin)
                  'pdims'        , []     );
     opt = merge_options(opt, varargin{:});
     G  = model.G;
-    Gr = removeCells(G, ~cells);
-    Gr = computeGeometry(Gr);
+    if ~isempty(cells)
+        Gr = removeCells(G, ~cells);
+        Gr = computeGeometry(Gr);
+    else
+        Gr = G;
+    end
     if isempty(opt.minBlockSize)
         opt.minBlockSize = G.cells.num/20;
     end
