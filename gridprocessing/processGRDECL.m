@@ -425,11 +425,13 @@ function bool = is_lefthanded(X, Y, Z)
    V1 = [X(end,1,1) - X(1,1,1), Y(end,1,1) - Y(1,1,1), 0                  ];
    V2 = [X(1,end,1) - X(1,1,1), Y(1,end,1) - Y(1,1,1), 0                  ];
    V3 = [0,                     0,                     Z(1,1,end)-Z(1,1,1)];
-   if norm(V1) == 0 || norm(V1) == 0 || norm(V3) == 0
+
+   if (norm(V1) == 0) || (norm(V2) == 0) || (norm(V3) == 0)
        warning('processGRDECL:HandTestFailure', ...
-           ['Left-handed test is ill-posed. No way of verifying ', ...
-           'right-handed coordinate system']);
+              ['Left-handed test is ill-posed. No way of verifying ', ...
+               'right-handed coordinate system']);
    end
+
    % If triple product is negative we have left-handed coordinates.
    bool = dot(cross(V1, V2), V3) < 0;
 end
