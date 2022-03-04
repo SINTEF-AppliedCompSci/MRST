@@ -2,7 +2,7 @@
 mrstModule add test-suite
 mrstModule add ad-core ad-props ad-blackoil
 mrstModule add compositional
-mrstModule add sequential
+mrstModule add linearsolvers sequential
 mrstModule add mrst-gui
 mrstVerbose on
 
@@ -31,10 +31,13 @@ psol = AMGCLSolverAD('tolerance', 1e-4);
 % Get number of components
 model = testFI.model.validateModel();
 ncomp = model.getNumberOfComponents();
-tsol  = AMGCL_CPRSolverAD('block_size'    , ncomp       ,...
-                          'preconditioner', 'relaxation', ...
-                          'relaxation'    , 'ilu0'      , ...
-                          'tolerance'     , 1e-4        );
+tsol = AMGCLSolverAD('tolerance'     , 1e-4        , ...
+                     'preconditioner', 'relaxation', ...
+                     'relaxation'    , 'ilu0'      , ...
+                     'block_size'    , ncomp       );
+ordering = getCellMajorReordering(model.G.cells.num, ncomp);
+tsol.equationOrdering = ordering;
+tsol.variableOrdering = ordering;
 % Set solvers
 testSI.model.pressureNonLinearSolver.LinearSolver  = psol;
 testSI.model.transportNonLinearSolver.LinearSolver = tsol;
