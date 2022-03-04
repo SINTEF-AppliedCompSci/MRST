@@ -3,44 +3,57 @@
 % decomposition (NLDD), and show how we can obtain optimal ordering for
 % multiplicative NLDD based on topological sorting of the intercell flux
 % graph
-mrstModule add ad-core ad-props ad-blackoil sequential example-suite ...
-    mrst-gui compositional
+mrstModule add ad-core ad-props ad-blackoil compositional
+mrstModule add sequential
+mrstModule add test-suite
+mrstModule add mrst-gui
 mrstVerbose on
 
 %% Get example
 % We consider a slightly modified version of an example from Klemetsdal et.
 % al, SPE RSC 2019, doi: 10.2118/193934-ms. The setup consists of a
 % quarter five-spot example with CO2, Metahne, and nDecane.
-example0 = MRSTExample('qfs_compositional', 'nsteps', 60); example = example0;
+test0 = TestCase('qfs_compositional', 'nsteps', 60); test = test0;
 % We will use NLDD for the transport subproblem, so we construct a
 % sequential pressure-transport model
 mrstModule add linearsolvers
 psolve = AMGCLSolverAD('tolerance', 1e-4);
-example.model = getSequentialModelFromFI(example0.model, ...
-                                          'pressureLinearSolver' , psolve);
+model  = test0.model.validateModel();
+ncomp  = model.getNumberOfComponents();
+tsolve = AMGCLSolverAD('tolerance'     , 1e-4        , ...
+                     'preconditioner', 'relaxation', ...
+                     'relaxation'    , 'ilu0'      , ...
+                     'block_size'    , ncomp       );
+ordering = getCellMajorReordering(model.G.cells.num, ncomp);
+tsolve.equationOrdering = ordering;
+tsolve.variableOrdering = ordering;
+
+test.model = getSequentialModelFromFI(test0.model, ...
+                                      'pressureLinearSolver', psolve, ...
+                                      'transportLinearSolver', tsolve);
 
 %% Simulate reference problem
-problem = example.getPackedSimulationProblem();
+problem = test.getPackedSimulationProblem();
 simulatePackedProblem(problem, 'restartStep', 1);
 
 %% Inspect results
 [wellSols, states, reports] = getPackedSimulatorOutput(problem);
-example.plot(states);
+test.plot(states);
 
 %%  Set up NLDD
 % We construct disk-segment partition to define the subdomains
 mrstModule add domain-decomposition coarsegrid agglom
-x = example.model.G.cells.centroids;
+x = test.model.G.cells.centroids;
 r = linspace(150,sqrt(2)*1000,7);
 partition1 = sum(sum(x.^2,2) < r.^2,2);
 t = linspace(0,pi/2,6);
 partition2 = sum(x(:,2)./x(:,1) < tan(t),2);
 [~, ~, partition] = unique([partition1, partition2], 'rows');
 partition(partition1 == 7) = max(partition) + 1;
-partition = mergeBlocksByConnections(example.model.G, partition, example0.model.operators.T, 10);
+partition = mergeBlocksByConnections(test.model.G, partition, test0.model.operators.T, 10);
 % Randomize order (for illustrational purposes)
 rng(2020), perm = randperm(max(partition))'; partition = perm(partition);
-example.plot(partition);
+test.plot(partition);
 % To ensure convergence of the full problem, it is smart to impose a
 % slightly stricter convergence tolerance for the subdomain problems. We
 % do this with the optional input argument ''subdomainTolerances'', where
@@ -54,25 +67,25 @@ ddargs = {'subdomainTol', subtol, 'verboseSubmodel', 1};
 %% Adaptive NLDD
 % In adaptive NLDD, we solve each subdomain keeping all other subdomains
 % fixed at the previous solution
-exampleADD = example;
-exampleADD.model.transportModel = DomainDecompositionModel(exampleADD.model.transportModel, partition, ddargs{:});
-exampleADD.name = [exampleADD.name, '-add'];
+testADD = test;
+testADD.model.transportModel = DomainDecompositionModel(testADD.model.transportModel, partition, ddargs{:});
+testADD.name = [testADD.name, '-add'];
 
 %% Simulate
-problemADD = exampleADD.getPackedSimulationProblem();
+problemADD = testADD.getPackedSimulationProblem();
 simulatePackedProblem(problemADD, 'restartStep', 1);
 
 %% Multiplicative NLDD
 % In multiplicative NLDD, we solve the subdomains in the order defined by
 % the partition vector, with already solved subdomains fixed at their
 % updated solution
-exampleMDD = example;
-exampleMDD.model.transportModel = DomainDecompositionModel(exampleMDD.model.transportModel, partition, ...
+testMDD = test;
+testMDD.model.transportModel = DomainDecompositionModel(testMDD.model.transportModel, partition, ...
                                                               ddargs{:}, 'strategy', 'multiplicative');
-exampleMDD.name = [exampleMDD.name, '-mdd'];
+testMDD.name = [testMDD.name, '-mdd'];
 
 %% Simulate
-problemMDD = exampleMDD.getPackedSimulationProblem();
+problemMDD = testMDD.getPackedSimulationProblem();
 simulatePackedProblem(problemMDD, 'restartStep', 1);
 
 %% Dynamic partitions
@@ -104,14 +117,14 @@ disp(dummyPartition);
 mrstModule add matlab_bgl
 % We use the same number of subdomains (blocks) as in the static partition
 topoPartition = TopologicalFluxPartition('numBlocks', max(partition));
-exampleMDD_topo   = example;
-exampleMDD_topo.model.transportModel = DomainDecompositionModel(exampleMDD_topo.model.transportModel, topoPartition, ...
+testMDDtopo   = test;
+testMDDtopo.model.transportModel = DomainDecompositionModel(testMDDtopo.model.transportModel, topoPartition, ...
                                                             ddargs{:}, 'strategy', 'multiplicative');
-exampleMDD_topo.name = [exampleMDD_topo.name, '-mdd-topo'];
+testMDDtopo.name = [testMDDtopo.name, '-mdd-topo'];
 
 %% Simulate
-problemMDD_topo = exampleMDD_topo.getPackedSimulationProblem();
-simulatePackedProblem(problemMDD_topo, 'restartStep', 1);
+problemMDDtopo = testMDDtopo.getPackedSimulationProblem();
+simulatePackedProblem(problemMDDtopo, 'restartStep', 1);
 
 %% Multiplicative NLDD with coarse topological ordering
 % We can also choose to topologically sort the original partition by using
@@ -122,28 +135,28 @@ simulatePackedProblem(problemMDD_topo, 'restartStep', 1);
 % this partition onto the fine grid
 topoPartition.numBlocks = inf; % Use all blocks in the partition
 topoPartition.wellPadding = 0; % No need to pad around wells now!
-blockTopoPartition = UpscaledPartition(topoPartition, example.model.pressureModel.parentModel, partition);
-exampleMDD_block_topo   = example;
-exampleMDD_block_topo.model.transportModel = DomainDecompositionModel(exampleMDD_block_topo.model.transportModel, blockTopoPartition, ...
+blockTopoPartition = UpscaledPartition(topoPartition, test.model.pressureModel.parentModel, partition);
+testMDDblockTopo   = test;
+testMDDblockTopo.model.transportModel = DomainDecompositionModel(testMDDblockTopo.model.transportModel, blockTopoPartition, ...
                                                                       ddargs{:}, 'strategy', 'multiplicative');
-exampleMDD_block_topo.name = [exampleMDD_block_topo.name, '-mdd-block-topo'];
+testMDDblockTopo.name = [testMDDblockTopo.name, '-mdd-block-topo'];
 
 %% Simulate
-problemMDD_block_topo = exampleMDD_block_topo.getPackedSimulationProblem();
-simulatePackedProblem(problemMDD_block_topo, 'restartStep', 1);
+problemMDDblockTopo = testMDDblockTopo.getPackedSimulationProblem();
+simulatePackedProblem(problemMDDblockTopo, 'restartStep', 1);
 
 %% Inspect solutions
 [allWellSols, allStates, allReports] ...
-    = getMultiplePackedSimulatorOutputs({problem, problemADD, problemMDD, problemMDD_topo, problemMDD_block_topo}, ...
+    = getMultiplePackedSimulatorOutputs({problem, problemADD, problemMDD, problemMDDtopo, problemMDDblockTopo}, ...
                                         'readFromDisk', false, 'readReportsFromDisk', true, 'readWellSolsFromDisk', true);
 solver = 4; % Choose solver
-example.plot(allStates{solver});
+test.plot(allStates{solver});
 
 %% Compare nonlinear transport iterations
 its = cellfun(@(r) getReportOutput(r, 'solver', 'TransportSolver'), allReports, 'UniformOutput', false);
 itsTot = cellfun(@(it) sum(it.total), its);
 figure('Position', [0,0,800,400]);
-bar(itsTot); h = line([0, 6], repmat(numel(example.schedule.step.val), 1, 2), 'color', 'r', 'linew', 2);
+bar(itsTot); h = line([0, 6], repmat(numel(test.schedule.step.val), 1, 2), 'color', 'r', 'linew', 2);
 set(gca, 'XTickLabel', {'Global', 'Additive', 'Multiplicative', 'Mult topo', 'Mult block topo'}, ...
          'XTickLabelRotation', -25, ...
          'FontSize', 13);

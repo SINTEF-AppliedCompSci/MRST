@@ -2,7 +2,10 @@
 % This example gives an introduction to the domain decomposition module,
 % and shows how it can be used to solve a problem using additive nonlinear
 % domain decomposition
-mrstModule add ad-core ad-props ad-blackoil coarsegrid example-suite
+mrstModule add ad-core ad-props ad-blackoil
+mrstModule add coarsegrid
+mrstModule add test-suite
+mrstModule add mrst-gui
 mrstVerbose on
 
 %% Get example
@@ -10,10 +13,9 @@ mrstVerbose on
 % This is an inverted five-spot pattern on a permeability field made using
 % tiles of the built-in MATLAB function peaks, creating a beautiful
 % displacement front pattern
-mrstModule add example-suite mrst-gui
 n = 47;
-example = MRSTExample('ifs_peaks_wo', 'ncells', n, 'tiles', 2);
-example.plot(example.model.rock, 'log10', true);
+test = TestCase('ifs_peaks_wo', 'ncells', n, 'tiles', 2);
+test.plot(test.model.rock, 'log10', true);
 
 %% Submodels
 % Solving one timestep with additive nonlinear domain decomposition amounts
@@ -24,61 +26,62 @@ example.plot(example.model.rock, 'log10', true);
 % SubdomainModel that wrapps around the model. We illustrate this by making
 % a subdomain model consisting of the third quadrant of the full model.
 mrstModule add domain-decomposition
-[ii, jj] = gridLogicalIndices(example.model.G);
+[ii, jj] = gridLogicalIndices(test.model.G);
 cells = ii > n & jj > n;
-submodel = SubdomainModel(example.model, cells);
+submodel = SubdomainModel(test.model, cells);
 % This model has a field 'mappings' that contains all necessary mappings
 % for cells and faces.
 colors = lines(2);
 map    = submodel.mappings;
 pargs  = {'edgeAlpha', 0.1};
-example.figure();
-plotGrid(example.model.G, 'faceColor', 'none', pargs{:});
+test.figure();
+plotGrid(test.model.G, 'faceColor', 'none', pargs{:});
 h= [];
-h(1) = plotGrid(example.model.G, map.cells.internal, 'faceColor', colors(1,:), pargs{:});
-h(2) = plotGrid(example.model.G, map.cells.external, 'faceColor', colors(2,:), pargs{:});
-example.setAxisProperties(gca);
+h(1) = plotGrid(test.model.G, map.cells.internal, 'faceColor', colors(1,:), pargs{:});
+h(2) = plotGrid(test.model.G, map.cells.external, 'faceColor', colors(2,:), pargs{:});
+test.setAxisProperties(gca);
 legend(h, {'Internal', 'external'}, 'Location', 'northwest');
 
 %% Get subdomain problem
 % For convenience, we make a subexample as well. We use getSubState and
 % getSubSchedule to get the corresponding submodel initial state and
 % schedule.
-subexample          = example;
-subexample.name     = [subexample.name, '-submodel'];
-subexample.model    = submodel;
-subexample.state0   = getSubState(subexample.state0, submodel.mappings);
-subexample.schedule = getSubSchedule(subexample.schedule, submodel.mappings);
+subtest          = test;
+subtest.name     = [subtest.name, '-submodel'];
+subtest.model    = submodel;
+subtest.state0   = getSubState(subtest.state0, submodel.mappings);
+subtest.schedule.control(1).W(1).val = subtest.schedule.control(1).W(1).val/4;
+subtest.schedule = getSubSchedule(subtest.schedule, submodel.mappings);
 % The submodel grid structure is even plottable by itself
-subexample.plot(subexample.model.parentModel.rock, 'log10', true);
+subtest.plot(subtest.model.parentModel.rock, 'log10', true);
 
 %% Simulate subdomain
 % For illustrational purposes, we impose no-flow boundary conditions on the
 % subdomain interfaces that are internal
-subexample.model.noflowBC = true;
-subproblem = subexample.getPackedSimulationProblem();
+subtest.model.noflowBC = true;
+subproblem = subtest.getPackedSimulationProblem();
 simulatePackedProblem(subproblem, 'restartStep', 1);
 
 %% Inspect resutls
 [~, substates] = getPackedSimulatorOutput(subproblem);
-subexample.plot(substates);
+subtest.plot(substates);
 
 %% Partition domain
 % In order to do domain decomposition, we partition the domain using
 % partitionCartGrid from the coarsegrid module to construct a rectilinear
 % 5x5 subdomain partition
 mrstModule add coarsegrid
-partition = partitionCartGrid(example.model.G.cartDims, [5,5]);
-example.plot(partition); % Plot subdomain partition
+partition = partitionCartGrid(test.model.G.cartDims, [5,5]);
+test.plot(partition); % Plot subdomain partition
 
 %% Set up nonlinear domain decomposition model
 % Additive NLDD tends to converge poorly for elliptic problems. We therfore
 % use sequential splitting, and use additive NLDD for the transport
 % subproblem.
 mrstModule add sequential
-modelSeq = getSequentialModelFromFI(example.model);
+modelSeq = getSequentialModelFromFI(test.model);
 % Make sequential example
-exampleSeq       = example;
+exampleSeq       = test;
 exampleSeq.model = modelSeq;
 exampleSeq.name  = [exampleSeq.name, '-seq'];
 % Nonlinear domain decompositioning is implemented in the
@@ -122,6 +125,23 @@ xlim([1, numel(its.total)]);
 xlabel('Timestep')
 title('Cumulative transport iterations')
 legend({'Global', 'Domain decomposition'}, 'location', 'north west')
+
+%% Visual treat
+l = linspace(0,0.99,10);
+timesteps = [8,10,15,20];
+a = 0.8; cmap = hsv.*a + (1-a);
+test.figure();
+nvec = 1:numel(statesSeqDD);
+for i = 1:6
+    for n = nvec
+        [c, h] = unstructuredContour(test.model.G, statesSeqDD{n}.s(:,1), l, ...
+                'cartDims', test.model.G.cartDims, ...
+                'fill', true, 'extrapolation', 'nearest', 'LineWidth', 0.1);
+        test.setAxisProperties(gca); axis off, box on, colormap(cmap);
+        pause(0.01)
+    end
+    nvec = flip(nvec);
+end
 
 %% Copyright Notice
 %
