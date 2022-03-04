@@ -79,7 +79,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~opt.isTransposed
         A = A';
     end
+
+    system_solver = @(rhs, reuse) ...
+       amgcl_matlab(A, rhs, amg_opt, opt.tolerance, ...
+                    opt.maxIterations, 1, reuse);
+
     t = tic();
+
     szb = size(b);
     if szb(2) > 1
         % Multiple right-hand-sides
@@ -87,23 +93,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.reuseMode == 1
             resetAMGCL();
         end
-        [x(:, 1), err, nIter] = ...
-           amgcl_matlab(A, b(:, 1), amg_opt, opt.tolerance, opt.maxIterations, 1, 2);
-        for i = 2:szb(2)
-            [x(:, i), ~, it] = ...
-               amgcl_matlab(A, b(:, i), amg_opt, opt.tolerance, opt.maxIterations, 1, 2);
-           nIter = nIter + it;
+
+        [x(:, 1), err, nIter] = system_solver(b(:, 1), 2);
+        for i = 2 : szb(2)
+            [x(:, i), ~, it] = system_solver(b(:, i), 2);
+            nIter = nIter + it;
         end
-        nIter = nIter/szb(2);
+
+        nIter = nIter / szb(2);
         if opt.reuseMode == 1
             % Clean up
             resetAMGCL();
         end
     else
         % A single right-hand-side
-        [x, err, nIter] = ...
-           amgcl_matlab(A, b, amg_opt, opt.tolerance, opt.maxIterations, 1, opt.reuseMode);
+        [x, err, nIter] = system_solver(b, opt.reuseMode);
     end
+
     t_solve = toc(t);
     if nargout == 1
         if err > opt.tolerance
