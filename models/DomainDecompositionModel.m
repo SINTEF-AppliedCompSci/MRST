@@ -1,5 +1,6 @@
 classdef DomainDecompositionModel < WrapperModel
-    % Nonlinear domain decomposition (NLDD) solver for generic MRST models
+% Nonlinear domain decomposition (NLDD) solver for generic MRST models
+    
     properties
         strategy = 'additive' % Additive or multiplicative NLDD
         parallel = false      % Solve subdomains concurrently (additive only)
@@ -32,6 +33,8 @@ classdef DomainDecompositionModel < WrapperModel
     methods
         %-----------------------------------------------------------------%
         function model = DomainDecompositionModel(parent, partition, varargin)
+        % Constructor for domain decomposition model
+            
             % Base model initialization
             model = model@WrapperModel(parent);
             % Set partition
@@ -61,6 +64,7 @@ classdef DomainDecompositionModel < WrapperModel
                 if ~ok, warning([msg, ' Switching to serial']); end
                 model.parallel = ok;
             end
+            
         end
         
         %-----------------------------------------------------------------%
@@ -194,8 +198,9 @@ classdef DomainDecompositionModel < WrapperModel
         function [state, report] = solveSubDomainsParallel(model, state0, dt, drivingForces, state)
             % Solve the subdomains in parallel mode using spmd
             % Initialize
-            stateInit = stripState(state , true);
-            state0    = stripState(state0, true);
+            removeFlux = ~isa(model.parentModel, 'TransportModel');
+            stateInit  = stripState(state , removeFlux);
+            state0     = stripState(state0, removeFlux);
             sds = model.subdomainSetup;
             lm  = model.localModel;
             add = model.getAddStatesFun(stateInit);
