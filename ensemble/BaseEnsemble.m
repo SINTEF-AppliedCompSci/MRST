@@ -225,7 +225,7 @@ classdef BaseEnsemble < handle
         
         %-----------------------------------------------------------------%
         function dataPath = getDataPath(ensemble)
-            dataPath = ensemble.directory();
+            dataPath = ensemble.directory;
         end
               
         %-----------------------------------------------------------------%
