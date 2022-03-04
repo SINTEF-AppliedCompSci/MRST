@@ -1,3 +1,8 @@
+%% Test suite example: compositional flow in fractured reservoir
+% In this example, we consider a 2D example with compositional flow in a
+% fractured reservoir. We show how to set up and simulate the problem with
+% a fully implicit and sequential implict solver, and compare the results
+
 %% Add required modules
 mrstModule add test-suite
 mrstModule add ad-core ad-props ad-blackoil
