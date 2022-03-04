@@ -8,6 +8,7 @@ classdef StaticPartition < Partition
         %-----------------------------------------------------------------%
         function sp = StaticPartition(partition)
             sp = sp@Partition('value', partition);
+            sp.numBlocks = max(partition);
         end
         
         %-----------------------------------------------------------------%

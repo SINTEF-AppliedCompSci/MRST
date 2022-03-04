@@ -3,9 +3,11 @@ classdef SubdomainModel < WrapperModel
     % Problem equations are constructed assuming Dirichlet BCs for all
     % boundary faces that are not also a boundary face of the full model
     properties
-        mappings             % Mappings from 
-        restrictionOperators % Operators for restricting equations
-        noflowBC = false;    % Optionally use no-flow BCs
+        mappings              % Mappings from 
+        restrictionOperators  % Operators for restricting equations
+        prolongationOperators % Operators for prolongation equations
+        noflowBC = false;     % Optionally use no-flow BCs
+        implicitType
     end
     
     methods
@@ -17,7 +19,11 @@ classdef SubdomainModel < WrapperModel
             % Set the submodel
             model = model.setSubModel(cells, submodelOpt{:});
             % Construct restriction operators
-            model.restrictionOperators = constructRestrictionOperators(model);
+            model.restrictionOperators  = constructRestrictionOperators(model);
+            model.prolongationOperators = constructProlongationOperators(model);
+            if isa(parent, 'TransportModel')
+                model.implicitType = parent.implicitType;
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -27,9 +33,9 @@ classdef SubdomainModel < WrapperModel
             % Get submodel of reservoir model from subset
             [submodel, map] = getSubModel(rmodel, cells, varargin{:});
             % Update reservoir model
-            model = model.setReservoirModel(model, submodel);
-            model.G = model.parentModel.G; % Replace grid
-            model.mappings = map;          % Set mappings
+            model = setReservoirModel(model, submodel);
+            model.G = submodel.G; % Replace grid
+            model.mappings = map; % Set mappings
         end
         
         %-----------------------------------------------------------------%
@@ -45,6 +51,10 @@ classdef SubdomainModel < WrapperModel
                 I       = model.restrictionOperators.I;
                 problem = transformProblem(problem, 'ML', ML, 'MR', MR, 'B', I);
             end
+        end
+        
+        function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
+            [eqs, names, types, state] = model.parentModel.getModelEquations(state0, state, dt, drivingForces);
         end
         
         %-----------------------------------------------------------------%
@@ -76,16 +86,19 @@ classdef SubdomainModel < WrapperModel
             [convergence, values, names] = checkConvergence@WrapperModel(model, problem, varargin{:});
         end
             
-        %-----------------------------------------------------------------%
-        function pmodel = setReservoirModel(model, pmodel, rmodel)
-            % Set reservoir model to the model
-            if ~isa(pmodel.parentModel, 'ReservoirModel')
-                pmodel.parentModel = model.setReservoirModel(pmodel.parentModel, rmodel);
-                pmodel.parentModel.G = rmodel.G;
-                return
-            end
-            pmodel.parentModel = rmodel;
+        function [state, names, origin] = getStateAD(model, state, init)
+            [state, names, origin] = model.parentModel.getStateAD(state, init);
         end
+%         %-----------------------------------------------------------------%
+%         function pmodel = setReservoirModel(model, pmodel, rmodel)
+%             % Set reservoir model to the model
+%             if ~isa(pmodel.parentModel, 'ReservoirModel')
+%                 pmodel.parentModel = model.setReservoirModel(pmodel.parentModel, rmodel);
+%                 pmodel.parentModel.G = rmodel.G;
+%                 return
+%             end
+%             pmodel.parentModel = rmodel;
+%         end
 
     end
 end
@@ -97,12 +110,17 @@ function operators = constructRestrictionOperators(model)
     v    = map.internal | map.overlap;
     keep = v(map.keep);
     % Construct restriction operator
-    nc = model.parentModel.G.cells.num;
+    rmodel = getReservoirModel(model);
+    nc = rmodel.G.cells.num;
     ML = sparse(1:nc, 1:nc, keep, nc, nc); 
     if isa(model.parentModel.AutoDiffBackend, 'DiagonalAutoDiffBackend')
         model = model.validateModel();
-        rmodel = getReservoirModel(model);
-        ncomp = rmodel.getNumberOfComponents();
+        if isa(model.parentModel, 'PressureModel')
+            ncomp = 1;
+        else
+            rmodel = getReservoirModel(model);
+            ncomp = rmodel.getNumberOfComponents();
+        end
         MR = sparse(1:nc*ncomp, 1:nc*ncomp, repmat(keep, ncomp, 1), nc*ncomp, nc*ncomp);
         I  = @(i,j) sparse(1:nc, (1:nc) + nc*(i-1), ~keep, nc, nc*ncomp);
     else
@@ -111,6 +129,39 @@ function operators = constructRestrictionOperators(model)
     end
     % Make operator struct
     operators = struct('ML', ML, 'MR', MR, 'I', I, 'keep', keep);
+end
+
+%-------------------------------------------------------------------------%
+function operators = constructProlongationOperators(model)
+    % Get logical mask for values we keep unchanged
+    map  = model.mappings.cells;
+    v    = map.internal | map.overlap;
+    keep = v(map.keep);
+    % Construct restriction operator
+    rmodel = getReservoirModel(model);
+    Nc = numel(map.keep);
+    nc = rmodel.G.cells.num;
+%     nc = model.parentModel.G.cells.num; 
+    ML0 = sparse(find(map.keep), 1:nc, keep, Nc, nc);
+    ML  = sparse(find(map.keep), 1:nc, 1, Nc, nc);
+    if isa(model.parentModel.AutoDiffBackend, 'DiagonalAutoDiffBackend')
+        model = model.validateModel();
+        if isa(model.parentModel, 'PressureModel')
+            ncomp = 1;
+        else
+            rmodel = getReservoirModel(model);
+            ncomp = rmodel.getNumberOfComponents();
+        end
+        jj  = find(repmat(map.keep, ncomp, 1));
+        v   = repmat(keep, ncomp, 1);
+        MR0 = sparse(1:nc*ncomp, jj, v, nc*ncomp, Nc*ncomp);
+        MR  = sparse(1:nc*ncomp, jj, 1, nc*ncomp, Nc*ncomp);
+    else
+        MR0 = ML0';
+        MR  = ML';
+    end
+    % Make operator struct
+    operators = struct('ML', ML, 'ML0', ML0, 'MR', MR, 'MR0', MR0);
 end
 
 %{
