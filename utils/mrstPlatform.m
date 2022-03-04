@@ -1,14 +1,19 @@
 function out = mrstPlatform(arg)
-% Get information about platform-dependent settings for current session
+%Retrieve Platform Dependent Settings for Current Session
 %
 % SYNOPSIS:
-%   out = mrstPlatform();
-%   isOctave = mrstPlatform('octave');
-%   isDesktop = mrstPlatform('desktop');
+%   out = mrstPlatform
+%   out = mrstPlatform(setting)
 %
-% REQUIRED PARAMETERS:
-%   arg - May be omitted to get full platform struct. Otherwise, the name
-%         of a specific setting to query. 
+% PARAMETERS:
+%   setting - Name of a specific setting.  If omitted, the return value
+%             is a structure of all platform dependent settings.  Character
+%             vector or, if available, a scalar string.
+%
+%             Note: Setting names may be shortened to a unique prefix and
+%             are matched case insensitively for typing convenience, but
+%             scripts/functions should use the full, unambigiuous setting
+%             names listed below.
 %
 % RETURNS:
 %   out - Either all features as a struct, or a specific setting, dependent
@@ -45,43 +50,107 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     persistent DATA
+
     if isempty(DATA)
-        % Need setup
-        if exist('OCTAVE_VERSION', 'builtin') > 0
-            out = octave_setup();
-        else
-            out = matlab_setup();
-        end
-        DATA = out;
+        DATA = run_configuration_setup();
     end
+
     if nargin == 0
         out = DATA;
     else
-        out = DATA.(arg);
+        out = get_specific_setting(DATA, arg);
     end
 end
 
-function s = octave_setup()
-    v = ver();
-    isMain = arrayfun(@(x) strcmpi(x.Name, 'octave'), v);
-    hasGUI = strcmpi(graphics_toolkit(), 'qt'); % Mostly where GUIs are supported
-    s = get_config(v(isMain), ...
-                    'gui', hasGUI, ...
-                    'desktop', isguirunning(), ...
-                    'richtext', false);
+%--------------------------------------------------------------------------
+
+function config = run_configuration_setup()
+   if exist('OCTAVE_VERSION', 'builtin') > 0
+      config = octave_setup();
+   else
+      config = matlab_setup();
+   end
 end
 
-function s = matlab_setup()
+%--------------------------------------------------------------------------
+
+function setting = get_specific_setting(config, setting)
+   if isfield(config, setting)
+      setting = config.(setting);
+
+   else
+      settings = sort(fieldnames(config));
+      ix = find(strncmpi(settings, setting, numel(char(setting))));
+
+      if numel(ix) == 1
+         setting = config.(settings{ix});
+
+      elseif isempty(ix)
+         supported = sprintf('\n  * ''%s''', settings{:});
+         error('Unsupported setting name ''%s''.  Must be one of\n%s', ...
+               setting, supported);
+
+      else
+         matches = sprintf('\n  * ''%s''', settings{ix});
+         error(['Ambiguous setting name ''%s''.  Could be one of%s\n', ...
+                'Please disambiguate'], setting, matches);
+      end
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function config = octave_setup()
+    v = ver();
+    isMain = arrayfun(@(x) strcmpi(x.Name, 'octave'), v);
+
+    % Mostly where GUIs are supported
+    hasGUI = strcmpi(graphics_toolkit(), 'qt');
+
+    config = get_config(v(isMain), ...
+                        'gui', hasGUI, ...
+                        'desktop', isguirunning(), ...
+                        'richtext', false);
+end
+
+%--------------------------------------------------------------------------
+
+function config = matlab_setup()
     v = ver();
     isMain = arrayfun(@(x) strcmpi(x.Name, 'matlab'), v);
     isDesktop = usejava('desktop');
-    s = get_config(v(isMain), ...
-                   'desktop', isDesktop, ...
-                   'richtext', isDesktop, ...
-                   'gui', isDesktop);
+
+    config = get_config(v(isMain), ...
+                        'desktop', isDesktop, ...
+                        'richtext', isDesktop, ...
+                        'gui', isDesktop);
 end
 
+%--------------------------------------------------------------------------
+
 function s = get_config(ver_struct, varargin)
+    name = ver_struct(1).Name;
+    ver_char = ver_struct(1).Version;
+
+    v = parse_version_numbers(ver_char);
+    s = struct('platform',      name, ...
+               'version',       ver_char, ...
+               'major',         v(1), ...
+               'minor',         v(2), ...
+               'octave',        strcmpi(name, 'octave'), ...
+               'matlab',        strcmpi(name, 'matlab'), ...
+               'os',            infer_operating_system(), ...
+               'desktop',       false, ...
+               'gui',           false, ...
+               'jvm',           usejava('jvm'), ...
+               'richtext',      false);
+
+   s = merge_options(s, varargin{:});
+end
+
+%--------------------------------------------------------------------------
+
+function os = infer_operating_system()
     if ispc()
         os = 'windows';
     elseif ismac()
@@ -91,23 +160,11 @@ function s = get_config(ver_struct, varargin)
         % excluded mac os.
         os = 'linux/unix';
     end
-    ver_struct = ver_struct(1); % Just in case.
-    name = ver_struct.Name;
-    ver_char = ver_struct.Version;
-    v = sscanf(ver_struct.Version, '%d.%d.%d');
-    if numel(v) < 2
-        v = [v; zeros(2 - numel(v), 1)];
-    end
-    s = struct('platform',      name, ...
-               'version',       ver_char, ...
-               'major',         v(1), ...
-               'minor',         v(2), ...
-               'octave',        strcmpi(name, 'octave'), ...
-               'matlab',        strcmpi(name, 'matlab'), ...
-               'os',            os, ...
-               'desktop',       false, ...
-               'gui',           false, ...
-               'jvm',           usejava('jvm'), ...
-               'richtext',      false);
-   s = merge_options(s, varargin{:});
+end
+
+%--------------------------------------------------------------------------
+
+function v = parse_version_numbers(ver_char)
+    v = sscanf(ver_char, '%d.%d.%d');
+    if numel(v) < 3, v(3) = 0; end
 end
