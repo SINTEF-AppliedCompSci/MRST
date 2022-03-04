@@ -44,7 +44,7 @@ function example = makeRandomTraining(example, rScale, bhpScale, shutin)
 % EXAMPLE:
 %    % Load a standard Norne test case and perturb the rates by 25% and the
 %    % bottom-hole pressure controls by 5%
-%    trueEx  = MRSTExample('norne_simple_wo');
+%    trueEx  = TestCase('norne_simple_wo');
 %    trainEx = makeRandomTraining(trueEx, 0.25, 0.05, false);
 
 schedule.step  = example.schedule.step;
