@@ -15,7 +15,7 @@ mrstVerbose on
 testFI = TestCase('fractures_compositional');
 
 %% Plot test case
-lperm = log10(testFI.model.rock.perm(:,1)/(milli*darcy));
+lperm = log10(convertTo(testFI.model.rock.perm(:,1), milli*darcy));
 testFI.plot(lperm);
 plotGrid(testFI.model.G, 'faceColor', 'none', 'edgeAlpha', 0.2);
 [hc, hh] = mrstColorbar(10.^lperm, 'south', true);
