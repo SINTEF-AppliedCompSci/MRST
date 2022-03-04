@@ -85,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Set verbosity if not sepcified
     if isempty(opt.verbose), opt.verbose = mrstVerbose(); end
     % Check if we are on octave
-    octave = mrstPlatform(); octave = octave.octave;
+    octave = mrstPlatform('octave');
     % Function will call itself recursively, so the actual function is
     % implemented in a local version that avoids redoing merge_options,
     % verbosity check, platform check, etc.
