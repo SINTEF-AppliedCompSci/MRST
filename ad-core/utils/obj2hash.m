@@ -14,8 +14,8 @@ function [hash, hashStruct] = obj2hash(obj, varargin)
 %   obj - object to be hashed
 %
 % OPTIONAL PARAMETERS:
-%   skip    - Field names (if obj is a struct) or property names (if obj is a
-%             class) to be skipped in the hash computation.
+%   skip    - Field names (if obj is a struct) or property names (if obj is
+%             a class) to be skipped in the hash computation.
 %             Default value: false
 %   maxSize - Maximum number of non-zero elements in obj to be hashed if
 %             obj is numeric, logical or a character array. If obj has more
@@ -31,9 +31,10 @@ function [hash, hashStruct] = obj2hash(obj, varargin)
 %                  the md5 checksum of obj (see note on maxSize above).
 %               2) a cell array, the hash equals the combined hash of the
 %                  hash of each element of obj.
-%               3) a struct, the hash equals the combined hash of the
-%                  hash of each of the fields of obj (see note on skipped
-%                  field names above).
+%               3) a struct or table, the hash equals the combined hash of
+%                  the hash of each of the fields of obj (see note on
+%                  skipped field names above). Tables are converted to
+%                  structs before hashing.
 %               4) none of the above, the hash equals the combined hash of
 %                  the hash of each of the properties of obj (see note on
 %                  skipped field names above). If obj has no public
@@ -100,6 +101,8 @@ function [hash, hashStruct] = obj2hash_local(obj, skip, maxSize, verbose, octave
     hashStruct = [];
     % Avoid empty hash values
     if isempty(obj), obj = '[]'; end
+    % Convert tables to structs
+    if ~octave && istable(obj), obj = table2struct(obj); end
     % Make function handle for recursive calls
     o2h = @(obj) obj2hash_local(obj, skip, maxSize, verbose, octave);
     if isnumeric(obj) || islogical(obj) || ischar(obj)
