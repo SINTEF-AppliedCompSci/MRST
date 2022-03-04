@@ -56,7 +56,8 @@ simulatePackedProblem(problemSI);
 [wellSolsSI, statesSI, reportsSI] = getPackedSimulatorOutput(problemSI);
 % To compare the results, we use the function `compareStructs`. This 
 compare = @(sFI, sSI) compareStructs(sFI, sSI, 'relative'      , true ,  ...
-                                               'includeStructs', false);
+                                               'includeStructs', false, ...
+                                               'verbose'       , false);
 statesDiff = cellfun(@(sFI, sSI) compare(sFI, sSI), statesFI, statesSI, ...
                                                 'UniformOutput', false);
                                             
