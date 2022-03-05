@@ -839,7 +839,7 @@ methods
 
 
     function [gradient, result, report] = solveAdjoint(model, solver, getState,...
-                                getObj, schedule, gradient, stepNo)
+                                getObj, schedule, gradient, stepNo, varargin)
         % Solve a single linear adjoint step to obtain the gradient
         %
         % SYNOPSIS:
@@ -878,6 +878,7 @@ methods
         % SEE ALSO:
         %   `computeGradientAdjointAD`
         %
+        
         validforces = model.getValidDrivingForces();
         dt_steps = schedule.step.val;
 
@@ -932,7 +933,8 @@ methods
             problem_p = [];
         end
         [gradient, result, rep] = solver.solveAdjointProblem(problem_p,...
-                                    problem, gradient, getObj(stepNo,model,problem.state), model);
+                                    problem, gradient, getObj(stepNo,model,problem.state), model, ...
+                                    varargin{:});
         report = struct();
         report.Types = problem.types;
         report.LinearSolverReport = rep;

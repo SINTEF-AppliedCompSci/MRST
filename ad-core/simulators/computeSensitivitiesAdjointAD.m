@@ -65,7 +65,7 @@ assert(isa(param{1}, 'ModelParameter'), ...
         'Parameters must be initialized using ''ModelParameter''.')
 
 opt = struct('LinearSolver', [], ...
-             'OutputPerTimestep', true);       
+             'fullSensitivity', false);       
 opt = merge_options(opt, varargin{:});
 if mrstVerbose && setup.model.toleranceCNV >= 1e-3
    fprintf(['The accuracy in the gradient depend on the',...
@@ -103,28 +103,33 @@ nstep    = numel(setup.schedule.step.val);
 lambda   = [];
 getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
 
-if opt.outputPerTimestep
-    sens = repmat(sens, [nstep,1]);
-end
+% if opt.outputPerTimestep
+%     sens = repmat(sens, [nstep,1]);
+% end
 % run adjoint
 for step = nstep:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nstep - step + 1, nstep);
     [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
-        getObjective, setup.schedule, lambda, step);
+        getObjective, setup.schedule, lambda, step, ...
+        'fullSensitivity', opt.fullSensitivity);
     [eqdth, modelParam] = partialWRTparam(modelParam, getState, scheduleParam, step, param);
     for kp = 1:numel(param)
-        %if ~isInitStateParam(kp)
-            nm = param{kp}.name;
-            for nl = 1:numel(lami)
-                if isa(eqdth{nl}, 'ADI')
-                    if ~opt.outputPerTimestep
-                        sens.(nm) = sens.(nm) + eqdth{nl}.jac{kp}'*lami{nl};
-                    else
-                        sens(step).(nm) = sens(step).(nm) + eqdth{nl}.jac{kp}'*lami{nl};
-                    end
+        tmp = 0;
+        nm = param{kp}.name;
+        for nl = 1:numel(lami)
+            if isa(eqdth{nl}, 'ADI')
+                if ~opt.fullSensitivity
+                    sens.(nm) = sens.(nm) + eqdth{nl}.jac{kp}'*lami{nl};
+                else
+                    tmp = tmp + eqdth{nl}.jac{kp}'*lami{nl};
+                    %sens(step).(nm) = sens(step).(nm) + eqdth{nl}.jac{kp}'*lami{nl};
                 end
             end
-        %end        
+        end
+        if opt.fullSensitivity 
+            offset =  size(tmp,2) - size(sens.(nm),2);
+            sens.(nm) = [tmp(:, 1:offset), tmp(:, offset+1:end)+sens.(nm)];
+        end
     end
 end
 

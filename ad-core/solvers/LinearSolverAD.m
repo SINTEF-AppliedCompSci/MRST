@@ -86,7 +86,8 @@ classdef LinearSolverAD < handle
         function [grad, result, report] = solveAdjointProblem(solver, problemPrev,...
                 problemCurr, adjVec, objective, model, varargin) %#ok
             
-            opt = struct('scalePressure', false);
+            opt = struct('scalePressure', false, ...
+                         'fullSensitivity', false);
             % For the adjoint problem, the scaling for the rows of the matrix to be inverted
             % corresponds to pressure and, say, saturation. This bad scaling
             % triggers typically a warning from Matlab which says that the
@@ -141,7 +142,11 @@ classdef LinearSolverAD < handle
                 end
                         
                 problemPrev = problemPrev.assembleSystem();
-                b = b - problemPrev.A'*adjVec;
+                if ~opt.fullSensitivity
+                    b = b - problemPrev.A'*adjVec;
+                else
+                    b = [b, - problemPrev.A'*adjVec];
+                end
             end
             A = problemCurr.A;
             b = full(b);
