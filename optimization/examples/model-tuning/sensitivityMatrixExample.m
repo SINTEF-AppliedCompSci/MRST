@@ -1,8 +1,8 @@
 %% Simple script for validation of parameter sensitivities by comparing 
-mrstModule add ad-core ad-blackoil ad-props optimization spe10 deckformat
+mrstModule add ad-core ad-blackoil ad-props optimization spe10 deckformat coarsegrid
 
 %% Setup simple model
-nxyz = [ 10,  10,  1];
+nxyz = [ 20,  20,  1];
 Dxyz = [400, 400, 10];
 rng(0)
 G    = computeGeometry(cartGrid(nxyz, Dxyz));
@@ -15,12 +15,12 @@ fluid = initSimpleADIFluid('phases', 'WO',...
                            'mu' , [.3, 3]*centi*poise,...
                            'rho', [1014, 859]*kilogram/meter^3, ...
                            'n', [2 2]);
-fluid .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
+%fluid .krPts  = struct('w', [0 0 1 1], 'ow', [0 0 1 1]);
 
 c = 5e-5/barsa;
 p_ref = 200*barsa;
 fluid.bO = @(p) exp((p - p_ref)*c);
-model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
+modelRef = GenericBlackOilModel(G, rock, fluid, 'gas', false);
 
 %% wells/schedule
 W = [];
@@ -39,35 +39,34 @@ for k  = 1:2
                      'comp_i', [1 0], 'Sign' , 1);
 end
 % Set up 4 control-steps each 150 days
-schedule = simpleSchedule(rampupTimesteps(2*year, 30*day, 5), 'W', W);
+scheduleRef = simpleSchedule(rampupTimesteps(2*year, 30*day, 5), 'W', W);
 %schedule = simpleSchedule([1]*day, 'W', W);
 
-%% run simulation
-state0 = initState(G, W, 200*barsa, [0, 1]); 
+%% run reference simulation
+stateInitRef = initState(G, W, 200*barsa, [0, 1]); 
 % The accuracy in the gradient depend on the acuracy on the CNV tolerance
-model.toleranceCNV = 1e-8;
-[ws, states, r] = simulateScheduleAD(state0, model, schedule);
+modelRef.toleranceCNV = 1e-8;
+[wsRef, statesRef] = simulateScheduleAD(stateInitRef, modelRef, scheduleRef);
 
-%% make a perturbed output as reference case
-states_ref = states;
-pflds = {'qWs', 'qOs'};
-fac   = .1;
-rng(0);
-for tk = 1:numel(schedule.step.val)
-    for wk = 3:numel(W)
-        for fk = 1:numel(pflds)
-            states_ref{tk}.wellSol(wk).(pflds{fk}) = ...
-                (1+2*fac*(rand))*states{tk}.wellSol(wk).(pflds{fk});
-        end
-    end
-end
+%% make a coarse model and run
+p     = partitionCartGrid(modelRef.G.cartDims, [4 4 1]);
+model = upscaleModelTPFA(modelRef, p);
+model.toleranceCNV = 1e-6;
+schedule = upscaleSchedule(model, scheduleRef);
+
+stateInit = upscaleState(model, modelRef, stateInitRef);
+[ws0, states0] = simulateScheduleAD(stateInit, model, schedule);
+
+% check well curves
+plotWellSols({wsRef, ws0}, schedule.step.val, 'datasetnames', {'Reference', 'Coarse'})
+
 %% parameter options
-setup = struct('model', model, 'schedule', schedule, 'state0', state0);
-nc =  model.G.cells.num;
-nf =  numel(model.operators.T);
+setup = struct('model', model, 'schedule', schedule, 'state0', stateInit);
+nc =  modelRef.G.cells.num;
+nf =  numel(modelRef.operators.T);
 % transmissibility
 parameters{1} = ModelParameter(setup, 'name', 'transmissibility', ...
-                                      'type', 'multiplier');
+                                      'type', 'value');
                                                 
 
 %% Setup function handle to evaluateMatch
@@ -78,14 +77,14 @@ weighting =  {'WaterRateWeight',  (300/day)^-1, ...
               'BHPWeight',        (500*barsa)^-1};
           
 % 1. gradient case - objective is sum of mismatches squared          
-obj1 = @(model, states, schedule, states_ref1, tt, tstep, state) matchObservedOW(model, states, schedule, states_ref,...
+obj1 = @(model, states, schedule, statesRef, tt, tstep, state) matchObservedOW(model, states, schedule, statesRef,...
        'computePartials', tt, 'tstep', tstep, weighting{:}, 'state', state, 'from_states', false, 'mismatchSum', true);   
-f1 = @(u)evaluateMatch(u, obj1, setup ,parameters,  states_ref, 'enforceBounds', false);     
+f1 = @(u)evaluateMatch(u, obj1, setup ,parameters,  statesRef, 'enforceBounds', false);     
 
 % 2. sensitivity matrix case - objective computes vector of all mismatches
-obj2 = @(model, states, schedule, states_ref1, tt, tstep, state) matchObservedOW(model, states, schedule, states_ref,...
+obj2 = @(model, states, schedule, statesRef, tt, tstep, state) matchObservedOW(model, states, schedule, statesRef,...
        'computePartials', tt, 'tstep', tstep, weighting{:}, 'state', state, 'from_states', false, 'mismatchSum', false);
-f2 = @(u)evaluateSensitivityMatrix(u, obj2, setup ,parameters,  states_ref, 'enforceBounds', false);       
+f2 = @(u)evaluateMatchSummands(u, obj2, setup ,parameters,  statesRef, 'enforceBounds', false);       
 
 %% Check gradient in random direction and compare to numerical
 % compute (negative) sum of squared mismatches and (negative) gradient
@@ -94,5 +93,8 @@ f2 = @(u)evaluateSensitivityMatrix(u, obj2, setup ,parameters,  states_ref, 'enf
 % compute vector of squared mismatches and Jacobian
 [v2, J] = f2(u);
 
-% check that both produce the same gradient, i.e J'*v2 = -g
-fprintf('Relative gradient mismatch: %e\n', norm(J'*v2 + g)/norm(g))
+% check that sum of squared v2 matches negative v1
+fprintf('Relative sum squared difference: %e\n', norm(sum(v2.^2) + v1)/abs(v1))
+
+% check that both produce the same gradient, i.e 2*J'*v2 = -g
+fprintf('Relative gradient difference: %e\n', norm(2*J'*v2 + g)/norm(g))
