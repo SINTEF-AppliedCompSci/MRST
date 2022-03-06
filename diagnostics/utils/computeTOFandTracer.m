@@ -315,8 +315,8 @@ if opt.splitBoundary
     % treat all boundary partitions as both injecting and producing
     [inpart, outpart] = deal(1:maxp);
      pix = bflux >= 0;
-     np  = accumarray(p(pix),  ones(nnz(pix),1));
-     nn  = accumarray(p(~pix), ones(nnz(~pix),1)); 
+     np  = accumarray(p(pix), 1);
+     nn  = accumarray(p(~pix), 1); 
      incells  = mat2cell(c(pix),  np, 1);
      outcells = mat2cell(c(~pix), nn, 1);
 else
