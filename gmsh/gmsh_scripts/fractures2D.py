@@ -12,7 +12,7 @@ L = 1000
 matrix = factory.addRectangle(0, 0, 0, L, L)
 
 # Fractures
-num_fractures = 100
+num_fractures = 20
 np.random.seed(0)
 x = L * np.random.random((2 * num_fractures, 2))
 fractures = []
@@ -26,7 +26,6 @@ factory.synchronize()
 # Domain
 domain, domain_map = factory.fragment([(2, matrix)], fractures)
 factory.synchronize()
-matrix = domain_map[0]
 fractures = []
 for frac in domain_map[1:]:
     if isinstance(frac, list):
@@ -68,22 +67,28 @@ gmsh.option.setNumber("Mesh.MeshSizeExtendFromBoundary", 0)
 gmsh.option.setNumber("Mesh.MeshSizeFromPoints", 0)
 gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 0)
 
+# Quad mesh
+gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
+gmsh.option.setNumber("Mesh.RecombineAll", 1)
+
+# Alternative quad mesh by triangle subdivision
+# gmsh.option.setNumber("Mesh.SubdivisionAlgorithm", 1)
+
 dim = 2
 gmsh.model.mesh.generate(dim)
 
 # Set matrix label
 matrix_tag = 0
 matrix_parts = [dt[1] for dt in domain_map[0]]
-gmsh.model.addPhysicalGroup(2, matrix_parts, matrix_tag)
+gmsh.model.addPhysicalGroup(dim, matrix_parts, matrix_tag)
 
 # Set fracture labels as 1, ..., num_fractures
 for k in range(1, num_fractures + 1):
     fracture_parts = [dt[1] for dt in domain_map[k]]
-    gmsh.model.addPhysicalGroup(1, fracture_parts, k)
+    gmsh.model.addPhysicalGroup(dim-1, fracture_parts, k)
 
 # Write
 gmsh.write(model_name + ".msh")
-gmsh.write(model_name + ".mesh")
 gmsh.write(model_name + ".m")
 
 gmsh.finalize()
