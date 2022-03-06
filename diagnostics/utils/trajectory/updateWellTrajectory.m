@@ -23,7 +23,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opts = {'Name', w.name, 'Type', w.type, 'Val', w.val, 'Sign', w.sign, ...
         'lims', w.lims, 'Radius', w.r(1), 'compi', w.compi};
 w_o  = addWellFromTrajectory([], model.G, model.rock, traj, ...
-                    'exteriorFaceCorrection', true, opts{:});
+                    'exteriorFaceCorrection', true, ...
+                    'errorOnEmptyCellSet', false, opts{:});
 if isempty(w_o.cells)
     nc = 0;
 else
