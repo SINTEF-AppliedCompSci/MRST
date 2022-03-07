@@ -130,14 +130,15 @@ legend({'Global', 'Domain decomposition'}, 'location', 'north west')
 l = linspace(0,0.99,10);
 timesteps = [8,10,15,20];
 a = 0.8; cmap = hsv.*a + (1-a);
-test.figure();
+hf = test.figure();
 nvec = 1:numel(statesSeqDD);
 for i = 1:6
     for n = nvec
+        figure(hf); cla
         [c, h] = unstructuredContour(test.model.G, statesSeqDD{n}.s(:,1), l, ...
                 'cartDims', test.model.G.cartDims, ...
                 'fill', true, 'extrapolation', 'nearest', 'LineWidth', 0.1);
-        test.setAxisProperties(gca); axis off, box on, colormap(cmap);
+        test.setAxisProperties(gca); axis equal off, box on, colormap(cmap);
         pause(0.01)
     end
     nvec = flip(nvec);
