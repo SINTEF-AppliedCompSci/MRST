@@ -13,6 +13,8 @@
 %   Dual-Porosity Simulators, Journal of Petroleum Technology 42 (06): 710–763.
 %   DOI: https://doi.org/10.2118/18741-PA.
 
+mrstModule add ad-core ad-props ad-blackoil dual-porosity
+
 %% Choose between the dual porosity or dual porosity-dual permeability models
 model_name = 'DP';
 %model_name = 'DPDP';

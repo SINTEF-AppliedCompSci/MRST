@@ -19,6 +19,8 @@
 
 %% Set up the problem
 
+mrstModule add ad-core ad-props ad-blackoil dual-porosity
+
 % Uniform matrix porosity and permeability
 phim = 0.3;
 Km = 9.8692e-14;
