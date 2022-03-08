@@ -64,8 +64,9 @@ while t<=tmax
     
     disp(['Time = ',num2str(t/day), ' days'])
     state = solver.solveTimestep(state, dt, model, 'bc', bc);
-    
-    figure(fig1)
+
+    set(0, 'CurrentFigure', fig1);
+
     subplot(2,1,1);
     p = plotCellData(G,state.s(:,1));
     p.EdgeAlpha = 0;
@@ -87,10 +88,8 @@ while t<=tmax
     xlabel('x')
     zlabel('z')
     title('Matrix');
-    
-    drawnow;
-    
-    t = t+dt;
-    
-end
 
+    drawnow;
+
+    t = t+dt;
+end

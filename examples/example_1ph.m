@@ -59,8 +59,9 @@ while t<=tmax
     
     disp(['Time = ',num2str(t/day), ' days'])
     state = solver.solveTimestep(state, dt, model, 'bc', bc);
-    
-    figure(fig1)
+
+    set(0, 'CurrentFigure', fig1)
+
     subplot(2,2,1);
     p = plotCellData(G,state.pressure_matrix/psia);
     p.EdgeAlpha = 0;
@@ -69,7 +70,7 @@ while t<=tmax
     set(gca,'FontSize',16);
     xlabel('x')
     ylabel('y')
-    
+
     subplot(2,2,3);
     p = plotCellData(G,state.pressure/psia);
     p.EdgeAlpha = 0;
@@ -78,15 +79,14 @@ while t<=tmax
     set(gca,'FontSize',16);
     xlabel('x')
     ylabel('y')
-    
-    figure(fig1)
+
     subplot(2,2,2);
     plot(G.cells.centroids(:,1),state.pressure_matrix/psia,'LineWidth',1.5,'Color','r');
     set(gca,'FontSize',16);
     xlabel('x')
     ylim([0,1000])
     ylabel('Pm [psia]')
-    
+
     subplot(2,2,4);
     plot(G.cells.centroids(:,1),state.pressure/psia,'LineWidth',1.5);
     set(gca,'FontSize',16);
@@ -95,8 +95,6 @@ while t<=tmax
     ylabel('Pf [psia]')
 
     drawnow;
-    
-    t = t+dt;
-    
-end
 
+    t = t+dt;
+end
