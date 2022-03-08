@@ -20,11 +20,15 @@ classdef TestCase
 
     properties (Access = private)
         baseName  % Name of the setup function called by the constructor
+        id        % Unique hash of the setup. Used to verify if any of
+                  % the test case properties have been changed after
+                  % construction.
     end
     
     methods
         %-----------------------------------------------------------------%
         function test = TestCase(name, varargin)
+        % Constructor
             
             if nargin == 0, return; end
             % Set test name
@@ -43,15 +47,16 @@ classdef TestCase
                 setup = feval(lower(name), false, extra{:});
                 test.options     = setup.options;
                 test.description = setup.description;
+                if isempty(test.name), test.name = setup.name; end
                 % Check if test exists on disk and load it
                 tc = test.load(false);
                 if ~isempty(tc)
                     % We found it! Early return
-                    test = tc;
                     if test.verbose
                         time = toc(timer);
                         fprintf('Test case loaded in %s\n\n', formatTimeRange(time));
                     end
+                    test = tc;
                     return
                 elseif test.verbose
                     % No luck, we need to set up from scratch
@@ -90,6 +95,9 @@ classdef TestCase
             values = struct2cell(test.toolbarOptions);
             test.toolbarOptions = cell(1, 2*numel(names));
             test.toolbarOptions([1:2:end, 2:2:end]) = horzcat(names, values);
+            % Compute test case ID
+            test.id = test.getTestCaseHash();
+            
             if opt.plot
                 % Plot test case
                 test.plot(test.model.rock, 'Name', 'rock'  , 'log10', true);
@@ -121,9 +129,8 @@ classdef TestCase
                 
         %-----------------------------------------------------------------%
         function [props, other] = processFigureProps(test, varargin)
-        % Set default figure properties
+        % Process optional figure properties
         
-            % Get default properties
             [props, other] = test.validProperties('Figure', varargin, 'Size', 'XDisplay');
 
         end
@@ -151,26 +158,34 @@ classdef TestCase
         
         %-----------------------------------------------------------------%
         function [props, other] = processAxisProps(test, varargin)
-        % Get default axis properties
+        % Process optional axis properties
         
-            [props, other, validNames] = test.validProperties('Axes', varargin, [], ...
-                {'Legend', 'Colormap', 'ZDir', 'PlotBoxAspectRatioMode'});
+            % Get valid properties
+            [props, other, validNames] ...
+                = test.validProperties('Axes', varargin, [], ...
+                    {'Legend', 'Colormap', 'ZDir', 'PlotBoxAspectRatioMode'});
+            
             % Get grid
-            G = test.model.G;
-            if ~isempty(test.visualizationGrid)
-                G = test.visualizationGrid;
+            G = test.getVisualizationGrid();
+            xmax = max(G.nodes.coords);
+            xmin = min(G.nodes.coords);
+            if test.hasDrivingForce('W') && G.griddim == 3
+                xmin(3) = xmin(3) - 0.15*(xmax(3) - xmin(3));
             end
             
-            updateProp = @(name) ~isfield(props, name) && ismember(name, validNames);
+            % Set defaults for key properties not already set by user
+            updateProp = @(name) ~isfield(props, name) ...
+                                    && ismember(name, validNames);
+            
+            % Set axis limits
             xyz = 'XYZ';
             for i = 1:G.griddim
-                % Set axis tight
-                nm = [xyz(i), 'LimSpec'];
-                if updateProp(nm), props.(nm) = 'tight'; end
-                nm = [xyz(i), 'LimitMethod'];
-                if updateProp(nm), props.(nm) = 'tight'; end
-                nm = [xyz(i), 'LimMode'];
-                if updateProp(nm), props.(nm) = 'auto' ; end
+                nm = [xyz(i), 'Lim'];
+                if updateProp(nm), props.(nm) = [xmin(i), xmax(i)]; end
+            end
+            % Set aspect ratio
+            if updateProp('PlotBoxAspectRatio')
+                props.DataAspectRatio = [1,1,0.25];
             end
             % Set viewpoint
             if updateProp('View')
@@ -193,7 +208,7 @@ classdef TestCase
         
         %-----------------------------------------------------------------%
         function ax = setAxisProperties(test, ax)
-            % Set properties to test case figure axis
+        % Set properties to test case figure axis
             
             names = fieldnames(test.axisProperties);
             for i = 1:numel(names)
@@ -259,7 +274,8 @@ classdef TestCase
         
         %-----------------------------------------------------------------%
         function G = getVisualizationGrid(test)
-            
+        % Get grid for visualization
+        
             if isempty(test.visualizationGrid)
                 G = test.model.G;
             else
@@ -270,6 +286,7 @@ classdef TestCase
         
         %-----------------------------------------------------------------%
         function varargout = plotWells(test, varargin)
+        % Plot wells in the model
             
             if ~isfield(test.schedule.control(1), 'W')
                 return;
@@ -278,9 +295,7 @@ classdef TestCase
             if ~isempty(W)
                 G = test.getVisualizationGrid();
                 if G.griddim == 3
-                    ax = gca;
-                    dz = ax.ZLim(2) ...
-                       - ax.ZLim(1);
+                    ax = gca; dz = ax.ZLim(2) - ax.ZLim(1);
                     varargout = cell(nargout, 1);
                     [varargout{:}] = plotWell(G, W, 'color' , 'k'    , ...
                                        'height', 0.15*dz, ...
@@ -318,13 +333,24 @@ classdef TestCase
         end
         
         %-----------------------------------------------------------------%
+        function ok = hasDrivingForce(test, force)
+        % Check if the test case has a given driving force
+        
+            ok = isfield(test.schedule.control(1), force);
+            
+        end
+        
+        %-----------------------------------------------------------------%
         function [hash, s] = getTestCaseHash(test, fullHash)
-        % Get hash of options struct, prepended with test case name
+        % Get hash of test case, including all relevant properties
+        % (fullHash = true), or only name, description and options
+        % (fullHash = false)
         
             skip = {'figureProperties' , ...
                     'axisProperties'   , ...
                     'toolbarOptions'   , ...
                     'visualizationGrid', ...
+                    'id'               , ...
                     'verbose'          };
             if nargin > 1 && ~fullHash
                 skip = [skip, {'model', 'state0', 'schedule', 'extra'}];
@@ -334,19 +360,73 @@ classdef TestCase
         end
         
         %-----------------------------------------------------------------%
-        function ok = save(test)
-        % Save test case to disk
+        function m = isModified(test)
+        % Check is the test case has been modified after construction
+            
+            hash = test.getTestCaseHash();
+            m    = ~strcmpi(hash, test.id);
+            
+        end
         
-            % Get test case hash value
-            hash = test.getTestCaseHash(false);
-            % Store in default data directory under 'test-suite'
-            pth = fullfile(mrstDataDirectory(), 'test-suite', ...
-                           test.baseName, test.name);
-            if ~exist(pth, 'dir')
-                mkdir(pth)
+        %-----------------------------------------------------------------%
+        function fn = save(test, varargin)
+        % Save test case to disk and return full path to resulting mat file
+        
+            % Optional arguments
+            opt = struct('directory', []  , ...
+                         'name'     , []  , ...
+                         'prompt'   , true);
+            opt = merge_options(opt, varargin{:});
+            
+            fn = [];
+            if isempty(opt.directory)
+                % Set default directory
+                opt.directory = fullfile(mrstDataDirectory(), ...
+                    'test-suite', test.baseName, test.name);
             end
-            save(fullfile(pth, hash), 'test', '-v7.3');
-            ok = true;
+            if isempty(opt.name)
+                % Default file name is the test case hash computed from
+                % name, description, and options
+                opt.name = test.getTestCaseHash(false);
+            end
+            if opt.prompt
+                % Prompt the user in case  we are about to save a modified
+                % version of test case.
+                modified = test.isModified();
+                rmsg = 'Ok, will not save test case.\n';
+                if modified
+                    str = input(['Test case has been changed after '  , ...
+                                 'construction. Do you still want to ', ...
+                                 'save it? y/n [n]: '], 's'           );
+                    if ~strcmpi(str, 'y'), fprintf(rmsg); return; end
+                end 
+                % Get size of test case and prompt user
+                prefix = {'k', 'M', 'G'};
+                sz     = test.getSize()./[kilo, mega, giga];
+                om     = find(sz > 1, 1, 'last');
+                prompt = sprintf(['\nSaving test case %s \n'  , ...
+                                  'Location  : %s\n'          , ...
+                                  'File name : %s\n'          , ...
+                                  'Size      : %.2f %sB \n\n' , ...
+                                  'Continue? y/n [n]: '      ], ...
+                   test.name, opt.directory, opt.name, sz(om), prefix{om});
+                str = input(prompt, 's');
+                if ~strcmpi(str, 'y'), fprintf(rmsg); return; end
+            end
+            % Make directory if it does not exist
+            if ~exist(opt.directory, 'dir'), mkdir(opt.directory); end
+            % Save test case
+            fn = fullfile(opt.directory, opt.name);
+            save(fn, 'test', '-v7.3');
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function size = getSize(test) %#ok
+        % Get size of test case in bytes
+        
+            size = whos('test');
+            size = size.bytes;
             
         end
         
@@ -354,20 +434,20 @@ classdef TestCase
         function tc = load(test, throwError)
         % Load test case from disk
         
-            % Attempt to load test case
-            if nargin < 2
-                throwError = true;
-            end
+            % Throw error by default if we try to load a test case that
+            % does not exist
+            if nargin < 2, throwError = true; end
             % Test case is stored with a filename equal to its hash value
-            hash = test.getTestCaseHash(false);
-            pth  = fullfile(mrstDataDirectory(), 'test-suite', ...
-                            test.baseName, test.name);
-            fn   = [fullfile(pth, hash), '.mat'];
+            hash     = test.getTestCaseHash(false);
+            directory = fullfile(mrstDataDirectory(), ...
+                                'test-suite', test.baseName, test.name);
+            fn   = [fullfile(directory, hash), '.mat'];
             tc   = [];
             if isfile(fn)
-                % The file exists - load it
+                % The test case exists on disk - load it
                 if test.verbose
-                    fprintf('Found a saved version of this test case. Loading, ...');
+                    fprintf(['Found a saved version of this ', ...
+                              'test case. Loading ... ']     );
                 end
                 data = load(fn);
                 tc   = data.test;
