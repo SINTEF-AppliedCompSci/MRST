@@ -66,7 +66,8 @@ while t<=tmax
     disp(['Time = ',num2str(t/day), ' days'])
     state = solver.solveTimestep(state, dt, model, 'bc', bc);
     
-    figure(fig1)
+    set(0, 'CurrentFigure', fig1)
+
     subplot(2,2,1);
     p = plotCellData(G,state.s(:,1));
     p.EdgeAlpha = 0;
@@ -75,7 +76,7 @@ while t<=tmax
     set(gca,'FontSize',16);
     xlabel('x')
     ylabel('y')
-    
+
     subplot(2,2,3);
     p = plotCellData(G,state.sm(:,1));
     p.EdgeAlpha = 0;
@@ -84,15 +85,16 @@ while t<=tmax
     set(gca,'FontSize',16);
     xlabel('x')
     ylabel('y')
-    
-    figure(fig1)
+
+    set(0, 'CurrentFigure', fig1)
+
     subplot(2,2,2);
     plot(G.cells.centroids(:,1),state.s(:,1),'LineWidth',1.5,'Color','r');
     set(gca,'FontSize',16);
     xlabel('x')
     ylim([0,1])
     ylabel('Swf [-]')
-    
+
     subplot(2,2,4);
     plot(G.cells.centroids(:,1),state.sm(:,1),'LineWidth',1.5);
     set(gca,'FontSize',16);
@@ -101,8 +103,7 @@ while t<=tmax
     ylabel('Swm [-]')
 
     drawnow;
-    
+
     t = t+dt;
-    
 end
 
