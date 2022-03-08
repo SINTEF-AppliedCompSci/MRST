@@ -50,3 +50,6 @@ Thumbs.db
 
 # EOS tables
 eos/tables/*
+
+# .asv files
+*.asv
