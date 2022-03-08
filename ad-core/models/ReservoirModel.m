@@ -426,9 +426,11 @@ methods
             G = model.G;
         end
         model.operators = setupOperatorsTPFA(G, rock, varargin{:});
-        % Store hashes of grid and rock for consistency check later
-        model.operators.hashG    = obj2hash(G);
-        model.operators.hashRock = obj2hash(rock);
+        if mrstSettings('get', 'useHash')
+            % Store hashes of grid and rock for consistency check later
+            model.operators.hashG    = obj2hash(G);
+            model.operators.hashRock = obj2hash(rock);
+        end
     end
 
     % --------------------------------------------------------------------%

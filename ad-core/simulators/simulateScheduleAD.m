@@ -186,10 +186,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'restartStep',       1,  ...
                  'outputOffset',      [], ...
                  'LinearSolver',      [], ...
-                 'checkOperators',    true);
+                 'checkOperators',    []);
 
     opt = merge_options(opt, varargin{:});
-
+    if isempty(opt.checkOperators)
+        opt.checkOperators = mrstSettings('get', 'useHash');
+    end
+    
     %----------------------------------------------------------------------
     tm = [0 ; reshape(cumsum(schedule.step.val), [], 1)];
     restart = opt.restartStep;
