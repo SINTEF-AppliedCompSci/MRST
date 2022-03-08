@@ -148,38 +148,38 @@ switch case2run
 case 'ProdTop' 
     % Producer
     W = verticalWell(W, G.Matrix, G.Matrix.rock, 1, 1, 10, ...
-        'comp_i', [0.23, 0.76, 0.01],'Name', 'Prod_Top', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius);
+        'comp_i', s0,'Name', 'Prod_Top', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius);
     W(1).components = info.initial;
 case 'ProdTop_InjBot'
     % Producer
     W = verticalWell(W, G.Matrix, G.Matrix.rock, 2, 2, 10, ...
-        'comp_i', [0.23, 0.76, 0.01],'Name', 'Prod_Top', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius);
+        'comp_i', s0,'Name', 'Prod_Top', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius);
     % Injector
     W = verticalWell(W, G.Matrix, G.Matrix.rock, 1, 1, 70, ...
-        'comp_i', [0 0 1],'Name', 'Inj_Bot', 'Val', pinj, 'sign', 1, 'Type', 'bhp','Radius', wellRadius);
+        'comp_i', [0 1],'Name', 'Inj_Bot', 'Val', pinj, 'sign', 1, 'Type', 'bhp','Radius', wellRadius);
     W(1).components = info.initial;
     W(2).components = info.injection;
 case 'ProdBot' 
     % Producer
     W = verticalWell(W, G, G.rock, 20, 10, frac_z(2), ...
-        'comp_i', [0.23, 0.76, 0.01],'Name', 'Prod_Bot', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius);
+        'comp_i', s0,'Name', 'Prod_Bot', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius);
     W(1).components = info.initial;
 case 'ProdBot_InjTop'
     % Producer
     W = verticalWell(W, G, G.rock, 20, 10, frac_z(2), ...
-        'comp_i', [0.23, 0.76, 0.01],'Name', 'Prod_Bot', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius); 
+        'comp_i', s0,'Name', 'Prod_Bot', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius); 
 %     W = verticalWell(W, G.Matrix, G.Matrix.rock, 20, 10, frac_z(1), ...
 %         'comp_i', [0 0 1],'Name', 'Inj_Top', 'Val', pinj, 'sign', 1, 'Type', 'bhp','Radius', wellRadius); %control by injection pressure
     % Injector
     W = verticalWell(W, G, G.rock, 20, 10, frac_z(1), ...
-        'comp_i', [0 0 1],'Name', 'Inj_Top', 'Val', rate, 'sign', 1, 'Type', 'rate','Radius', wellRadius); %control by injection rate
+        'comp_i', [0 1],'Name', 'Inj_Top', 'Val', rate, 'sign', 1, 'Type', 'rate','Radius', wellRadius); %control by injection rate
     W(1).components = info.initial;
     W(2).components = info.injection;
 otherwise
     warning('Case Does Not Exist. Running case with Prod Only at Bottom')
     % Producer
     W = verticalWell(W, G.Matrix, G.Matrix.rock, 1, 1, 80, ...
-        'comp_i', [0.23, 0.76, 0.01],'Name', 'Prod_Bot', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius);
+        'comp_i', s0,'Name', 'Prod_Bot', 'Val', pwf, 'sign', -1, 'Type', 'bhp','Radius', wellRadius);
     W(1).components = info.initial;
 end
 plotWell(G,W); 
@@ -217,8 +217,8 @@ for i = 1:length(ws)
 end
 QTr = trapz(tinDays,x);
 %% Save Output Variables (Used in HPC).
-if ~opt.shouldPlot
-    fpath =  '/scratch/ahass16/';
-    fullFinalOut = [fpath, 'BaseCase_Pimary_60years.mat'];
-    save(fullFinalOut,'ws','RF','Np','states','G','schedule','-v7.3');
-end
+% if ~opt.shouldPlot
+%     fpath =  '/scratch/ahass16/';
+%     fullFinalOut = [fpath, 'BaseCase_Pimary_60years.mat'];
+%     save(fullFinalOut,'ws','RF','Np','states','G','schedule','-v7.3');
+% end

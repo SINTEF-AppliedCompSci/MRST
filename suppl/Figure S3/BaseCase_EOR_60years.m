@@ -217,9 +217,9 @@ for i = 1:length(ws)
    x(i)= -543439.7*ws{i}(1).qTr;
 end
 QTr = trapz(tinDays,x);
-%% Save Output Variables (Used in HPC).
-if ~opt.shouldPlot
-    fpath =  '/scratch/ahass16/';
-    fullFinalOut = [fpath, 'Base_EOR_60years.mat'];
-    save(fullFinalOut,'ws','RF','Np','states','G','schedule','-v7.3');
-end
+% %% Save Output Variables (Used in HPC).
+% if ~opt.shouldPlot
+%     fpath =  '/scratch/ahass16/';
+%     fullFinalOut = [fpath, 'Base_EOR_60years.mat'];
+%     save(fullFinalOut,'ws','RF','Np','states','G','schedule','-v7.3');
+% end
