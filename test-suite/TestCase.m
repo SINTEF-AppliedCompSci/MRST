@@ -464,10 +464,14 @@ classdef TestCase
         % Make packed problem with reasonable simulation setup
         
             opt = struct('Name'           , test.name, ...
-                         'useHash'        , true     , ...
+                         'useHash'        , []       , ...
                          'LinearSolver'   , []       , ...
                          'NonLinearSolver', []       );
             [opt, varargin] = merge_options(opt, varargin{:});
+            
+            if isempty(opt.useHash)
+                opt.useHash = mrstSettings('get', 'useHash');
+            end
             if opt.useHash
                 if ~isempty(opt.Name)
                     opt.Name = [opt.Name, '_'];
@@ -482,7 +486,7 @@ classdef TestCase
                     ~isa(opt.NonLinearSolver.LinearSolver, 'BackslashSolverAD');
             end
             if ~has_ls
-                % Select apropriate linear solver
+                % Select appropriate linear solver
                 rmodel = test.model;
                 if isa(rmodel, 'WrapperModel')
                     rmodel = rmodel.getReservoirModel;
@@ -507,15 +511,18 @@ classdef TestCase
                 % ... or assign linear solver
                 opt.NonLinearSolver.LinearSolver = opt.LinearSolver;
             end
-            % Pack problem
+            % Set description
             desc = test.description(1:min(numel(test.description), 113));
             if numel(desc) < numel(test.description)
                 desc = [desc, ' ...'];
             end
+            % Pack problem (hash is not included here since we have handled
+            % this already)
             problem = packSimulationProblem(test.state0, test.model, ...
                     test.schedule, test.baseName,  ...
                     'Name'           , opt.Name,   ...
                     'Description'    , desc,       ...
+                    'useHash'        , false,      ...
                     'NonLinearSolver', opt.NonLinearSolver, varargin{:});
         
         end
