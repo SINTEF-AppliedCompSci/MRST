@@ -51,6 +51,8 @@ function [v, u, history, status] = optimizeSR1(u0, f, varargin)
    opt.maxIt = 100; % max number of search directions
    opt.backup_file = []; % file to back up results along the way
    opt.plotEvolution = true;
+   opt.rat_lim = 0.75;  % parameter controlling when to adjust trust region
+   opt.delta_fac = 0.8; % parameter controlling when to adjust trust region
    
    opt = merge_options(opt, varargin{:});
    
@@ -142,8 +144,8 @@ function [v, u, history, status] = optimizeSR1(u0, f, varargin)
       end
          
       % adjust trust region if necessary
-      if ratio > 0.75
-         if norm(s) > 0.8 * delta
+      if ratio > opt.rat_lim
+         if norm(s) > delta * opt.delta_fac
             delta = delta * 2;
          end
       elseif ratio < 0.1
