@@ -9,6 +9,7 @@ mrstModule add test-suite
 mrstModule add ad-core ad-props ad-blackoil
 mrstModule add mrst-gui
 mrstVerbose off
+checkHashSettings();
 
 %% Using a test case setup function
 % We consider a quarter five-spot setup posed on a 1000 x 1000 m domain.

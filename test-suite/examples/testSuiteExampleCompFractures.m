@@ -10,6 +10,7 @@ mrstModule add compositional
 mrstModule add linearsolvers sequential
 mrstModule add mrst-gui
 mrstVerbose on
+checkHashSettings();
 
 %% Load test case
 testFI = TestCase('fractures_compositional');
@@ -22,7 +23,7 @@ plotGrid(testFI.model.G, 'faceColor', 'none', 'edgeAlpha', 0.2);
 colormap(pink);
 
 %% Simulate FI problem
-problemFI = testFI.getPackedSimulationProblem();
+problemFI = testFI.getPackedSimulationProblem('useHash', true);
 simulatePackedProblem(problemFI);
 
 %% Set sequential implicit formulation (SI)
@@ -48,7 +49,7 @@ testSI.model.pressureNonLinearSolver.LinearSolver  = psol;
 testSI.model.transportNonLinearSolver.LinearSolver = tsol;
 
 %% Simulate SI problem
-problemSI = testSI.getPackedSimulationProblem();
+problemSI = testSI.getPackedSimulationProblem('useHash', true);
 simulatePackedProblem(problemSI);
 
 %% Get results and compare FI to SI

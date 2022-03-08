@@ -5,6 +5,7 @@ mrstModule add upr
 mrstModule add geothermal
 mrstModule add mrst-gui
 mrstVerbose on
+checkHashSettings();
 
 %% Load test case
 test = TestCase('small_egs_geothermal'); test.plot();
@@ -17,7 +18,7 @@ test.plotWells(); test.setAxisProperties(gca);
 camlight(); axis off
 
 %% Simulate problem
-problem = test.getPackedSimulationProblem();
+problem = test.getPackedSimulationProblem('useHash', true);
 simulatePackedProblem(problem);
 
 %% Simulate with different rock properties
@@ -27,7 +28,7 @@ test2.model.rock.lambdaR = test2.model.rock.lambdaR*5;
 % Update operators
 test2.model = test2.model.setupOperators();
 % Simulate problem
-problem2 = test2.getPackedSimulationProblem();
+problem2 = test2.getPackedSimulationProblem('useHash', true);
 simulatePackedProblem(problem2);
 
 %% Plot solutions

@@ -2,6 +2,7 @@
 mrstModule add test-suite
 mrstModule add ad-core ad-props ad-blackoil
 mrstVerbose off % Supress extensive command window output
+checkHashSettings();
 
 %% Set up a single regression test
 % Regression tests are set up in the same way as a TestCase, using the

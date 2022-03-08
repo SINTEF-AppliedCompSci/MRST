@@ -4,6 +4,7 @@ mrstModule add spe10
 mrstModule add ad-core ad-props ad-blackoil
 mrstModule add mrst-gui
 mrstVerbose on
+checkHashSettings()
 
 %% Load the entire model
 test = TestCase('spe10_wo'); test.plot();
@@ -16,7 +17,7 @@ test = TestCase('spe10_wo', 'layers', 13          ); test.plot(); % Layer 13
 %% Run the test
 % We run the test for layer 13 using a nonlinear solver with line search
 nls = NonLinearSolver('useLineSearch', true);
-problem = test.getPackedSimulationProblem('NonLinearSolver', nls);
+problem = test.getPackedSimulationProblem('NonLinearSolver', nls, 'useHash', true);
 simulatePackedProblem(problem);
 
 %% Run a modified version of the test
@@ -28,7 +29,7 @@ test2 = test;                                  % Copy the test
 test2.schedule.control(1).W(2).status = false; % Shut in well P2
 test2.schedule.control(1).W(5).val ...         % Reduce injection rate
     = test2.schedule.control(1).W(5).val*0.5;
-problem2 = test2.getPackedSimulationProblem('NonLinearSolver', nls);
+problem2 = test2.getPackedSimulationProblem('NonLinearSolver', nls, 'useHash', true);
 simulatePackedProblem(problem2);
 
 %% Load and compare results
