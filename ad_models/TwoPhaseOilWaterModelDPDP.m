@@ -78,6 +78,12 @@ classdef TwoPhaseOilWaterModelDPDP < TwoPhaseOilWaterModelDP
             %            or source terms can accurately by estimated.
            
         end
+        
+        %--------------------------------------------------------------------%  
+        function state = validateState(model, state)
+            % Dummy validation to be called in simulateScheduleAD.
+            return
+        end        
 
 
     end

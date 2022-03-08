@@ -17,7 +17,7 @@ mrstModule add ad-core ad-props ad-blackoil dual-porosity
 
 %% Choose between the dual porosity or dual porosity-dual permeability models
 model_name = 'DP';
-%model_name = 'DPDP';
+model_name = 'DPDP';
 
 %% Define the geometry
 [Nx, Ny, Nz] = deal(10, 1, 5);
