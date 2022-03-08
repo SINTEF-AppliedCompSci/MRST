@@ -110,7 +110,7 @@ methods
 
         model.useCNVConvergence = false;
         model.toleranceCNV = 1e-3;
-        model.toleranceMB = 1e-7;
+        model.toleranceMB = inf;
 
         model.extraStateOutput = false;
         model.extraWellSolOutput = true;
