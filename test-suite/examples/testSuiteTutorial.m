@@ -64,6 +64,26 @@ plotCellData(test.model.G, states{1}.pressure, 'edgeAlpha', 0.2);
 test.plotWells();
 test.setAxisProperties(gca);
 
+%% Saving and loading a test case to/from disk
+% The TestCase class offers functionality for saving test cases to disk,
+% and loading them at a later time. This is useful when working with test
+% cases that takes a long time to set up. By default, a test case is stored
+% to disk in a subfolder of mrstDataDirectory() using the test case hash
+% computed from the name, description and options as a file name. We can
+% also specify a different directory and name through optional input
+% arguments.
+test.save('directory', []   , ... % Empty gives the default directory
+          'name'     , []   , ... % Empty gives the test case hash
+          'prompt'   , true);     % Setting this to true (default) will 
+                                  % bring up a prompt with directory, file
+                                  % name and file size before saving
+                                  
+% Next time we attempt to set up the same test case, the class will first
+% look for a saved version and load this. With verbose = true, the user is
+% informed whether the test case was found on disk, and how long it took to
+% load.
+test = TestCase('qfs_wo', 'nkr', 2, 'ncells', 75, 'verbose', true);
+
 %% Copyright Notice
 %
 % <html>

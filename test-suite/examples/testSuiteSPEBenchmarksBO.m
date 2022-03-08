@@ -9,13 +9,13 @@ mrstVerbose on
 %% Simulate three SPE benchmarks
 names = {'spe1_bo', 'spe3_bo', 'spe9_bo'};
 for name = names
-    example = TestCase(name{1});                    % Get test case
-    example.plot(); drawnow, pause(1);              % Plot test case
-    problem = example.getPackedSimulationProblem(); % Get problem
+    test = TestCase(name{1});                    % Get test case
+    test.plot(); drawnow, pause(1);              % Plot test case
+    problem = test.getPackedSimulationProblem(); % Get problem
     simulatePackedProblem(problem);                 % Simulate
     % Plot results
     [wellSols, states] = getPackedSimulatorOutput(problem);
-    example.plot(states); plotWellSols(wellSols);
+    test.plot(states); plotWellSols(wellSols);
 end
 
 %% Copyright Notice
