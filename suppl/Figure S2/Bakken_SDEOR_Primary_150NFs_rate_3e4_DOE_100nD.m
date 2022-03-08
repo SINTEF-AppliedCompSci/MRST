@@ -107,7 +107,7 @@ set2 = [set2;set3];
 [set1_,nonPlanarSets1,fracArea1] = processStochFracs(set1);
 [set2_,nonPlanarSets2,fracArea2] = processStochFracs(set2); 
 fracArea = [fracArea1;fracArea2];
-frac_intensity = sum(fracArea)/prod(physdim,'all')
+% frac_intensity = sum(fracArea)/prod(physdim,'all')
 fprintf('%d of %d set1 fracs were OK while %d of %d set2 fracs were OK \n',...
     numel(set1_),numel(set1),numel(set2_),numel(set2));
 
