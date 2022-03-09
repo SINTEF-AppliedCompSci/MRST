@@ -27,8 +27,8 @@ for ts=1:numel(wsOld)
     if(isempty(wsOld{ts}(1).components))
         qiProd = zeros(1,numel(fluid.molarMass));       % in kg/s  (for each component)
     else
-%         qiProd = wsOld{ts}.components; %Prod then inj
-        [~, qiProd] = wsOld{ts}.components; %Inj then producer for HnP mat files
+        qiProd = wsOld{ts}.components; %Prod then inj
+%         [~, qiProd] = wsOld{ts}.components; %Inj then producer for HnP mat files
         qiProd = sum(qiProd,1);
     end
     qiProd = qiProd ./ fluid.molarMass;  % convert to mol/s (for each component)
