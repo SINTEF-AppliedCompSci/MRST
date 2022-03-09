@@ -185,7 +185,7 @@ classdef TestCase
             end
             % Set aspect ratio
             if updateProp('PlotBoxAspectRatio')
-                props.DataAspectRatio = [1,1,0.25];
+                props.PlotBoxAspectRatio = [1,1,0.25];
             end
             % Set viewpoint
             if updateProp('View')
