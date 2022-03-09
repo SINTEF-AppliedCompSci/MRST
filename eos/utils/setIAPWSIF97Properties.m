@@ -32,7 +32,7 @@ function fluid = setIAPWSIF97Properties(fluid, varargin)
 end
 
 %-------------------------------------------------------------------------%
-function phases = getPhaseFhases(fluid)
+function phases = getPhases(fluid)
     names  = fieldnames(fluid)';
     assert(~any(strcmpi(names, 'krO')), 'Fluid cannot have an oil phase');
     water  = any(strcmpi(names, 'krW'));
