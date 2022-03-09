@@ -4,6 +4,7 @@ classdef OptimizationProblem < BaseEnsemble
         constraints   = [];         % non-linear constraint function(s)or struct containing function(s), scaling etc 
         maps                        % mappings from/to schedule/well structures to/from scaled control-vector
         parameters                  % cell-array of parameter-objects
+        W                           % well-structure used for position/trajectory optimization
         bounds                      % bound constraints for controls 
         objectiveStatFun  = @mean;  % function for computing main objective based on member/realization objectives
         constraintStatFun  = @mean;  
@@ -20,7 +21,7 @@ classdef OptimizationProblem < BaseEnsemble
     properties (SetAccess = protected)
         %background    = false; % 	 % if true, assume run in background, disable plotting
         iterationObjectiveValues     % ResultHandler to objective for each iteration (value/gradient)
-        iterationControls       % ResultHandler to "control" for each iteration
+        iterationControls            % ResultHandler to "control" for each iteration
         memberObjectiveValues        % ResultHandler to objective for each ensemble member for current iteration (value/gradient)
         memberConstraintValues
         iterationConstraintValues
@@ -568,9 +569,13 @@ end
 % Helper functions for well-controls (non-empty 'maps'-prop)
 % -----------------------------------------------------------------
 
-function problem = updateWellControls(problem, u, maps)
+function problem = updateWellControls(problem, u, maps, W)
 schedule = problem.SimulatorSetup.schedule;
-nc = numel(maps.type);
+if isempty(maps)
+    nc = 0;
+else
+    nc = numel(maps.type);
+end
 for k = 1:nc
     [sno, wno, tp] = deal(maps.stepNo(k), maps.wellNo(k), maps.type{k});
     if maps.isTarget(k)
@@ -585,24 +590,47 @@ for k = 1:nc
         schedule.control(sno).W(wno).lims.(tp) = u(k);
     end
 end
-problem.SimulatorSetup.schedule = schedule;
-if isfield(schedule.control(1).W(1), 'posControl') && nc < numel(u)
+%problem.SimulatorSetup.schedule = schedule;
+if isfield(W, 'posControl') && nc < numel(u)
     % trajectory controls
-    W = schedule.control(1).W;
+    % W = schedule.control(1).W;
     pcix = arrayfun(@(w)~isempty(w.posControl), W);
     pc = {W(pcix).posControl};
     ix = nc;
+    % update interpolation points
     for k = 1:numel(pc)
         nParam = pc{k}.parameters.nParam;
         pc{k} =  pc{k}.control2param(u(ix + (1:nParam)));
         ix = ix + nParam;
     end
+    gboModel =  problem.SimulatorSetup.model;
+    if ~isa(gboModel, 'GenericBlackOilModel')
+        gboModel = problem.SimulatorSetup.model.getReservoirModel; 
+    end
+    % update trajectories
+    for ks = 1:numel(schedule.control)
+        for kw = 1:numel(schedule.control(ks).W)
+            if ~isempty(W(kw).posControl)
+                schedule.control(ks).W(kw) = ...
+                    updateWellTrajectory(gboModel, ...
+                        schedule.control(ks).W(kw), [], ...
+                        W(kw).posControl.getTrajectory);
+                % make sure posControl is included in schedule
+                schedule.control(ks).W(kw).posControl = W(kw).posControl;
+            end
+        end
+    end
 end
+problem.SimulatorSetup.schedule = schedule;
 end
 % -----------------------------------------------------------------
 
-function u = fetchWellControlValues(problem, maps)
-u = zeros(numel(maps.type), 1);
+function u = fetchWellControlValues(problem, maps, W)
+if isempty(maps)
+    u = [];
+else
+    u = zeros(numel(maps.type), 1);
+end
 schedule = problem.SimulatorSetup.schedule;
 for k = 1:numel(u)
     [sno, wno, tp] = deal(maps.stepNo(k), maps.wellNo(k), maps.type{k});
@@ -615,9 +643,9 @@ for k = 1:numel(u)
     end
 end
 
-if isfield(schedule.control(1).W(1), 'posControl')
+if isfield(W, 'posControl')
     % position is same over all steps
-    W = schedule.control(1).W;
+    %W = schedule.control(1).W;
     ix = arrayfun(@(w)~isempty(w.posControl), W);
     pc = {W(ix).posControl};
     up = cellfun(@(x)x.param2control(), pc, 'UniformOutput', false);
@@ -661,11 +689,12 @@ end
 
 if ~isempty(opt.setupType)
     % setup simulation/diagnostics problem
-    isWellType  = ~isempty(p.maps);
-    isParamType = ~isempty(p.parameters);
-    assert(isWellType || isParamType, ...
+    isControlType     = ~isempty(p.maps);
+    isParamType    = ~isempty(p.parameters);
+    isPositionType = ~isempty(p.W);
+    assert(isControlType || isParamType || isPositionType, ...
         'Default setup requires either input of ''maps'' or ''parameters''');
-    if isWellType && isParamType
+    if (isControlType || isPositionType) && isParamType
         warning('Can''t work with both well controls and parameters. %s', ...
                 'Parameters will be disregarded');
         p.parameters = [];
@@ -681,35 +710,45 @@ if ~isempty(opt.setupType)
             p.solverFun = @(problem, obj, h, computeGradient) ...
                 diagnosticsSolverFun(problem, obj, 'objectiveHandler', h, ...
                 'computeGradient', computeGradient, ...
-                'parameters', p.parameters);
+                'parameters', p.parameters, 'maps', p.maps, 'W', p.W);
         else
             error('Unknown setup-type: %s', opt.setupType);
         end
     end
     if isempty(p.updateProblemFun)
-        if isWellType    
+        if isControlType || isPositionType   
             p.updateProblemFun = ...
-                @(problem,u)updateWellControls(problem, u, p.maps);
-        else % parameter type
+                @(problem,u)updateWellControls(problem, u, p.maps, p.W);
+        else
             p.updateProblemFun = ...
                 @(problem,u)updateModelParameters(problem, u, p.parameters);
         end
     end
     if isempty(p.fetchVariablesFun)
-        if isWellType 
+        if isControlType || isPositionType
             p.fetchVariablesFun = ...
-                @(problem)fetchWellControlValues(problem, p.maps);
+                @(problem)fetchWellControlValues(problem, p.maps, p.W);
         else% parameter problem
             p.fetchVariablesFun = ...
                 @(problem)fetchParameterValues(problem, p.parameters);
         end
     end
     % deal with bounds
-    if isWellType
+    p.bounds = zeros(2,0);
+    if isControlType
         if ~isempty(p.bounds)
             warning('Disregarding input: ''bounds'' (using maps.bounds)');
         end
         p.bounds = p.maps.bounds;
+    end
+    if isPositionType
+        if ~isempty(p.bounds)
+            warning('Disregarding input: ''bounds'' (using pc.boxes)');
+        end
+        assert(isfield(p.W(1), 'posControl'));
+        pc = vertcat(p.W.posControl);
+        boxes = [pc.boxes];
+        p.bounds = [p.bounds; horzcat(boxes{:})'];
     end
     if isParamType
         if ~isempty(p.bounds)
