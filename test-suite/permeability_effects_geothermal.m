@@ -1,4 +1,4 @@
-function setup = ltates_geothermal(varargin)
+function setup = permeability_effects_geothermal(varargin)
 %Test case illustrating temperature-dependent permeability
 
 %{
@@ -84,7 +84,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state0 = initResSol(G, 100*barsa, 1);
     state0.T = repmat(Tres, G.cells.num, 1);
     
-    plotOptions = {};
+    plotOptions = {'PlotBoxAspectRatio', [1,2,1]   , ...
+                   'Size'              , [430, 720]};
     %---------------------------------------------------------------------%
     
     % Step 3: Pack test case setup
