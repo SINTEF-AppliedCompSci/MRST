@@ -1,4 +1,4 @@
-function [ rho_w0, Ew, Fw ] = coefficients_pure_water( t )
+function [rho_w0, Ew, Fw] = coefficients_pure_water(t)
 %Function that computes the coefficients for equation of state of pure
 %water returns the coefficients Ew and Fw as well as the density of pure
 %water as a function of temperature for the reference pressure p0 = 70 Mpa

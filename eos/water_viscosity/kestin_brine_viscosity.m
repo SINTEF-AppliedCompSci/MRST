@@ -1,4 +1,4 @@
-function [ mu_mPas ] = kestin_brine_viscosity( p, T, c )
+function mu_mPas = kestin_brine_viscosity(p, T, c)
 %Compute the brine viscosity defined by Kestin et al. (1981) ref. Tables of
 %the dynamic and kinematic viscosity of aqueous NaCl solution temperature
 %range 20-150ºC and the pressure range 0.1-35MPa

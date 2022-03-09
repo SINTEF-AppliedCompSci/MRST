@@ -34,49 +34,30 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    % Determine verbosity
+    verbose = mrstVerbose();
     % Pressure
     p       = p./1e6; % conversion from Pa tp MPa 
-    pEOSMin = 0;      % Minimum pressure
-    pEOSMax = 200;    % Maximum pressure
-    pMin    = min(value(p));
-    pMax    = max(value(p));
-    % Trim pressure
-    if pMin < pEOSMin || pMax > pEOSMax
-        warning(['p = (%.0e, %.0e] out of range (%.0e, %.0e], clipping ', ...
-                 'pressure to range'], pMin, pMax, pEOSMin, pEOSMax);
-        p(value(p)<pEOSMin) = pEOSMin;
-        p(value(p)>pEOSMax) = pEOSMax;
-    end
+    pMinEOS = 0;      % Minimum pressure
+    pMaxEOS = 200;    % Maximum pressure
+    % Trim pressure to EOS range
+    p = trimToEOSRange(p, pMinEOS, pMaxEOS, 'pressure', verbose);
     % Temperature
     t       = t-273.15; % Conversion from Kelvin to Celsius
-    tEOSMin = 1e-3;     % Minimum temperature
-    tEOSMax = 275;      % Maximum temperature
-    tMin    = min(value(t));
-    tMax    = max(value(t));
-    % Trim temperature
-    if tMin < tEOSMin || tMax > tEOSMax
-        warning(['T = (%.0f, %.0f] out of range (%.0f, %.0f], clipping ', ...
-                 'temperature to range'], tMin, tMax, tEOSMin, tEOSMax);
-        t(value(t)<tEOSMin) = tEOSMin;
-        t(value(t)>tEOSMax) = tEOSMax;
-    end
+    tMinEOS = 1e-3;     % Minimum temperature
+    tMaxEOS = 275;      % Maximum temperature
+    % Trim temperature to EOS range
+    t = trimToEOSRange(t, tMinEOS, tMaxEOS, 'temperature', verbose);
     % NaCl molality
     mwNaCl        = 0.0584428;     % [kg/mol] Molar weigth of NaCl
     XNaCl         = c;             % Mass fraction of NaCl  
     XW            = 1 - XNaCl;     % Mass fraction of water    
     cNaCl         = XNaCl./XW;     % Concentration of NaCl per kg of water [kg/kg]   
     molNaCl       = cNaCl./mwNaCl; % Molality [mol/kg H2O]
-    molNaClEOSMin = 0;             % Minimum molality
-    molNaClEOSMax = 5.7;           % Maximum molality
-    molNaClMin    = min(value(molNaCl));
-    molNaClMax    = max(value(molNaCl));
-    % Trim NaCl molality
-    if molNaClMin < molNaClEOSMin || molNaClMax > molNaClEOSMax
-        warning(['mol NaCl = (%.0f, %.0f] out of range (%.0f, %.0f], clipping ', ...
-                 'molality to range'], molNaClMin, molNaClMax, molNaClMin, molNaClEOSMax);
-        molNaCl(value(molNaCl)<molNaClEOSMin) = molNaClEOSMin;
-        molNaCl(value(molNaCl)>molNaClEOSMax) = molNaClEOSMax;
-    end
+    molNaClMinEOS = 0;             % Minimum molality
+    molNaClMaxEOS = 5.7;           % Maximum molality
+    % Trim NaCl molality to EOS range
+    molNaCl = trimToEOSRange(molNaCl, molNaClMinEOS, molNaClMaxEOS, 'mol NaCl', verbose);
     % Coefficient for the scaling
     A1 = 0.0173; 
     A2 = 0.068;

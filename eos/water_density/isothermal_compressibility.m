@@ -1,4 +1,4 @@
-function [ I ] = isothermal_compressibility(p,p0,E,F)
+function I = isothermal_compressibility(p, p0, E, F)
 % Function that computes the isothermal compressibility equations (7) and
 % (14) in Spivey et al., 2004
 

@@ -1,4 +1,4 @@
-function [ rhoW ] = density_pure_water(p, t)
+function rhoW = density_pure_water(p, t)
 %Compute density of pure water following Spivey et al., 2004
 %
 % SYNOPSIS:
@@ -33,32 +33,20 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    % Determine verbosity
+    verbose = mrstVerbose();
     % Pressure
-    pEOSMin = 0; % Maximum pressure
-    pEOSMax = 200e6; % Maximum pressure
+    pMinEOS = 0;     % Maximum pressure
+    pMaxEOS = 200e6; % Maximum pressure
     p0      = 70e6;  % [Pa] Reference pressure
-    pMin    = min(value(p));
-    pMax    = max(value(p));
-    % Trim pressure
-    if pMin < pEOSMin || pMax > pEOSMax
-        warning(['p = (%.0e, %.0e] out of range (%.0e, %.0e], clipping ', ...
-                 'pressure to range'], pMin, pMax, pEOSMin, pEOSMax);
-        p(value(p)<pEOSMin) = pEOSMin;
-        p(value(p)>pEOSMax) = pEOSMax;
-    end
+    % Trim pressure to EOS range
+    p = trimToEOSRange(p, pMinEOS, pMaxEOS, 'pressure', verbose);
     % Temperature
     t  = t-273.15;   % Conversion from Kelvin to deg Celsius
-    tEOSMin = 1e-3;  % Minimum temperature
-    tEOSMax = 275;   % Maximum temperaure
-    tMin    = min(value(t));
-    tMax    = max(value(t));
-    % Trim temperature
-    if tMin < tEOSMin || tMax > tEOSMax
-        warning(['T = (%.0f, %.0f] out of range (%.0f, %.0f], clipping ', ...
-                 'temperature to range'], tMin, tMax, tEOSMin, tEOSMax);
-        t(value(t)<tEOSMin) = tEOSMin;
-        t(value(t)>tEOSMax) = tEOSMax;
-    end
+    tMinEOS = 1e-3;  % Minimum temperature
+    tMaxEOS = 275;   % Maximum temperaure
+    % Trim temperature to EOS range
+    t = trimToEOSRange(t, tMinEOS, tMaxEOS, 'temperature', verbose);
     % Get coefficients for pure water
     [rhoW0, Ew, Fw] = coefficients_pure_water( t );
     % Compute isothermal compressibility

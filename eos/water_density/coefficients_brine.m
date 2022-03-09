@@ -1,4 +1,4 @@
-function [ Eb,Fb ] = coefficients_brine(Ew,Fw,mol_NaCl,t)
+function [Eb, Fb] = coefficients_brine(Ew, Fw, mol_NaCl, t)
 %Function that computes the coefficients for the brine equations (12)-(13)
 %in Spivey et al., 2004
 

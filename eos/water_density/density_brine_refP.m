@@ -1,4 +1,4 @@
-function [ rho_b0 ] = density_brine_refP(rho_w0,t,mol_NaCl)
+function rho_b0 = density_brine_refP(rho_w0, t, mol_NaCl)
 %Function that computes the density of brine at the reference pressure
 % (p0 = 70Mpa). Equation 10 in Spivey et al., 2004
 
