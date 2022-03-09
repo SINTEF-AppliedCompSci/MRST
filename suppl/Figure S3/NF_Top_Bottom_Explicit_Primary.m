@@ -49,7 +49,7 @@ z = [facesZcoords_aboveTop, facesZcoords_belowTop(1:end-1),...
                 facesZcoords_between,facesZcoords_aboveBottom(2:end), facesZcoords_belowBottom];
 
 % X-gridding for NF
-[G_NF,frac_ids,well_ids]=explicitStencil(physdim, 'aperture',0.1*ft,...
+[G_NF,frac_ids,well_ids]=explicitStencilSuppl(physdim, 'aperture',0.1*ft,...
                              'numStages',1,'fracSpacing', 200, 'fracHalfLength'  , 39.99,      ...
                              'nxRefine',64,'tipNY',2,'ny',8, 'nz',8, 'gridType','geomspacing'); 
 
@@ -258,8 +258,8 @@ end
 % end
 % QTr = trapz(tinDays,x);
 %% Save Output Variables (Used in HPC).
-if ~opt.shouldPlot
-    fpath =  '/scratch/ahass16/';
-    fullFinalOut = [fpath, 'NF_Top_Bottom_Explicit_Primary.mat'];
-    save(fullFinalOut,'ws''schedule','G_matrix');
-end
+% if ~opt.shouldPlot
+%     fpath =  '/scratch/ahass16/';
+%     fullFinalOut = [fpath, 'NF_Top_Bottom_Explicit_Primary.mat'];
+%     save(fullFinalOut,'ws''schedule','G_matrix');
+% end
