@@ -16,9 +16,9 @@ function [S, operators] = VEM_assemble(G, C, varargin)
 %   S = |E| W_c D W_c^T + (I - P_P)^T s (I - P_P)
 %
 % PARAMETERS:
-%   G        - Grid (2D or 3D) C        - matrix where each row represents
-%              the elasticity tensor for the grid cell corresponding to
-%              that row
+%   G        - Grid (2D or 3D) 
+%   C        - matrix where each row represents the elasticity tensor for 
+%              the grid cell corresponding to that row
 %   varargin - options are:
 %              'blocksize' - size of blocks (# of cells) for vectorized
 %              calc.
@@ -242,6 +242,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             operators.volmap = volmap; 
             operators.D      = D;
             operators.WC     = WC;
+            operators.NC     = NC;
             operators.KH     = KH;
             operators.SE     = SE;
             operators.PP     = PP;
