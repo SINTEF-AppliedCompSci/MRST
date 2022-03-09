@@ -286,7 +286,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Surface plot button
         surfToggle = uitoggletool(ht, 'TooltipString', 'Surface plot',...
                        'ClickedCallback', @replotPatch,...
-                       'cdata', geticon('outline'), 'State', boolToOnOff(opt.surf));
+                       'cdata', geticon('surf'), 'State', boolToOnOff(opt.surf));
     end
     
     % Histogram button
