@@ -58,7 +58,7 @@ function props  = getReservoirProperties(model, state, bc)
         Thr = model.operators.Thr_all(faces);
     end
     if iscell(s)
-        s = getSrcVal(s);
+        s = getBCVal(s);
         s = {s};
     else
         s = s(cells,:);
