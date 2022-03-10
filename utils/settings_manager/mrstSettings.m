@@ -199,53 +199,16 @@ function settings = firstTimeSetup(settings, isDesktop, doWizard)
         if mrstPlatform('octave')
             doWizard = false;
         else
-            doWizard = prompt('MRST settings', ...
-                ['MRST has several advanced configuration settings. Would you like to', ...
-                ' set these up now? Otherwise, these settings will use reasonable defaults', ...
-                ' and can be configured by calling ''mrstSettings'' later.'], isDesktop);
+%             doWizard = prompt('MRST settings', ...
+%                 ['MRST has several advanced configuration settings. Would you like to', ...
+%                 ' set these up now? Otherwise, these settings will use reasonable defaults', ...
+%                 ' and can be configured by calling ''mrstSettings'' later.'], isDesktop);
+            doWizard = true;
         end
     end
     if doWizard
         if isDesktop
-            [names, folders, folderTexts] = getNames(settings);
-            for i = 1:numel(names)
-                name = names{i};
-                v = settings.(name);
-                c = v.value;
-                l = v.label;
-                de = v.description;
-                if isempty(de)
-                    de = l;
-                end
-                helpstr = sprintf('%s:\n%s\n', l, de);
-
-                if v.defaulted
-                    s = 'default';
-                else
-                    s = 'current';
-                end
-                if c
-                    tmp = 'Enabled';
-                else
-                    tmp = 'Disabled';
-                end
-                defstr = sprintf('Keep %s (%s)', s, tmp);
-                result = triplePrompt(name, helpstr, {true, false, nan}, {'Enable', 'Disable', defstr}, defstr);
-                if ~isnan(result)
-                    settings.(name).value = result;
-                    settings.(name).defaulted = false;
-                end
-            end
-            for i = 1:numel(folders)
-                name = folders{i};
-                helpstr = sprintf('Choose current %s:\n%s', name, folderTexts{i});
-                result = triplePrompt(name, helpstr, {true, false}, {'Select new', 'Keep current'}, 'Keep current');
-                if ~isnan(result) && result
-                    current = settings.(name);
-                    selpath = uigetdir(current, sprintf('Set new MRST directory: %s', name));
-                    settings.(name) = selpath;
-                end
-            end
+            mrstSettingsGUI
         else
             % Use simple version
             mrstSettings list
@@ -373,7 +336,7 @@ end
 
 function storeSettings(settings)
     pth = getSettingsPath();
-    save(pth, '-struct', 'settings');
+    save(pth, 'settings');
 end
 
 function pth = getSettingsPath()
@@ -394,7 +357,7 @@ function checkSetting(SETTINGS, setting)
 end
 
 % Setting up defaults 
-function opts = getDefaultMRSTSettings(setDefaults)
+function settings = getDefaultMRSTSettings(setDefaults)
     % This should run once!
     if nargin == 0
         setDefaults = true;
@@ -430,6 +393,15 @@ function opts = getDefaultMRSTSettings(setDefaults)
     opts = setDefaultSetting(opts, 'useHash', 'Use hashing for consistency checks and comparing simulation setups', ...
         ['MRST will use md5 checksums of simulation setups in the AD-OO framework.', ...
         ' This makes it easy to detect differences between setups, verify that discrete operators are consistent with the grid and rock, etc.'], false);
+    
+    settings = settingsStruct();
+    settings.outputDirectory = opts.outputDirectory;
+    settings.dataDirectory = opts.dataDirectory;    
+    settings.useMEX = opts.useMEX;
+    settings.useOMP = opts.useOMP;        
+    settings.promptMEX = opts.promptMEX;
+    settings.allowDL = opts.allowDL;        
+    settings.promptDL = opts.promptDL;      
 end
 
 function opt = getDefaultSetting(label, description, default)
