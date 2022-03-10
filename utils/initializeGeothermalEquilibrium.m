@@ -116,22 +116,15 @@ function [p,T,sol] = solveODE(dpdz, dTdz, p0, T0, z, z0)
     odeopts = odeset('AbsTol', 1.0e-10, 'RelTol', 5.0e-8);
     % Solve ODE
     [solUp, solDown] = deal([]);
-    if z0 < min(z)
-        % Integrate from z0 to bottom
-        zlimDown = [z0, max(z)];    
-        solDown  = ode45(dydz, zlimDown, y0, odeopts);
-    elseif z0 > max(z)
-        % Integrate from z0 to top
+    if z0 > min(z)
         zlimUp = [z0, min(z)];
         solUp  = ode45(dydz, zlimUp, y0, odeopts);
-    else
-        % Integrate from z0 to top
-        zlimUp = [z0, min(z)];
-        solUp  = ode45(dydz, zlimUp, y0, odeopts);
-        % Integrate from z0 to bottom
+    end
+    if z0 < max(z)
         zlimDown = [z0, max(z)];
         solDown  = ode45(dydz, zlimDown, y0, odeopts);
     end
+    assert(~(isempty(solUp) && isempty(solDown)), 'Something went wrong');
     % Evaluate in cells
     [p,T] = evaluateFn(solUp, solDown, z0, z);
     sol   = @(z) evaluateFn(solUp, solDown, z);
@@ -146,12 +139,12 @@ function [p, T] = evaluateFn(solTop, solBot, z0, z)
     
     top = z < z0;
     if any(top) && ~isempty(solTop)
-        y = deval(solTop, z); p(top) = y(1,:); T(top) = y(2,:);
+        y = deval(solTop, z(top)); p(top) = y(1,:); T(top) = y(2,:);
     end
     
     bot = z > z0;
     if any(bot) && ~isempty(solBot)
-        y = deval(solBot, z); p(bot) = y(1,:); T(bot) = y(2,:)';
+        y = deval(solBot, z(bot)); p(bot) = y(1,:); T(bot) = y(2,:)';
     end
     
 end
