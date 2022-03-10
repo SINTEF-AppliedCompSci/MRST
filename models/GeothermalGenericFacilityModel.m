@@ -185,26 +185,79 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             
         end
         
+        %-----------------------------------------------------------------%
         function state = setWellValuesFromGroupControls(model, state0, state, dt, drivingForces)
         % Set well values for all wells that operates under group control
         
             % Check if groups are present
-            groups = drivingForces.groups;
-            ng     = numel(groups);
+            groupCtrls = drivingForces.groups;
+            ng         = numel(groupCtrls);
             if ng == 0, return; end
             % Compute well potential
             pot = model.computeWellPotential(state);
+            
+            groupCtrls = model.processGroups(groupCtrls, state, pot);
+            ng         = numel(groupCtrls);
             % Loop through groups and update well controls
             for g = 1:ng
-                group = groups{g};
-                switch group.ctrlType
+                groupCtrl = groupCtrls{g};
+                if ~isfield(groupCtrl, 'ctrlType'), continue; end
+                switch groupCtrl.ctrlType
                     case 'rate'
-                        state = model.setGroupWellRates(group, state, pot);
+                        state = model.setGroupWellRates(groupCtrl, state, pot);
                     otherwise
                         error('Group control type not supported');
                 end
             end
             
+        end
+        
+        %-----------------------------------------------------------------%
+        function groupCtrls = processGroups(model, groupCtrls, state, pot)
+            
+            ng = numel(groupCtrls);
+            groupCtrls0 = groupCtrls;
+            groupNames = cellfun(@(groupCtrl) groupCtrl.group, groupCtrls0, 'UniformOutput', false);
+            for i = 1:ng
+                groupCtrl = groupCtrls0{i};
+                groupCtrls{i} = {groupCtrl};
+                if ~isfield(groupCtrl, 'subGroups'), continue; end
+                if ~isfield(groupCtrl, 'ctrlType'), continue; end
+                subGroupCtrls = groupCtrl.subGroups;
+                nsg = numel(subGroupCtrls);
+                subGroupPot = zeros(1, nsg);
+                for j = 1:nsg
+                    subGroupCtrl = subGroupCtrls{j};
+                    mask = model.getGroupMask(state, subGroupCtrl);
+                    subGroupPot(j) = sum(pot(mask));
+                    subGroupCtrls{j} = struct('group'      , subGroupCtrl      , ...
+                                              'ctrlType'   , groupCtrl.ctrlType, ...
+                                              'ctrlVal'    , groupCtrl.ctrlVal , ...
+                                              'ctrlValFrac', nan           , ...
+                                              'T'          , groupCtrl.T       );
+                end
+                groupPot = sum(subGroupPot);
+                for j = 1:nsg
+                    subGroupCtrl = subGroupCtrls{j};
+                    subGroupCtrl.ctrlValFrac = subGroupPot(j)./groupPot;
+                    subGroupCtrls{j} = subGroupCtrl;
+                end
+                groupCtrls{i} = subGroupCtrls;
+            end
+            groupCtrls = horzcat(groupCtrls{:});
+            
+            ng = numel(groupCtrls);
+            for i = 1:ng
+                groupCtrl = groupCtrls{i};
+                if ~isfield(groupCtrl, 'ctrlType'), continue; end
+                if ischar(groupCtrl.ctrlVal)
+                    gix = strcmpi(groupCtrl.ctrlVal, groupNames);
+                    if isfield(groupCtrls0{gix}, 'subGroups')
+                        groupCtrl.ctrlVal = groupCtrls0{gix}.subGroups;
+                    end
+                end
+                groupCtrls{i} = groupCtrl;
+            end
         end
         
         %-----------------------------------------------------------------%
@@ -221,7 +274,7 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             % Get well rates and temperatures for all wells in group
             q = model.getWellRates(state);
             T = model.getWellTemperatures(state);
-            if ischar(groupCtrl.ctrlVal)
+            if ischar(groupCtrl.ctrlVal) || iscell(groupCtrl.ctrlVal)
                 % Control value is the name of another group - this means
                 % that we aim at a group rate equal to that groups rate,
                 % with opposite sign
@@ -232,6 +285,9 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
                 % Control value is a numeric variable
                 qtot = groupCtrl.ctrlVal;
                 Ttot = groupCtrl.T;
+            end
+            if isfield(groupCtrl, 'ctrlValFrac')
+                qtot = qtot*groupCtrl.ctrlValFrac;
             end
             % Loop through wells in group
             active = true(numel(wsg),1);
@@ -282,11 +338,15 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
         end
         
         %-----------------------------------------------------------------%
-        function mask = getGroupMask(model, state, name)
+        function mask = getGroupMask(model, state, names)
         % Get logical mask into wellSol for a given group
         
             map  = model.getProp(state, 'FacilityWellMapping');
-            mask = arrayfun(@(W) strcmpi(W.group, name), map.W);
+            if ~iscell(names), names = {names}; end
+            mask = false;
+            for i = 1:numel(names)
+                mask = mask | arrayfun(@(W) strcmpi(W.group, names{i}), map.W);
+            end
             
         end
         
