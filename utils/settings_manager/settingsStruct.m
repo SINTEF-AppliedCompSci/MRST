@@ -1,4 +1,4 @@
-classdef settingsStruct < handle 
+classdef settingsStruct < handle
     properties
         allowDL
         dataDirectory
