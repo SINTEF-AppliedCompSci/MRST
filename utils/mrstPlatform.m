@@ -77,24 +77,27 @@ end
 function setting = get_specific_setting(config, setting)
    if isfield(config, setting)
       setting = config.(setting);
-
    else
-      settings = sort(fieldnames(config));
-      ix = find(strncmpi(settings, setting, numel(char(setting))));
+      setting = get_specific_setting_from_prefix(config, setting);
+   end
+end
 
-      if numel(ix) == 1
-         setting = config.(settings{ix});
+%--------------------------------------------------------------------------
 
-      elseif isempty(ix)
-         supported = sprintf('\n  * ''%s''', settings{:});
-         error('Unsupported setting name ''%s''.  Must be one of\n%s', ...
-               setting, supported);
+function setting = get_specific_setting_from_prefix(config, setting)
+   settings = fieldnames(config);
+   ix = find(strncmpi(settings, setting, numel(char(setting))));
 
-      else
-         matches = sprintf('\n  * ''%s''', settings{ix});
-         error(['Ambiguous setting name ''%s''.  Could be one of%s\n', ...
-                'Please disambiguate'], setting, matches);
-      end
+   if numel(ix) == 1
+      setting = config.(settings{ix});
+
+   elseif isempty(ix)
+      error('Unsupported setting name ''%s''.  Must be one of\n%s', ...
+            setting, stringify_settings_list(settings));
+   else
+      error(['Ambiguous setting name ''%s''.  Could be one of\n%s', ...
+             '\n\nPlease disambiguate'], setting, ...
+             stringify_settings_list(settings(ix)));
    end
 end
 
@@ -146,6 +149,13 @@ function s = get_config(ver_struct, varargin)
                'richtext',      false);
 
    s = merge_options(s, varargin{:});
+end
+
+%--------------------------------------------------------------------------
+
+function s = stringify_settings_list(settings)
+   settings = sort(settings);
+   s = sprintf('\n  * ''%s''', settings{:});
 end
 
 %--------------------------------------------------------------------------
