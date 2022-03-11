@@ -55,18 +55,27 @@ classdef mrstSettingsGUI < matlab.apps.AppBase
     
 
     methods (Access = private)
-
-        % Code that executes after component creation
-        function startupFcn(app)
-      
-        end
+% 
+%         % Code that executes after component creation
+%         function startupFcn(app)
+%       
+%         end
 
         % Button pushed function: BrowseButton_OutputDir
         function BrowseButton_OutputDirPushed(app, event)
             selpath = uigetdir(app.tempSettings.outputDirectory,'Choose mrstOutputDirectory');
-            app.tempSettings.outputDirectory = selpath;
-            app.TextArea_OutputDir.Value = {'This is the directory where MRST will save generated output such as simulation results.'; ...
-                ''; 'New mrstOutputDirectory: '; app.tempSettings.outputDirectory};
+            if selpath == 0
+                msg = {'This is the directory where MRST will save generated output such as simulation results.'; ...
+                ''; 'Directory has not been changed. mrstOutputDirectory: '; app.tempSettings.outputDirectory};
+                app.TextArea_OutputDir.Value = msg; 
+            else
+                app.tempSettings.outputDirectory = selpath;                
+                msg = {'This is the directory where MRST will save generated output such as simulation results.'; ...
+                ''; 'mrstOutputDirectory: '; app.tempSettings.outputDirectory};
+                app.TextArea_OutputDir.Value = msg;            
+            end
+
+
             app.UIFigure.Visible = 'off';
             app.UIFigure.Visible = 'on';
         
@@ -75,9 +84,17 @@ classdef mrstSettingsGUI < matlab.apps.AppBase
         % Button pushed function: BrowseButton_DataDir
         function BrowseButton_DataDirPushed(app, event)
             selpath = uigetdir(app.tempSettings.dataDirectory,'Choose mrstDataDirectory');
-            app.tempSettings.dataDirectory = selpath;
-            app.TextArea_DataDir.Value = {'This is the directory where MRST will save downloaded datasets (geological models, grids, etc) for simulations.';...
-                ''; 'Current mrstDataDirectory: '; app.tempSettings.dataDirectory};
+            if selpath == 0
+                msg = {'This is the directory where MRST will save downloaded datasets (geological models, grids, etc) for simulations.';...
+                ''; 'Directory has not been changed. mrstDataDirectory: '; app.tempSettings.dataDirectory};
+            else
+                app.tempSettings.dataDirectory = selpath;                
+                msg = {'This is the directory where MRST will save downloaded datasets (geological models, grids, etc) for simulations.';...
+                ''; 'mrstDataDirectory: '; app.tempSettings.dataDirectory};
+                app.TextArea_DataDir.Value = msg;            
+            end
+
+
             app.UIFigure.Visible = 'off';
             app.UIFigure.Visible = 'on';
         end
@@ -451,9 +468,10 @@ classdef mrstSettingsGUI < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = mrstSettingsGUI(varargin)
+        function app = mrstSettingsGUI(settings)
             
-            app.settingsHandle = mrstSettings();
+            app.settingsHandle = settings;
+
             
             app.tempSettings.outputDirectory = app.settingsHandle.outputDirectory;
             app.tempSettings.dataDirectory = app.settingsHandle.dataDirectory;
@@ -470,7 +488,7 @@ classdef mrstSettingsGUI < matlab.apps.AppBase
             registerApp(app, app.UIFigure)
 
 %             % Execute the startup function
-             runStartupFcn(app, @(app)startupFcn(app, varargin{:}))
+%              runStartupFcn(app, @(app)startupFcn(app, varargin{:}))
 
             if nargout == 0
                 clear app
