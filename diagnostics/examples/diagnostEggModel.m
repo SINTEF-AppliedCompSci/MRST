@@ -12,7 +12,7 @@
 %% We first solve the base case using a pressure solver
 % Set up pressure solver and solve base case.
 mrstModule add deckformat ad-blackoil ad-core ...
-   sequential diagnostics example-suite
+   sequential diagnostics test-suite
 
 [G, rock, fluid, deck, state0] = setupEGG('realization', 0);
 model = PressureOilWaterModel(G, rock, fluid);
