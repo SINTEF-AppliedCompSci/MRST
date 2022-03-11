@@ -177,9 +177,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     varargout{2} = setting;
                 end
             end
+        case 'gui'
+            % Load GUI with current settings
+            if isDesktop
+                mrstSettingsGUI(SETTINGS);
+            else
+                listSettings(SETTINGS, isDesktop)
+            end
+            need_save = true;            
         case 'list'
             % Default
-            listSettings(SETTINGS, isDesktop)
+            listSettings(SETTINGS, isDesktop)            
         case ''
             varargout{1} = SETTINGS;
         otherwise
@@ -208,7 +216,7 @@ function settings = firstTimeSetup(settings, isDesktop, doWizard)
     end
     if doWizard
         if isDesktop
-            mrstSettingsGUI
+            mrstSettingsGUI(settings);
         else
             % Use simple version
             mrstSettings list
