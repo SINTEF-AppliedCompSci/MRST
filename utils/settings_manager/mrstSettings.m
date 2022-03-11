@@ -207,10 +207,10 @@ function settings = firstTimeSetup(settings, isDesktop, doWizard)
         if mrstPlatform('octave')
             doWizard = false;
         else
-%             doWizard = prompt('MRST settings', ...
-%                 ['MRST has several advanced configuration settings. Would you like to', ...
-%                 ' set these up now? Otherwise, these settings will use reasonable defaults', ...
-%                 ' and can be configured by calling ''mrstSettings'' later.'], isDesktop);
+            doWizard = prompt('MRST settings', ...
+                ['MRST has several advanced configuration settings. Would you like to', ...
+                ' set these up now? Otherwise, these settings will use reasonable defaults', ...
+                ' and can be configured by calling ''mrstSettings'' later.'], isDesktop);
             doWizard = true;
         end
     end
@@ -331,7 +331,8 @@ function settings = loadSettings()
     pth = getSettingsPath();
     present = exist(pth, 'file');
     if present
-        settings = load(pth);
+        tmp = load(pth);
+        settings = tmp.settings;
     else
         settings = [];
     end
