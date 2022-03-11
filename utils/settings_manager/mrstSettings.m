@@ -30,6 +30,8 @@ function varargout = mrstSettings(verb, varargin)
 %   mrstSettings('setup', 'reset')
 %   % Perform setup wizard
 %   mrstSettings('setup')
+%   % Load gui directly
+%   mrstSettings('gui')
 %   % Set option
 %   mrstSettings('set', 'useMEX', true)
 %   % Query a setting
@@ -332,7 +334,12 @@ function settings = loadSettings()
     present = exist(pth, 'file');
     if present
         tmp = load(pth);
-        settings = tmp.settings;
+        if isstruct(tmp)
+            % Convert old saved settings to settingsStruct 
+            settings = struct2settings(tmp);
+        else
+            settings = tmp.settings;
+        end
     else
         settings = [];
     end
