@@ -41,7 +41,7 @@ function varargout = leastsq_svd(varargin)
 %   except for round-off errors.  Rank deficient matrices are supported.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

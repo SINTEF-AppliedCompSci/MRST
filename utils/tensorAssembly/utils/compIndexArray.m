@@ -15,7 +15,7 @@ function iseq = compIndexArray(tbl1, tbl2)
 %   iseq - true if equal false otherwise
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

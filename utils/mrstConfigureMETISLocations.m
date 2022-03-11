@@ -41,7 +41,7 @@ function varargout = mrstConfigureMETISLocations(varargin)
 %   mrstDefaultMexFlags, buildmex, mex.
 
 %{
-Copyright 2020-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2020-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
