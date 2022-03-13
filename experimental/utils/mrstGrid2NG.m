@@ -2,7 +2,7 @@ function geometry=mrstGrid2NG(G)
 %Undocumented Utility Function
 
 %{ 
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 %}
 
 geometry = struct(); 

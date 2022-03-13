@@ -2,7 +2,7 @@ function [cno, nno, hfno, fno,w]  = createVEMappings(g)
 %Undocumented Utilty Function
 
 %{ 
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 %}
 
    %% Create mapping from sub-half-face to cell, node, face, half-face and
