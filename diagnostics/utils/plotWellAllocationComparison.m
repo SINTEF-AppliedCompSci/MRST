@@ -31,7 +31,7 @@ function plotWellAllocationComparison(D1, WP1, D2, WP2, varargin)
 %   `computeTOFandTracer`, `computeWellParis`, `expandWellCompletions`
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
