@@ -87,7 +87,7 @@ function [resSol, report] = twophaseUpwFEGrav(resSol, G, tf, q, flux, grav, ...
 %   - implement gravity effects for pressure boundary and wells
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -243,7 +243,7 @@ function [w_inx, o_inx] = findFaceMobIx( ...
 %   `initFaceMob`, `twophaseUpwFEGrav`, `twophaseUpwBEGrav`.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

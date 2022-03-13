@@ -56,7 +56,7 @@ function [uu, extra] = VEM_linElast_AD(G, E, nu, el_bc, load, varargin)
 %
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

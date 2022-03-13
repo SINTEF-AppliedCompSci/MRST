@@ -23,7 +23,7 @@ function properties = constantProperties(mu, rho)
 %        accepts any number of input arguments.  All arguments are ignored.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
