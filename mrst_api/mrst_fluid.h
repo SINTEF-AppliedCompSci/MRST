@@ -12,7 +12,7 @@
 
 
 /*
-  Copyright 2011-2021 SINTEF Digital, Mathematics & Cybernetics.
+  Copyright 2011-2022 SINTEF Digital, Mathematics & Cybernetics.
 */
 
 #ifndef MRST_FLUID_H_HEADER

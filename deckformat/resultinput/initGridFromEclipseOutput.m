@@ -25,7 +25,7 @@ function [G, rock, N, T] = initGridFromEclipseOutput(init, grid, varargin)
 % Gs    -   Minimal grid directly
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
