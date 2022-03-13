@@ -11,7 +11,7 @@ function name = propFilename(P_range, T_range, P_num, T_num, fluid, prop)
 end
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -45,7 +45,7 @@ function bG = boCO2(T_ref, rhoG, varargin)
 %  `CO2props`, `SampledProp2D`
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

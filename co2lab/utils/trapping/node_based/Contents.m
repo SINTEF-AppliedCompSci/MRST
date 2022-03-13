@@ -4,7 +4,7 @@
 %   computeNodeTraps - Compute tracks and spill regions for the 2D surface grid 'Gt'.  The
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

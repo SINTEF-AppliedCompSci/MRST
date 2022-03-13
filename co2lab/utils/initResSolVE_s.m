@@ -3,7 +3,7 @@ function resSol = initResSolVE_s(G, p0, s0, varargin)
 % vertical-equil module solvers. See resSol for details of valid
 % arguments.
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

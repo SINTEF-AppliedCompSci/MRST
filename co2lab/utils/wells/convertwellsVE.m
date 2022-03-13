@@ -12,7 +12,7 @@ function W = convertwellsVE(W, G, Gt, rock2D, varargin)
 % one logical index in ij-plane.
 %
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

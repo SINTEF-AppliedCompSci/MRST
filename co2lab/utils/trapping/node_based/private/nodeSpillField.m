@@ -36,7 +36,7 @@ function [uslp_neigh, region, spill_edges] = nodeSpillField(Gt, closed_bnodes, c
 %                    Col 7: index of edge's second node
 %
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

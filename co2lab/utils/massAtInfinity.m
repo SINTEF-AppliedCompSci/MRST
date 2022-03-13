@@ -39,7 +39,7 @@ function [ will_stay, will_leak ] = massAtInfinity( Gt, rock, p, sG, sGmax, sF, 
 %               2. amount forecast to leak at time infinity (will_leak)
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
