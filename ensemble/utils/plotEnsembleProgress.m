@@ -2,7 +2,7 @@ function h = plotEnsembleProgress(ensemble, progress, range, h, varargin)
 % Utility function for creating progress bars for running ensembles.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

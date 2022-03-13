@@ -4,7 +4,7 @@ function problem = getSubSchedule(problem, steps)
 % Useful for e.g. when the schedule read from a deck.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
