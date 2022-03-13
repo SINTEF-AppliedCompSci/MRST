@@ -4,7 +4,7 @@
 % simplified flow physics and well placement.
 %
 % To calibrate the model, we specify a training simulation with oscillatory
-% well controls and use the Broyden–Fletcher–Goldfarb–Shanno (BFGS)
+% well controls and use the BroydenÂ–FletcherÂ–GoldfarbÂ–Shanno (BFGS)
 % algorithm. This is an iterative line-search method that gradually
 % improves an approximation to the Hessian matrix of the mismatch function,
 % obtained only from adjoint gradients via a generalized secant method.
@@ -240,7 +240,7 @@ set(fh, 'name','OLYMPUS: GPSNet prediction')
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

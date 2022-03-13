@@ -3,7 +3,7 @@
 % graph topology and corresponding parameters initialized based on a coarse
 % partition of the full corner-point grid of the Norne field model.
 %
-% To calibrate the model, we use the Broyden–Fletcher–Goldfarb–Shanno
+% To calibrate the model, we use the BroydenÂ–FletcherÂ–GoldfarbÂ–Shanno
 % (BFGS) algorithm. This is an iterative line-search method that gradually
 % improves an approximation to the Hessian matrix of the mismatch function,
 % obtained only from adjoint gradients via a generalized secant method.
@@ -193,7 +193,7 @@ set(fh, 'name','Norne')
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
