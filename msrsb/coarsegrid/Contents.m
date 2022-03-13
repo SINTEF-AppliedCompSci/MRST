@@ -8,7 +8,7 @@
 %   storeInteractionRegionCart - Store MPFA-like interaction region for coarse grid made from logical partitioning.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

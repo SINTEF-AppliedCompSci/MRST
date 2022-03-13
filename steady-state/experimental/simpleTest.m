@@ -160,7 +160,7 @@ fprintf('Max norm pc:  %1.2e\n', maxNorm);
 %%
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

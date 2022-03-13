@@ -53,7 +53,7 @@ function T_coarse = localTransmissibilityUpscale(CG, trans, varargin)
 %       it will be zero at the boundary.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

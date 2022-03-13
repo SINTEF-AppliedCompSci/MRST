@@ -4,7 +4,7 @@ function [Gp, bcp] = makePeriodicGridMulti3d(G, bcl, bcr, dprl, varargin)
 % delta pressure over periodic edges
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

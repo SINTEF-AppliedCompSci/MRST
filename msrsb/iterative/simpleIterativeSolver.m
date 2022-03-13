@@ -2,7 +2,7 @@ function [x, flag, res, itNo, resvec] = simpleIterativeSolver(A, q, tol, it, pre
 % Simple preconditioned iterative solver with same syntax as GMRES
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

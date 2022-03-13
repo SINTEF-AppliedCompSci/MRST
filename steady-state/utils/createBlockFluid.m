@@ -2,7 +2,7 @@ function BFluid = createBlockFluid(fluid, cells)
 % Extracting the fluid for the current coarse cell only.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
