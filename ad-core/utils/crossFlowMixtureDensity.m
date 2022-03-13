@@ -2,7 +2,7 @@ function rhoMix = crossFlowMixtureDensity(massFlux, volumeTotalFlux, massFluxFro
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -8,7 +8,7 @@ function setup = spe10_layer_compositional(varargin)
 % DESCRIPTION:
 %   Setup of a water-alternating gas injection scenario posed on in Layer 1
 %   of SPE10 Model 2 using a six-component model. The example is taken from
-%   Moncorgé et al., JCP, 2018, doi: 10.1016/j.jcp.2018.05.048.
+%   MoncorgÃ© et al., JCP, 2018, doi: 10.1016/j.jcp.2018.05.048.
 %
 %   Configurable parameter:
 %      'dt'     - uniform time step size (default: 25 days)
@@ -23,7 +23,7 @@ function setup = spe10_layer_compositional(varargin)
 %   TestCase, testcase_template, testSuiteTutorial.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -43,7 +43,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % One-line description
     description ...
         = ['Water-alternating gas injection in layer 1 of SPE10 Model 2 ', ...
-           'using a six-component model. Example from Moncorgé et al, '  , ...
+           'using a six-component model. Example from MoncorgÃ© et al, '  , ...
            'J. Comput. Phys., 2018, doi: 10.1016/j.jcp.2018.05.048'      ];
 
     % Optional input arguments
