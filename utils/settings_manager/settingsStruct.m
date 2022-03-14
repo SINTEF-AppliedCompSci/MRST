@@ -1,4 +1,4 @@
-classdef settingsStruct < handle 
+classdef settingsStruct < handle
     properties
         allowDL
         dataDirectory
@@ -7,6 +7,7 @@ classdef settingsStruct < handle
         promptMEX
         useMEX
         useOMP
+        useHash
     end
 
     methods
@@ -20,16 +21,25 @@ classdef settingsStruct < handle
     end
 
    methods (Access = private)
+       
+      function [allprops,names,folders] = getSettingsProps(settings)
+          % Current list of properties
+           names = {'allowDL', 'dataDirectory', 'outputDirectory', ...
+          'promptDL', 'promptMEX', 'useMEX', 'useOMP', 'useHash'};
+          folders = {'outputDirectory', 'dataDirectory'};
+          allprops = [names,folders];
+      end      
+      
       function val = isfield_matlab(settings, fname)
          val = settingsStruct.isfield_impl(properties(settings), fname);
       end
 
       function val = isfield_octave(~, fname)
-         props = {'allowDL', 'dataDirectory', 'outputDirectory', ...
-                  'promptDL', 'promptMEX', 'useMEX', 'useOMP'};
 
+         props = getSettingsProps(settings);
          val = settingsStruct.isfield_impl(props, fname);
       end
+          
    end
 
    methods (Access = private, Static)

@@ -344,6 +344,12 @@ function settings = loadSettings()
             % Convert old saved settings to settingsStruct 
             settings = struct2settings(tmp);
         end
+        
+        if isempty(settings.useHash)
+            settings = setDefaultSetting(settings, 'useHash', 'Use hashing for consistency checks and comparing simulation setups', ...
+             ['MRST will use md5 checksums of simulation setups in the AD-OO framework.', ... %
+            ' This makes it easy to detect differences between setups, verify that discrete operators are consistent with the grid and rock, etc.'], false);
+        end
     else
         settings = [];
     end
@@ -422,6 +428,7 @@ function settings = getDefaultMRSTSettings(setDefaults)
     settings.promptMEX = opts.promptMEX;
     settings.allowDL = opts.allowDL;        
     settings.promptDL = opts.promptDL;      
+    settings.useHash = opts.useHash;        
 end
 
 function opt = getDefaultSetting(label, description, default)
