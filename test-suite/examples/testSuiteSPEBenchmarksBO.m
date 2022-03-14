@@ -10,10 +10,10 @@ checkHashSettings();
 %% Simulate three SPE benchmarks
 names = {'spe1_bo', 'spe3_bo', 'spe9_bo'};
 for name = names
-    test = TestCase(name{1});                    % Get test case
-    test.plot(); drawnow, pause(1);              % Plot test case
-    problem = test.getPackedSimulationProblem(); % Get problem
-    simulatePackedProblem(problem);                 % Simulate
+    test = TestCase(name{1});                         % Get test case
+    test.plot(); drawnow, pause(1);                   % Plot test case
+    problem = test.getPackedSimulationProblem();      % Get problem
+    simulatePackedProblem(problem, 'restartStep', 1); % Simulate
     % Plot results
     [wellSols, states] = getPackedSimulatorOutput(problem);
     test.plot(states); plotWellSols(wellSols);

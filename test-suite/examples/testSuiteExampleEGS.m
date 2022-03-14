@@ -19,7 +19,7 @@ camlight(); axis off
 
 %% Simulate problem
 problem = test.getPackedSimulationProblem('useHash', true);
-simulatePackedProblem(problem);
+simulatePackedProblem(problem, 'restartStep', 1);
 
 %% Simulate with different rock properties
 test2 = test;
@@ -29,7 +29,7 @@ test2.model.rock.lambdaR = test2.model.rock.lambdaR*5;
 test2.model = test2.model.setupOperators();
 % Simulate problem
 problem2 = test2.getPackedSimulationProblem('useHash', true);
-simulatePackedProblem(problem2);
+simulatePackedProblem(problem2, 'restartStep', 1);
 
 %% Plot solutions
 [wellSols , states , reports ] = getPackedSimulatorOutput(problem);

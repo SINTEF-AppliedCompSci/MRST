@@ -51,7 +51,7 @@ hash = test.getTestCaseHash();      disp(hash)
 % running a test case.
 test = TestCase('qfs_wo', 'nkr', 2, 'ncells', 75); % Quadr relperms, [75,75] cells
 problem = test.getPackedSimulationProblem();       % Get test case problem
-simulatePackedProblem(problem);                    % Simulate
+simulatePackedProblem(problem, 'restartStep', 1);  % Simulate
 
 %% Visualizing the test case
 % The TestCase method plot wraps around plotToolbar and generates visually

@@ -18,7 +18,7 @@ test = TestCase('spe10_wo', 'layers', 13          ); test.plot(); % Layer 13
 % We run the test for layer 13 using a nonlinear solver with line search
 nls = NonLinearSolver('useLineSearch', true);
 problem = test.getPackedSimulationProblem('NonLinearSolver', nls, 'useHash', true);
-simulatePackedProblem(problem);
+simulatePackedProblem(problem, 'restartStep', 1);
 
 %% Run a modified version of the test
 % We then modify the test by shutting in one of the producers and lowering
@@ -30,7 +30,7 @@ test2.schedule.control(1).W(2).status = false; % Shut in well P2
 test2.schedule.control(1).W(5).val ...         % Reduce injection rate
     = test2.schedule.control(1).W(5).val*0.5;
 problem2 = test2.getPackedSimulationProblem('NonLinearSolver', nls, 'useHash', true);
-simulatePackedProblem(problem2);
+simulatePackedProblem(problem2, 'restartStep', 1);
 
 %% Load and compare results
 [~, states ] = getPackedSimulatorOutput(problem );

@@ -24,7 +24,7 @@ colormap(pink);
 
 %% Simulate FI problem
 problemFI = testFI.getPackedSimulationProblem('useHash', true);
-simulatePackedProblem(problemFI);
+simulatePackedProblem(problemFI, 'restartStep', 1);
 
 %% Set sequential implicit formulation (SI)
 testSI = testFI;
@@ -50,7 +50,7 @@ testSI.model.transportNonLinearSolver.LinearSolver = tsol;
 
 %% Simulate SI problem
 problemSI = testSI.getPackedSimulationProblem('useHash', true);
-simulatePackedProblem(problemSI);
+simulatePackedProblem(problemSI, 'restartStep', 1);
 
 %% Get results and compare FI to SI
 [wellSolsFI, statesFI, reportsFI] = getPackedSimulatorOutput(problemFI);
