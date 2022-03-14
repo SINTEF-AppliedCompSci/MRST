@@ -8,4 +8,4 @@ Copy the files to a folder in the MATLAB search path and run the example scripts
 
 # Dependencies
 
-The DPDP model has been tested with MRST 2020a.
+The DPDP model has been tested with MRST 2020a and 2021b.

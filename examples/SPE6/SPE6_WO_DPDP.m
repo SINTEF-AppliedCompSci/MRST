@@ -17,7 +17,7 @@ mrstModule add ad-core ad-props ad-blackoil dual-porosity
 
 %% Choose between the dual porosity or dual porosity-dual permeability models
 model_name = 'DP';
-model_name = 'DPDP';
+%model_name = 'DPDP';
 
 %% Define the geometry
 [Nx, Ny, Nz] = deal(10, 1, 5);
@@ -192,7 +192,7 @@ inputdata.SOLUTION = true;
 if strcmp(model_name, 'DP')
     % Initialize the 2 phase dual porosity model using the same fluid model for 
     % the matrix and fracture regions   
-    model = TwoPhaseOilWaterModelDP(G, ...
+    model = myTwoPhaseOilWaterModelDP(G, ...
                                 {rock_fracture, rock_matrix}, ...  
                                 {fluid_fracture, fluid_matrix}, ... 
                                 'inputdata', inputdata ...
@@ -210,9 +210,8 @@ elseif strcmp(model_name, 'DPDP')
 else
     disp('Model name not defined! Exiting..');
     return;
-end                         
-                            
-                            
+end          
+                        
 % The shape factors
 sigma1 = 0.04/ft^2;    % Layers 1-2
 sigma2 = 1/ft^2;       % Layers 3
@@ -237,7 +236,7 @@ block_dimension = repmat([dx,dy,1],G.cells.num,1);
 block_dimension(:, 3) = dzm;
 
 % Initialize the transfer function 
-model.transfer_model_object = EclipseTwoPhaseTransferFunction('VariableShapeFactor', ...
+model.transfer_model_object = myEclipseTwoPhaseTransferFunction('VariableShapeFactor', ...
    [sigma block_dimension]);
 
 %% Initial conditions
@@ -377,4 +376,25 @@ for i = 1:length(states)
     inp = input('Press Enter to continue..');
  
 end
+
+%{
+Copyright 2022 Geological Survey of Denmark and Greenland (GEUS).
+
+Author: Nikolai Andrianov, nia@geus.dk.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 

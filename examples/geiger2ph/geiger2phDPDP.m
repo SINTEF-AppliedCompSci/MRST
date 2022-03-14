@@ -17,9 +17,10 @@
 % N. Andrianov, Upscaling of Two-Phase Discrete Fracture Simulations Using 
 %   a Convolutional Neural Network, submitted (2021).
 
-%% Set up the problem
 
 mrstModule add ad-core ad-props ad-blackoil dual-porosity
+
+%% Set up the problem
 
 % Uniform matrix porosity and permeability
 phim = 0.3;
@@ -291,7 +292,7 @@ ly = (ymax-ymin) / Ny;
 block_dimension = repmat([lx,ly,1],G.cells.num,1);
 
 % Initialize the shape factors using the values from fine-scale simulations
-model.transfer_model_object = EclipseTwoPhaseTransferFunction('VariableShapeFactor', ...
+model.transfer_model_object = myEclipseTwoPhaseTransferFunction('VariableShapeFactor', ...
    [rock.smin block_dimension]);
 
 % Matrix and fracture capillary pressure
@@ -466,5 +467,24 @@ for i = 1:nSteps
     
 end
     
+%{
+Copyright 2022 Geological Survey of Denmark and Greenland (GEUS).
 
+Author: Nikolai Andrianov, nia@geus.dk.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 

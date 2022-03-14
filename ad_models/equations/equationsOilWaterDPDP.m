@@ -1,5 +1,5 @@
 function [problem, state] = equationsOilWaterDPDP(state0, state, model, dt, drivingForces, varargin)
-% Generate linearized problem for the two-phase oil-water dual-porosity model
+% Generate linearized problem for the two-phase oil-water dual-porosity dual permeability model
 %
 % SYNOPSIS:
 %   [problem, state] = equationsOilWater(state0, state, model, dt, drivingForces)
@@ -51,24 +51,7 @@ function [problem, state] = equationsOilWaterDPDP(state0, state, model, dt, driv
 % SEE ALSO:
 %   equationsBlackOil, TwoPhaseOilWaterModel
 
-%{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
 
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
 opt = struct('Verbose', mrstVerbose, ...
              'reverseMode', false,...
              'resOnly', false,...
@@ -333,7 +316,9 @@ problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2022 Geological Survey of Denmark and Greenland (GEUS).
+
+Author: Nikolai Andrianov, nia@geus.dk.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
