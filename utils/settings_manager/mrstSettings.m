@@ -334,11 +334,15 @@ function settings = loadSettings()
     present = exist(pth, 'file');
     if present
         tmp = load(pth);
-        if isstruct(tmp)
+        if isfield(tmp,'settings')
+            settings = tmp.settings;
+        else
+            settings = tmp;
+        end
+        
+        if isstruct(settings)
             % Convert old saved settings to settingsStruct 
             settings = struct2settings(tmp);
-        else
-            settings = tmp.settings;
         end
     else
         settings = [];

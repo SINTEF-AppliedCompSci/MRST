@@ -5,7 +5,7 @@ function settings = struct2settings(oldsettings)
     
     for i = 1:numel(fnames)
         assert(isfield(settings,fnames{i}),...
-            'Unknown field in mrstsettings.mat, cannot convert to settingsStruct');
+            sprintf('Unknown field %s in mrstsettings.mat, cannot convert to settingsStruct',fnames{i}));
         settings.(fnames{i}) = oldsettings.(fnames{i});
     end
     
