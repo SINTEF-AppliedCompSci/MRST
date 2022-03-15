@@ -16,4 +16,7 @@ The module offers:
 
 - optimization methods
 
-- complete simulation setups from published papers, to support reproducible research
+
+We have published a large number of papers based on the co2lab module. Complete simulation setups from published papers can be found here:
+
+https://bitbucket.org/mrst/mrst-paper-scripts/wiki/Home 
