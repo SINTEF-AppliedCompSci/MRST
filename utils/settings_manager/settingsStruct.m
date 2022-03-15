@@ -28,7 +28,7 @@ classdef settingsStruct < handle
 
       function val = isfield_octave(~, fname)
 
-         props = getSettingsProps(settings);
+         props = settingsStruct.getSettingsProps();
          val = settingsStruct.isfield_impl(props, fname);
       end
           
@@ -46,7 +46,7 @@ classdef settingsStruct < handle
       end
       
              
-      function [allprops,names,folders] = getSettingsProps(settings)
+      function [allprops,names,folders] = getSettingsProps()
           % Current list of properties
            names = {'allowDL', 'promptDL', 'promptMEX', 'useMEX', ...
                'useOMP', 'useHash'};
