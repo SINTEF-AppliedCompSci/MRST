@@ -21,15 +21,7 @@ classdef settingsStruct < handle
     end
 
    methods (Access = private)
-       
-      function [allprops,names,folders] = getSettingsProps(settings)
-          % Current list of properties
-           names = {'allowDL', 'dataDirectory', 'outputDirectory', ...
-          'promptDL', 'promptMEX', 'useMEX', 'useOMP', 'useHash'};
-          folders = {'outputDirectory', 'dataDirectory'};
-          allprops = [names,folders];
-      end      
-      
+
       function val = isfield_matlab(settings, fname)
          val = settingsStruct.isfield_impl(properties(settings), fname);
       end
@@ -52,5 +44,16 @@ classdef settingsStruct < handle
 
          val = reshape(any(m, 2), size(fname));
       end
+      
+             
+      function [allprops,names,folders] = getSettingsProps(settings)
+          % Current list of properties
+           names = {'allowDL', 'promptDL', 'promptMEX', 'useMEX', ...
+               'useOMP', 'useHash'};
+          folders = {'outputDirectory', 'dataDirectory'};
+          allprops = [names,folders];
+      end      
+      
+      
    end
 end

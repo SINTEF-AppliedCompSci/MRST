@@ -213,7 +213,6 @@ function settings = firstTimeSetup(settings, isDesktop, doWizard)
                 ['MRST has several advanced configuration settings. Would you like to', ...
                 ' set these up now? Otherwise, these settings will use reasonable defaults', ...
                 ' and can be configured by calling ''mrstSettings'' later.'], isDesktop);
-            doWizard = true;
         end
     end
     if doWizard
