@@ -301,6 +301,7 @@ model.fluid.pcOW  = grauePcAD(Swr, Swr + Sor, model);
 
 
 %% Initial conditions
+clear state
 state.pressure = ones(G.cells.num,1) * p0;  % Fracture pressure
 state.pressure_matrix = ones(G.cells.num,1) * p0;       % Matrix pressure
 state.s = repmat([Swr 1-Swr],G.cells.num,1);
