@@ -167,8 +167,16 @@ classdef TestCase
             
             % Get grid
             G = test.getVisualizationGrid();
-            xmax = max(G.nodes.coords);
-            xmin = min(G.nodes.coords);
+            if isfield(G, 'nodes')
+                xmax = max(G.nodes.coords);
+                xmin = min(G.nodes.coords);
+            elseif isfield(G, 'parent')
+                xmax = max(G.parent.nodes.coords);
+                xmin = min(G.parent.nodes.coords);
+            else
+                error('Unable to plot grid')
+            end
+            % Adjust xmax(3) if we have wells
             if test.hasDrivingForce('W') && G.griddim == 3
                 xmin(3) = xmin(3) - 0.15*(xmax(3) - xmin(3));
             end
