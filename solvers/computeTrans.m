@@ -205,13 +205,14 @@ function T = handle_negative_trans(T, G, opt)
       bdry = any(G.faces.neighbors(f,:) == 0, 2);
 
       [nneg, nbdry] = deal(sum(is_neg), sum(bdry));
-      pl1 = 'ies'; if nneg  == 1, pl1 = 'ty'; end
-      pl2 = 's';   if nbdry == 1, pl2 = ''; end
+      pl1 = 'ties'; if nneg  == 1, pl1 = 'ty'; end
+      pl2 = 's';    if nbdry == 1, pl2 = ''; end
+      pl3 = 's';    if nneg  == 1, pl3 = ''; end
 
       dispif(opt.verbose, ...
             ['\nWarning:\n\t%d negative transmissibili%s ', ...
-             '(%d boundary face%s)\n\tReplaced by absolute values...\n'], ...
-             nneg, pl1, nbdry, pl2);
+             '(%d boundary face%s)\n\tReplaced by absolute ', ...
+             'value%s...\n'], nneg, pl1, nbdry, pl2, pl3);
 
       T(is_neg) = -T(is_neg);
    end
