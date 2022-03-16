@@ -68,7 +68,7 @@ gmsh.option.setNumber("Mesh.MeshSizeFromPoints", 0)
 gmsh.option.setNumber("Mesh.MeshSizeFromCurvature", 0)
 
 # Quad mesh
-gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 2)
+gmsh.option.setNumber("Mesh.RecombinationAlgorithm", 0)
 gmsh.option.setNumber("Mesh.RecombineAll", 1)
 
 # Alternative quad mesh by triangle subdivision
@@ -85,7 +85,7 @@ gmsh.model.addPhysicalGroup(dim, matrix_parts, matrix_tag)
 # Set fracture labels as 1, ..., num_fractures
 for k in range(1, num_fractures + 1):
     fracture_parts = [dt[1] for dt in domain_map[k]]
-    gmsh.model.addPhysicalGroup(dim-1, fracture_parts, k)
+    gmsh.model.addPhysicalGroup(dim - 1, fracture_parts, k)
 
 # Write
 gmsh.write(model_name + ".msh")
