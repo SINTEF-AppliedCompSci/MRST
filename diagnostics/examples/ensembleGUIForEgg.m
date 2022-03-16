@@ -15,7 +15,7 @@
 % using mrst ResultHandlers.
 %
 
-mrstModule add diagnostics ad-core ad-props ad-blackoil incomp mrst-gui example-suite
+mrstModule add diagnostics ad-core ad-props ad-blackoil incomp mrst-gui test-suite
 
 m = ModelEnsemble('egg', 'nMembers', 50, 'setupFn', @setupEggFn);
 % after initial setup, m = ModelEnsemble('egg') is sufficient

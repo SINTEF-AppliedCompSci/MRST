@@ -28,7 +28,7 @@
 % * When you are happy with your well(s) and have saved them, launch diagnostics by pressing the 
 %   "Launch diagnostics" button. 
 
-mrstModule add diagnostics mrst-gui ad-core ad-blackoil wellpaths example-suite
+mrstModule add diagnostics mrst-gui ad-core ad-blackoil wellpaths test-suite
 
 gravity off
 tmp = setupEggFn(1);

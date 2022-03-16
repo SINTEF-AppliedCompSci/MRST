@@ -9,7 +9,7 @@
 % See also PostProcessDiagnosticsECLIPSE.m
 %
 %% Load relevant modules
-mrstModule add ad-blackoil ad-core deckformat mrst-gui ad-props diagnostics example-suite
+mrstModule add ad-blackoil ad-core deckformat mrst-gui ad-props diagnostics test-suite
 
 %% Get Eclipse deck for EGG
 % Here we perform simulations on a single realization of the EGG model
