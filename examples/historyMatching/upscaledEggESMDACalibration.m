@@ -114,9 +114,18 @@ baseUpscaledModel = TestCase('upscaled_coarse_network', ...
 %
 % All this is done in the following utility function:
 
+eggRealizations = [1:10];
+%eggRealizations = [1:100];
+
+if (numel(eggRealizations) < 50)
+    warning('A small ensemble can be used to investigate what is going on in the example, but you should use closer to 100 ensemble members for good results.');
+end
+
+
 samples = priorSamplesForUpscaledEggModel(baseUpscaledModel, ...
                                           referenceCase, ...
-                                          regenerateInitialEnsemble);
+                                          regenerateInitialEnsemble, ...
+                                          'eggRealizations', eggRealizations);
 
 
 

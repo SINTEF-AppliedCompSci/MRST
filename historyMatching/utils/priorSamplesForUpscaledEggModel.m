@@ -1,6 +1,7 @@
 function samples = priorSamplesForUpscaledEggModel(baseUpscaledModel, ...
                                                    referenceExample, ...
-                                                   regenerateInitialEnsemble)
+                                                   regenerateInitialEnsemble, ...
+                                                   varargin)
 %Undocumented Utility Function
 
 %{
@@ -22,8 +23,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    eggRealizations = [1:100];
-    ensembleSize = numel(eggRealizations);
+    options = struct('eggRealizations', [1:100]);
+    [options, extra] = merge_options(options, varargin{:});
+
+    ensembleSize = numel(options.eggRealizations);
 
     pvMin = min(baseUpscaledModel.model.operators.pv)/1000;
     transMin = eps;
@@ -73,7 +76,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fractionsOfTotalVolume = baseUpscaledModel.model.operators.pv/totalVolume;
 
 
-        for eggRealization = eggRealizations
+        for eggRealization = options.eggRealizations
             fullRealization = TestCase('egg_wo', 'realization', eggRealization);
 
             % Use the same time steps as the reference model, but keep the well
