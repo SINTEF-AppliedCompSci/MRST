@@ -4,8 +4,8 @@ mrstModule add ad-core ad-props ad-blackoil
 mrstModule add mrst-gui
 
 %%
-example = MRSTExample('qfs_wo');
-problem = example.getPackedSimulationProblem();
+baseCase = TestCase('qfs_wo');
+problem = baseCase.getPackedSimulationProblem();
 
 %%
 generatorFn = @(problem, seed) ...
@@ -18,12 +18,12 @@ samples = RockSamples('generatorFn', generatorFn);
 
 %% Inspect ensemble subset
 % Inspect rock samples
-example.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
+baseCase.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
 for i = 1:5
     data    = samples.getSample(i, problem);   % Get sample number i
     problem = samples.setSample(data, problem); % Set sample to problem
     % Inspect rock sample
-    example.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
+    baseCase.plot(problem.SimulatorSetup.model.rock, 'log10', true); colormap(pink);
 end
 
 %%
@@ -31,14 +31,14 @@ qoi = RecoveryFactorQoI();
 
 %%
 dataDir = fullfile(mrstOutputDirectory(), 'ensemble', 'tutorial-mc');
-mc = MCSimulator(example, samples, qoi             , ...
+mc = MCSimulator(baseCase, samples, qoi             , ...
                         'directory'         , dataDir     , ...
                         'simulationStrategy', 'background', ...
                         'verboseSimulation', true);
 
 %%
 close all
-mc.runMonteCarloSimulation('batchSize', 20, 'maxSamples', 10000, 'relTolerance', 1e-4);
+mc.runSimulation('batchSize', 20, 'maxSamples', 10000, 'relTolerance', 1e-3);
 
 %%
 mrstModule add diagnostics sequential linearsolvers
@@ -47,7 +47,7 @@ levels = {MLMCLevel(1, 'solver', @(problem) flowDiagnosticsSolver(problem)), ...
       
 %%
 dataDir = fullfile(mrstOutputDirectory(), 'ensemble', 'tutorial-mlmc');
-mlmc = MLMCSimulator(example, samples, qoi, levels        , ...
+mlmc = MLMCSimulator(baseCase, samples, qoi, levels        , ...
                         'directory'         , dataDir     , ...
                         'simulationStrategy', 'serial', ...
                         'verboseSimulation', true);
