@@ -1,8 +1,15 @@
-mrstModule add ad-core ad-props ad-blackoil test-suite ensemble ...
-    mrst-gui
+%% Ensemble tutorial
+% This tutorial goes thorugh how to set up and run an ensemble simulation
+% in MRST using the ensemble module
+
+%% Add necessary modules
+mrstModule add ad-core ad-props ad-blackoil 
+mrstModule add ensemble
+mrstModule add test-suite
+mrstModule add mrst-gui
 mrstVerbose on
 
-%%
+%% Set up base case
 baseCase = TestCase('qfs_wo');
 problem = baseCase.getPackedSimulationProblem();
 
