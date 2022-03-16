@@ -18,7 +18,7 @@ function model = imposeRelpermScaling(model, varargin)
 % model         - model with updated rock.krscale and the subsequent 
 %                 required fields of a 'fake' deck in model.inputdata.
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

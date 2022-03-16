@@ -2,7 +2,7 @@ function lfluid= blackOilLinearTemp(c_p,h_t,fluid,p_ref,T_ref,varargin)
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

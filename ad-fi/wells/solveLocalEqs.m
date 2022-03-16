@@ -2,7 +2,7 @@ function [state, eqs, meta] = solveLocalEqs(state0, state, dt, G, W, s, fluid, s
 % Solves the equations only for cells where the residual is large.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

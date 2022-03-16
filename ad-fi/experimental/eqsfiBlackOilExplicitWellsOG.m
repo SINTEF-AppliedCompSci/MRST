@@ -2,7 +2,7 @@ function [eqs, hst, explTrms] = eqsfiBlackOilExplicitWellsOG(state0, state, dt, 
 % Generate equations for a Black Oil system (oil, water and gas with gas dissolved in oil).
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

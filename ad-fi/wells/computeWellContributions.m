@@ -7,7 +7,7 @@ function [eqs, cq_s, mix_s, status, cstatus, Rw] = computeWellContributions(W, s
 % see getWellContributions
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

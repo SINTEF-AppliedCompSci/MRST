@@ -2,7 +2,7 @@ function obj = linearFluid(cp_rho,ct_rho,ct_h,cp_mu,ct_mu,rho,h, mu,T_ref,p_ref)
 %linearFluid(cp_rho,ct_rho,ct_h,cp_mu,ct_mu,rho,h, mu,T_ref,p_ref)
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

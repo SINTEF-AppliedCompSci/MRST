@@ -426,9 +426,11 @@ methods
             G = model.G;
         end
         model.operators = setupOperatorsTPFA(G, rock, varargin{:});
-        % Store hashes of grid and rock for consistency check later
-        model.operators.hashG    = obj2hash(G);
-        model.operators.hashRock = obj2hash(rock);
+        if mrstSettings('get', 'useHash')
+            % Store hashes of grid and rock for consistency check later
+            model.operators.hashG    = obj2hash(G);
+            model.operators.hashRock = obj2hash(rock);
+        end
     end
 
     % --------------------------------------------------------------------%
@@ -1704,7 +1706,7 @@ end
 end
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

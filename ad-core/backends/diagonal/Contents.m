@@ -8,7 +8,7 @@
 %   GenericAD               - GenericAD is the testbed for future updates to the ADI class. All
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

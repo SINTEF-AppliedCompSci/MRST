@@ -5,24 +5,25 @@ mrstModule add test-suite
 mrstModule add ad-core ad-props ad-blackoil deckformat
 mrstModule add mrst-gui
 mrstVerbose on
+checkHashSettings();
 
 %% Simulate three SPE benchmarks
 names = {'spe1_bo', 'spe3_bo', 'spe9_bo'};
 for name = names
-    example = TestCase(name{1});                    % Get test case
-    example.plot(); drawnow, pause(1);              % Plot test case
-    problem = example.getPackedSimulationProblem(); % Get problem
-    simulatePackedProblem(problem);                 % Simulate
+    test = TestCase(name{1});                         % Get test case
+    test.plot(); drawnow, pause(1);                   % Plot test case
+    problem = test.getPackedSimulationProblem();      % Get problem
+    simulatePackedProblem(problem, 'restartStep', 1); % Simulate
     % Plot results
     [wellSols, states] = getPackedSimulatorOutput(problem);
-    example.plot(states); plotWellSols(wellSols);
+    test.plot(states); plotWellSols(wellSols);
 end
 
 %% Copyright Notice
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
