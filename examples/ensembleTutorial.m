@@ -209,10 +209,10 @@ close all
 [s_avg, s_var, s] = ensemble.qoi.getQoIMean();
 for i = 1:10:ensembleSize
     baseCase.plot(s{i}.sW); caxis([0,1]);
-    title(sprintf('Water saturation after 300 days, member %d', i));
+    title(sprintf('Water saturation, member %d', i));
 end
 baseCase.plot(s_avg.sW); caxis([0,1]);
-title('Water saturation after 300 days, ensemble avg');
+title('Water saturation, ensemble avg');
 
 %% References
 % [1] "Simulation of Stationary Gaussian Processes in [0, 1]^d", Andrew
