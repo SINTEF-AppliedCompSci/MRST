@@ -7,12 +7,10 @@ classdef MCLevelSimulator < MCSimulator
     
     methods
         function mcl = MCLevelSimulator(setup, samples, qoi, levels, varargin)
+            
             mcl = mcl@MCSimulator(setup, samples, qoi, varargin{:});
             mcl.levels = cell(numel(levels), 1);
             mcl.levelNo = levels{end}.levelNo;
-            % Level QoIs will be stored in a subfolder `level-<levelNo>`
-            mcl.directory = fullfile(mcl.getDataPath(), ...
-                                         ['level-', num2str(mcl.levelNo)]);
             % Individual QoIs for each level will be stored in a subfolder
             % `level-<levelNo>/level-<levelNoA>-<levelNoB>/`
             dirName = @(i) fullfile(['level-', num2str(levels{end}.levelNo), ...
@@ -26,9 +24,14 @@ classdef MCLevelSimulator < MCSimulator
                           'simulationStrategy', mcl.simulationStrategy, ...
                           'directory'         , dataPath              );
             end
+            
             levelQoIs = cellfun(@(level) level.qoi, mcl.levels, 'UniformOutput', false);
             mcl.qoi = MCLevelQoI(levelQoIs);
             mcl.qoi = mcl.qoi.validateQoI(mcl.getBaseProblem());
+            % Make sure ensemble is saved in the correct directory in case
+            % we are simulating in parallel or background mode
+            mcl.prepareEnsembleSimulation('force', true);
+
         end
         
         %-----------------------------------------------------------------%
@@ -79,6 +82,7 @@ classdef MCLevelSimulator < MCSimulator
     end
     
     methods (Access = protected)
+        
         %-----------------------------------------------------------------%
         function progress = getEnsembleMemberProgress(mcl, range)
             % Utility function for monitoring the progression of an

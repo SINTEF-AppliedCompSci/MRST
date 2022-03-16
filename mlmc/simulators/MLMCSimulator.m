@@ -11,8 +11,12 @@ classdef MLMCSimulator < MCSimulator
             mlmc.levels = cell(numel(levels), 1);
             for i = 1:mlmc.numLevels
                 lix = max(i-1,1):i;
+                % Level QoIs will be stored in a subfolder `level-<levelNo>`
+                directory = fullfile(mlmc.getDataPath(), ...
+                            ['level-', num2str(levels{lix(end)}.levelNo)]);
                 mlmc.levels{i} = MCLevelSimulator(setup, samples, qoi, levels(lix), ...
-                                                                      varargin{:});
+                                                  varargin{:}           , ...
+                                                  'directory', directory);
             end
         end
         
@@ -37,6 +41,9 @@ classdef MLMCSimulator < MCSimulator
                     lrange = (1:opt.batchSize(i)) + maxId;
                     mlmc.levels{i}.runBatch('range', lrange, extra{:});
                     range((1:opt.batchSize(i)) + sum(opt.batchSize(1:i-1))) = lrange;
+                    while ~all(mlmc.levels{i}.getSimulationStatus(lrange) > 0)
+                        pause(0.05);
+                    end
                     rangeStat = mlmc.levels{i}.updateStatistics(lrange);
                 else
                     rangeStat = [];
