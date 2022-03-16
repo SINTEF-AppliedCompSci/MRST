@@ -21,8 +21,8 @@ directoryTruth = fullfile(mrstOutputDirectory(), ...
                           'historyMatching', 'truth', ...
                           trueProblemName);
                   
-trueExample = TestCase(trueProblemName, trueProblemOptions{:});
-trueProblem = trueExample.getPackedSimulationProblem('Directory', directoryTruth);
+trueCase = TestCase(trueProblemName, trueProblemOptions{:});
+trueProblem = trueCase.getPackedSimulationProblem('Directory', directoryTruth);
 
 plotExample = true;
 rerunTrueProblemFromScratch = true;
@@ -34,52 +34,10 @@ end
 simulatePackedProblem(trueProblem);
 if plotExample
     [wellSols, states, reports] = getPackedSimulatorOutput(trueProblem);
-    trueExample.plot();
-    trueExample.plot(states);
+    trueCase.plot();
+    trueCase.plot(states);
 end
 
-
-
-%% Generate observations 
-% Define a QOI for storing the relevant qoi for our problem
-
-trueQoI = WellQoIHM('wellNames', {'P1'}, 'names', {'qOs'});
-trueQoI = trueQoI.validateQoI(trueProblem);
-trueObservations = trueQoI.getQoI(trueProblem);
-
-%%
-
-
-% Create a separate ResultHandler for the observations 
-observationResultHandler = trueQoI.ResultHandler;
-observationResultHandler.dataPrefix = 'observedQoI';
-
-% Create a separate ResultHandler for the observations.
-% Need to build a new ResultHandler from scratch, so that we do not
-% overwrite the dataPrefix property of observationResultHandler
-truthResultHandler = ResultHandler('dataPrefix', 'trueQoI', ...
-                                   'writeToDisk', observationResultHandler.writeToDisk,...
-                                   'dataDirectory', observationResultHandler.dataDirectory, ...
-                                   'dataFolder', observationResultHandler.dataFolder, ...
-                                   'cleardir', false);
-
-% Define observation uncertainty 
-obsStdDev = 0.00005;
-
-% Add some observation noise and store output
-if numel(observationResultHandler.getValidIds) < 1 || overwriteObservation
-    for w = 1:numel(trueQoI.wellNames)
-        perturbedObservations(w) = trueObservations(w);
-        for f = 1:numel(trueQoI.names)
-            trueVals = trueObservations(w).(trueQoI.names{f});
-            perturbedObservations(w).(trueQoI.names{f}) = trueVals + randn(size(trueVals))*obsStdDev;
-        end
-    end
-    observationResultHandler{1} = {perturbedObservations};
-end
-if numel(truthResultHandler.getValidIds) < 1 || overwriteObservation
-    truthResultHandler{1} = {trueObservations};
-end
 
 %% Select and populate samples for the stochastic components in the ensemble
 
@@ -87,7 +45,7 @@ ensembleSize = 40;
 
 configData = cell(ensembleSize, 1);
 for i = 1:ensembleSize
-    configData{i}.poro = gaussianField(trueExample.model.G.cartDims, [0.2 0.6]); 
+    configData{i}.poro = gaussianField(trueCase.model.G.cartDims, [0.2 0.6]); 
     configData{i}.perm = configData{i}.poro.^3.*(1e-5)^2./(0.81*72*(1-configData{i}.poro).^2);
 end
 
@@ -97,15 +55,17 @@ samples = RockSamplesHM('data', configData, ...
 %% Select quantity of interest class matching the what we have as observations
 % We validate the QoI with the trueProblem, since this will be our ensemble
 % base problem as well.
+obsStdDev = 0.00005;
 
 qoi = WellQoIHM('wellNames', {'P1'}, 'names', {'qOs'}, ...
-                  'observationResultHandler', observationResultHandler, ...
-                  'truthResultHandler', truthResultHandler, ...
+                  ... % 'observationResultHandler', observationResultHandler, ...
+                  ... % 'truthResultHandler', truthResultHandler, ...
                   'observationCov', obsStdDev^2)
 
 %% Create the ensemble
 
-ensemble = MRSTHistoryMatchingEnsemble(trueExample, samples, qoi, ... 
+ensemble = MRSTHistoryMatchingEnsemble(trueCase, samples, qoi, ... 
+    'observationProblem', trueProblem, ...
     ... %'directory', uniqueDirectory, ...
     'alpha', [28/3 7 4 2], ...
     'simulationStrategy', 'background', ...
