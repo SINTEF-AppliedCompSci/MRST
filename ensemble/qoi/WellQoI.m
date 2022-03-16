@@ -316,9 +316,17 @@ classdef WellQoI < BaseQoI
                     'The observation contains several wells, but the QoI is supposed to be combined values');
             end
             
-            assert((numel(fieldnames(u))-1) == numel(qoi.names), ...
-                'The observation does not match the number of namess in QoI');
-            
+            if (numel(fieldnames(u))-2) == numel(qoi.names)
+                assert(isfield(u, 'name') && isfield(u, 'cost'), ...
+                    'The observation does not match the number of names in QoI');
+            elseif (numel(fieldnames(u))-1) == numel(qoi.names)
+                assert(isfield(u, 'name'), ...
+                    'The observation does not match the number of names in QoI');
+            else
+                assert((numel(fieldnames(u))-1) == numel(qoi.names), ...
+                    'The observation does not match the number of names in QoI');
+            end
+                            
             %assert(numel(u{1}{1}) >= numel(qoi.dt), ...
             %    'The qoi has too few many timesteps to match the QoI class');
             

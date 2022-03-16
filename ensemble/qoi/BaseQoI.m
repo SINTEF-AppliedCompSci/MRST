@@ -90,7 +90,7 @@ classdef BaseQoI
             else
                 % Compute QoI and store to file
                 u      = qoi.computeQoI(problem);
-                u.cost = qoi.computeQoICost(problem, u);
+                [u.cost] = deal(qoi.computeQoICost(problem, u));
                 % TODO: Check that problem has been simulated successfully, and
                 % issue a warning if it is not
 

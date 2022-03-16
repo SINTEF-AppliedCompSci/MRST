@@ -189,7 +189,14 @@ classdef BaseQoIHM
             [opt, extra] = merge_options(opt, varargin{:});
             [u_mean, u_var, u]  = qoi.getQoIMean(opt.range);
             numQoIs      = numel(u_mean);
-            numSubQoIs   = numel(fieldnames(u_mean)) - 1;
+            numFieldsThatAreNotFields = 0;
+            if isfield(u_mean, 'name')
+                numFieldsThatAreNotFields = numFieldsThatAreNotFields + 1;
+            end
+            if isfield(u_mean, 'cost')
+                numFieldsThatAreNotFields = numFieldsThatAreNotFields + 1;
+            end
+            numSubQoIs   = numel(fieldnames(u_mean)) - numFieldsThatAreNotFields;
             
             % The plotWells parameter is a boolean structure to show which
             % wells and which fields should be plotted. Should follow the
