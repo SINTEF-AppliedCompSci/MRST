@@ -4,6 +4,7 @@ function plotGmsh(G)
 
     if G.griddim == 2
 
+        % Cells
         figure, hold on
         ut = unique(G.cells.tag);
         colors = [lines(7); rand(numel(ut)-7, 3)];
@@ -13,6 +14,7 @@ function plotGmsh(G)
             plotGrid(G, idx, 'facecolor', colors(k, :));
         end
 
+        % Faces
         figure, hold on
         plotGrid(G)
         ut = unique(G.faces.tag);
