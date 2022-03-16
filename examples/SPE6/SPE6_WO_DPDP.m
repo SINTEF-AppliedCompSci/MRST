@@ -13,7 +13,7 @@
 %   Dual-Porosity Simulators, Journal of Petroleum Technology 42 (06): 710–763.
 %   DOI: https://doi.org/10.2118/18741-PA.
 
-mrstModule add ad-core ad-props ad-blackoil dual-porosity
+mrstModule add ad-core ad-props ad-blackoil dual-porosity deckformat
 
 %% Choose between the dual porosity or dual porosity-dual permeability models
 model_name = 'DP';
@@ -245,6 +245,7 @@ model.transfer_model_object = myEclipseTwoPhaseTransferFunction('VariableShapeFa
 p0 = 6000*psia;
 
 % Set the initial pressure in the both continua to p0
+clear state
 state.pressure = ones(G.cells.num,1) * p0;          
 state.pressure_matrix = ones(G.cells.num,1) * p0;  
 
