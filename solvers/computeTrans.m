@@ -29,7 +29,6 @@ function T = computeTrans(G, rock, varargin)
 %                       [ k2  k4  k5 ]
 %                       [ k3  k5  k6 ]
 %
-%
 % OPTIONAL PARAMETERS:
 %
 %   K_system - Define the system permeability is defined in valid values
@@ -82,7 +81,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'grdecl'         , []   , ...
                 'K_system'       , 'xyz', ...
                 'cellCenters'    , []   , ...
-                'fixNegative'    , true, ...
+                'fixNegative'    , true , ...
                 'cellFaceCenters', []   );
    opt = merge_options(opt, varargin{:});
 
@@ -98,9 +97,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'Unknown permeability coordinate system ''%s''.', ...
                opt.K_system);
    end
+
    if opt.fixNegative
-      T = handle_negative_trans(T, opt);
+      T = handle_negative_trans(T, G, opt);
    end
+
    T = handle_ntg(T, rock, G);
    
    if isstruct(opt.grdecl) && numel(opt.grdecl) == 1
@@ -196,13 +197,21 @@ end
     
 %--------------------------------------------------------------------------
 
-function T = handle_negative_trans(T, opt)
+function T = handle_negative_trans(T, G, opt)
    is_neg = T < 0;
 
    if any(is_neg)
+      f = G.cells.faces(is_neg, 1);
+      bdry = any(G.faces.neighbors(f,:) == 0, 2);
+
+      [nneg, nbdry] = deal(sum(is_neg), sum(bdry));
+      pl1 = 'ies'; if nneg  == 1, pl1 = 'ty'; end
+      pl2 = 's';   if nbdry == 1, pl2 = ''; end
+
       dispif(opt.verbose, ...
-            ['\nWarning:\n\t%d negative transmissibilities.\n\t', ...
-             'Replaced by absolute values...\n'], sum(is_neg));
+            ['\nWarning:\n\t%d negative transmissibili%s ', ...
+             '(%d boundary face%s)\n\tReplaced by absolute values...\n'], ...
+             nneg, pl1, nbdry, pl2);
 
       T(is_neg) = -T(is_neg);
    end
