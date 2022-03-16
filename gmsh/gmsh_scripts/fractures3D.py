@@ -98,7 +98,7 @@ for f in fractures:
     df = field.add("Distance")
     field.setNumbers(df, "SurfacesList", [f])
 
-    num_points = int(max(10, round(area / h_t ** 2)))
+    num_points = int(max(10, round(area / h_t**2)))
     field.setNumber(df, "Sampling", num_points)
 
     s = f"{h_max} + ({h_n} - {h_max}) * Exp(-F{df}*F{df} / {bump}^2)"
@@ -120,7 +120,7 @@ gmsh.model.addPhysicalGroup(dim, matrix_parts, matrix_tag)
 # Set fracture labels as 1, ..., num_fractures
 for k in range(1, num_fractures + 1):
     fracture_parts = [dt[1] for dt in domain_map[k]]
-    gmsh.model.addPhysicalGroup(dim-1, fracture_parts, k)
+    gmsh.model.addPhysicalGroup(dim - 1, fracture_parts, k)
 
 # Write
 gmsh.write(model_name + ".msh")
