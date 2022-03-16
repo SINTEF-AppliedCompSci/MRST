@@ -327,7 +327,7 @@ function plotMain(Gt, res, bf, atlasdata)
     zM = max(Gt.cells.z);
     
     if trap==0,
-       disp(['Current positition is not downstream from any trap, '...
+       disp(['Current position is not downstream from any trap, '...
               'or spillpoint data was not produced.'])
        if ~isempty(wpos)
           plotGrid(Gt, selectedCell, 'facec', 'yellow', 'ButtonDownFcn', fn)
