@@ -150,6 +150,8 @@ if plot_rock
         return;
     end
 
+    fclose(fid);
+
     T = readtable(fracsfile);
 
     FracIdx = T{:, 1};
