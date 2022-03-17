@@ -532,8 +532,7 @@ classdef OptimizationProblem < BaseEnsemble
             [wss, tms, nms] = deal(cell(1, nc*nm));
             cnt     = 0;
             tm = problem.SimulatorSetup.schedule.step.val;
-            %cc = p.getCurrentControlNo();
-            for kc = nc
+            for kc = 1:nc
                 for km = 1:nm
                     cnt = cnt +1;
                     [cno, memno] = deal(controlNo(kc), memberNo(km));
