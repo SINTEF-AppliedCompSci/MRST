@@ -22,7 +22,7 @@ classdef settingsStruct < handle
 
    methods (Access = private)
       function val = isfield_matlab(settings, fname)
-         val = settingsStruct.isfield_impl(properties(settings), fname);
+         val = settingsStruct.isfield_impl(propertynames(settings), fname);
       end
 
       function val = isfield_octave(~, fname)
