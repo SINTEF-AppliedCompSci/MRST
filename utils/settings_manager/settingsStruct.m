@@ -1,5 +1,6 @@
-classdef settingsStruct < handle
-    properties
+classdef settingsStruct < handle & matlab.mixin.SetGetExactNames
+%     properties  (Access = private)
+    properties         
         allowDL
         dataDirectory
         outputDirectory
@@ -9,16 +10,96 @@ classdef settingsStruct < handle
         useOMP
         useHash
     end
-
+    
     methods
+        
+        % Set props
+        
+        function set.allowDL(obj,value)
+            obj.allowDL = value;
+        end          
+
+        function set.dataDirectory(obj,value)
+            if isdir(value)
+                obj.dataDirectory = value;
+            else
+                error('Set mrstDataDirectory: %s is not a valid directory',value);
+            end
+        end
+        
+        function set.outputDirectory(obj,value)
+            if isdir(value)
+                obj.outputDirectory = value;
+            else
+                 error('Set mrstOutputDirectory: %s is not a valid directory',value);
+            end
+        end
+        
+        
+        function set.promptDL(obj,value)
+            obj.promptDL = value;
+        end
+        
+        function set.promptMEX(obj,value)
+            obj.promptMEX = value;
+        end
+        
+        function set.useMEX(obj,value)
+            obj.useMEX = value;
+        end
+        
+        function set.useOMP(obj,value)
+            obj.useOMP = value;
+        end
+        
+        function set.useHash(obj,value)
+            obj.useHash = value;
+        end
+        
+        % Get props
+        
+        function val = get.allowDL(obj)
+            val = obj.allowDL;
+        end
+        
+        function val = get.dataDirectory(obj)
+            val = obj.dataDirectory;
+        end
+        
+        function val = get.outputDirectory(obj)
+            val = obj.outputDirectory;
+        end        
+        
+        function val = get.promptDL(obj)
+            val = obj.promptDL;
+        end
+        
+        function val = get.promptMEX(obj)
+            val = obj.promptMEX;
+        end
+        
+        function val = get.useMEX(obj)
+            val = obj.useMEX;
+        end
+        
+        function val = get.useOMP(obj)
+            val = obj.useOMP;
+        end
+        
+        function val = get.useHash(obj)
+            val = obj.useHash;
+        end
+        
+        
         function val = isfield(settings, fname)
-           if mrstPlatform('octave')
-              val = settings.isfield_octave(fname);
-           else
-              val = settings.isfield_matlab(fname);
-           end
+            if mrstPlatform('octave')
+                val = settings.isfield_octave(fname);
+            else
+                val = settings.isfield_matlab(fname);
+            end
         end
     end
+    
 
    methods (Access = private)
       function val = isfield_matlab(settings, fname)

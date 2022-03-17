@@ -65,10 +65,14 @@ classdef mrstSettingsGUI < matlab.apps.AppBase
     
 
     methods (Access = private)
-% 
+
         % Code that executes after component creation
         function startupFcn(app)
-            app.UIFigure.Visible = 'on';
+            try 
+                app.UIFigure.Visible = 'on';
+            catch
+                error('Settings GUI does not work with current environment')
+            end
         end
 
         % Button pushed function: BrowseButton_OutputDir
@@ -225,7 +229,7 @@ classdef mrstSettingsGUI < matlab.apps.AppBase
         function createComponents(app)
 
             % Create UIFigure
-            app.UIFigure = uifigure('visible','off');
+            app.UIFigure = uifigure();
             app.UIFigure.Position = [100 100 879 859];
             app.UIFigure.Name = 'MRST Settings';
             

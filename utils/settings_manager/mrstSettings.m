@@ -181,8 +181,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
         case 'gui'
             % Load GUI with current settings
-            if isDesktop
-                mrstSettingsGUI(SETTINGS);
+            if isDesktop & ~mrstPlatform('octave')
+                loadGUI(SETTINGS,isDesktop);
             else
                 listSettings(SETTINGS, isDesktop)
             end
@@ -217,7 +217,7 @@ function settings = firstTimeSetup(settings, isDesktop, doWizard)
     end
     if doWizard
         if isDesktop
-            mrstSettingsGUI(settings);
+            loadGUI(settings,isDesktop);
         else
             % Use simple version
             mrstSettings list
@@ -339,7 +339,7 @@ function settings = loadSettings()
             settings = tmp;
         end
         
-        if isstruct(settings)
+        if isstruct(settings) & ~mrstPlatform('octave')
             % Convert old saved settings to settingsStruct 
             settings = struct2settings(tmp);
         end
@@ -381,6 +381,14 @@ function checkSetting(SETTINGS, setting)
     end
 end
 
+function loadGUI(settings,isDesktop)
+%     try 
+        mrstSettingsGUI(settings);
+%     catch
+%         listSettings(settings, isDesktop);
+%     end
+end
+
 % Setting up defaults 
 function settings = getDefaultMRSTSettings(setDefaults)
     % This should run once!
@@ -418,8 +426,14 @@ function settings = getDefaultMRSTSettings(setDefaults)
     opts = setDefaultSetting(opts, 'useHash', 'Use hashing for consistency checks and comparing simulation setups', ...
         ['MRST will use md5 checksums of simulation setups in the AD-OO framework.', ...
         ' This makes it easy to detect differences between setups, verify that discrete operators are consistent with the grid and rock, etc.'], false);
-
-    settings = settingsStruct();
+    
+    
+    if ~mrstPlatform('octave')
+        settings = settingsStruct();
+    else 
+        settings = struct();
+    end
+    
     settings.outputDirectory = opts.outputDirectory;
     settings.dataDirectory = opts.dataDirectory;    
     settings.useMEX = opts.useMEX;
