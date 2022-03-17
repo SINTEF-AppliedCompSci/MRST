@@ -34,6 +34,8 @@ function [G, msh] = gmshToMRST(filename)
 
     run(filename);
 
+    assert(exist('msh', 'var'), 'The file %s must construct a variable named msh', filename);
+
     if mrstVerbose
         msh
     end
