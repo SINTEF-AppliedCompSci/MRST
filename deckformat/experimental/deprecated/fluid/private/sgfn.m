@@ -49,7 +49,7 @@ function [krg, Sgco, Sgcr, Sgmax, pc, pcinv] = sgfn(T, varargin)
 %  `readRelPermTable`, `swfn`, `sgofn`, `swof`.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

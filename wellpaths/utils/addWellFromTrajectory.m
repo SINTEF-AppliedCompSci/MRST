@@ -4,7 +4,7 @@ function W = addWellFromTrajectory(W, G, rock, traj, varargin)
 % cellInx, there should be a nx3 matrix of trajectory coordinates.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -24,7 +24,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 opt = struct('faces',                  [], ...
              'exteriorFaceCorrection', false, ...
-             'refDepth',               []);
+             'refDepth',               [], ...
+             'errorOnEmptyCellSet',    true);
 [opt, other] = merge_options(opt, varargin{:});
 assert(G.griddim == 3, 'Function only compatible with 3D grids.');
 assert(size(traj,2)==3, 'Trajectory is expected to be nx3 array.');
@@ -37,13 +38,21 @@ tmp = computeTraversedCells(G, traj, 'faces', opt.faces, ...
             'exteriorFaceCorrection', opt.exteriorFaceCorrection);
 
 if isempty(tmp.cell)
-    error('Did not find any traversed cells for trajectory.');
+    if opt.errorOnEmptyCellSet
+        error('Did not find any traversed cells for trajectory.');
+    else
+        % return shut dummy well
+        W = addWell(W, G, rock, 1, other{:}, 'refDepth', opt.refDepth);
+        W(end).status  = false;
+        W(end).cstatus = false;
+    end
+else
+    if isempty(opt.refDepth) && isfield(G.cells, 'centroids')
+        opt.refDepth = G.cells.centroids(tmp.cell(1), 3);
+    end
+    % multiply segments by weight (non-unit for segments shared by multiple cells)
+    seg = bsxfun(@times, tmp.vec, tmp.weight);
+    W = addWell(W, G, rock, tmp.cell, 'lineSegments', seg, 'refDepth', opt.refDepth, other{:});
+end
 end
 
-if isempty(opt.refDepth) && isfield(G.cells, 'centroids')
-    opt.refDepth = G.cells.centroids(tmp.cell(1), 3);
-end
-% multiply segments by weight (non-unit for segments shared by multiple cells)
-seg = bsxfun(@times, tmp.vec, tmp.weight);
-W = addWell(W, G, rock, tmp.cell, 'lineSegments', seg, 'refDepth', opt.refDepth, other{:});
-end
