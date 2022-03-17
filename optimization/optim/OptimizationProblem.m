@@ -682,7 +682,7 @@ end
 % Setup of default simulation/diagnsotics problems
 % -------------------------------------------------------------------------
 function p = setupProblem(p, opt)
-props = intersect(properties(p), fieldnames(opt));
+props = intersect(propertynames(p), fieldnames(opt));
 for k = 1:numel(props)
     p.(props{k}) = opt.(props{k});
 end
