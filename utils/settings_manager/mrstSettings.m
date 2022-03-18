@@ -61,14 +61,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     persistent SETTINGS
     isDesktop = mrstPlatform('desktop'); % Check for GUI etc
     need_save = false;
-    first_time = false;
+    set_default = false;
+    set_same = false;
     if isempty(SETTINGS)
         SETTINGS = loadSettings();
         if isempty(SETTINGS)
             % Didn't manage to load them - we are restarting
             SETTINGS = firstTimeSetup(SETTINGS, isDesktop);
             need_save = true;
-            first_time = true;
+            set_default = true;
         else
             % We have added some settings between MRST sessions. Won't
             % happen in a release, but might happen when migrating settings
@@ -111,6 +112,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 case ''
                     % Redo (but keep current options)
                     SETTINGS = firstTimeSetup(SETTINGS, isDesktop, true);
+                    set_same = true;
                 case 'reset'
                     % Reset (but prompt first!)
                     doReset = prompt('Reset settings', ...
@@ -118,6 +120,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     if doReset
                         SETTINGS = hardReset();
                         SETTINGS = firstTimeSetup(SETTINGS, isDesktop);
+                        set_default = true;
                     else
                         return;
                     end
@@ -125,6 +128,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     % Reset (no prompt!)
                     SETTINGS = hardReset();
                     SETTINGS = firstTimeSetup(SETTINGS, isDesktop);
+                    set_default = true;
                 otherwise
                     error('%s not supported', sarg)
             end
@@ -192,10 +196,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         storeSettings(SETTINGS);
     end
     
-    if first_time
-        fprintf('\nNew default settings have been set\n');
+    if set_default
+        fprintf('\nMRST settings have been set to default\n');
         listSettings(SETTINGS, isDesktop)
     end
+    if set_same % Ensure something is printed when mrstSettings('setup') is called.
+        listSettings(SETTINGS, isDesktop)
+    end    
     
 end
 % Setup / wizards / GUI
@@ -214,6 +221,31 @@ function [names, folders, folderText] = getNames(settings)
     names = setdiff(names, folders);
 end
 
+function wasYes = prompt(head, txt, isDesktop)
+    if isDesktop
+        answer = questdlg(txt, head, 'Yes', 'No', 'No');
+        % Handle response
+        switch lower(answer)
+            case 'yes'
+                wasYes = true;
+            otherwise
+                wasYes = false;
+        end
+    else
+        s = sprintf('%s: %s\nyes/no [no]: ', head, txt);
+        v = input(s, 's');
+        if isempty(v)
+            wasYes = false;
+        else
+            switch lower(v)
+                case {'y', 'yes'}
+                    wasYes = true;
+                otherwise
+                    wasYes = false;
+            end
+        end
+    end
+end
 
 % Listing
 function listSettings(settings, isDesktop)
@@ -245,7 +277,7 @@ function listSettings(settings, isDesktop)
         f = fldrs{i};
         fprintf('\t%16s -> %s\n', f, settings.(f));
     end
-    fprintf('\nTo change output or data directories please run:\n mrstOutputDirectory(<path/to/new/dir>) or mrstDataDirectory(<path/to/new/dir>)\n')
+    fprintf("\nTo change output or data directories please run:\n mrstOutputDirectory('path/to/new/dir') or mrstDataDirectory('path/to/new/dir')\n")
     
 end
 
