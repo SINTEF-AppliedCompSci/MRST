@@ -81,17 +81,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             df = fieldnames(default);
             missing = setdiff(df, f);
             for i = 1:numel(missing)
-                nm = missing{i}; 
+                nm = missing{i};
                 v = default.(nm);
                 if isstruct(v)
                     fprintf('New setting discovered: %s. Setting default value: %s\n', nm, v.value);
                 end
-                SETTINGS.(nm) = v; 
+                SETTINGS.(nm) = v;
             end
             need_save = numel(missing) > 0;
         end
     end
-    if nargin == 0 
+    if nargin == 0
         if nargout == 1
             verb = '';
         else
@@ -182,10 +182,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 if nargout > 1
                     varargout{2} = setting;
                 end
-            end           
+            end
         case 'list'
             % Default
-            listSettings(SETTINGS, isDesktop)            
+            listSettings(SETTINGS, isDesktop)
         case ''
             varargout{1} = SETTINGS;
         otherwise
@@ -195,16 +195,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if need_save
         storeSettings(SETTINGS);
     end
-    
+
     if set_default
         fprintf('\nMRST settings have been set to default\n');
         listSettings(SETTINGS, isDesktop)
     end
     if set_same % Ensure something is printed when mrstSettings('setup') is called.
         listSettings(SETTINGS, isDesktop)
-    end    
-    
+    end
 end
+
 % Setup / wizards / GUI
 function settings = firstTimeSetup(settings, isDesktop, doWizard)
     if isempty(settings)
@@ -272,6 +272,7 @@ function listSettings(settings, isDesktop)
         end
         fprintf(' %12s |  %12s  | %-*s | %5s\n', name, current, n, l, formatOption(d));
     end
+
     fprintf('\nConfigured directories:\n');
     for i = 1:numel(fldrs)
         f = fldrs{i};
@@ -318,12 +319,12 @@ function settings = loadSettings()
         else
             settings = tmp;
         end
-        
-        if isstruct(settings) & ~mrstPlatform('octave')
-            % Convert old saved settings to settingsStruct 
+
+        if isstruct(settings) && ~mrstPlatform('octave')
+            % Convert old saved settings to settingsStruct
             settings = struct2settings(tmp);
         end
-        
+
         if isempty(settings.useHash)
             settings = setDefaultSetting(settings, 'useHash', 'Use hashing for consistency checks and comparing simulation setups', ...
              ['MRST will use md5 checksums of simulation setups in the AD-OO framework.', ... %
@@ -361,7 +362,7 @@ function checkSetting(SETTINGS, setting)
     end
 end
 
-% Setting up defaults 
+% Setting up defaults
 function settings = getDefaultMRSTSettings(setDefaults)
     % This should run once!
     if nargin == 0
@@ -374,7 +375,7 @@ function settings = getDefaultMRSTSettings(setDefaults)
 
     opts = struct('outputDirectory', out, ...
                   'dataDirectory',   data);
-    
+
     useMEX = checkCompiler(setDefaults);
     allowDL = checkDownload(setDefaults);
     useOpenMP = ~strcmpi(mrstPlatform('os'), 'macos');
@@ -398,22 +399,21 @@ function settings = getDefaultMRSTSettings(setDefaults)
     opts = setDefaultSetting(opts, 'useHash', 'Use hashing for consistency checks and comparing simulation setups', ...
         ['MRST will use md5 checksums of simulation setups in the AD-OO framework.', ...
         ' This makes it easy to detect differences between setups, verify that discrete operators are consistent with the grid and rock, etc.'], false);
-    
-    
+
     if ~mrstPlatform('octave')
         settings = settingsStruct();
-    else 
+    else
         settings = struct();
     end
-    
+
     settings.outputDirectory = opts.outputDirectory;
-    settings.dataDirectory = opts.dataDirectory;    
+    settings.dataDirectory = opts.dataDirectory;
     settings.useMEX = opts.useMEX;
-    settings.useOMP = opts.useOMP;        
+    settings.useOMP = opts.useOMP;
     settings.promptMEX = opts.promptMEX;
-    settings.allowDL = opts.allowDL;        
-    settings.promptDL = opts.promptDL;      
-    settings.useHash = opts.useHash;        
+    settings.allowDL = opts.allowDL;
+    settings.promptDL = opts.promptDL;
+    settings.useHash = opts.useHash;
 end
 
 function opt = getDefaultSetting(label, description, default)
