@@ -52,15 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fprintf('The current MRST output directory is set to:\n\t%s\n', ...
                  mrstSettings('get', 'outputDirectory'));
     elseif nargin == 1
-        if isstring(varargin{1})
-            mrstSettings('set', 'outputDirectory', varargin{1})
-        elseif islogical(varargin{1})
-            
-        else
-            error('mrstOutputDirectory input must be either a string or a logical value')
-        end
-        
-        
+        mrstSettings('set', 'outputDirectory', varargin{1})
     elseif nargin > 1
         error('Function must be called with one or zero inputs.');
     end
