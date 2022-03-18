@@ -278,8 +278,10 @@ function listSettings(settings, isDesktop)
         f = fldrs{i};
         fprintf('\t%16s -> %s\n', f, settings.(f));
     end
-    fprintf("\nTo change output or data directories please run:\n mrstOutputDirectory('path/to/new/dir') or mrstDataDirectory('path/to/new/dir')\n")
-    
+
+    fprintf(['\nTo change output or data directories please run:\n', ...
+             'mrstOutputDirectory(''path/to/new/dir'') or ', ...
+             'mrstDataDirectory(''path/to/new/dir'')\n']);
 end
 
 function s = formatToggle(name, opt)
