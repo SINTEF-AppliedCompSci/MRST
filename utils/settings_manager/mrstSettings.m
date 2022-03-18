@@ -30,8 +30,6 @@ function varargout = mrstSettings(verb, varargin)
 %   mrstSettings('setup', 'reset')
 %   % Perform setup wizard
 %   mrstSettings('setup')
-%   % Load gui directly
-%   mrstSettings('gui')
 %   % Set option
 %   mrstSettings('set', 'useMEX', true)
 %   % Query a setting
@@ -63,12 +61,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     persistent SETTINGS
     isDesktop = mrstPlatform('desktop'); % Check for GUI etc
     need_save = false;
+    first_time = false;
     if isempty(SETTINGS)
         SETTINGS = loadSettings();
         if isempty(SETTINGS)
             % Didn't manage to load them - we are restarting
             SETTINGS = firstTimeSetup(SETTINGS, isDesktop);
             need_save = true;
+            first_time = true;
         else
             % We have added some settings between MRST sessions. Won't
             % happen in a release, but might happen when migrating settings
@@ -178,15 +178,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 if nargout > 1
                     varargout{2} = setting;
                 end
-            end
-        case 'gui'
-            % Load GUI with current settings
-            if isDesktop & ~mrstPlatform('octave')
-                loadGUI(SETTINGS,isDesktop);
-            else
-                listSettings(SETTINGS, isDesktop)
-            end
-            need_save = true;            
+            end           
         case 'list'
             % Default
             listSettings(SETTINGS, isDesktop)            
@@ -199,29 +191,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if need_save
         storeSettings(SETTINGS);
     end
+    
+    if first_time
+        fprintf('\nNew default settings have been set\n');
+        listSettings(SETTINGS, isDesktop)
+    end
+    
 end
 % Setup / wizards / GUI
 function settings = firstTimeSetup(settings, isDesktop, doWizard)
     if isempty(settings)
         settings = getDefaultMRSTSettings(true);
-    end
-    if nargin < 3
-        if mrstPlatform('octave')
-            doWizard = false;
-        else
-            doWizard = prompt('MRST settings', ...
-                ['MRST has several advanced configuration settings. Would you like to', ...
-                ' set these up now? Otherwise, these settings will use reasonable defaults', ...
-                ' and can be configured by calling ''mrstSettings'' later.'], isDesktop);
-        end
-    end
-    if doWizard
-        if isDesktop
-            loadGUI(settings,isDesktop);
-        else
-            % Use simple version
-            mrstSettings list
-        end
     end
 end
 
@@ -234,40 +214,6 @@ function [names, folders, folderText] = getNames(settings)
     names = setdiff(names, folders);
 end
 
-function result = triplePrompt(head, txt, choices, labels, default)
-    answer = questdlg(txt, head, labels{:}, default);
-    if isempty(answer)
-        result = nan;
-    else
-        result = choices{strcmp(labels, answer)};
-    end
-end
-
-function wasYes = prompt(head, txt, isDesktop)
-    if isDesktop
-        answer = questdlg(txt, head, 'Yes', 'No', 'No');
-        % Handle response
-        switch lower(answer)
-            case 'yes'
-                wasYes = true;
-            otherwise
-                wasYes = false;
-        end
-    else
-        s = sprintf('%s: %s\nyes/no [no]: ', head, txt);
-        v = input(s, 's');
-        if isempty(v)
-            wasYes = false;
-        else
-            switch lower(v)
-                case {'y', 'yes'}
-                    wasYes = true;
-                otherwise
-                    wasYes = false;
-            end
-        end
-    end
-end
 
 % Listing
 function listSettings(settings, isDesktop)
@@ -299,6 +245,8 @@ function listSettings(settings, isDesktop)
         f = fldrs{i};
         fprintf('\t%16s -> %s\n', f, settings.(f));
     end
+    fprintf('\nTo change output or data directories please run:\n mrstOutputDirectory(<path/to/new/dir>) or mrstDataDirectory(<path/to/new/dir>)\n')
+    
 end
 
 function s = formatToggle(name, opt)
@@ -379,14 +327,6 @@ function checkSetting(SETTINGS, setting)
     if ~isfield(SETTINGS, setting)
         error('I do not know of the option ''%s''. Note that options are case sensitive', setting);
     end
-end
-
-function loadGUI(settings,isDesktop)
-%     try 
-        mrstSettingsGUI(settings);
-%     catch
-%         listSettings(settings, isDesktop);
-%     end
 end
 
 % Setting up defaults 
