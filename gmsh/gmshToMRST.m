@@ -1,20 +1,24 @@
 function [G, msh] = gmshToMRST(filename)
 % Create MRST grid object out of m file from Gmsh.
 %
-% SYNOPSIS
+% SYNOPSIS:
 %   G = gmshToMRST(filename)
 %   [G, msh] = gmshToMRST(filename)
 %
-% PARAMETERS
-%   filename  - The .m file from Gmsh.
-%
-% DESCRIPTION
-%   Convert an Gmsh grid in the m-file filename to an MRST grid. The m
-%   file from Gmsh can be generated in the python interface by
+% DESCRIPTION:
+%   Convert a Gmsh grid in the m-file filename to an MRST grid. The m file
+%   from Gmsh can be generated in the Python interface by
 %   gmsh.write("grid.m") or the GUI by saving it as a file with extension
 %   .m.
 %
-% EXAMPLE
+% PARAMETERS:
+%   filename - The .m file from Gmsh.
+%
+% RETURNS:
+%   G   - MRST grid structure.
+%   msh - Original Gmsh grid object.
+%
+% EXAMPLE:
 %   Assuming there is a grid in Gmsh format in the file `grid.m`, this
 %   grid can be converted to an MRST grid `G` by
 %
@@ -23,24 +27,27 @@ function [G, msh] = gmshToMRST(filename)
 %   The original Gmsh grid can be returned as an object named `msh` by
 %
 %     [G, msh] = gmshToMRST('grid.m');
-    
+%
+% SEE ALSO:
+%   `grid_structure`.
+
 %{
-  Copyright 2009 - 2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
-  This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
-  MRST is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-  MRST is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License
-  along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     run(filename);
@@ -48,7 +55,7 @@ function [G, msh] = gmshToMRST(filename)
     assert(exist('msh', 'var'), 'The file %s must construct a variable named msh', filename);
 
     if mrstVerbose
-        msh
+        disp(msh)
     end
 
     if msh.MIN(3) == msh.MAX(3)
@@ -59,7 +66,6 @@ function [G, msh] = gmshToMRST(filename)
     G.type = 'gmsh';
 
     G = computeGeometry(G, 'findNeighbors', true);
-
 end
 
 
@@ -146,8 +152,7 @@ function G = construct_2d(msh)
 end
 
 
-function G = construct_3d(msh, set_tag)
-
+function G = construct_3d(msh)
     G.griddim = 3;
 
     % Set nodes
