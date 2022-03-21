@@ -153,7 +153,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
             end
             if ~isempty(regexpi(sarg, '\s*Directory'))                     %#ok
-                assert(ischar(new), 'Directory must be a string.');
+                assert(ischar(new), ...
+                      ['Directory name must be a character vector ', ...
+                       '(i.e., a sequence of characters bookended by ', ...
+                       'single quotes ('')).']);
                 if isdir(new)                                              %#ok
                     new = getCanonicalPath(new);
                     SETTINGS.(sarg) = new;
