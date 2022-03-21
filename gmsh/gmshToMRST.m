@@ -3,6 +3,7 @@ function [G, msh] = gmshToMRST(filename)
 %
 % SYNOPSIS
 %   G = gmshToMRST(filename)
+%   [G, msh] = gmshToMRST(filename)
 %
 % PARAMETERS
 %   filename  - The .m file from Gmsh.
@@ -12,7 +13,17 @@ function [G, msh] = gmshToMRST(filename)
 %   file from Gmsh can be generated in the python interface by
 %   gmsh.write("grid.m") or the GUI by saving it as a file with extension
 %   .m.
-
+%
+% EXAMPLE
+%   Assuming there is a grid in Gmsh format in the file `grid.m`, this
+%   grid can be converted to an MRST grid `G` by
+%
+%     G = gmshToMRST('grid.m');
+%
+%   The original Gmsh grid can be returned as an object named `msh` by
+%
+%     [G, msh] = gmshToMRST('grid.m');
+    
 %{
   Copyright 2009 - 2022 SINTEF Digital, Mathematics & Cybernetics.
 
