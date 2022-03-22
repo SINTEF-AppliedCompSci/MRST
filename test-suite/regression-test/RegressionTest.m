@@ -123,7 +123,7 @@ classdef RegressionTest
         
         %-----------------------------------------------------------------%
         function directory = getDataDirectory(rt)
-            directory = fullfile(mrstOutputDirectory(), 'reg-tests', rt.group(), rt.name);
+            directory = fullfile(mrstOutputDirectory(), 'reg-tests', rt.group, rt.name);
         end
         
         %-------------------------------------------------------------------------%
