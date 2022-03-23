@@ -1,19 +1,21 @@
 classdef WellAdvectiveHeatFlux < StateFunction
-%State function for advective heat flux between wellbore and reservoir
-    
+   
     properties
     end
     
     methods
         %-----------------------------------------------------------------%
         function gp = WellAdvectiveHeatFlux(model, varargin)
+            
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseFlux', 'FacilityWellMapping'});
             gp.label = 'q_{avd}';
+            
         end
         
         %-----------------------------------------------------------------%
         function q = evaluateOnDomain(prop, model, state)
+            
             % Get well phase fluxes and well mapping
             [v, map] = prop.getEvaluatedDependencies(state, 'PhaseFlux', 'FacilityWellMapping');
             % Get enthalpy and density in perforated cells
@@ -37,8 +39,6 @@ classdef WellAdvectiveHeatFlux < StateFunction
                     bhp = vertcat(state.wellSol(map.active).bhp);
                     bhp = bhp(map.perf2well);
                 end
-                % Account for gravity
-                cp  = bhp + vertcat(state.wellSol(map.active).cdp);
                 % Get temperature from well variables
                 isT = strcmpi(state.FacilityState.names, 'well_temperature');
                 if any(isT)
@@ -47,17 +47,27 @@ classdef WellAdvectiveHeatFlux < StateFunction
                     Tw = vertcat(map.W.T);
                     Tw = Tw(map.perf2well);
                 end
-                % Compute enthalpy in wellbore
+                % Get NaCl concentraion if present
+                xw     = vertcat(map.W.components);
+                Xw     = model.ReservoirModel.getMassFraction(xw);
+                Xw     = Xw(map.perf2well,:);
+                cnames = model.ReservoirModel.getComponentNames();
+                isNaCl = strcmpi(cnames, 'NaCl');
+                if any(isNaCl), Xw = Xw(:,isNaCl); else, Xw = []; end
+                % Compute enthalpy and density in wellbore
                 phases = model.ReservoirModel.getPhaseNames();
                 for i = 1:numel(phases)
                     ix = model.ReservoirModel.getPhaseIndex(phases(i));
-                    hWell = feval(model.ReservoirModel.fluid.(['h', phases(i)]), cp, Tw);
+                    hWell = feval(model.ReservoirModel.fluid.(['h', phases(i)]), bhp, Tw);
                     h{ix}(injector) = hWell(injector);
+                    rhoWell = feval(model.ReservoirModel.fluid.(['rho', phases(i)]), bhp, Tw, Xw);
+                    rho{ix}(injector) = rhoWell(injector);
                 end
             end
             % Compute advective heat flux in/out of wellbore
             q = cellfun(@(rho,h,v) rho.*v.*h, rho, h, v, 'UniformOutput', false);
-        end 
+        end
+        
     end
     
 end
