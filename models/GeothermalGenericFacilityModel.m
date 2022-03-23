@@ -1,8 +1,9 @@
 classdef GeothermalGenericFacilityModel < GenericFacilityModel
 %Generic facility model for geothermal simulations
-  
+    
     properties
-        thermalFormulation = 'temperature';
+        thermalFormulation   = 'temperature';
+        implicitConnectionDP = false;
     end
     
     methods
@@ -22,6 +23,48 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             ffd = ffd.setStateFunction('HeatFlux'          , HeatFlux(model)              );
             model.FacilityFlowDiscretization = ffd;
             
+        end
+        
+        %-----------------------------------------------------------------%
+        function state = initStateAD(model, state, vars, names, origin)
+        % Initialize AD state from double state
+            
+            % Parent model handles standard AD initialization
+            state = initStateAD@GenericFacilityModel(model, state, vars, names, origin);
+            % If connection pressure drops are  explicit, we are done
+            if ~model.implicitConnectionDP, return; end
+            % Compute connection pressure drops with derivatives, assuming
+            % the wellbore fluid is at uniform pressure (BHP) and
+            % temperature (Tw)
+            assert(model.ReservoirModel.getNumberOfPhases() == 1,   ...
+                ['Implicit connection pressure drop is currently ', ...
+                 'only supported for single-phase flow']          );
+            % Facility well mapping and gravity
+            map    = model.getProp(state, 'FacilityWellMapping');
+            g      = norm(model.ReservoirModel.gravity);
+            % Get bottom-hole pressure
+            isBHP  = strcmpi(state.FacilityState.names, 'bhp');
+            bhp    = state.FacilityState.primaryVariables{isBHP};
+            % Get well temperature
+            isTemp = strcmpi(state.FacilityState.names, 'well_temperature');
+            Tw     = state.FacilityState.primaryVariables{isTemp};
+            % Get NaCl concentraion if present
+            xw     = vertcat(map.W.components);
+            Xw     = model.ReservoirModel.getMassFraction(xw);
+            cnames = model.ReservoirModel.getComponentNames();
+            isNaCl = strcmpi(cnames, 'NaCl');
+            if any(isNaCl), Xw = Xw(:,isNaCl); else, Xw = []; end
+            % Compute density
+            rhow = model.ReservoirModel.fluid.rhoW(bhp, Tw, Xw);
+            rhow = rhow(map.perf2well);
+            % Compute connection pressure drop for each well
+            for i = 1:numel(map.W)
+                wellSol = state.wellSol(map.active(i));
+                rhowi = rhow(map.perf2well == i);
+                wellSol.cdp = rhowi.*g.*map.W(i).dZ;
+                state.wellSol(map.active(i)) = wellSol;
+            end
+
         end
         
         %-----------------------------------------------------------------%
