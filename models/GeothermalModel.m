@@ -274,6 +274,8 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
         
         %-----------------------------------------------------------------%
         function state = validateState(model, state)
+        % Validate state and check if it is ready for simulation
+    
             % Let parent model do it's thing
             state = validateState@ReservoirModel(model, state);
             % Set component overall mass fractions if they are not given
@@ -313,10 +315,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             % Flash computation to ensure that we are in thermodynamic
             % equilibrium
             state = computeFlashGeothermal(model, state);
+
         end
         
         %-----------------------------------------------------------------%
         function [vararg, control] = getDrivingForces(model, control)
+        % Get driving forces in expanded format.
+    
             [vararg, control] = getDrivingForces@ReservoirModel(model, control);
             ix = find(strcmpi(vararg, 'bc'));
             if ~isempty(ix) && ~isempty(vararg{ix+1})
@@ -340,10 +345,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     vararg{ix+1} = W;
                 end
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function [vars, names, origin] = getPrimaryVariables(model, state)
+        % Get primary variables from state
+   
             [p, x] = model.getProps(state, 'pressure', 'components');
             x = ensureMinimumFraction(x, 1e-8);
             x = expandMatrixToCell(x);
@@ -363,10 +371,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 names = [names, n];
                 origin = [origin, o];
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function state = initStateAD(model, state, vars, names, origin)
+        % Initialize AD state from double state
+    
             isP = strcmp(names, 'pressure');
             state = model.setProp(state, 'pressure', vars{isP});
             removed = isP;
@@ -399,10 +410,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             % Set up state with remaining variables
             state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
             state = computeFlashGeothermal(model, state);
+
         end
 
         %-----------------------------------------------------------------%
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces, varargin)
+        % Get equations from AD states
+
             [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
             % Add sources
@@ -429,19 +443,24 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             types = [types, etypes, wtypes];
             % Add in boundary conditions
             eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, drivingForces);
+            
         end
         
         %-----------------------------------------------------------------%
         function [v_eqs, tolerances, names] = getConvergenceValues(model, problem, varargin)
-            % Scaling
+        % Get values for convergence check
+        
             [v_eqs, tolerances, names] = getConvergenceValues@ReservoirModel(model, problem, varargin{:});
             scale = model.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
             ix    = ~cellfun(@isempty, scale);
             v_eqs(ix) = cellfun(@(scale, x) norm(scale.*value(x), inf), scale(ix), problem.equations(ix));
+            
         end
 
         %-----------------------------------------------------------------%
         function scale = getEquationScaling(model, eqs, names, state0, dt)
+        % Get scaling for the residual equations to determine convergence
+            
             scale = cell(1, numel(eqs));
             cnames = model.getComponentNames();
             [cmass, energy] = model.getProps(state0, 'ComponentTotalMass', ...
@@ -466,11 +485,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 scaleEnergy = dt./energy;
                 scale{ix} = scaleEnergy;
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function massFraction = getMassFraction(model, moleFraction)
-            % Convert molar fraction to mass fraction
+        % Convert molar fraction to mass fraction
+        
             if iscell(moleFraction)
                 ncomp = numel(moleFraction);
                 mass = cell(1, ncomp);
@@ -493,11 +514,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 mass = bsxfun(@times, moleFraction, molarMass);
                 massFraction = bsxfun(@rdivide, mass, sum(mass, 2));
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function moleFraction = getMoleFraction(model, massFraction)
-            % Convert molar fraction to mass fraction
+        % Convert molar fraction to mass fraction
+        
             if iscell(massFraction)
                 assert(~isa(massFraction{1}, 'ADI'));
                 massFraction = horzcat(massFraction{:});
@@ -507,10 +530,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             molarMass = reshape(cellfun(@(c) c.molarMass, model.Components), 1, []);
             mole = bsxfun(@rdivide, mass, molarMass);
             moleFraction = bsxfun(@rdivide, mole, sum(mole, 2));
+            
         end
         
         %-----------------------------------------------------------------%
         function [fn, index] = getVariableField(model, name, varargin)
+        % Map known variable by name to field and column index in `state`
+
             % Temprature and enthalpy are both read from state even though
             % only one of them is a primary variable
             switch lower(name)
@@ -537,16 +563,22 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                         [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
                     end
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function names = getComponentNames(model)
+        % Get names of the fluid components
+        
             names  = getComponentNames@ReservoirModel(model);
             names  = horzcat(names,  model.compFluid.names);
+            
         end
         
         %-----------------------------------------------------------------%
         function [state, report] = updateState(model, state, problem, dz, drivingForces)
+        % Update the state based on increments of the primary values
+            
             state0 = state;
             vars0 = problem.primaryVariables;
             vars = vars0;
@@ -605,11 +637,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             end
             state.components = ensureMinimumFraction(state.components, 1e-8);
             state = computeFlashGeothermal(model, state, state0);
+            
         end
         
         %-----------------------------------------------------------------%
         function [eqs, state, src] = addBoundaryConditionsAndSources(model, eqs, names, types, state, forces)
-             % Assemble equations and add in sources
+        % Add sources from BCs and source terms
+            
             [pressures, sat, mob, rho, X] = model.getProps(state, 'PhasePressures'             , ...
                                                                   's'                          , ...
                                                                   'Mobility'                   , ...
@@ -639,10 +673,12 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 q = src.bc.mapping*src.bc.heatFlux;
                 eqs{eix}(src.bc.sourceCells) = eqs{eix}(src.bc.sourceCells) - q;
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function [eq, src] = addComponentContributions(model, cname, eq, component, src, force)
+            
             if isempty(force)
                 return
             end
@@ -669,16 +705,19 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             else
                 [eq, src] = addComponentContributions@ReservoirModel(model, cname, eq, component, src, force);
             end
+            
         end
         
         %-----------------------------------------------------------------%
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-           [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
-           if model.extraStateOutput
-               rho = model.getProps(state, 'Density');
-               state.rho = horzcat(rho{:});
-           end
-           if model.outputFluxes
+        % Final update to the state after convergence has been achieved
+
+            [state, report] = updateAfterConvergence@ReservoirModel(model, state0, state, dt, drivingForces);
+            if model.extraStateOutput
+                rho = model.getProps(state, 'Density');
+                state.rho = horzcat(rho{:});
+            end
+            if model.outputFluxes
                 state_flow = model.FlowDiscretization.buildFlowState(model, state, state0, dt);
                 f = model.getProp(state_flow, 'PhaseFlux');
                 nph = numel(f);
@@ -703,10 +742,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 state.heatFluxAdv(model.operators.internalConn,:) = horzcat(heatFluxAdv{:});
                 state.heatFluxCond(model.operators.internalConn)  = heatFluxCond;
             end
+            
         end
         
         % ----------------------------------------------------------------%
         function [model, state] = updateForChangedControls(model, state, forces)
+        % Update model and state when controls/drivingForces has changed
+         
             state0 = state;
             [model, state] = updateForChangedControls@ReservoirModel(model, state, forces);
             if isfield(state0, 'wellSol') && ~isempty(state0.wellSol)
@@ -715,6 +757,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                    [state.wellSol(inactive).T] = deal(state0.wellSol(inactive).T);
                 end
             end
+            
         end
         
         % ----------------------------------------------------------------%
@@ -726,21 +769,27 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
         function isDynamic = dynamicFlowTrans(model)
         % Get boolean indicating if the fluid flow transmissibility is
         % dynamically calculated
+        
            isDynamic = isa(model.rock.perm, 'function_handle');
+           
         end
         
         %-----------------------------------------------------------------%
         function isDynamic = dynamicHeatTransFluid(model)
         % Get boolean indicating if the fluid heat transmissibility is
         % dynamically calculated
+        
            isDynamic = isa(model.fluid.lambdaF, 'function_handle');
+           
         end
         
         %-----------------------------------------------------------------%
         function isDynamic = dynamicHeatTransRock(model)
         % Get boolean indicating if the rock heat transmissibility is
         % dynamically calculated
+        
            isDynamic = isa(model.rock.lambdaR, 'function_handle');
+           
         end
         
     end
