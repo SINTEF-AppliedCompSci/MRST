@@ -16,6 +16,7 @@ classdef TestCase
         axisProperties    % Axis properties (defaults set by constructor)
         toolbarOptions    % Options that can be passed to plotToolbar
         visualizationGrid % Optional grid for plotting
+        plotFn            % Function for plotting (defaults to plotToolbar)
     end
 
     properties (Access = private)
@@ -34,7 +35,9 @@ classdef TestCase
             % Set test name
             test.baseName = lower(name);
             % Merge options
-            opt = struct('plot', false, 'readFromDisk', true);
+            opt = struct('plot'        , false, ...
+                         'readFromDisk', true , ...
+                         'writeToDisk' , false);
             [opt , varargin] = merge_options(opt, varargin{:});
             [test, extra   ] = merge_options(test, varargin{:});
             if isempty(test.verbose), test.verbose = mrstVerbose(); end
@@ -79,7 +82,7 @@ classdef TestCase
                 time = toc(timer);
                 fprintf('Test case set up in %s\n\n', formatTimeRange(time));
             end
-            % Set visualization grid if given
+            % Set visualization grid and plotFn if given
             [test, plotOptions] = merge_options(test, setup.plotOptions{:});
             % Set figure properties
             [test.figureProperties, plotOptions] ...
@@ -95,8 +98,18 @@ classdef TestCase
             values = struct2cell(test.toolbarOptions);
             test.toolbarOptions = cell(1, 2*numel(names));
             test.toolbarOptions([1:2:end, 2:2:end]) = horzcat(names, values);
+            % Set plotting function if not given
+            if isempty(test.plotFn)
+                test.plotFn = @(G, v, varargin) ...
+                    plotToolbar(G, v, test.toolbarOptions{:}, varargin{:});
+            end
             % Compute test case ID
             test.id = test.getTestCaseHash();
+            
+            if opt.writeToDisk
+                % Save test case to disk
+                test.save();
+            end
             
             if opt.plot
                 % Plot test case
@@ -268,7 +281,7 @@ classdef TestCase
             end
             h = test.figure('Name', Name);
             G = test.getVisualizationGrid();
-            plotToolbar(G, v, test.toolbarOptions{:}, varargin{:});
+            test.plotFn(G, v, varargin{:});
             if opt.plotWells
                 test.plotWells(opt.wellOpts{:});
             end
@@ -358,6 +371,7 @@ classdef TestCase
                     'axisProperties'   , ...
                     'toolbarOptions'   , ...
                     'visualizationGrid', ...
+                    'plotFn'           , ...
                     'id'               , ...
                     'verbose'          };
             if nargin > 1 && ~fullHash
@@ -385,23 +399,22 @@ classdef TestCase
                          'name'     , []  , ...
                          'prompt'   , true);
             opt = merge_options(opt, varargin{:});
-            
+            % Set up filename
+            [opt.name, opt.directory, isSaved] ...
+                 = test.getFileParts(opt.name, opt.directory);
             fn = [];
-            if isempty(opt.directory)
-                % Set default directory
-                opt.directory = fullfile(mrstDataDirectory(), ...
-                    'test-suite', test.baseName, test.name);
-            end
-            if isempty(opt.name)
-                % Default file name is the test case hash computed from
-                % name, description, and options
-                opt.name = test.getTestCaseHash(false);
-            end
             if opt.prompt
-                % Prompt the user in case  we are about to save a modified
+                rmsg = 'Ok, will not save test case.\n';
+                % Warn user in case test case is already saved
+                if isSaved
+                    warning(['Found an existing version of this ', ...
+                             'test case in the same location. '  , ...
+                             'This will be overwritten']         );
+                    fn = fullfile(opt.directory, opt.name);
+                end
+                % Prompt the user in case we are about to save a modified
                 % version of test case.
                 modified = test.isModified();
-                rmsg = 'Ok, will not save test case.\n';
                 if modified
                     str = input(['Test case has been changed after '  , ...
                                  'construction. Do you still want to ', ...
@@ -424,7 +437,7 @@ classdef TestCase
             % Make directory if it does not exist
             if ~exist(opt.directory, 'dir'), mkdir(opt.directory); end
             % Save test case
-            fn = fullfile(opt.directory, opt.name);
+            if isempty(fn), fn = fullfile(opt.directory, opt.name); end
             save(fn, 'test', '-v7.3');
             
         end
@@ -445,19 +458,17 @@ classdef TestCase
             % Throw error by default if we try to load a test case that
             % does not exist
             if nargin < 2, throwError = true; end
-            % Test case is stored with a filename equal to its hash value
-            hash     = test.getTestCaseHash(false);
-            directory = fullfile(mrstDataDirectory(), ...
-                                'test-suite', test.baseName, test.name);
-            fn   = [fullfile(directory, hash), '.mat'];
+            % Get file name and check if it exists
+            [fileName, directory, isSaved] = test.getFileParts();
+            fileName = fullfile(directory, fileName);
             tc   = [];
-            if isfile(fn)
+            if isSaved
                 % The test case exists on disk - load it
                 if test.verbose
                     fprintf(['Found a saved version of this ', ...
                               'test case. Loading ... ']     );
                 end
-                data = load(fn);
+                data = load(fileName);
                 tc   = data.test;
             elseif throwError
                 % The file does no exists - throw an error
@@ -465,6 +476,33 @@ classdef TestCase
                        'named %s with hash key %s'], test.name, hash);
             end
             
+        end
+        
+        %-----------------------------------------------------------------%
+        function [fileName, directory, isSaved] = getFileParts(test, fileName, directory)
+        % Get file name (with extension) and directory of test case mat
+        % file, and a boolean indicating if a file with this name already
+        % exists in directory
+            
+            % Set default file name if not given
+            if nargin < 2 || isempty(fileName)
+                fileName = test.getTestCaseHash(false);
+            end
+            % Set default directory if not given
+            if nargin < 3 || isempty(directory)
+                directory = fullfile(mrstDataDirectory(), ...
+                                'test-suite', test.baseName, test.name);
+            end
+            % Set extension if not given
+            [~, ~, ext] = fileparts(fileName);
+            if isempty(ext)
+                fileName = [fileName, '.mat'];
+            else
+                assert(strcmpi(ext, '.mat'), 'File extension must be .mat');
+            end
+            % Check if test case is saved
+            isSaved  = isfile(fullfile(directory, fileName));
+
         end
         
         %-----------------------------------------------------------------%
