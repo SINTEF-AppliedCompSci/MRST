@@ -1,3 +1,5 @@
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 # ad-micp: A module to study CO2 leakage remediation by microbially induced calcite precipitation (MICP)
 
 <img src="micp-gif.gif" width="900" height="400">
@@ -26,25 +28,13 @@ respect to previous releases, and using this module in macOS with GNU
 Octave.
 
 ## Requirements
-* MRST (Tested version: 2021b)
-* MATLAB (Tested version: R2021a) or GNU Octave (Tested version: 6.3.0)
+* MRST (Tested version: 2022a)
+* MATLAB (Tested version: R2022a) or GNU Octave (Tested version: 6.4.0)
 
-## Installation (MATLAB)
+## Installation (MATLAB/GNU Octave)
 * Set the folder's name to 'ad-micp'.
 * Move the folder inside the 'modules' folder in MRST.
 * Run the 'startup.m' file in MRST.
-
-## Installation (GNU Octave)
-* Set the folder's name to 'ad-micp'.
-* Move the folder inside the 'modules' folder in MRST.
-* Run the 'startup.m' file in MRST.
-* Open the script 'mrst-2021a/utils/uniqueStable.m' and comment the lines
-104, 112, 115, and 117 (this forces to use the function 'fall_back' in
-line 110 instead of the function 'unique' in line 115).
-* Open the scripts 'mrst-2021a/models/co2lab/utils/co2props/CO2props.m' and
-'mrst-2021a/models/co2lab/utils/co2props/SampleProp2D.m' and change the
-name of the function 'fields' to 'fieldnames' in lines 120 and 484
-respectively.
 
 ## Cite
 If you use ad-micp to write a scientific publication, please cite one of
