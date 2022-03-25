@@ -21,7 +21,9 @@ In addition, this module includes scripts to run the studies in [A, B].
 
 The ad-micp module is compatible with the (freely available) MATLAB
 Reservoir Simulation Toolbox (MRST) provided by SINTEF Digital, see
-http://www.sintef.no/projectweb/mrst/.
+http://www.sintef.no/projectweb/mrst/. There is also a short YouTube
+video with further information on how to install and use this module
+in MATLAB and GNU Octave https://www.youtube.com/watch?v=nvz3bV4QgxM.
 
 See the Wiki for an extended description, information regarding changes
 respect to previous releases, and using this module in macOS with GNU
