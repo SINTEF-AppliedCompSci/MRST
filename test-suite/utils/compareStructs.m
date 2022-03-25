@@ -13,7 +13,7 @@ function out = compareStructs(in1, in2, varargin)
 %                      For a field 'name', let v1 = in1.name and v2 =
 %                      in2.name. Then, the fields will be compared as
 %                           out.name = opt.fun(v1) - opt.fun(v2).
-%                      Defaul value is @abs.
+%                      Default value is @abs.
 %
 %   'relative'       - Boolean indicating if the realtive difference should be
 %                      computed. If true,
