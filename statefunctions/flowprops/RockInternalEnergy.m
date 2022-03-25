@@ -24,7 +24,7 @@ classdef RockInternalEnergy < StateFunction
             if isa(model.rock.CpR, 'function_handle')
                 % Function of pressure and temperature
                 p   = model.getProps(state, 'pressure');
-                CpR = prop.evaluateFunctionOnDomainWithArguments(model.rock.uR, p, T); 
+                CpR = prop.evaluateFunctionOnDomainWithArguments(model.rock.CpR, p, T); 
             else
                 % Constant
                 CpR = model.rock.CpR;
