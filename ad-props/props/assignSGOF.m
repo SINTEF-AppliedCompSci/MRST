@@ -11,7 +11,7 @@ function [krG, krOG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGOF, reg)
     [pts, pts_o] = deal(zeros(reg.sat, 4));
     hasPC = false;
     for i = 1:reg.sat
-        if isfield(f, 'krPts')
+        if isfield(f, 'krPts') && isfield(f.krPts, 'w')
             swcon = f.krPts.w(i, 1);
         else
             warning('No relperm points found in assignment of SGOF.');
