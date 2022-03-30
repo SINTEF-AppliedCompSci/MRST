@@ -204,8 +204,7 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             nc      = arrayfun(@(W) numel(W.cells), map.W);
             Tprod   = ok.*Tprod + ~ok.*map.perforationSum*Tperf./nc;
             % Identify injectors and producers
-            q        = map.perforationSum*qT;
-            injector = q > 0;
+            injector = map.isInjector;
             producer = ~injector;
             % Tprod will have nans in wells with only injection perfs
             T           = model.AutoDiffBackend.convertToAD(zeros(size(value(Tprod))), Tprod);
