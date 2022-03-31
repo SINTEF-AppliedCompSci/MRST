@@ -27,7 +27,9 @@ opt     = struct('WaterRateWeight',     [] , ...
                  'state',               [],...
                  'from_states',         true,...% can be false for generic models
                  'matchOnlyProducers',  false, ...
-                 'mismatchSum',         true);
+                 'mismatchSum',         true, ...
+                 'accumulateWells',       [], ...
+                 'accumulateTypes',       []);
              
 opt     = merge_options(opt, varargin{:});
 
@@ -98,11 +100,28 @@ for step = 1:numSteps
                         (wo*matchCases.*(qOs-qOs_obs)).^2 + ...
                         (wp*matchCases.*(bhp-bhp_obs)).^2 );
     else
-        % output summands f_i such that objective = sum_i f_i^2
+        % output summands f_i^2 
         fac = dt/(totTime*nnz(matchCases));
-        obj{step} = sqrt(fac)*[(ww*matchCases.*(qWs-qWs_obs)); ...  
-                               (wo*matchCases.*(qOs-qOs_obs)); ... 
-                               (wp*matchCases.*(bhp-bhp_obs))];
+        mm  = {fac*(ww*matchCases.*(qWs-qWs_obs)).^2, ...
+               fac*(wo*matchCases.*(qOs-qOs_obs)).^2, ...
+               fac*(wp*matchCases.*(bhp-bhp_obs)).^2};
+        
+        if isempty(opt.accumulateTypes)
+            tmp = mm;
+        else
+            % sum squares of qWs/qOs/bhp
+            pt = opt.accumulateTypes;
+            tmp = num2cell(zeros(1, max(pt)));
+            for k = 1:3
+                tmp{pt(k)} = tmp{pt(k)} + mm{k};
+            end
+        end
+        if ~isempty(opt.accumulateWells)
+            % sum squares of values for wells (use sparse mult)
+            M   = sparse(opt.accumulateWells, 1:numelValue(bhp), 1);
+            tmp = applyFunction(@(x)M*x, tmp);
+        end
+        obj{step} = vertcat(tmp{:});
     end
 end
 end

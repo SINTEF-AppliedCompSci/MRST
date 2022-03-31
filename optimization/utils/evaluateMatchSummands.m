@@ -71,10 +71,15 @@ opt = struct('Verbose',           mrstVerbose(),...
              'AdjointLinearSolver',[],...
              'PerturbationSize',1e-7,...
              'objScaling',1, ...
-             'enforceBounds',  true);
+             'enforceBounds',  true, ...
+             'accumulateResiduals', []);
+            
 
 [opt, extra] = merge_options(opt, varargin{:});
-
+accum = opt.accumulateResiduals;
+if isempty(accum)
+    accum = struct('wells', [], 'types', [], 'steps', []);
+end
 nparam = cellfun(@(x)x.nParam, parameters);
 p_org = pvec;
 if opt.enforceBounds
@@ -94,10 +99,16 @@ end
 [wellSols,states] = simulateScheduleAD(setupNew.state0, setupNew.model, setupNew.schedule,...
                                        'NonLinearSolver',opt.NonlinearSolver,...
                                        'Verbose',opt.Verbose, extra{:});
-
+                                   
 misfitVals = obj(setupNew.model, states, setupNew.schedule, states_ref, false, [],[]);
-misfitVals = vertcat(misfitVals{:});
-%misfitVal  = - sum(horzcat(misfitVals{:}), 2)/opt.objScaling;
+if ~isempty(accum.steps)
+    tmp = repmat({0}, [max(accum.steps), 1]);
+    for k = 1:numel(misfitVals)
+        tmp{accum.steps(k)} = tmp{accum.steps(k)} + misfitVals{k};
+    end
+    misfitVals = tmp;
+end
+misfitVals = (vertcat(misfitVals{:})).^(1/2);
 
 if nargout > 1
     objh = @(tstep,model,state) obj(setupNew.model, states, setupNew.schedule, states_ref, true, tstep, state);
@@ -107,21 +118,16 @@ if nargout > 1
     
     setupNew.model = setupNew.model.validateModel();
     gradient = computeSensitivitiesAdjointAD(setupNew, states, parameters, objh,...
-                    'LinearSolver',opt.AdjointLinearSolver, 'fullSensitivity', true);
-    jacobianRows   = cell(2*numel(gradient), 1);
-    % do scaling of gradient
-    for j = 1:numel(gradient)
-        for k = 1:numel(nms)
-            scaledGradient{k} = parameters{k}.scaleGradient( gradient(j).(nms{k}), pval{k});
-        end
-        jacobianRows{2*j} = vertcat(scaledGradient{:})'/opt.objScaling;
+                    'LinearSolver',opt.AdjointLinearSolver, 'accumulateResiduals', opt.accumulateResiduals);
+    for k = 1:numel(nms)
+        scaledGradient{k} = parameters{k}.scaleGradient( gradient.(nms{k}), pval{k});
     end
-    % fill in zeros
-    [nRow, nCol] = size(jacobianRows{2});
-    for k = 1:2:2*numel(gradient)
-        jacobianRows{k} = zeros(nRow - size(jacobianRows{k+1},1), nCol);
-    end
-    varargout{1} = vertcat(jacobianRows{:});
+    J = vertcat(scaledGradient{:})'/opt.objScaling;
+    % adjust jacobian for sum r^2 -> sum r
+    nzIx  = abs(misfitVals) > eps*norm(misfitVals);
+    numnz = nnz(nzIx);
+    J(nzIx,:) = spdiags((2*misfitVals(nzIx)).^(-1), 0, numnz, numnz)*J(nzIx,:);
+    varargout{1} = J;
     if nargout > 2
         [varargout{2:3}] = deal(wellSols, states);
     end
@@ -130,13 +136,5 @@ if nargout > 1
     end
 end
 end
-
-% Utility function to perturb the parameter array in coordinate i with
-% eps_pert
-function p_pert = perturb(p_org,i,eps_pert) 
-    p_pert = p_org;
-    p_pert(i) = p_pert(i) + eps_pert;
-end
-
 
     
