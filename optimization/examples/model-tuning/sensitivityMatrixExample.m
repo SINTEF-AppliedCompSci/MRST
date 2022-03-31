@@ -2,12 +2,13 @@
 mrstModule add ad-core ad-blackoil ad-props optimization spe10 deckformat coarsegrid
 
 %% Setup simple model
-nxyz = [ 20,  20,  1];
+nxyz = [ 50,  50,  1];
 Dxyz = [400, 400, 10];
 rng(0)
 G    = computeGeometry(cartGrid(nxyz, Dxyz));
-rock = getSPE10rock(1:nxyz(1), 101+(1:nxyz(2)), 1:nxyz(3));
-rock.perm = ones(size(rock.perm))*1*darcy;
+rock = getSPE10rock(1:nxyz(1), (1:nxyz(2)), 1:nxyz(3));
+rock.poro = max(rock.poro, 0.1);
+%rock.perm = ones(size(rock.perm))*1*darcy;
 
 % fluid
 pRef  = 200*barsa;
@@ -36,7 +37,7 @@ end
 for k  = 1:2
     W = verticalWell(W, G, rock, wx(k), wy(k), 1:nxyz(3), 'Type' , 'bhp', ...
                      'Val', 100*barsa, 'Name', sprintf('P%d', k), ...
-                     'comp_i', [1 0], 'Sign' , 1);
+                     'comp_i', [1 0], 'Sign' , -1);
 end
 % Set up 4 control-steps each 150 days
 scheduleRef = simpleSchedule(rampupTimesteps(2*year, 30*day, 5), 'W', W);
@@ -67,6 +68,8 @@ nf =  numel(modelRef.operators.T);
 % transmissibility
 parameters{1} = ModelParameter(setup, 'name', 'transmissibility', ...
                                       'type', 'value');
+parameters{2} = ModelParameter(setup, 'name', 'conntrans', ...
+                                      'type', 'value');                                  
                                                 
 
 %% Setup function handle to evaluateMatch
@@ -82,9 +85,42 @@ obj1 = @(model, states, schedule, statesRef, tt, tstep, state) matchObservedOW(m
 f1 = @(u)evaluateMatch(u, obj1, setup ,parameters,  statesRef, 'enforceBounds', false);     
 
 % 2. sensitivity matrix case - objective computes vector of all mismatches
+% accumulate residuals
+[nw, nt, ns] = deal(numel(W), 3, numel(schedule.step.val));
+% In total there are nw*nt*ns residuals. Rather than computing the Jacobian
+% for each residual, we can merge a group of residuals into a single
+% residual, e.g., {r_i} -> (sum_i r_i^2)^1/2, thus resulting in a Jacobian
+% with fewer rows (but likeliy lead to worse convergence of LM)
+
+% We define the merging of residuals on three levels
+% 1. Wells. We assign an integer for each well such that equal integers
+% result in merging residuals, e.g., for the four wells here
+% [1 2 3 4] : no merging 
+% [1 1 1 1] : merge all wells
+% [1 1 2 3] : merge wells 1 and 2 but keep wells 3 and 4 seperate 
+accumWells = [1 2 3 4]'; % no merging
+% 2. Types (oil/water rates and bhp)
+accumTypes = [1 2 3]'; % no merging
+% 3. Time steps
+numSteps = numel(schedule.step.val);
+accumSteps = (1:numel(schedule.step.val))'; % no merging
+% with the above selection, no merging is performed. In the other extreme, 
+% if one sets all entries to 1, all residuals will be merged and the
+% LM-method will be equivalent to steepest descent (and perform very
+% poorly).
+
+% check that sizes are adequate
+assert(numel(accumWells)==nw && numel(accumTypes)==nt && numel(accumSteps)==ns);
+
+accumulateResiduals = struct('wells', accumWells, ...
+                             'types', accumTypes, ...
+                             'steps', accumSteps);
+
 obj2 = @(model, states, schedule, statesRef, tt, tstep, state) matchObservedOW(model, states, schedule, statesRef,...
-       'computePartials', tt, 'tstep', tstep, weighting{:}, 'state', state, 'from_states', false, 'mismatchSum', false);
-f2 = @(u)evaluateMatchSummands(u, obj2, setup ,parameters,  statesRef, 'enforceBounds', false);       
+       'computePartials', tt, 'tstep', tstep, weighting{:}, 'state', state, 'from_states', false, 'mismatchSum', false, ...
+       'accumulateWells', accumWells, 'accumulateTypes', accumTypes);
+f2 = @(u)evaluateMatchSummands(u, obj2, setup ,parameters,  statesRef, 'enforceBounds', false, ...
+            'accumulateResiduals', accumulateResiduals);       
 
 %% Check gradient in random direction and compare to numerical
 % compute (negative) sum of squared mismatches and (negative) gradient
