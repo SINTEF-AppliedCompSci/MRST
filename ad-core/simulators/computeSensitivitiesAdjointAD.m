@@ -65,7 +65,7 @@ assert(isa(param{1}, 'ModelParameter'), ...
         'Parameters must be initialized using ''ModelParameter''.')
 
 opt = struct('LinearSolver', [], ...
-             'fullSensitivity', false);       
+             'accumulateResiduals', []);       
 opt = merge_options(opt, varargin{:});
 if mrstVerbose && setup.model.toleranceCNV >= 1e-3
    fprintf(['The accuracy in the gradient depend on the',...
@@ -100,35 +100,29 @@ modelParam.FlowPropertyFunctions = [];
 modelParam = validateModel(modelParam);
 
 nstep    = numel(setup.schedule.step.val);
-lambda   = [];
 getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
 
-% if opt.outputPerTimestep
-%     sens = repmat(sens, [nstep,1]);
-% end
+if ~isempty(opt.accumulateResiduals)
+    [colIx, nrow, ncol] = getColumnIndex(opt.accumulateResiduals, setup);
+    % allocate correct size of Lagrange multiplier matrix
+    lambda = zeros(nrow, ncol);
+else
+    colIx = repmat({[]}, [nstep, 1]);
+    lambda = [];
+end
+
 % run adjoint
 for step = nstep:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nstep - step + 1, nstep);
     [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
-        getObjective, setup.schedule, lambda, step, ...
-        'fullSensitivity', opt.fullSensitivity);
+        getObjective, setup.schedule, lambda, step, 'colIx', colIx{step});
     [eqdth, modelParam] = partialWRTparam(modelParam, getState, scheduleParam, step, param);
     for kp = 1:numel(param)
-        tmp = 0;
         nm = param{kp}.name;
         for nl = 1:numel(lami)
             if isa(eqdth{nl}, 'ADI')
-                if ~opt.fullSensitivity
-                    sens.(nm) = sens.(nm) + eqdth{nl}.jac{kp}'*lami{nl};
-                else
-                    tmp = tmp + eqdth{nl}.jac{kp}'*lami{nl};
-                    %sens(step).(nm) = sens(step).(nm) + eqdth{nl}.jac{kp}'*lami{nl};
-                end
+                sens.(nm) = sens.(nm) + eqdth{nl}.jac{kp}'*lami{nl};
             end
-        end
-        if opt.fullSensitivity 
-            offset =  size(tmp,2) - size(sens.(nm),2);
-            sens.(nm) = [tmp(:, 1:offset), tmp(:, offset+1:end)+sens.(nm)];
         end
     end
 end
@@ -299,3 +293,27 @@ if any(is_bhp)
 end
 end
 
+%--------------------------------------------------------------------------
+function [colIx, nrow, ncol] = getColumnIndex(accum, setup)
+    nw  = numel(setup.schedule.control(1).W);
+    if isempty(accum.wells)
+        accum.wells = (1:nw)';
+    end
+    assert(numel(accum.wells)==nw, 'Mismatch: number of wells');
+    nt  = setup.model.water + setup.model.oil + setup.model.gas + 1;
+    if isempty(accum.types)
+        accum.types = (1:nt)';
+    end
+    assert(numel(accum.types)==nt, 'Mismatch: number of types (rates/bhp)');
+    ns  = numel(setup.schedule.step.val);
+    if isempty(accum.steps)
+        accum.wells = (1:ns)';
+    end
+    assert(numel(accum.steps)==ns, 'Mismatch: number of time steps');
+    % build collumn index 
+    [mw, mt] = deal(max(accum.wells), max(accum.types));
+    colIx = applyFunction(@plus, repmat({(1:mw*mt)'}, [ns, 1]), ... 
+                                 num2cell(mw*mt*(accum.steps-1)));
+    ncol = max(colIx{end});
+    nrow = (nt-1)*setup.model.G.cells.num + nt*nw;
+end
