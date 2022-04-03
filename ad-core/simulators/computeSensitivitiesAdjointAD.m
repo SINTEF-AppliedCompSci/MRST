@@ -307,7 +307,7 @@ function [colIx, nrow, ncol] = getColumnIndex(accum, setup)
     assert(numel(accum.types)==nt, 'Mismatch: number of types (rates/bhp)');
     ns  = numel(setup.schedule.step.val);
     if isempty(accum.steps)
-        accum.wells = (1:ns)';
+        accum.steps = (1:ns)';
     end
     assert(numel(accum.steps)==ns, 'Mismatch: number of time steps');
     % build collumn index 
