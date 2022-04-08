@@ -102,7 +102,7 @@ if nargout > 1
     
     setupNew.model = setupNew.model.validateModel();
     gradient = computeSensitivitiesAdjointAD(setupNew, states, parameters, objh,...
-                    'LinearSolver',opt.AdjointLinearSolver, 'accumulateResiduals', accum, 'isScalar', false);
+                         'accumulateResiduals', accum, 'isScalar', false);
     for k = 1:numel(nms)
         scaledGradient{k} = parameters{k}.scaleGradient( gradient.(nms{k}), pval{k});
     end
