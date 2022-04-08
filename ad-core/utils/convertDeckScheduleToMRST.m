@@ -28,7 +28,7 @@ function scheduleMRST = convertDeckScheduleToMRST(model, scheduleDeck, varargin)
 %   scheduleMRST - Schedule ready for simulation in 'simulateScheduleAD'.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -143,18 +143,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Apply productivity modifiers post consistency. Algorithm assumes
         % that the wells have been made consistent.
         ectrls = scheduleDeck.control;
-        has_wpi = any(arrayfun(@(x) ~isempty(x.WPIMULT), ectrls));
-        if has_wpi
-            IJK = gridLogicalIndices(model.G);
-            W_prev = scheduleMRST.control(1).W;
-            WI_prev = applyFunction(@(x) x.WI, W_prev);
-            WI_raw = WI_prev;
-            for ctrl = 1:nc
-                wpi = ectrls(ctrl).WPIMULT;
-                W = scheduleMRST.control(ctrl).W;
-                [W, WI_raw, WI_prev] = apply_wpimult(W, IJK, wpi, WI_raw, WI_prev);
-                scheduleMRST.control(ctrl).W = W;
-                % [WI_raw{3}, WI_prev{3}, scheduleMRST.control(ctrl).W(3).WI]
+        if isfield(ectrls(1), 'WPIMULT')
+            has_wpi = any(arrayfun(@(x) ~isempty(x.WPIMULT), ectrls));
+            if has_wpi
+                IJK = gridLogicalIndices(model.G);
+                W_prev = scheduleMRST.control(1).W;
+                WI_prev = applyFunction(@(x) x.WI, W_prev);
+                WI_raw = WI_prev;
+                for ctrl = 1:nc
+                    wpi = ectrls(ctrl).WPIMULT;
+                    W = scheduleMRST.control(ctrl).W;
+                    [W, WI_raw, WI_prev] = apply_wpimult(W, IJK, wpi, WI_raw, WI_prev);
+                    scheduleMRST.control(ctrl).W = W;
+                    % [WI_raw{3}, WI_prev{3}, scheduleMRST.control(ctrl).W(3).WI]
+                end
             end
         end
     end

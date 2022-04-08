@@ -67,7 +67,7 @@ function problem = packSimulationProblem(state0, model, schedule, BaseName, vara
 %   getPackedSimulatorOutput, simulatePackedProblem
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -88,26 +88,34 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('NonLinearSolver', [], ...
                  'Directory',       '', ...
                  'Name',            '', ...
+                 'useHash',         [], ...
                  'Modules',         {mrstModule()}, ...
                  'Description',     '', ...
                  'ExtraArguments', {{}} ...
                  );
     opt = merge_options(opt, varargin{:});
+    if isempty(opt.useHash)
+        opt.useHash = mrstSettings('get', 'useHash');
+    end
     noName = isempty(opt.Name);
-    if noName
+    % No name given - use class(model)
+    if noName, opt.Name = class(model); end
+    
+    name = opt.Name;
+    if opt.useHash
         % No name given - add hash
         hash     = strjoin({obj2hash(state0)                    , ...
                             obj2hash(model, 'skip', 'inputdata'), ...
                             obj2hash(schedule)                  });
         hash     = obj2hash(hash);
-        opt.Name = [class(model), '_', hash];
+        opt.Name = [opt.Name, '_', hash];
     end
 
     if isempty(opt.Description)
         if noName
-            opt.Description = opt.Name;
+            opt.Description = name;
         else
-            opt.Description = [opt.Name, '_', class(model)];
+            opt.Description = [name, '_', class(model)];
         end
         if ~isempty(opt.NonLinearSolver)
             id = opt.NonLinearSolver.getId();

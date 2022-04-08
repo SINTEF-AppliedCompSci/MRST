@@ -1,7 +1,7 @@
 function obj = NPVBlackOil(model, states, schedule, varargin)
 % Compute net present value of a schedule with well solutions
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -77,8 +77,8 @@ for step = 1:numSteps
                                 vertcatIfPresent(state.wellSol, 'qOs', nw), ...
                                 vertcatIfPresent(state.wellSol, 'qGs', nw),...
                                 vertcatIfPresent(state.wellSol, 'bhp', nw) );        
-        injInx  = (vertcat(sol.sign) > 0);
-        status = vertcat(sol.status);
+        injInx  = (vertcat(state.wellSol.sign) > 0);
+        status = vertcat(state.wellSol.status);
         qWs = qWs(status);
         qOs = qOs(status);
         qGs = qGs(status);

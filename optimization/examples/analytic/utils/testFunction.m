@@ -3,7 +3,7 @@ function [z, dz] = testFunction(x,y, varargin)
 %      z(x,y) = ((x-x0)/rx)^2 + ((y-y0)/ry)^2
 % possibly rotated by angle th around (x0,y0)
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -24,7 +24,8 @@ opt = struct('x0', .5, ...
              'y0', .5, ...
              'rx',  1, ...
              'ry',  1, ...
-             'th',  0);
+             'th',  0, ...
+             'invertSign', false);
 opt = merge_options(opt, varargin{:});
 
 outputDerivatives = nargout > 1;
@@ -42,6 +43,11 @@ xx =  cos(th)*(x-x0) + sin(th)*(y-y0);
 yy = -sin(th)*(x-x0) + cos(th)*(y-y0);
 
 z  = -(xx/rx).^2 - (yy/ry).^2;
+
+if opt.invertSign
+   z = -z;
+end
+
 if outputDerivatives
     dz = [z.jac{1}, z.jac{2}]';
     z  = z.val;

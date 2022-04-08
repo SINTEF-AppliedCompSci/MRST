@@ -23,8 +23,9 @@ function  [G, rock, fluid, deck] = setupNorneRealization(realNo)
 %
 % SEE ALSO:
 %   `generateNorneEnsemble`, `setupNorneFn`
+
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -51,7 +52,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         norne=load(fullfile(pth,'data','NorneInitEns.mat'));
         assert(realNo<numel(norne.ensemble));
         data = norne.ensemble(realNo);
-    catch
+    catch me
+        if ~exist('pth', 'var')
+           error('Download:Failed', ...
+                 'Failed to download Norne Ensemble dataset: %s', ...
+                 me.message);
+        end
+
         addpath(fullfile(pth,'data'));
         generateNorneEnsemble(max(50,realNo));
         rmpath(fullfile(pth,'data'));
@@ -102,5 +109,4 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % Set fluid data
     fluid = initSimpleADIFluid('phases', 'WO', 'mu', [1,1]*centi*poise, 'n', [2,2]);
-    
-%%
+end

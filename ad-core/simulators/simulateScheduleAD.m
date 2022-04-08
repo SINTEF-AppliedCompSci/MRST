@@ -153,7 +153,7 @@ function [wellSols, states, schedulereport] = ...
 %   `computeGradientAdjointAD`, `PhysicalModel`
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -186,10 +186,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'restartStep',       1,  ...
                  'outputOffset',      [], ...
                  'LinearSolver',      [], ...
-                 'checkOperators',    true);
+                 'checkOperators',    []);
 
     opt = merge_options(opt, varargin{:});
-
+    if isempty(opt.checkOperators)
+        opt.checkOperators = mrstSettings('get', 'useHash');
+    end
+    
     %----------------------------------------------------------------------
     tm = [0 ; reshape(cumsum(schedule.step.val), [], 1)];
     restart = opt.restartStep;

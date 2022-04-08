@@ -104,8 +104,8 @@ schedule = convertDeckScheduleToMRST(modelPolymer, deck);
 % the model and the NonLinearSolver class (optional argument to
 % simulateScheduleAD).
 
-[wellSolsPolymer, statesPolymer] = simulateScheduleAD(state0, modelPolymer, ...
-                                                  schedule);
+[wellSolsPolymer, statesPolymer] = ...
+    simulateScheduleAD(state0, modelPolymer, schedule);
 %%
 [wellSolsOW, statesOW] = simulateScheduleAD(state0, modelOW, schedule);
 
@@ -120,17 +120,12 @@ prices = {'OilPrice',            100  , ...
           'WaterInjectionCost',    0.1, ...
           'DiscountFactor',        0.1 };
 
-objectivePolymerAdjoint = ...
-    @(tstep) NPVOWPolymer(G, wellSolsPolymer, schedule, ...
-                          'ComputePartials', true, 'tStep', tstep, ...
-                          prices{:});
-
 % We first calculate the NPV of the pure oil/water solution.
-objectiveOW = NPVOW(G, wellSolsOW, schedule, prices{:});
+objectiveOW = NPVOW(modelOW, statesOW, schedule, prices{:});
 
 % Calculate the objective function for three different polymer prices
 objectivePolymer = ...
-    @(polyprice) NPVOWPolymer(G, wellSolsPolymer, schedule, prices{:}, ...
+    @(polyprice) NPVOWPolymer(modelPolymer, statesPolymer, schedule, prices{:}, ...
                               'PolymerInjectionCost', polyprice);
 
 objectiveInexpensivePolymer = objectivePolymer( 1.0);
@@ -174,10 +169,13 @@ axis tight
 % gradient with regards to our control variables. The control variables are
 % defined as the last two variables, i.e., well closure (rate/BHP) and
 % polymer injection rate.
+objh = @(tstep, model, state) ...
+    NPVOWPolymer(model, statesPolymer, schedule, ...
+                 'ComputePartials', true, 'tStep', tstep, prices{:});
 
 adjointGradient = ...
     computeGradientAdjointAD(state0, statesPolymer, modelPolymer, ...
-                             schedule, objectivePolymerAdjoint);
+                             schedule, objh);
 
 
 %% Plot the gradients
@@ -284,7 +282,7 @@ xlabel('Years');
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

@@ -67,9 +67,18 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
         end
 
         % --------------------------------------------------------------------%
-        function model = setupOperators(model, G, rock, varargin)
-            model.operators = setupOperatorsTPFA(G, rock, varargin{:});
+        function model = setupOperators(model, varargin)
+
+            model = setupOperators@ThreePhaseBlackOilModel(model, varargin{:});
+
             if model.surfactant
+
+                if nargin > 1
+                    G = varargin{1};
+                else
+                    G = model.G;
+                end
+
                 % Operators used to compute capillary number
                 model.operators.veloc = computeVelocTPFA(G, model.operators.internalConn);
                 model.operators.sqVeloc = computeSqVelocTPFA(G, model.operators.internalConn);
@@ -439,7 +448,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
 end
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

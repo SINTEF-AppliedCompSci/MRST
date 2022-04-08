@@ -69,7 +69,7 @@ p_ref = 300*barsa;
 fluid.bO = @(p) exp((p - p_ref)*c);
 
 %% Initialize model and run base-case simulation
-model  = TwoPhaseOilWaterModel(G, rock, fluid);
+model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
 state0 = initResSol(G, p_ref, [0 1]);
 schedule_base = schedule;
 [wellSols_base, states_base] = simulateScheduleAD(state0, model, schedule_base);
@@ -124,7 +124,7 @@ title('Evolution NPV'), legend('Base', 'Optimal', 'Location', 'se'), xlabel('day
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

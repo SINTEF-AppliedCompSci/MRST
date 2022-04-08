@@ -33,7 +33,7 @@ function [problem, state] = equationsOilWaterPolymer(state0, state, model, dt, .
 %
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -76,18 +76,12 @@ fluid = model.fluid;
 
 [wellVars, wellVarNames, wellMap] = model.FacilityModel.getAllPrimaryVariables(wellSol);
 % Initialize independent variables.
-if ~opt.resOnly,
+if ~opt.resOnly
     % ADI variables needed since we are not only computing residuals.
-    if ~opt.reverseMode,
-        [p, sW, cp, wellVars{:}] = ...
-            initVariablesADI(p, sW, cp, wellVars{:});
-        primaryVars = {'pressure', 'sW', 'polymer', wellVarNames{:}};
-    else
-        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-        [p0, sW0, cp0, wellVars0{:}] = ...
-            initVariablesADI(p0, sW0, cp0, wellVars0{:}); %#ok
-        primaryVars = {'pressure', 'sW', 'polymer'};
+    if ~opt.reverseMode
+        [p, sW, cp, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sW, cp, wellVars{:});
     end
+    primaryVars = {'pressure', 'sW', 'polymer', wellVarNames{:}};
 else
     primaryVars = {'pressure', 'sW', 'polymer'};
 end

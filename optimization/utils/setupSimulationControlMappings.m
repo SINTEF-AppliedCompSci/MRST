@@ -2,7 +2,7 @@ function [maps, u] = setupSimulationControlMappings(schedule, bounds, controllab
 % setup a map-structure to scaled control-vector from schedule (see OptimizationProblem)
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

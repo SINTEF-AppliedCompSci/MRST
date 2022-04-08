@@ -1,7 +1,8 @@
-function obj = NPVOWPolymer(G, wellSols, schedule, varargin)
+function obj = NPVOWPolymer(model, states, schedule, varargin)
 % Compute net present value of a schedule with well solutions
+
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -21,10 +22,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 opt     = struct('OilPrice',             1.0 , ...
                  'WaterProductionCost',  0.1 , ...
                  'WaterInjectionCost',   0.1 , ...
+                 'PolymerInjectionCost', 0.1,...
                  'DiscountFactor',       0.0 , ...
                  'ComputePartials',      false, ...
-                 'PolymerInjectionCost', 0.1,...
-                 'tStep' ,               []);
+                 'tStep' ,               [],   ...
+                 'state',                 [], ...
+                 'from_states',          true,...
+                 'signChangePenaltyFactor', 0);
 opt     = merge_options(opt, varargin{:});
 
 ro  = opt.OilPrice            / stb;
@@ -35,9 +39,9 @@ d   = opt.DiscountFactor;
 
 
 % pressure and saturaton vectors just used for place-holding
-p  = zeros(G.cells.num, 1);
-sW = zeros(G.cells.num, 1);
-c = zeros(G.cells.num, 1);
+%p  = zeros(G.cells.num, 1);
+%sW = zeros(G.cells.num, 1);
+%c = zeros(G.cells.num, 1);
 
 dts   = schedule.step.val;
 
@@ -55,36 +59,53 @@ end
 obj = repmat({[]}, numSteps, 1);
 
 for step = 1:numSteps
-    sol = wellSols{tSteps(step)};
-    nW  = numel(sol);
-    pBHP = zeros(nW, 1); %place-holder
-    qWs  = vertcat(sol.qWs);
-    qOs  = vertcat(sol.qOs);
-    if isfield(sol, 'poly')
-        poly = vertcat(sol.poly);
-    else
-        poly = vertcat(sol.cWPoly);
-    end
-    injPoly = [sol.qWs] > 0 & [sol.sign] == 1;
-
-
+    state = states{tSteps(step)};
+    status = vertcat(state.wellSol.status);
+    nW  = nnz(status);
     if opt.ComputePartials
-        [qWs, qWs, qWs, qWs, qOs, ignore] = ...
-           initVariablesADI(p, sW, c, qWs, qOs, pBHP);           %#ok
-
-        clear ignore
+        if(opt.from_states) 
+            init=true;
+            state = model.getStateAD( states{tSteps(step)}, init);
+        else
+            state = opt.state;
+        end
+        qWs = model.FacilityModel.getProp(state,'qWs');
+        qOs = model.FacilityModel.getProp(state,'qOs');
+        cp  = vertcat(state.wellSol.cWPoly);
+        cp  = cp(status);
+     else
+        [qWs, qOs, cp] = deal(...
+            vertcat(state.wellSol.qWs), ...
+            vertcat(state.wellSol.qOs), ...
+            vertcat(state.wellSol.cWPoly));
+        qWs = qWs(status);
+        qOs = qOs(status);
+        cp  = cp(status);
     end
-    poly = poly(injPoly);
-
+    injectors = (vertcat(state.wellSol.sign)>0);
+    injectors = injectors(status);
+    injecting = (qWs + qOs)>0;
+    sgnCh     = (injectors & ~injecting) | (~injectors & injecting);
+    
     dt = dts(step);
     time = time + dt;
-
-    injInx  = (vertcat(sol.sign) > 0);
-    prodInx = ~injInx;
-    obj{step} = ( dt*(1+d)^(-time/year) )*...
-                spones(ones(1, nW))*( (-ro*prodInx).*qOs ...
-                             +(rw*prodInx - ri*injInx).*qWs );
-
-    obj{step} =  obj{step} - ( dt*(1-d)^(time/year) )*spones(ones(1, sum(injPoly)))*...
-                             (rp*poly.*qWs(injPoly) );
+    penalty = opt.signChangePenaltyFactor;
+    
+    producing = ~injecting;
+    producers = ~injectors;
+    if penalty == 0 || any(~sgnCh)
+        % just compute assuming potential oil injection has cost ro
+        obj{step} = ( dt*(1+d)^(-time/year) )*spones(ones(1, nW))*...
+            (-ro*qOs + (rw*producing - ri*injecting).*qWs);
+        obj{step} = obj{step} - ...
+            dt*(1-d)^(time/year)*spones(ones(1,nW))*(rp*injecting.*cp.*qWs);
+    else
+        % penalize signchange by penalty*ro
+        ii = injecting & injectors;
+        pp = producing & producers;
+        obj{step} = dt*(1+d)^(-time/year) * spones(ones(1, nW))*...
+            (-(ro*pp).*qOs + (rw*pp-ri*ii).*qWs - (ro*penalty*sgnCh).*abs(qWs+qOs)); 
+        obj{step} = obj{step} - ...
+            dt*(1-d)^(time/year)*spones(ones(1,nW))*(rp*ii.*cp.*qWs);
+    end
 end

@@ -52,7 +52,7 @@ function [problem, state] = equationsOilWater(state0, state, model, dt, drivingF
 %   equationsBlackOil, TwoPhaseOilWaterModel
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -92,8 +92,8 @@ if ~opt.resOnly
     if ~opt.reverseMode
         [p, sW, wellVars{:}] = model.AutoDiffBackend.initVariablesAD(p, sW, wellVars{:});
     else
-        wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
-        [p0, sW0, wellVars0{:}] = model.AutoDiffBackend.initVariablesAD(p0, sW0, wellVars0{:}); %#ok
+        %wellVars0 = model.FacilityModel.getAllPrimaryVariables(wellSol0);
+        %[p0, sW0, wellVars0{:}] = model.AutoDiffBackend.initVariablesAD(p0, sW0, wellVars0{:}); %#ok
     end
 end
 primaryVars = {'pressure', 'sW', wellVarNames{:}};
@@ -170,7 +170,7 @@ problem = LinearizedProblem(eqs, types, names, primaryVars, state, dt);
 end
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

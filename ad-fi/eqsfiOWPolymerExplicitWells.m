@@ -2,7 +2,7 @@ function [eqs, hst] = eqsfiOWPolymerExplicitWells(state0, state, dt, G, W, syste
 % Generate equations for a Oil-Water-Polymer system.
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

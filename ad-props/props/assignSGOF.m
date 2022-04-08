@@ -11,7 +11,7 @@ function [krG, krOG, pcOG, pts, pts_o, hasPC] = getFunctions(f, SGOF, reg)
     [pts, pts_o] = deal(zeros(reg.sat, 4));
     hasPC = false;
     for i = 1:reg.sat
-        if isfield(f, 'krPts')
+        if isfield(f, 'krPts') && isfield(f.krPts, 'w')
             swcon = f.krPts.w(i, 1);
         else
             warning('No relperm points found in assignment of SGOF.');
@@ -64,7 +64,7 @@ function [pts, pts_o] = getPoints(sgof, swcon)
 end
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -43,7 +43,7 @@ function [stable, x, y] = phaseStabilityTest(eos, z, p, T, K, varargin)
 %   `EquationOfStateModel`
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
