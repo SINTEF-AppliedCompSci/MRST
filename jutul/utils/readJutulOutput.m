@@ -1,5 +1,5 @@
 function [wells, states] = readJutulOutput(pth, varargin)
-    opt = struct('wells', true, 'states', true, 'readStates', true);
+    opt = struct('wells', true, 'states', true, 'readStates', true, 'wellSol', true);
     opt = merge_options(opt, varargin{:});
     [filepath, name, ext] = fileparts(pth);
 
@@ -12,6 +12,9 @@ function [wells, states] = readJutulOutput(pth, varargin)
     well_path = fullfile(filepath, fldr, 'wells.mat');
     if exist(well_path, 'file')
         wells = load(well_path);
+        if opt.wellSol
+            wells = convertJutulWellSols(wells);
+        end
     else
         wells = [];
     end

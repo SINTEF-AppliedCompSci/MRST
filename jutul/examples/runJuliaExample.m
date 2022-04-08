@@ -25,10 +25,10 @@ end
 %%
 pth = writeJutulInput(state0, model, schedule, name);
 %% Once simulated, read back as MRST format
-[wells, states] = readJutulOutput(pth);
+[ws, states] = readJutulOutput(pth);
 %%
 nls = getNonLinearSolver(model, 'TimestepStrategy', 'none');
-[ws, states_m] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nls);
+[ws_m, states_m] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nls);
 %%
 close all
 mrstModule add mrst-gui
@@ -43,3 +43,7 @@ title('Jutul')
 figure;
 plotToolbar(G, applyFunction(@(x, y) compareStructs(x, y), states, states_m))
 title('Difference')
+%% Plot and compare wells
+% Jutul uses multisegment wells by default which gives small differences in
+% well curves
+plotWellSols({ws, ws_m}, 'datasetnames', {'Jutul', 'MRST'})
