@@ -1,4 +1,54 @@
 function [v, u, history] = unitBoxLM(u0, f, varargin)
+% Levenberg-Marquardt-type optimization intended for scaled 
+% problems, i.e., 0<=u<=1 and f~O(1) 
+% SYNOPSIS:
+% [v, u, history] = unitBoxLM(u0, f, ...)
+%
+% DESCRIPTION:
+% See options. There are two options for lambda-updating:
+% (1)'updateStrategy' = 'simple' (default) will perform a quasi-trust-region
+% update directly on lambda using 'lambdaIncrease'/'lambdaDecrease'
+% (2)'updateStrategy' = 'TR' will perform a trust-region update on norm of
+% update using 'radiusIncrease'/'radiusDecrease' and compute an
+% approximative corresponding lambda-value.
+%
+% 
+% PARAMETERS
+% u0    : inital guess nx1 vector with 0<= u0 <= 1 
+% f     : function handle s.t., [v,J] = f(u) returns
+%           v : nx1 vector of residuals
+%           J : nxm Jacobian such that J'*v is gradient of v.^2 wrt u
+% KEYWORD ARGUMENTS:
+%        See below
+% RETURNS:                          
+% v       : Optimal or best objective value
+% u       : Control/parameter vector corresponding to v
+% history : Structure containing for each iteration:
+%            'val'    : objective value (sum(v.^2))
+%            'u'      : control/parameter vector
+%            'pg'     : norm of projected gradient
+%            'lambda' : damping parameter
+%            'rho'    : local model agreement
+%            'nIt'    : number of local iterations
+
+%{
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 opt = struct('lambdaInit',               0.01, ...
              'lambdaIncrease',              8, ... % increase damping (bad approx)
              'lambdaDecrease',              5, ... % decrease damping (good approx)
@@ -6,16 +56,16 @@ opt = struct('lambdaInit',               0.01, ...
              'radiusDecrease',              4, ... % decrease radius  (bad approx)
              'lambdaMax',                 1e6, ...
              'lambdaMin',                1e-6, ...
-             'ratioThresholds',     [.25 .75], ...
-             'scaledDamping',           false, ...
-             'updateStrategy',       'simple', ...
-             'gradTol',                  1e-5, ...
-             'updateTol',                1e-8, ...
+             'ratioThresholds',     [.25 .75], ... % bad | medium | good approx
+             'scaledDamping',           false, ... % not recommended
+             'updateStrategy',       'simple', ... % 'simple' or 'TR' (trust region)
+             'gradTol',                  1e-6, ... 
+             'updateTol',                1e-6, ...
              'resTolAbs',                1e-5, ...
              'resTolRel',                   0, ...
              'maxIt',                      20, ...
              'maxFunEvals',                [], ...
-             'lsqTol',                      0, ...
+             'lsqTol',                      0, ... % if >0, use lsqminnorm
              'plotEvolution',            true, ...
              'verbose',                  true);
  

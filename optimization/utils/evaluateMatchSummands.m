@@ -1,43 +1,29 @@
 function [misfitVals ,varargout] = evaluateMatchSummands(pvec, obj, setup, parameters, states_ref, varargin)
 % Utility function (for optimization) that simulates a model with parameters obtained 
-% from the vector 'pvec' (scaled parameters) and computes mismatch with respect a 
-% reference output state 'states_ref'
+% from the vector 'pvec' (scaled parameters) and computes vector of residuals/mismatch 
+% with respect a reference output state 'states_ref'
 %
 % SYNOPSIS:
-%   misfitVal = evaluateMatch(p, obj, setup, parameters, states_ref, ['pn', pv, ...]) 
-%  [misfitVal, sesitivities] = evaluateMatch(...) 
-%  [misfitVal, sesitivities, wellSols, states] = evaluateMatch(...) 
-%  [misfitVal, ~, wellSols, states] = evaluateMatch(...,'Gradient','none')
+%   misfitVals = evaluateMatchSummands(p, obj, setup, parameters, states_ref, ['pn', pv, ...]) 
 %
-% DESCRIPTION:
-%   For a given parameter array p, compute mistmach and sesitivities with regards to parameter p
 %
 % REQUIRED PARAMETERS:
 %   pvec         - An array containing the parameters' values scaled in unit-interval [0 ,1]
-%   obj          - Objective function that evaluates the diferences/match between
+%   obj          - Objective function that evaluates the residuals between
 %                  states evaluated at parameters p (states(p)) and the reference state states_ref
 %   setup        - Simulation setup structure containing: state0, model, and schedule.
 %   parameters   - cell-array of parameters of class ModelParameter
 %   states_ref   - Physical model states corresponding to the reference.
 %
 % OPTIONAL PARAMETERS:
-%   'Gradient'       - Method to calculate the sensitivities/gradient:
-%                      'AdjointAD':        Compute parameter sensitivities
-%                                          using adjoint simulation  (default)
-%                      'PerturbationADNUM': Compute parameter sensitivities
-%                                           using perturbations (first-order forward finite diferences)
-%                      'none':              Avoind computing parameters sensitivities
-%   'PerturbationSize'- small value <<1 to perturb parameter p (default = 1e-7)
 %   'objScaling'   - scaling value for the objective function obj/objScaling.
-%   'AdjointLinearSolver' - Subclass of `LinearSolverAD` suitable for solving the
-%                      adjoint linear systems.
 %   'NonlinearSolver'- Subclass of `NonLinearSolver` suitable for solving the
 %                      non linear systems of the forward model.
 %   'Verbose'         - Indicate if extra output is to be printed such as
 %                       detailed convergence reports and so on.
 % RETURNS:
-%   misfitVal        - Diference between states(p) and states_ref
-%   sesitivities     - Gradient of misfitVal with respect p
+%   misfitVals       - Diference between states(p) and states_ref
+%   sesitivities     - Jacobian of misfitVals with respect p
 %   wellSols         - Well solution at each control step (or timestep if
 %                      'OutputMinisteps' is enabled.)
 %   states           - State at each control step (or timestep if
@@ -66,10 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 opt = struct('Verbose',           mrstVerbose(),...
-             'Gradient',   'AdjointAD',...
              'NonlinearSolver', [],...
-             'AdjointLinearSolver',[],...
-             'PerturbationSize',1e-7,...
              'objScaling',1, ...
              'enforceBounds',  true, ...
              'accumulateResiduals', []);
@@ -116,7 +99,6 @@ if nargout > 1
     objh = @(tstep,model,state) obj(setupNew.model, states, setupNew.schedule, states_ref, true, tstep, state);
     nms = applyFunction(@(x)x.name, parameters);
     scaledGradient = cell(numel(nms), 1);
-    assert(strcmp(opt.Gradient, 'AdjointAD'))
     
     setupNew.model = setupNew.model.validateModel();
     gradient = computeSensitivitiesAdjointAD(setupNew, states, parameters, objh,...
