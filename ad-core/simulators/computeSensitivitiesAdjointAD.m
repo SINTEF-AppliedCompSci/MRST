@@ -29,8 +29,11 @@ function sens = computeSensitivitiesAdjointAD(setup, states, param, getObjective
 %
 % OPTIONAL PARAMETERS:
 %
-%   'LinearSolver'   - Subclass of `LinearSolverAD` suitable for solving the
-%                      adjoint systems.
+%   'LinearSolver'           - Subclass of `LinearSolverAD` suitable for 
+%                              solving the adjoint systems.
+%   'isScalar'               - boolean indicating whether objective is scalar 
+%                             (default true)
+%   'accumulateResiduals'    - experimental/undocumented feature
 %
 % RETURNS:
 %   sens - Structure with parameter sensitivites of the form
@@ -64,9 +67,11 @@ assert(isa(setup.model,'GenericReservoirModel'),...
 assert(isa(param{1}, 'ModelParameter'), ...
         'Parameters must be initialized using ''ModelParameter''.')
 
-opt = struct('LinearSolver', [], ...
-             'accumulateResiduals', []);       
+opt = struct('LinearSolver',          [], ...
+             'isScalar',            true, ...
+             'accumulateResiduals',   []);       
 opt = merge_options(opt, varargin{:});
+
 if mrstVerbose && setup.model.toleranceCNV >= 1e-3
    fprintf(['The accuracy in the gradient depend on the',...
             'acuracy on the CNV tolerance.\n',...
@@ -102,9 +107,9 @@ modelParam = validateModel(modelParam);
 nstep    = numel(setup.schedule.step.val);
 getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
 
-if ~isempty(opt.accumulateResiduals)
-    [colIx, nrow, ncol] = getColumnIndex(opt.accumulateResiduals, setup);
+if ~isempty(opt.accumulateResiduals) || ~opt.isScalar
     % allocate correct size of Lagrange multiplier matrix
+    [colIx, nrow, ncol] = getColumnIndex(opt.accumulateResiduals, setup);
     lambda = zeros(nrow, ncol);
 else
     colIx = repmat({[]}, [nstep, 1]);
@@ -296,17 +301,17 @@ end
 %--------------------------------------------------------------------------
 function [colIx, nrow, ncol] = getColumnIndex(accum, setup)
     nw  = numel(setup.schedule.control(1).W);
-    if isempty(accum.wells)
+    if isempty(accum) || isempty(accum.wells)
         accum.wells = (1:nw)';
     end
     assert(numel(accum.wells)==nw, 'Mismatch: number of wells');
     nt  = setup.model.water + setup.model.oil + setup.model.gas + 1;
-    if isempty(accum.types)
+    if isempty(accum) || isempty(accum.types)
         accum.types = (1:nt)';
     end
     assert(numel(accum.types)==nt, 'Mismatch: number of types (rates/bhp)');
     ns  = numel(setup.schedule.step.val);
-    if isempty(accum.steps)
+    if isempty(accum) || isempty(accum.steps)
         accum.steps = (1:ns)';
     end
     assert(numel(accum.steps)==ns, 'Mismatch: number of time steps');
@@ -314,6 +319,7 @@ function [colIx, nrow, ncol] = getColumnIndex(accum, setup)
     [mw, mt] = deal(max(accum.wells), max(accum.types));
     colIx = applyFunction(@plus, repmat({(1:mw*mt)'}, [ns, 1]), ... 
                                  num2cell(mw*mt*(accum.steps-1)));
+    [colIx{accum.steps<=0}] = deal({});
     ncol = max(colIx{end});
     nrow = (nt-1)*setup.model.G.cells.num + nt*nw;
 end

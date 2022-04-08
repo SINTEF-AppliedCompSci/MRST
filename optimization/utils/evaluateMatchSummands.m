@@ -104,7 +104,9 @@ misfitVals = obj(setupNew.model, states, setupNew.schedule, states_ref, false, [
 if ~isempty(accum.steps)
     tmp = repmat({0}, [max(accum.steps), 1]);
     for k = 1:numel(misfitVals)
-        tmp{accum.steps(k)} = tmp{accum.steps(k)} + misfitVals{k};
+        if accum.steps(k) > 0
+            tmp{accum.steps(k)} = tmp{accum.steps(k)} + misfitVals{k};
+        end
     end
     misfitVals = tmp;
 end
@@ -118,7 +120,7 @@ if nargout > 1
     
     setupNew.model = setupNew.model.validateModel();
     gradient = computeSensitivitiesAdjointAD(setupNew, states, parameters, objh,...
-                    'LinearSolver',opt.AdjointLinearSolver, 'accumulateResiduals', opt.accumulateResiduals);
+                    'LinearSolver',opt.AdjointLinearSolver, 'accumulateResiduals', accum, 'isScalar', false);
     for k = 1:numel(nms)
         scaledGradient{k} = parameters{k}.scaleGradient( gradient.(nms{k}), pval{k});
     end

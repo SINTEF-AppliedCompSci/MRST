@@ -113,12 +113,15 @@ for step = 1:numSteps
             pt = opt.accumulateTypes;
             tmp = num2cell(zeros(1, max(pt)));
             for k = 1:3
-                tmp{pt(k)} = tmp{pt(k)} + mm{k};
+                if pt(k)>0
+                    tmp{pt(k)} = tmp{pt(k)} + mm{k};
+                end
             end
         end
         if ~isempty(opt.accumulateWells)
             % sum squares of values for wells (use sparse mult)
-            M   = sparse(opt.accumulateWells, 1:numelValue(bhp), 1);
+            pw  = opt.accumulateWells;
+            M   = sparse(pw(pw>0), find(pw), 1);
             tmp = applyFunction(@(x)M*x, tmp);
         end
         obj{step} = vertcat(tmp{:});

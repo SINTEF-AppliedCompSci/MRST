@@ -115,11 +115,12 @@ classdef LinearSolverAD < handle
                 assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
                 b = -objective.jac{1}';
             end
-            % handle pre-allocated zero adjVec for last step:
-            if isempty(problemPrev)
-                problemPrev = problemCurr;
-            end
+
             if ~isempty(adjVec)
+                % handle pre-allocated zero adjVec for last step:
+                if isempty(problemPrev)
+                    problemPrev = problemCurr;
+                end
                 % hack
                 ix = find(cellfun(@(x)isa(x, 'GenericAD'), problemPrev.equations));
                 if any(ix)
