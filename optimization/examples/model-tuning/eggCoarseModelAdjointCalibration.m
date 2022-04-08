@@ -106,26 +106,47 @@ mismatchFn = @(model, states, schedule, states_ref, compDer, tstep, state) ...
                    'computePartials', compDer, 'tstep', tstep, weighting{:},...
                    'state', state, 'from_states', false);
 
-%% Model calibration
+%% Model calibration Quasi-Newton
 pvec = getScaledParameterVector(setup_init, parameters);
 objh = @(p) evaluateMatch(p, mismatchFn, setup_init, parameters, statesRef);
 % The calibration can be improved by taking a large number of iterations,
 % but here we set a limit of 30 iterations
-[v, p_opt, history] = unitBoxBFGS(pvec, objh, 'objChangeTol', 1e-5, ...
-    'maxIt', 30, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
+[v1, p_opt1, history1] = unitBoxBFGS(pvec, objh, 'objChangeTol', 1e-5, ...
+                                  'maxIt', 20, 'logPlot', true);
 
-%% Create a new coarse model setup with the optimized parameters, and rerun 
+%% Model calibration Levenberg-Marquard (using full Jacobian)
+mismatchFn2 = @(model, states, schedule, states_ref, compDer, tstep, state) ...
+    matchObservedOW(model, states, schedule, states_ref, ...
+        'computePartials', compDer, 'tstep', tstep, weighting{:},...
+        'state', state, 'from_states', false, 'mismatchSum', false);
+objh2 = @(p) evaluateMatchSummands(p, mismatchFn2, setup_init, parameters, statesRef);
+% The calibration can be improved by taking a large number of iterations,
+% but here we set a limit of 30 iterations
+[v2, p_opt2, history2] = unitBoxLM(pvec, objh2, 'maxIt', 20);
+
+%% Compare convergence history
+figure
+semilogy(abs(history1.val(1:20))', '-o', 'LineWidth', 2);
+hold on
+semilogy(abs(history2.val(1:20))', '-o', 'LineWidth', 2);
+set(gca, 'Fontsize', 12); grid on
+xlabel('Iteration'), ylabel('Residual')
+legend({'Quasi-Newton', 'Levenberg-Marquard'})
+
+%% Create new coarse model setups with the optimized parameters, and rerun 
 %  for the optimized parameters
-setup_opt = updateSetupFromScaledParameters(setup_init, parameters, p_opt); 
-[wellSols_opt, states_opt] = simulateScheduleAD(setup_opt.state0, setup_opt.model, setup_opt.schedule);
+setup_opt1 = updateSetupFromScaledParameters(setup_init, parameters, p_opt1); 
+[wellSols_opt1, states_opt1] = simulateScheduleAD(setup_opt1.state0, setup_opt1.model, setup_opt1.schedule);
+setup_opt2 = updateSetupFromScaledParameters(setup_init, parameters, p_opt2); 
+[wellSols_opt2, states_opt2] = simulateScheduleAD(setup_opt2.state0, setup_opt2.model, setup_opt2.schedule);
 % compare reference, initial coarse and optimized coarse model outputs
-plotWellSols({wsRef,wsCoarse,wellSols_opt}, ...
-              repmat({schedule.step.val}, 1, 3), ...
-              'datasetnames', {'reference','coarse initial','coarse tuned'});
+plotWellSols({wsRef, wsCoarse, wellSols_opt1, wellSols_opt2}, ...
+              repmat({schedule.step.val}, 1, 4), ...
+              'datasetnames', {'reference','coarse initial','coarse tuned (Q-N)', 'coarse tuned (L-M)'});
 
 %% Plot the pore volume updates
 % fetch pore volume differences in initial and tuned coarse models
-dpv = setup_opt.model.operators.pv - setup_init.model.operators.pv;
+dpv = setup_opt2.model.operators.pv - setup_init.model.operators.pv;
 figure
 plotCellData(modelCoarse.G, dpv, 'EdgeColor','none');
 plotFaces(modelCoarse.G, boundaryFaces(modelCoarse.G), 'EdgeColor', [0.4 0.4 0.4], ...
@@ -142,7 +163,7 @@ s_new = perturbedSimpleSchedule(dt, 'W', Wref, ...
 ws_new1 = simulateScheduleAD(problem.SimulatorSetup.state0, modelRef, s_new, ...
     'NonLinearSolver', problem.SimulatorSetup.NonLinearSolver);
 
-w_opt = setup_opt.schedule.control(1).W;
+w_opt = setup_opt2.schedule.control(1).W;
 w_old = scheduleCoarse.control(1).W;   
 s_opt = simpleSchedule(dt, 'W', w_opt);
 s_old = simpleSchedule(dt, 'W', w_old);
@@ -150,7 +171,7 @@ for kw = 1:numel(Wref)
     s_opt.control.W(kw).val = s_new.control.W(kw).val;
     s_old.control.W(kw).val = s_new.control.W(kw).val;
 end
-ws_coarse_new1 = simulateScheduleAD(setup_opt.state0, setup_opt.model, s_opt);
+ws_coarse_new1 = simulateScheduleAD(setup_opt2.state0, setup_opt2.model, s_opt);
 ws_coarse_old1 = simulateScheduleAD(stateCoarse0, modelCoarse, s_old);
 plotWellSols({ws_new1,  ws_coarse_old1, ws_coarse_new1}, ...
     repmat({schedule.step.val}, 1, 3), ...
