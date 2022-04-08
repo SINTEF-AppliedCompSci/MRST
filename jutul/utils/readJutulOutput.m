@@ -14,6 +14,11 @@ function [wells, states] = readJutulOutput(pth, varargin)
         wells = load(well_path);
         if opt.wellSol
             wells = convertJutulWellSols(wells);
+            if opt.states
+                for i = 1:numel(states)
+                    states{i}.wellSol = wells{i};
+                end
+            end
         end
     else
         wells = [];
