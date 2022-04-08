@@ -26,7 +26,10 @@ opt     = struct('WaterRateWeight',     [] , ...
                  'tStep' ,              [], ...
                  'state',               [],...
                  'from_states',         true,...% can be false for generic models
-                 'matchOnlyProducers',  false);
+                 'matchOnlyProducers',  false, ...
+                 'mismatchSum',         true, ...
+                 'accumulateWells',       [], ...
+                 'accumulateTypes',       []);
              
 opt     = merge_options(opt, varargin{:});
 
@@ -91,10 +94,38 @@ for step = 1:numSteps
         [qOs, qOs_obs] = expandToFull(qOs, qOs_obs, status, status_obs, false);
     end
     dt = dts(step);
-    obj{step} = (dt/(totTime*nnz(matchCases)))*sum( ...
-                                (ww*matchCases.*(qWs-qWs_obs)).^2 + ...
-                                (wo*matchCases.*(qOs-qOs_obs)).^2 + ...
-                                (wp*matchCases.*(bhp-bhp_obs)).^2 );
+    if opt.mismatchSum
+        obj{step} = (dt/(totTime*nnz(matchCases)))*sum( ...
+                        (ww*matchCases.*(qWs-qWs_obs)).^2 + ...
+                        (wo*matchCases.*(qOs-qOs_obs)).^2 + ...
+                        (wp*matchCases.*(bhp-bhp_obs)).^2 );
+    else
+        % output summands f_i^2 
+        fac = dt/(totTime*nnz(matchCases));
+        mm  = {fac*(ww*matchCases.*(qWs-qWs_obs)).^2, ...
+               fac*(wo*matchCases.*(qOs-qOs_obs)).^2, ...
+               fac*(wp*matchCases.*(bhp-bhp_obs)).^2};
+        
+        if isempty(opt.accumulateTypes)
+            tmp = mm;
+        else
+            % sum squares of qWs/qOs/bhp
+            pt = opt.accumulateTypes;
+            tmp = num2cell(zeros(1, max(pt)));
+            for k = 1:3
+                if pt(k)>0
+                    tmp{pt(k)} = tmp{pt(k)} + mm{k};
+                end
+            end
+        end
+        if ~isempty(opt.accumulateWells)
+            % sum squares of values for wells (use sparse mult)
+            pw  = opt.accumulateWells;
+            M   = sparse(pw(pw>0), find(pw), 1);
+            tmp = applyFunction(@(x)M*x, tmp);
+        end
+        obj{step} = vertcat(tmp{:});
+    end
 end
 end
 
