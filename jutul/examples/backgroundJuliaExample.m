@@ -14,21 +14,28 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 %
 % For option 1:
 % Run julia and run 
-% ]add DaemonMode
+%    ]add DaemonMode
 % It should then be added to your base environment.
 %
 % Then, proceed with the following 
 %
-% mkdir jutul_daemon
-% cd .\julia-daemon\
-% julia
-% ]activate .
-% add DaemonMode # Required to run the Daemon, not needed if following (1)
-% dev Jutul      # Could be add once we get it into package manager
-% dev JutulDarcy
-% pwd() # will give you the absolute path of the folder
+%    mkdir jutul_daemon
+%    cd .\julia-daemon\
+%    julia
+%    ]activate .
+%    add DaemonMode # Required to run the Daemon, not needed if following (1)
+%    dev Jutul      # Could be add once we get it into package manager
+%    dev JutulDarcy
+%    pwd() # will give you the absolute path of the folder
 %
-% Then the daemon can be spun up by calling
+% If you are using dev-ed packages, you may have to go into this
+% environment as noted above and run the following:
+%     using Jutul, JutulDarcy
+%
+% This needs to be done once per reboot (it seems). You can restart the
+% Daemon freely afterwards.
+%
+% Finally, the daemon can be spun up by calling
 %  julia --project="X" --startup-file=no -e 'using Revise; using DaemonMode; serve()'
 % where X is the absolute path of the jutul_daemon folder.
 % julia --project="C:\\Users\\olavm\\julia-daemon" --startup-file=no -e 'using Revise; using DaemonMode; serve()'
