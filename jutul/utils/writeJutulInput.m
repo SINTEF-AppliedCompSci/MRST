@@ -24,10 +24,10 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
     % Note: There is the possibility of inconsistencies here if the model
     % was modified after construction from input file.
     if isempty(deck)
-        deck = struct();
-        deck.PROPS = generatePROPS(model, 'writeExtra', true, other{:});
-        deck.RUNSPEC = generateRUNSPEC(model);
+        deck = struct('PROPS', [], 'RUNSPEC', []);
     end
+    deck.PROPS = generatePROPS(model, 'props', deck.PROPS, 'writeExtra', true, other{:});
+    deck.RUNSPEC = generateRUNSPEC(model, deck.RUNSPEC);
     assert(~isempty(deck));
     if isfield(schedule.control, 'W')
         for i = 1:numel(schedule.control)

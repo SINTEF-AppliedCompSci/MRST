@@ -1,5 +1,7 @@
-function RUNSPEC = generateRUNSPEC(model)
-    RUNSPEC = struct();
+function RUNSPEC = generateRUNSPEC(model, RUNSPEC)
+    if nargin == 1
+        RUNSPEC = struct();
+    end
     if model.oil
         RUNSPEC.OIL = true;
     end

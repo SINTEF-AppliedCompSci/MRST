@@ -3,6 +3,7 @@ function PROPS = generatePROPS(model, varargin)
                  'pMin', 1*atm, ...
                  'ns', 21,...
                  'np', 21,...
+                 'props', struct(), ...
                  'pRef', 50*barsa, ...
                  'writeExtra', false);
     opt = merge_options(opt, varargin{:});
@@ -24,10 +25,12 @@ function PROPS = generatePROPS(model, varargin)
     if model.gas
         density(3) = f.rhoGS;
     end
-    PROPS = struct();
-    PROPS.DENSITY = density;
+    PROPS = opt.props;
+    if ~isfield(PROPS, 'DENSITY')
+        PROPS.DENSITY = density;
+    end
 
-    if model.water
+    if model.water && ~(isfield(PROPS, 'PVTW') || isfield(PROPS, 'PVTW_EXTENDED'))
         % PVT table
         write_pvtw = true;
         if opt.writeExtra
@@ -49,53 +52,59 @@ function PROPS = generatePROPS(model, varargin)
     if model.gas && model.oil
         if isprop(model, 'vapoil') && model.vapoil
             warning('VAPOIL not supported for PVT table.')
-        elseif ~is_comp
+        elseif ~is_comp && ~isfield(PROPS, 'PVDG')
             % PVT table
             bg = f.bG(p);
             mug = f.muG(p);
             PROPS.PVDG = {[p, 1./bg, mug]};
         end
         % Saturation table
-        krg = f.krG(s);
-        if isfield(f, 'krOG')
-            krog = f.krO(1-s);
-        else
-            krog = f.krOG(1-s);
+        if ~isfield(PROPS, 'SGOF')
+            krg = f.krG(s);
+            if isfield(f, 'krOG')
+                krog = f.krO(1-s);
+            else
+                krog = f.krOG(1-s);
+            end
+            if isfield(f, 'pcOG')
+                pc = f.pcOG(s);
+            else
+                pc = zeros(opt.ns, 1);
+            end
+            PROPS.SGOF = {[s, krg, krog, -pc]};
         end
-        if isfield(f, 'pcOG')
-            pc = f.pcOG(s);
-        else
-            pc = zeros(opt.ns, 1);
-        end
-        PROPS.SGOF = {[s, krg, krog, -pc]};
     end
 
     if model.water && model.oil
         % PVT table
         if isprop(model, 'disgas') && model.disgas
             warning('DISGAS not supported for PVT table.')
-        elseif ~is_comp
+        elseif ~is_comp && ~isfield(PROPS, 'PVDO')
             bo = f.bO(p);
             muo = f.muO(p);
             PROPS.PVDO = {[p, 1./bo, muo]};
         end
-        % Saturation table
-        krw = f.krW(s);
-        if isfield(f, 'krO')
-            krow = f.krO(1-s);
-        else
-            krow = f.krOW(1-s);
+        if ~isfield(PROPS, 'SWOF')
+            % Saturation table
+            krw = f.krW(s);
+            if isfield(f, 'krO')
+                krow = f.krO(1-s);
+            else
+                krow = f.krOW(1-s);
+            end
+            if isfield(f, 'pcOW')
+                pc = f.pcOW(s);
+            else
+                pc = zeros(opt.ns, 1);
+            end
+            PROPS.SWOF = {[s, krw, krow, pc]};
         end
-        if isfield(f, 'pcOW')
-            pc = f.pcOW(s);
-        else
-            pc = zeros(opt.ns, 1);
-        end
-        PROPS.SWOF = {[s, krw, krow, pc]};
     end
     % TODO: pvMultR...
     if isfield(f, 'pvMultR')
         warning('pvMultR not supported... Ignored.');
     end
-    PROPS.ROCK = [1*atm, 0, NaN, NaN, NaN, NaN];
+    if ~isfield(PROPS, 'ROCK')
+        PROPS.ROCK = [1*atm, 0, NaN, NaN, NaN, NaN];
+    end
 end
