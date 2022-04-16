@@ -1,14 +1,14 @@
 function [ws, T] = convertJutulWellSols(wells)
-    T = wells.TIME;
-    names = setdiff(fieldnames(wells), 'TIME');
+    T = wells.time;
+    names = setdiff(fieldnames(wells), 'time');
     n = numel(T);
     nw = numel(names);
     ws = cell(n, 1);
     
     first = names{1};
-    has_water = isfield(wells.(first), 'WRAT');
-    has_oil = isfield(wells.(first), 'ORAT');
-    has_gas = isfield(wells.(first), 'GRAT');
+    has_water = isfield(wells.(first), 'wrat');
+    has_oil = isfield(wells.(first), 'orat');
+    has_gas = isfield(wells.(first), 'grat');
 
     default = struct('name', 'dummy', 'bhp', 0, 'status', true);
     if has_water; default.qWs = 0; end
@@ -22,15 +22,15 @@ function [ws, T] = convertJutulWellSols(wells)
             name = names{j};
             W = wells.(name);
             w(j).name = name;
-            w(j).bhp = W.BHP(i);
+            w(j).bhp = W.bhp(i);
             if has_water
-               w(j).qWs = W.WRAT(i);
+               w(j).qWs = W.wrat(i);
             end
             if has_oil
-               w(j).qOs = W.ORAT(i);
+               w(j).qOs = W.orat(i);
             end
             if has_gas
-               w(j).qGs = W.GRAT(i);
+               w(j).qGs = W.grat(i);
             end
         end
         ws{i} = w;
