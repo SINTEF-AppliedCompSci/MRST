@@ -73,6 +73,14 @@ function w = prepWell(w, grav)
     if isfield(w.lims, 'thp')
         w.lims = rmfield(w.lims, 'thp');
     end
+    fn = fieldnames(w.lims);
+    for i = 1:numel(fn)
+        f = fn{i};
+        if ~isfinite(w.lims.(f))
+            w.lims = rmfield(w.lims, f);
+        end
+    end
+   
     if ~grav
         w.refDepth = 0;
         w.dZ = 0*w.dZ;
