@@ -7,9 +7,6 @@ function PROPS = generatePROPS(model, varargin)
                  'pRef', 50*barsa, ...
                  'writeExtra', false);
     opt = merge_options(opt, varargin{:});
-    if isprop(model, 'disgas') && (model.disgas || model.vapoil)
-        error('Creating props only supported for immiscibile (deadoil) case.');
-    end
     is_comp = isa(model, 'ThreePhaseCompositionalModel');
     pR = opt.pRef;
     density = [1, 1, 1];
@@ -51,7 +48,9 @@ function PROPS = generatePROPS(model, varargin)
 
     if model.gas && model.oil
         if isprop(model, 'vapoil') && model.vapoil
-            warning('VAPOIL not supported for PVT table.')
+            if ~isfield(PROPS, 'PVTG')
+                warning('Writing PVTG from fluid object is not supported.')
+            end
         elseif ~is_comp && ~isfield(PROPS, 'PVDG')
             % PVT table
             bg = f.bG(p);
@@ -78,7 +77,9 @@ function PROPS = generatePROPS(model, varargin)
     if model.water && model.oil
         % PVT table
         if isprop(model, 'disgas') && model.disgas
-            warning('DISGAS not supported for PVT table.')
+            if ~isfield(PROPS, 'PVTO')
+                warning('Writing PVTO from fluid object is not supported.')
+            end
         elseif ~is_comp && ~isfield(PROPS, 'PVDO')
             bo = f.bO(p);
             muo = f.muO(p);
