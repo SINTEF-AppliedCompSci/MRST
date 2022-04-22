@@ -101,7 +101,7 @@ function [wellSols, states, schedulereport] = ...
 %                          Entries not computed will contain zeros.
 %
 %                        See `getPlotAfterStep` for more information and
-%                        `howtoAddPlotHook` for a worked example.
+%                        `blackoilTutorialPlotHook` for a worked example.
 %
 %   'processOutputFn'  - Function handle to an optional function that
 %                        processes the simulation output (wellSols, states
