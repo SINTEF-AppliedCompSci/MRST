@@ -42,7 +42,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid.rhoGS = 10;
 
     eos = initDeckEOSModel(deck);
-    arg = {G, rock, fluid, eos, 'water', false};
+    arg = {G, rock, fluid, eos, 'water', false, 'inputdata', deck};
     if useNatural
         model = GenericNaturalVariablesModel(arg{:});
     else
