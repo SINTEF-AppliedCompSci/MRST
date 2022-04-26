@@ -48,7 +48,7 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
         mass = value(model.getProp(state0, 'ComponentTotalMass')');
         state0.zg = mass(:, 3)./sum(mass(:, 2:end), 2);
     end
-    fprintf('Starting write of case %s...', name)
+    dispif(mrstVerbose(), 'Starting write of case %s...', name)
     pth = fullfile(folder_path, [name, '.mat']);
     jutul = struct();
     jutul.T = model.operators.T;
@@ -65,7 +65,7 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
         [jutul.eos, jutul.mixture] = getCompositionalOutputs(model);
     end
     save(pth, '-struct', 'jutul');
-    disp(' ok.')
+    dispif(mrstVerbose(), ' ok.\n')
     pth(strfind(pth,'\'))='/';
 end
 

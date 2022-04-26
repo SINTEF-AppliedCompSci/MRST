@@ -20,7 +20,7 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 % Then, proceed with the following 
 %
 %    mkdir jutul-daemon
-%    cd .\jutul-daemon\
+%    cd .\jutul-daemon\ # or cd jutul-daemon if you are on Linux/Mac OS
 %    julia
 %    ]activate .
 %    add DaemonMode # Required to run the Daemon, not needed if following (1)
@@ -38,7 +38,9 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 % Finally, the daemon can be spun up by calling
 %  julia --project="X" --startup-file=no -e 'using Revise; using DaemonMode; serve()'
 % where X is the absolute path of the jutul_daemon folder.
-% julia --project="C:\\Users\\olavm\\jutul-daemon" --startup-file=no -e 'using Revise; using DaemonMode; serve()'
+%
+% For example, the author's path on Windows looks like this:
+% julia --project="C:\\Users\\olavm\\jutul-daemon" --startup-file=no --color=no -e 'using Revise; using DaemonMode; serve()'
 %
 % If you were following path (2) you will need to specify the directory X of
 % your project via the 'project' optional input argument to
