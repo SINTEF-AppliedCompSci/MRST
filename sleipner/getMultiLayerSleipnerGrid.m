@@ -1,4 +1,4 @@
-function [G, rock, grdecl, Gfull, rockfull] = getMultiLayerSleipnerGrid(varargin)
+function [G, rock, grdecl, Gfull, rockfull, grdeclfull] = getMultiLayerSleipnerGrid(varargin)
 %Get new multilayered benchmark Sleipner grid
 %
 % SYNOPSIS:
@@ -99,8 +99,43 @@ caprockCells = Gfull.cartDims(1)*Gfull.cartDims(2)*10;
 
 [G,gc] = extractSubgrid(Gfull,caprockCells+1:1:Gfull.cells.num);
 
+
+
 rock.perm = rockfull.perm(gc,:);
 rock.poro = rockfull.poro(gc,:);
+
+
+%% Remove caprock cells from grdecl
+
+grdeclfull = grdecl;
+
+grdecl = cutGrdecl(grdecl,...
+    [1 grdecl.cartDims(1); 1  grdecl.cartDims(2); 1  grdecl.cartDims(3)-10]);
+
+%% Update cartDims for G
+% Because extractSubgrid does not do it for some reason!
+G.cartDims = grdecl.cartDims;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

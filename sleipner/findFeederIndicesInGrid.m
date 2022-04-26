@@ -108,19 +108,19 @@ for k = 1:numel(fIx)
     for j = 1:numel(layers)
         
         layerNo = layers(j);
-        if opt.includeCaprock
+
             gridInds = zeros(cartDims(1),cartDims(2),cartDims(3));
-        else
-            gridInds = zeros(cartDims(1),cartDims(2),cartDims(3)-10);
+
+        try 
+            gridInds(gi,gj,:) = 1;
+            gridInds = reshape(gridInds,[],1);
+            gridInds = gridInds.*(layerMapG == layerNo);
+            feederCellsTemp = [feederCellsTemp; find(gridInds)];
+        catch
+            error('Make sure cartDims do not include caprock cells')
         end
-        
-        gridInds(gi,gj,:) = 1;
-        gridInds = reshape(gridInds,[],1);
-        gridInds = gridInds.*(layerMapG == layerNo);
-        feederCellsTemp = [feederCellsTemp; find(gridInds)];
 
 
- 
         
     end
 
@@ -128,3 +128,6 @@ for k = 1:numel(fIx)
     feederCellsMap(feederCellsTemp) = k+1;    
     feederFaces = [feederFaces; gridCellFaces(G, feederCellsTemp)];
 end
+
+end
+
