@@ -61,9 +61,9 @@ function PROPS = generatePROPS(model, varargin)
         if ~isfield(PROPS, 'SGOF')
             krg = f.krG(s);
             if isfield(f, 'krOG')
-                krog = f.krO(1-s);
-            else
                 krog = f.krOG(1-s);
+            else
+                krog = f.krO(1-s);
             end
             if isfield(f, 'pcOG')
                 pc = f.pcOG(s);
