@@ -1,4 +1,4 @@
-%% High-Temperature Aquifer Thermal Energy Sotrage
+%% High-Temperature Aquifer Thermal Energy Storage
 % In this example, we simulate high-temperature aquifer thermal energy
 % storage (HT-ATES), where excess thermal energy is stored in the form of
 % hot water in an undergroud aquifer in periods of energy excess, and
@@ -184,7 +184,7 @@ camlight();
 %% Simulate HT-ATES
 problem = packSimulationProblem(state0, model, schedule, 'ht-ates', ...
     'ExtraArguments', {'linearSolver', lsolver, 'afterStepFn', fn});
-simulatePackedProblem(problem);
+simulatePackedProblem(problem, 'restartStep', 1);
 
 %% Interactive plot of the results
 [wellSols, states, reports] = getPackedSimulatorOutput(problem);
