@@ -9,6 +9,9 @@ classdef WellAdvectiveHeatFlux < StateFunction
             
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhaseFlux', 'FacilityWellMapping'});
+            if model.implicitConnectionDP
+                gp = gp.dependsOn('ConnectionPressureDrop');
+            end
             gp.label = 'q_{avd}';
             
         end
@@ -18,6 +21,11 @@ classdef WellAdvectiveHeatFlux < StateFunction
             
             % Get well phase fluxes and well mapping
             [v, map] = prop.getEvaluatedDependencies(state, 'PhaseFlux', 'FacilityWellMapping');
+            if model.implicitConnectionDP
+                cdp = prop.getEvaluatedDependencies(state, 'ConnectionPressureDrop');
+            else
+                cdp = vertcat(state.wellSol(map.active).cdp);
+            end
             % Get enthalpy and density in perforated cells
             [h, rho] = model.ReservoirModel.getProps(state, 'PhaseEnthalpy', 'Density');
             h   = cellfun(@(h)   h(map.cells)  , h  , 'UniformOutput', false);
@@ -39,6 +47,7 @@ classdef WellAdvectiveHeatFlux < StateFunction
                     bhp = vertcat(state.wellSol(map.active).bhp);
                     bhp = bhp(map.perf2well);
                 end
+                cp  = bhp + cdp;
                 % Get temperature from well variables
                 isT = strcmpi(state.FacilityState.names, 'well_temperature');
                 if any(isT)
@@ -58,9 +67,9 @@ classdef WellAdvectiveHeatFlux < StateFunction
                 phases = model.ReservoirModel.getPhaseNames();
                 for i = 1:numel(phases)
                     ix = model.ReservoirModel.getPhaseIndex(phases(i));
-                    hWell = feval(model.ReservoirModel.fluid.(['h', phases(i)]), bhp, Tw);
+                    hWell = feval(model.ReservoirModel.fluid.(['h', phases(i)]), cp, Tw);
                     h{ix}(injector) = hWell(injector);
-                    rhoWell = feval(model.ReservoirModel.fluid.(['rho', phases(i)]), bhp, Tw, Xw);
+                    rhoWell = feval(model.ReservoirModel.fluid.(['rho', phases(i)]), cp, Tw, Xw);
                     rho{ix}(injector) = rhoWell(injector);
                 end
             end
