@@ -209,6 +209,7 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
                 state.wellSol(map.active(i)).bhp = map.W(i).lims.bhp;
             end
             [pot, map] = model.getProps(state, 'PhaseFlux', 'FacilityWellMapping');
+            % Explicit for now to simplify calculations
             pot = abs(map.perforationSum*sum(value(pot),2));
             
         end
@@ -232,7 +233,12 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
         % Get well temperature for each well
         
             isT = strcmpi(state.FacilityState.names, 'well_temperature');
-            T = state.FacilityState.primaryVariables{isT};
+            if any(isT)
+                T = state.FacilityState.primaryVariables{isT};
+            else
+                map = model.getProp(state, 'FacilityWellMapping');
+                T = vertcat(map.W.T);
+            end
                
         end
         

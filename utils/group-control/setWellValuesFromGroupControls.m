@@ -28,7 +28,7 @@ function state = setWellValuesFromGroupControls(model, state0, state, dt, drivin
 end
 
 %-----------------------------------------------------------------%
-function [state, Tw] = setGroupWellRates(model, group, state, pot)
+function state = setGroupWellRates(model, group, state, pot)
 % Set well rates based on group target
 
     % Get well solutions
@@ -59,7 +59,6 @@ function [state, Tw] = setGroupWellRates(model, group, state, pot)
     % Loop through wells in group
     active = true(numel(wsg),1);
     wix    = find(mask);
-    Tw     = model.AutoDiffBackend.convertToAD(vertcat(ws.T), q);
     for i = 1:numel(wsg)
         if wsg(i).sign > 0
             % Set target temperature is injector
