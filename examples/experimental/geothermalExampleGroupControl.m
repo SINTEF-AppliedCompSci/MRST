@@ -1,5 +1,15 @@
+%% Add necessary modules
+mrstModule add ruden-geothermal                              % Project
+mrstModule add ad-core ad-props geothermal compositional     % Physics
+mrstModule add dfm
+mrstModule add test-suite                                    % Test suite
+mrstModule add coarsegrid libgeometry upr                    % Gridding
+mrstModule add linearsolvers
+mrstModule add mrst-gui                                      % Visualization
 
+mrstVerbose on % Set to `off` to supress command window output
 
+%%
 theta = @(n) linspace(0, 2*pi-2*pi/n, n)';
 x = @(r,n) r.*[cos(theta(n)), sin(theta(n))];
 
@@ -7,7 +17,7 @@ bdr = x(100*meter, 50);
 xwi = x(10*meter, 4);
 xwp = x(50*meter, 8);
 
-G = pebiGrid2D(100/10, [100,100], ...
+G = pebiGrid2D(100/20, [100,100], ...
     'cellConstraints', num2cell([xwi; xwp], 2)', ...
     'polyBdr', bdr, ...
     'CCrefinement', true, ...
@@ -16,7 +26,7 @@ G = pebiGrid2D(100/10, [100,100], ...
 G = computeGeometry(G);
 
 %%
-subGroups = true;
+subGroups = false;
 
 rock = makeRock(G, 100*milli*darcy, 0.1);
 rock = addThermalRockProps(rock);
@@ -24,6 +34,10 @@ fluid = initSimpleADIFluid('phases', 'W', 'n', 1, 'rho', 1, 'mu', 1);
 fluid = addThermalFluidProps(fluid, 'useEOS', true);
 
 model = GeothermalModel(G, rock, fluid);
+
+% mrstModule add ad-blackoil
+% fluid = initSimpleADIFluid('phases', 'W', 'n', 1, 'rho', 1000, 'mu', 1*centi*poise,  'c', 1e-3/barsa);
+% model = GenericBlackOilModel(G, rock, fluid, 'oil', false, 'gas', false);
 
 W = [];
 nw = nnz(G.cells.tag);
@@ -102,7 +116,9 @@ state0 = initResSol(G, 50*barsa, 1);
 state0.T = repmat(convertFromCelcius(20), G.cells.num, 1);
 
 %%
-problem = packSimulationProblem(state0, model, schedule, 'group-test');
+lsol = selectLinearSolverAD(model);
+nlsol = NonLinearSolver('LinearSolver', lsol);
+problem = packSimulationProblem(state0, model, schedule, 'group-test', 'NonLinearSolver', nlsol);
 simulatePackedProblem(problem, 'restartStep', 1);
 
 %%
