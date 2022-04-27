@@ -21,6 +21,10 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             ffd = ffd.setStateFunction('AdvectiveHeatFlux' , WellAdvectiveHeatFlux(model) );
             ffd = ffd.setStateFunction('ConductiveHeatFlux', WellConductiveHeatFlux(model));
             ffd = ffd.setStateFunction('HeatFlux'          , HeatFlux(model)              );
+            if model.implicitConnectionDP
+                ffd = ffd.setStateFunction('ConnectionPressureDrop', ConnectionPressureDrop(model));
+                ffd = ffd.setStateFunction('PressureGradient', PerforationPressureGradientICDP(model));
+            end
             model.FacilityFlowDiscretization = ffd;
             
         end
@@ -31,39 +35,6 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             
             % Parent model handles standard AD initialization
             state = initStateAD@GenericFacilityModel(model, state, vars, names, origin);
-            % If connection pressure drops are  explicit, we are done
-            if ~model.implicitConnectionDP, return; end
-            % Compute connection pressure drops with derivatives, assuming
-            % the wellbore fluid is at uniform pressure (BHP) and
-            % temperature (Tw)
-            assert(model.ReservoirModel.getNumberOfPhases() == 1,   ...
-                ['Implicit connection pressure drop is currently ', ...
-                 'only supported for single-phase flow']          );
-            % Facility well mapping and gravity
-            map    = model.getProp(state, 'FacilityWellMapping');
-            g      = norm(model.ReservoirModel.gravity);
-            % Get bottom-hole pressure
-            isBHP  = strcmpi(state.FacilityState.names, 'bhp');
-            bhp    = state.FacilityState.primaryVariables{isBHP};
-            % Get well temperature
-            isTemp = strcmpi(state.FacilityState.names, 'well_temperature');
-            Tw     = state.FacilityState.primaryVariables{isTemp};
-            % Get NaCl concentraion if present
-            xw     = vertcat(map.W.components);
-            Xw     = model.ReservoirModel.getMassFraction(xw);
-            cnames = model.ReservoirModel.getComponentNames();
-            isNaCl = strcmpi(cnames, 'NaCl');
-            if any(isNaCl), Xw = Xw(:,isNaCl); else, Xw = []; end
-            % Compute density
-            rhow = model.ReservoirModel.fluid.rhoW(bhp, Tw, Xw);
-            rhow = rhow(map.perf2well);
-            % Compute connection pressure drop for each well
-            for i = 1:numel(map.W)
-                wellSol = state.wellSol(map.active(i));
-                rhowi = rhow(map.perf2well == i);
-                wellSol.cdp = rhowi.*g.*map.W(i).dZ;
-                state.wellSol(map.active(i)) = wellSol;
-            end
 
         end
         
@@ -134,7 +105,7 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
         
             % If wells are under group control, we must update
             % state.wellSol so that we use correct values in the equations
-            state = model.setWellValuesFromGroupControls(state0, state, dt, drivingForces);
+            state = setWellValuesFromGroupControls(model, state0, state, dt, drivingForces);
             % Call parent model to get mass conservation and control eqs
             [eqs, names, types, state] = getModelEquations@GenericFacilityModel(model, state0, state, dt, drivingForces);
             isTemp = strcmpi(state.FacilityState.names, 'well_temperature');
@@ -228,143 +199,6 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
         end
         
         %-----------------------------------------------------------------%
-        function state = setWellValuesFromGroupControls(model, state0, state, dt, drivingForces)
-        % Set well values for all wells that operates under group control
-        
-            % Check if groups are present
-            groupCtrls = drivingForces.groups;
-            ng         = numel(groupCtrls);
-            if ng == 0, return; end
-            % Compute well potential
-            pot = model.computeWellPotential(state);
-            
-            groupCtrls = model.processGroups(groupCtrls, state, pot);
-            ng         = numel(groupCtrls);
-            % Loop through groups and update well controls
-            for g = 1:ng
-                groupCtrl = groupCtrls{g};
-                if ~isfield(groupCtrl, 'ctrlType'), continue; end
-                switch groupCtrl.ctrlType
-                    case 'rate'
-                        state = model.setGroupWellRates(groupCtrl, state, pot);
-                    otherwise
-                        error('Group control type not supported');
-                end
-            end
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function groupCtrls = processGroups(model, groupCtrls, state, pot)
-            
-            ng = numel(groupCtrls);
-            groupCtrls0 = groupCtrls;
-            groupNames = cellfun(@(groupCtrl) groupCtrl.group, groupCtrls0, 'UniformOutput', false);
-            for i = 1:ng
-                groupCtrl = groupCtrls0{i};
-                groupCtrls{i} = {groupCtrl};
-                if ~isfield(groupCtrl, 'subGroups'), continue; end
-                if ~isfield(groupCtrl, 'ctrlType'), continue; end
-                subGroupCtrls = groupCtrl.subGroups;
-                nsg = numel(subGroupCtrls);
-                subGroupPot = zeros(1, nsg);
-                for j = 1:nsg
-                    subGroupCtrl = subGroupCtrls{j};
-                    mask = model.getGroupMask(state, subGroupCtrl);
-                    subGroupPot(j) = sum(pot(mask));
-                    subGroupCtrls{j} = struct('group'      , subGroupCtrl      , ...
-                                              'ctrlType'   , groupCtrl.ctrlType, ...
-                                              'ctrlVal'    , groupCtrl.ctrlVal , ...
-                                              'ctrlValFrac', nan           , ...
-                                              'T'          , groupCtrl.T       );
-                end
-                groupPot = sum(subGroupPot);
-                for j = 1:nsg
-                    subGroupCtrl = subGroupCtrls{j};
-                    subGroupCtrl.ctrlValFrac = subGroupPot(j)./groupPot;
-                    subGroupCtrls{j} = subGroupCtrl;
-                end
-                groupCtrls{i} = subGroupCtrls;
-            end
-            groupCtrls = horzcat(groupCtrls{:});
-            
-            ng = numel(groupCtrls);
-            for i = 1:ng
-                groupCtrl = groupCtrls{i};
-                if ~isfield(groupCtrl, 'ctrlType'), continue; end
-                if ischar(groupCtrl.ctrlVal)
-                    gix = strcmpi(groupCtrl.ctrlVal, groupNames);
-                    if isfield(groupCtrls0{gix}, 'subGroups')
-                        groupCtrl.ctrlVal = groupCtrls0{gix}.subGroups;
-                    end
-                end
-                groupCtrls{i} = groupCtrl;
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function [state, Tw] = setGroupWellRates(model, groupCtrl, state, pot)
-        % Set well rates based on group target
-        
-            % Get well solutions
-            ws = state.wellSol;
-            map = model.getProps(state, 'FacilityWellMapping');
-            if ~any(map.active), return; end
-            % Get group wellSols
-            mask = model.getGroupMask(state, groupCtrl.group);
-            wsg  = ws(mask);
-            % Get well rates and temperatures for all wells in group
-            q = model.getWellRates(state);
-            T = model.getWellTemperatures(state);
-            if ischar(groupCtrl.ctrlVal) || iscell(groupCtrl.ctrlVal)
-                % Control value is the name of another group - this means
-                % that we aim at a group rate equal to that groups rate,
-                % with opposite sign
-                maskp = model.getGroupMask(state, groupCtrl.ctrlVal);
-                qtot  = -sum(q(maskp));
-                Ttot  = sum(q(maskp).*T(maskp))./sum(q(maskp));
-            elseif isnumeric(groupCtrl.ctrlVal)
-                % Control value is a numeric variable
-                qtot = groupCtrl.ctrlVal;
-                Ttot = groupCtrl.T;
-            end
-            if isfield(groupCtrl, 'ctrlValFrac')
-                qtot = qtot*groupCtrl.ctrlValFrac;
-            end
-            % Loop through wells in group
-            active = true(numel(wsg),1);
-            wix    = find(mask);
-            Tw     = model.AutoDiffBackend.convertToAD(vertcat(ws.T), q);
-            for i = 1:numel(wsg)
-                if wsg(i).sign > 0
-                    % Set target temperature is injector
-                    state.FacilityFluxProps.FacilityWellMapping.W(wix(i)).T = Ttot;
-                end
-                if ~strcmpi(wsg(i).type, 'rate')
-                    % Well is not operating at rate. This should mean that
-                    % it has reached its capacity, so we extract its rate
-                    % from the total goal
-                    qw   = q(wix(i));
-                    qtot = qtot - qw;
-                    active(i) = false;
-                end
-            end
-            % Distribute total target group rate among all wells not
-            % working at maximum capacity
-            wsg_act = wsg(active);
-            pot     = pot(mask); pot = pot(active);
-            w       = pot./sum(pot);
-            for i = 1:numel(wsg_act)
-                wsg_act(i).val = qtot.*w(i);
-            end
-            % Set updated wellSol filed to state
-            wsg(active)   = wsg_act;
-            ws(mask)      = wsg;
-            state.wellSol = ws;
-            
-        end
-        
-        %-----------------------------------------------------------------%
         function pot = computeWellPotential(model, state)
         % Compute the well potential. This is the maximum
         % injection/production rate a well can manage when it is working at
@@ -376,19 +210,6 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             end
             [pot, map] = model.getProps(state, 'PhaseFlux', 'FacilityWellMapping');
             pot = abs(map.perforationSum*sum(value(pot),2));
-            
-        end
-        
-        %-----------------------------------------------------------------%
-        function mask = getGroupMask(model, state, names)
-        % Get logical mask into wellSol for a given group
-        
-            map  = model.getProp(state, 'FacilityWellMapping');
-            if ~iscell(names), names = {names}; end
-            mask = false;
-            for i = 1:numel(names)
-                mask = mask | arrayfun(@(W) strcmpi(W.group, names{i}), map.W);
-            end
             
         end
         
@@ -410,15 +231,16 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
         function T = getWellTemperatures(model, state)
         % Get well temperature for each well
         
-           isT = strcmpi(state.FacilityState.names, 'well_temperature');
-           T   = state.FacilityState.primaryVariables{isT};
-           
+            isT = strcmpi(state.FacilityState.names, 'well_temperature');
+            T = state.FacilityState.primaryVariables{isT};
+               
         end
         
         %-----------------------------------------------------------------%
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
         % Update state after convergence
             [state, report] = updateAfterConvergence@GenericFacilityModel(model, state0, state, dt, drivingForces);
+            if ~model.ReservoirModel.thermal, return; end
             map = model.getProp(state, 'FacilityWellMapping');
             if strcmpi(model.thermalFormulation, 'none')
                 Tw = num2cell(model.getWellTemperature(state));
