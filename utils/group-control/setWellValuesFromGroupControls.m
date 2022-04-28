@@ -13,8 +13,10 @@ function state = setWellValuesFromGroupControls(model, state0, state, dt, drivin
     % Loop through groups and update well controls
     for g = 1:ng
         group = groups{g};
-        if strcmpi(group.type, 'none'), continue; end
         switch group.type
+            case 'none'
+                % Group does not have a control - nothing to do
+                continue
             case 'rate'
                 state = setGroupWellRates(model, group, state, pot);
             case 'temperature'
@@ -97,7 +99,7 @@ function [state, Tw] = setGroupWellTemperatures(model, group, state)
     map = model.getProps(state, 'FacilityWellMapping');
     if ~any(map.active), return; end
     % Get group wellSols
-    mask = model.getGroupMask(state, group.name);
+    mask = getGroupMask(model, state, group.name);
     wsg  = ws(mask);
     % Get well rates and temperatures for all wells in group
     q = model.getWellRates(state);
@@ -105,10 +107,10 @@ function [state, Tw] = setGroupWellTemperatures(model, group, state)
     if ischar(group.val) || iscell(group.val)
         % Control value is the name of another group - this means
         % that we aim at a group rate equal to that groups temperature,
-        maskp = model.getGroupMask(state, group.ctrlVal);
+        maskp = getGroupMask(model, state, group.val);
         Ttot  = sum(q(maskp).*T(maskp))./sum(q(maskp));
-        if isfield(group, 'ctrlFun')
-            Ttot = group.ctrlFun(Ttot);
+        if isfield(group, 'ctrlFn')
+            Ttot = group.ctrlFn(Ttot);
         end
     elseif isnumeric(group.val)
         % Control value is a numeric variable
