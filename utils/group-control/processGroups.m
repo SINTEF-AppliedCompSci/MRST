@@ -18,7 +18,7 @@ function groups = processGroups(model, groups, state, pot)
         for j = 1:nsg
             child = children{j};
             chix = strcmpi(groupNames, child);
-            if ~isempty(chix)
+            if any(chix)
                 children{j} = groups{chix};
                 children{j}.val = group.val;
                 children{j}.T   = group.T;
