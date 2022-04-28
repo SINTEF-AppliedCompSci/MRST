@@ -1,11 +1,11 @@
-classdef PerforationPressureGradientNew < StateFunction
+classdef PerforationPressureGradientICDP < StateFunction
     
     properties
     end
     
     methods
         
-        function gp = PerforationPressureGradientNew(varargin)
+        function gp = PerforationPressureGradientICDP(varargin)
             
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn({'FacilityWellMapping', 'ConnectionPressureDrop'});
