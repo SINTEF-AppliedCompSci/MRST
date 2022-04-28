@@ -4,42 +4,50 @@ function groups = processGroups(model, groups, state, pot)
     groups0 = groups;
     groupNames = cellfun(@(group) group.name, groups0, 'UniformOutput', false);
     isChild = false(1, ng);
-    keep = true(ng,1);
     for i = 1:ng
         if isChild(i), continue; end
         group = groups0{i};
         groups{i} = {group};
         if ~isfield(group, 'children'), continue; end
         if strcmpi(group.type, 'none'), continue; end
+        mask = getGroupMask(model, state, group.name);
+        if ~any(mask), continue; end
         children = group.children;
-        nsg = numel(children);
-        childrenPot = zeros(1, nsg);
-        
-        for j = 1:nsg
+        nc = numel(children);
+        childrenPot = zeros(1, nc);
+        active = true(nc,1);
+        for j = 1:nc
             child = children{j};
+            mask = getGroupMask(model, state, child);
+            if ~any(mask), active(j) = false; continue; end
             chix = strcmpi(groupNames, child);
             if any(chix)
-                children{j} = groups{chix};
+                children{j} = groups0{chix};
                 children{j}.val = group.val;
                 children{j}.T   = group.T;
-                isChild(chix) = true;
+                isChild(chix)   = true;
             else
-                mask = getGroupMask(model, state, child);
-                childrenPot(j) = sum(pot(mask));
-                children{j} = struct('name', child      , ...
-                    'type'   , group.type, ...
-                    'val'    , group.val , ...
-                    'frac', nan           , ...
-                    'T'      , group.T       );
+                children{j} = struct('name', child     , ...
+                                     'type', group.type, ...
+                                     'val' , group.val , ...
+                                     'frac', nan       , ...
+                                     'T'   , group.T   );
             end
+            childrenPot(j) = sum(pot(mask));
         end
         groupPot = sum(childrenPot);
-        for j = 1:nsg
-            if isnan(children{j}.frac)
+        for j = 1:nc
+            if ~active(j), continue; end
+            if ~isfield(children{j}, 'frac') || isnan(children{j}.frac)
                 children{j}.frac = childrenPot(j)./groupPot;
             end
         end
-        groups{i} = children;
+        children = children(active);
+        if any(active)
+            groups{i} = children;
+        else
+            groups{i}{1}.type = 'none';
+        end
     end
     
     groups = groups(~isChild);
