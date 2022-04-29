@@ -1,7 +1,7 @@
 function groups = processGroups(model, groups, state, pot)
 
-    ng = numel(groups);
-    groups0 = groups;
+    ng         = numel(groups);
+    groups0    = groups;
     groupNames = cellfun(@(group) group.name, groups0, 'UniformOutput', false);
     isChild = false(1, ng);
     for i = 1:ng
@@ -10,8 +10,6 @@ function groups = processGroups(model, groups, state, pot)
         groups{i} = {group};
         if ~isfield(group, 'children'), continue; end
         if strcmpi(group.type, 'none'), continue; end
-        mask = getGroupMask(model, state, group.name);
-        if ~any(mask), continue; end
         children = group.children;
         nc = numel(children);
         childrenPot = zeros(1, nc);
@@ -23,9 +21,10 @@ function groups = processGroups(model, groups, state, pot)
             chix = strcmpi(groupNames, child);
             if any(chix)
                 children{j} = groups0{chix};
-                children{j}.val = group.val;
-                children{j}.T   = group.T;
-                isChild(chix)   = true;
+                children{j}.type = group.type;
+                children{j}.val  = group.val;
+                children{j}.T    = group.T;
+                isChild(chix)    = true;
             else
                 children{j} = struct('name', child     , ...
                                      'type', group.type, ...
