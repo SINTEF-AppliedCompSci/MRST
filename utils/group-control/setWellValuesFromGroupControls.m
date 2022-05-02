@@ -1,5 +1,25 @@
 function state = setWellValuesFromGroupControls(model, state0, state, dt, drivingForces)
-    % Set well values for all wells that operates under group control
+% Set well values for all wells that operates under group control
+%
+
+%{
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
     % Check if groups are present
     groups = drivingForces.groups;
