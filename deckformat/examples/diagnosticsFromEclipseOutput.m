@@ -4,7 +4,7 @@
 % soluion structures and used as input to the interactive diagnostics
 % functionality.
 
-mrstModule add mrst-gui ad-core diagnostics
+mrstModule add mrst-gui ad-core diagnostics deckformat
 
 if ~ makeSPE9OutputAvailable
    error('SPE9Download:Failure', ...

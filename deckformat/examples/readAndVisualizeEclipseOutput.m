@@ -5,7 +5,7 @@
 % *INIT and *UNRST (restart data) are plotted using plotToolBar. Summary
 % data (*UNSMRY) is read and inspected.
 
-mrstModule add mrst-gui
+mrstModule add mrst-gui deckformat
 
 if ~ makeSPE9OutputAvailable
    error('SPE9Download:Failure', ...

@@ -2,7 +2,7 @@
 % This example demonstrates the use of model2deck/writeDeck to create/wtite 
 % ECLIPSE/OPM-type input-decks from deck-structures and/or MRST-models
 
-mrstModule add ad-core
+mrstModule add ad-core deckformat
 
 mrstVerbose true 
 

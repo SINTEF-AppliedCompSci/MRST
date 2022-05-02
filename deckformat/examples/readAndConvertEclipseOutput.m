@@ -4,7 +4,7 @@
 % using output from *.INIT and *.EGRID. The solution structure (states and
 % |states{i}.wellSol|) are generated using output from *.UNRST.
 
-mrstModule add mrst-gui ad-core
+mrstModule add mrst-gui ad-core deckformat
 
 if ~ makeSPE9OutputAvailable
    error('SPE9Download:Failure', ...
