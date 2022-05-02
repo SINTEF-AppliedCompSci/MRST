@@ -17,6 +17,7 @@ bdr = x(100*meter, 50);
 xwi = x(10*meter, 4);
 xwp = x(50*meter, 8);
 
+rng(20220501)
 G = pebiGrid2D(100/20, [100,100], ...
     'cellConstraints', num2cell([xwi; xwp], 2)', ...
     'polyBdr', bdr, ...
@@ -67,6 +68,8 @@ end
 [W.group] = deal(group{:});
 
 W = addThermalWellProps(W, 'T', convertFromCelcius(80));
+
+[W.WI] = deal(W(1).WI);
 
 if subGroups
     injGroup = struct('name', 'Injectors', ...
