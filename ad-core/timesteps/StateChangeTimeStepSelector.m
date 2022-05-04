@@ -75,7 +75,7 @@ classdef StateChangeTimeStepSelector < IterationCountTimeStepSelector
                 end
                 
                 nvals = numel(curr);
-                assert(nvals == numel(prev), ['Mismatch in property size: ', fn]);
+                assert(nvals == numel(prev), 'Mismatch in property size.');
                 for jj = 1:nvals
                     c = curr{jj};
                     p = prev{jj};
