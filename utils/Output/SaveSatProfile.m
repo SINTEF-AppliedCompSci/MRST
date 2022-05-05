@@ -1,4 +1,28 @@
-function SaveSatProfile(model,fullFile)
+function SaveSatProfile(model, fullFile)
+%
+% DESCRIPTION: saves the saturation profile calculated with the simulation
+% in an excel file
+%
+% SYNOPSIS:
+%   SaveSatProfile(model, fullFile)
+%
+% PARAMETERS:
+%   - model - main modeling struct with the saturation profiles saved inside
+%   - fullFile - path to save the saturation profile
+%
+% RETURNS:
+%   saturation profile saved in excel format
+%
+% ----------------------------------
+% (c) 2020-2022
+% Siroos Azizmohammadi
+% Omidreza Amrollahinasab
+% Montanuniversität Leoben, Austria
+% Chair of Reservoir Engineering
+% https://dpe.ac.at/
+% ----------------------------------
+%
+%%
     dynamic    = model.dynamic;
     params     = dynamic.params;    
     G          = model.grid.G;

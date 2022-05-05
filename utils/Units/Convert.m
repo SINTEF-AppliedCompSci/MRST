@@ -1,4 +1,31 @@
 function conFac = Convert(unit)
+%
+% DESCRIPTION: Reads the input unit as a string a returns the corresponding
+%              conversion factor to SI units
+%
+% SYNOPSIS:
+%   conFac = Convert(unit)
+%
+% PARAMETERS:
+%   unit - string defining the unit
+%
+% RETURNS:
+%   conFac - numerical value of conversion factor to SI units
+%
+% EXAMPLE:
+%   Convert("cm");
+%   Convert("rpm");
+%
+% ----------------------------------
+% (c) 2020-2022
+% Siroos Azizmohammadi
+% Omidreza Amrollahinasab
+% Montanuniversität Leoben, Austria
+% Chair of Reservoir Engineering
+% https://dpe.ac.at/
+% ----------------------------------
+%
+%%
     unit = lower(unit);
     
     % volume rate
@@ -52,7 +79,7 @@ function conFac = Convert(unit)
     if(strcmp(unit,strcat('ft^3'))), conFac = (ft)^3; return; end
     if(strcmpi(unit,strcat('ml'))), conFac = (milli*litre); return; end
     
-%     % volume rate ( fractions are not needed used anymore )
+%     volume rate ( fractions are not needed used anymore )
 %     if(strcmp(unit,strcat('m3/s'))),       conFac = (meter)^3/second; return; end
 %     if(strcmp(unit,strcat('m^3/s'))),      conFac = (meter)^3/second; return; end
 %     if(strcmp(unit,strcat('m3/sec'))),       conFac = (meter)^3/second; return; end
@@ -79,7 +106,7 @@ function conFac = Convert(unit)
     if(strcmp(unit,strcat('g'))),  conFac = gram; return; end
     if(strcmp(unit,strcat('lb'))), conFac = pound; return; end
     
-    % density ( fractions are not needed used anymore )
+%     density ( fractions are not needed used anymore )
 %     if(strcmp(unit,strcat('kg/m^3'))), conFac = kilogram/(meter)^3; return; end
 %     if(strcmp(unit,strcat('kg/m3'))),  conFac = kilogram/(meter)^3; return; end
     

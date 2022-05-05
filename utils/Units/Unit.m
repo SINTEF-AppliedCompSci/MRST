@@ -1,4 +1,5 @@
 function unit = Unit(quantity)
+% ask siroos for the docs
     quantity = lower(quantity);
 
     % rotational speed

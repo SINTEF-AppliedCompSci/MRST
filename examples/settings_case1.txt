@@ -39,6 +39,7 @@ NCELLS		80
 BCELLS		1           0               0
 MAXTIMESTEP 	2		hour
 RAMPUPSTEPS      10
+HIGH_PERCISION_MODE
 
 #-------------------------------------------------
 # SCHEDULE

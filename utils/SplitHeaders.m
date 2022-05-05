@@ -1,13 +1,14 @@
 function [headers,units] = SplitHeaders(cellArray)
+% ask siroos for the docs
     for i = 1 : length(cellArray)
         header = cellArray{:,i};
-        [header,unit] = SplitHeader(header);
+        [header,unit] = minor_split(header);
         headers{:,i}  = header;
         units{:,i}    = unit;
     end
 end
 
-function [header,unit] = SplitHeader(str)     
+function [header,unit] = minor_split(str)     
     header = lower(str);
     idx = regexp([' ' header],'(?<=\s+)\S','start') - 1;
     unit = str(idx(end):end);

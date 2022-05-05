@@ -1,38 +1,33 @@
 %% Automated History Matching of SCAL Experiments
-% 
-%  Description : 
 %
-%  Author : 
-%    Siroos Azizmohammadi
-%    Omidreza Amrollahinasab
+% DESCRIPTION: Example of how to run a case with the SCAL module
 %
-%  History :
-%  \change{1.0}{09-Nov-2021}{Original}
+% ----------------------------------
+% (c) 2020-2022
+% Siroos Azizmohammadi
+% Omidreza Amrollahinasab
+% Montanuniversität Leoben, Austria
+% Chair of Reservoir Engineering
+% https://dpe.ac.at/
+% ----------------------------------
 %
-%  --------------------------------------------------
-%  (c) 2021, Siroos Azizmohammadi,
-%  Omidreza Amrollahinasab
-%  Chair of Reservoir Engineering, University of Leoben, Austria
-%  email: siroos.azizmohammadi@unileoben.ac.at
-%  url: https://dpe.ac.at
-%  --------------------------------------------------
-%
-%%
 %% clear memory, close all figures and screen
-clear; close all; clc
+clc;
+clear all;
+close all;
+clear classes;
 
 %% add MRST modules to working path
 year = 2020; release = 'a';
 mrstVersion = strcat(string(year),release);
-main_script_dir = AddMRST(mrstVersion);
+AddMRST(mrstVersion);
+% in case it is in the main dir, user can use ".\"
+% settings_dir = "W:\CO2_Displacement_paper_from_Holger\CO2_brine";
 settings_dir = "W:\CO2_Displacement_paper_from_Holger\Decane_brine";
+% settings_dir = "./";
 
 %% configure model from file
-if exist('settings_dir','var')
-    model = Configure(settings_dir,"settings_decane_brine2.txt");
-else
-    model = Configure(main_script_dir,"settings_EST_047_SS_Drain.txt");
-end
+model = Configure(settings_dir,"settings_decane_brine2.txt");
 
 %% App function
 model.App.include = false;
@@ -51,15 +46,15 @@ model = CreateRock(model);
 model = CreatePc(model);
 model = CreateKr(model);
 
-%% plot satuartion functions
+%% plot satuartion functions and comparison plots
 if not(strcmpi(model.simulation.type,strcat('historymatch')))
     PlotKrPc(model);
-    if or(isfield(model.experiment.satfun,'kr_compare_1'), ...
-            isfield(model.experiment.satfun,'pc_compare_1'))
+    if or(isfield(model.experiment.satfun,'kr_compare'), ...
+            isfield(model.experiment.satfun,'pc_compare'))
         PlotKrPcComparison(model)
     end
-    choice_1 = input('Check input saturation functions, continue?','s');
-    if strcmpi(choice_1, 'no')
+    choice_1 = input('Check input saturation functions, continue? [y/n]','s');
+    if strcmpi(choice_1, 'n')
         return
     end
 end
@@ -82,8 +77,8 @@ if not((strcmpi(model.simulation.type,strcat('historymatch'))))
             1,numel(index_mask_time)) ' (hours) for f factor calculations\n'];
         fprintf(fmt, index_mask_time)
         f_factor = f_factor_calculator(model, alpha, true, model.experiment.rock.het_index_mask);
-        choice_2 = input("Check f factor calculations, continue?", "s");
-        if strcmpi(choice_2, "no")
+        choice_2 = input("Check f factor calculations, continue? [y/n]", "s");
+        if strcmpi(choice_2, "n")
             return
         end
         model = CreateGrid_heterogeneous(model);
@@ -91,16 +86,16 @@ if not((strcmpi(model.simulation.type,strcat('historymatch'))))
         model = CreateFluid_heterogenous(model, f_factor);
         fprintf('Simulating the heterogeneous model...\n')
         model = Run(model, true);
-        choice_3 = input("Plot saturation profile?", "s");
-        if strcmpi(choice_3, "yes")
+        choice_3 = input("Plot saturation profile? [y/n]", "s");
+        if strcmpi(choice_3, "y")
             plot_saturation_profile_modified(model, model.experiment.rock.het_index_mask)
         end
     else
 % ------------forward homogeneous model-----------------------------------
         fprintf('Simulating the homogeneous model...\n')
         model = Run(model, true);
-        choice_4 = input("Plot saturation profile?", "s");
-        if strcmpi(choice_4, "yes")
+        choice_4 = input("Plot saturation profile? [y/n]", "s");
+        if strcmpi(choice_4, "y")
             plot_saturation_profile(model)
         end
     end
@@ -114,8 +109,8 @@ else
     filter_no.prod = 10;
     filtered_data = PlotObservation_pre_hm(model, filter_no);
     plot_saturation_profile_pre_hm(model)
-    choice = input('History match with the filtered data?','s');
-    if strcmpi(choice, 'yes')
+    choice = input('History match with the filtered data? [y/n]','s');
+    if strcmpi(choice, 'y')
         model = replace_observation_with_filtered_data(model, filtered_data);
     end
     close
@@ -129,11 +124,12 @@ else
         model.history_match.fval = fval_sum_best;
     else
 %----------single objective history matching ------------------------------
-    [model, model_cent] = historymatch(model);
+        [model, model_cent] = historymatch(model);
     end
+%% plotting after history match
     plot_HM_results(model)
     obj_fun = model.history_match.obj_fun;
-    if strcmp(obj_fun,'Simultaneous')
+    if strcmpi(obj_fun,'simultaneous')
         plot_HM_response(model,'ss')
         model_cent.history_match = model.history_match;
         plot_HM_response(model_cent,'cent')

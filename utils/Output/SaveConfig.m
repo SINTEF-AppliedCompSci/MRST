@@ -1,5 +1,29 @@
-function SaveConfig(model,fullFile)
-
+function SaveConfig(model, fullFile)
+%
+% DESCRIPTION: saves the information in the model struct as a settings
+% files which can be used in the Configure module - basically a way to save
+% your work and start again
+%
+% SYNOPSIS:
+%   SaveConfig(model, fullFile)
+%
+% PARAMETERS:
+%   - model - main struct of the simulation
+%   - fullFile - path to save the settings file
+%
+% RETURNS:
+%   saves the settings of the simulation as a .txt file
+%
+% ----------------------------------
+% (c) 2020-2022
+% Siroos Azizmohammadi
+% Omidreza Amrollahinasab
+% Montanuniversität Leoben, Austria
+% Chair of Reservoir Engineering
+% https://dpe.ac.at/
+% ----------------------------------
+%
+%%
     geometry    = model.experiment.geometry;
     rock        = model.experiment.rock;
     fluid       = model.experiment.fluid;

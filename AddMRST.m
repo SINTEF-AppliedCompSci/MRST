@@ -1,34 +1,24 @@
-function appDir = AddMRST(mrstVersion)  
-% <keywords>
+function AddMRST(mrstVersion)  
 %
-% Purpose : Start the MRST package and add the required modules
+% DESCRIPTION: Add the required modules and starts the main MRST package
 %
-% Syntax : 
-%   appDir = AddMRST(mrstVersion);
+% SYNOPSIS:
+%   AddMRST(mrstVersion);
 %
-% Input Parameters :
-%   mrstVersion: string version of the MRST package to use e.g. 2020a
+% PARAMETERS:
+%   mrstVersion - string containing MRST version
 %
-% Return Parameters :
-%   The directory at which this functions exists to be used in the
-%   configure functions
+% EXAMPLE:
+%   AddMRST("2020a") 
 %
-% Description :
-%
-% Author : 
-%    Siroos Azizmohammadi
-%    Omidreza Amrollahinasab
-%
-% History :
-% \change{1.0}{09-Nov-2021}{Original}
-%
-% --------------------------------------------------
-% (c) 2021, Siroos Azizmohammadi,
+% ----------------------------------
+% (c) 2020-2022
+% Siroos Azizmohammadi
 % Omidreza Amrollahinasab
-% Chair of Reservoir Engineering, University of Leoben, Austria
-% email: info@dpe.ac.at
-% url: dpe.ac.at
-% --------------------------------------------------
+% Montanuniversität Leoben, Austria
+% Chair of Reservoir Engineering
+% https://dpe.ac.at/
+% ----------------------------------
 %
 %%
     % Change the current folder to the folder of this m-file.
