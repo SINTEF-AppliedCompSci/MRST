@@ -25,7 +25,7 @@ AddMRST(mrstVersion);
 settings_dir = "./examples";
 
 %% configure model from file
-model = Configure(settings_dir,"settings_SCA2011_35_USS_hm.txt");
+model = Configure(settings_dir,"settings_case1.txt");
 
 %% App function
 model.App.include = false;
@@ -65,10 +65,10 @@ if not((strcmpi(model.simulation.type,strcat('historymatch'))))
 % ------------forward homogeneous model-----------------------------------
     fprintf('Simulating the homogeneous model...\n')
     model = Run(model, true);
-    choice_4 = input("Plot saturation profile? [y/n]", "s");
-    if strcmpi(choice_4, "y")
-        plot_saturation_profile(model)
-    end
+%     choice_4 = input("Plot saturation profile? [y/n]", "s");
+%     if strcmpi(choice_4, "y")
+%         plot_saturation_profile(model)
+%     end
 else
 % ------------investigate the input range for------------------------------
 %     plot_input_range(model)
