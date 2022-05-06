@@ -46,23 +46,17 @@ if mode
 else
     solver = [];
 end
-if not((strcmpi(model.simulation.type,strcat('historymatch')))) 
-    fn = getPlotAfterStep(state, twoPhaseOilWaterModel, schedule, ...
-        'plotWell', false, 'plotReservoir', false, ...
-        'lockCaxis',true, 'plot1d', false);
-else
-    fn = [];
-end
+
 if(schedule.counter == 1)
     [~, state, schedulereport] = simulateScheduleAD(...
         state, twoPhaseOilWaterModel, schedule, ...
         'Verbose', verbose, 'NonLinearSolver', solver, ...
-        'afterStepFn', fn);
+        'afterStepFn', []);
 else
     [~, state, schedulereport] = simulateScheduleAD(...
         state{end,1}, twoPhaseOilWaterModel, schedule, ...
         'Verbose', verbose, 'NonLinearSolver', solver, ...
-        'afterStepFn', fn);
+        'afterStepFn', []);
 end
 
 % different ways to change the solver

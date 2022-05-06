@@ -1,23 +1,19 @@
-% Root directory of MATLAB Reservoir Simulation Toolbox (MRST).
+% Simulation of SCAL experiments
 %
+% Folders
+%   docs - User manuals and guides to use the 
+%   examples - settings and the required data for examples
+%   models - main modules to run the simulations
+%   utils - untility modules to output and plot the results + I/O 
 % Files
-%   startup - Amend MATLAB PATH to handle MRST implementation.
-
-%{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
+%   AddMRST.m - adding the required modules to the path
+%   main.m - example on how to run the modules
+% ----------------------------------
+% (c) 2020-2022
+% Siroos Azizmohammadi
+% Omidreza Amrollahinasab
+% Montanuniversität Leoben, Austria
+% Chair of Reservoir Engineering
+% https://dpe.ac.at/
+% ----------------------------------
+%

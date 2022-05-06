@@ -43,7 +43,7 @@ RAMPUPSTEPS      10
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\Data\USS\Imbibition\sched_SCA2011_35_USS.txt
+FILENAME	.\examples\Data\USS\Imbibition\sched_SCA2011_35_USS.txt
 PINI		1		bar
 POUT		1		bar
 
@@ -51,8 +51,8 @@ POUT		1		bar
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-PRESSURE	.\Data\USS\Imbibition\pressure_obs_sca2011_35_USS.txt
-PRODUCTION  .\Data\USS\Imbibition\production_obs-sca2011_35_USS.txt
+PRESSURE	.\examples\Data\USS\Imbibition\pressure_obs_sca2011_35_USS.txt
+PRODUCTION  .\examples\Data\USS\Imbibition\production_obs-sca2011_35_USS.txt
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS

@@ -29,6 +29,7 @@ VISCOSITYNW		1		cP
 # PROCESS
 #-------------------------------------------------
 CENT		Imbibition
+
 #-------------------------------------------------
 # SIMULATION
 #-------------------------------------------------
@@ -43,7 +44,7 @@ RAMPUPSTEPS      10
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\Data\CENT\Imbibition\sched_SCA2011_35_Cent.txt
+FILENAME	.\examples\Data\CENT\Imbibition\sched_SCA2011_35_Cent.txt
 PINI		1		bar
 POUT		1		bar
 CENTRAD     15   cm
@@ -52,7 +53,7 @@ CENTRAD     15   cm
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-PRODUCTION  .\Data\CENT\Imbibition\production_obs_sca2011_35_Cent.txt
+PRODUCTION  .\examples\Data\CENT\Imbibition\production_obs_sca2011_35_Cent.txt
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS
@@ -88,7 +89,7 @@ DISPLAYRATE		cm^3/hour
 # OBJECTIVE FUNCTION CONFIGURATIONS
 #-------------------------------------------------
 EXCEL_FILE_NAME    kr_modified_corey_+_pc_modified_Skjaeveland.xlsx
-EXCEL_FILE_PATH    .\App\Input_templates_for_SCAL_history_match
+EXCEL_FILE_PATH    .\docs\excel_templates_hm
 KR
 KR_MODEL    MODIFIED-COREY
 PC
@@ -112,7 +113,7 @@ MAX_FUNCTION_EVALUATIONS    6000
 SCALE_PROBLEM
 OBJECTIVE_FUNCTION_TYPE    Simultaneous
 CENT_FILE_NAME      settings_SCA2011_35_Cent.txt
-CENT_FILE_PATH      .
+CENT_FILE_PATH      .\examples
 HISTORYMATCH_ALGORITHM      active-set
 
 #-------------------------------------------------

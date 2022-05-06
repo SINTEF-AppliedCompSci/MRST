@@ -22,12 +22,10 @@ year = 2020; release = 'a';
 mrstVersion = strcat(string(year),release);
 AddMRST(mrstVersion);
 % in case it is in the main dir, user can use ".\"
-% settings_dir = "W:\CO2_Displacement_paper_from_Holger\CO2_brine";
-settings_dir = "W:\CO2_Displacement_paper_from_Holger\Decane_brine";
-% settings_dir = "./";
+settings_dir = "./examples";
 
 %% configure model from file
-model = Configure(settings_dir,"settings_decane_brine2.txt");
+model = Configure(settings_dir,"settings_SCA2011_35_USS_hm.txt");
 
 %% App function
 model.App.include = false;
@@ -64,40 +62,12 @@ model = CreateFluid(model);
 
 %% run Froward/Histormatch simulation
 if not((strcmpi(model.simulation.type,strcat('historymatch'))))  
-% ------------forward heterogenous model-----------------------------------
-    if model.experiment.rock.heterogeneous
-        fprintf('Simulating the prior homogeneous model...\n')
-        model = Run(model, false);
-        fprintf('calculating the pc scaling factors...\n')
-        alpha = model.experiment.rock.alpha.value;
-        t_obs = model.experiment.observation.satProfile.table(2:end,1);
-        index_mask = model.experiment.rock.het_index_mask;
-        index_mask_time = t_obs(index_mask) / 3600;
-        fmt = ['You are using the saturation profiles at ' repmat(' %.2f ',...
-            1,numel(index_mask_time)) ' (hours) for f factor calculations\n'];
-        fprintf(fmt, index_mask_time)
-        f_factor = f_factor_calculator(model, alpha, true, model.experiment.rock.het_index_mask);
-        choice_2 = input("Check f factor calculations, continue? [y/n]", "s");
-        if strcmpi(choice_2, "n")
-            return
-        end
-        model = CreateGrid_heterogeneous(model);
-        model = CreateRock_heterogeneous(model, f_factor);
-        model = CreateFluid_heterogenous(model, f_factor);
-        fprintf('Simulating the heterogeneous model...\n')
-        model = Run(model, true);
-        choice_3 = input("Plot saturation profile? [y/n]", "s");
-        if strcmpi(choice_3, "y")
-            plot_saturation_profile_modified(model, model.experiment.rock.het_index_mask)
-        end
-    else
 % ------------forward homogeneous model-----------------------------------
-        fprintf('Simulating the homogeneous model...\n')
-        model = Run(model, true);
-        choice_4 = input("Plot saturation profile? [y/n]", "s");
-        if strcmpi(choice_4, "y")
-            plot_saturation_profile(model)
-        end
+    fprintf('Simulating the homogeneous model...\n')
+    model = Run(model, true);
+    choice_4 = input("Plot saturation profile? [y/n]", "s");
+    if strcmpi(choice_4, "y")
+        plot_saturation_profile(model)
     end
 else
 % ------------investigate the input range for------------------------------
@@ -105,8 +75,8 @@ else
 %     fprintf('Want to continue? Press Enter to continue \n')
 %     pause
 %-------------Exploratory data analysis------------------------------------
-    filter_no.pressure = 50;
-    filter_no.prod = 10;
+    filter_no.pressure = 5;
+    filter_no.prod = 5;
     filtered_data = PlotObservation_pre_hm(model, filter_no);
     plot_saturation_profile_pre_hm(model)
     choice = input('History match with the filtered data? [y/n]','s');

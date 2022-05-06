@@ -1,9 +1,0 @@
-@TYPE	'Corey'
-@PARAMS
-HEADER
-PARAMETER	VALUE
-'nw'	1
-#'nw'	7
-'swir'	0.0
-'sor'	0.0
-'krWmax'	1.0

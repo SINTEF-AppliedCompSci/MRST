@@ -1,9 +1,0 @@
-HEADER
-'time'	'reference acceleration'
-UNITS
-'hour'	'm/s^2'
-0.00	800
-5       1600
-8       3200
-11      6400
-15      6400

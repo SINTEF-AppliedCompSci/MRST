@@ -39,13 +39,13 @@ NCELLS		80
 BCELLS		1       0             0
 MAXTIMESTEP	0.03 hour
 RAMPUPSTEPS 5
-#HIGH_PERCISION_MODE
+HIGH_PERCISION_MODE
 
 #-------------------------------------------------
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\Data\USS\Imbibition\sched_case4_basic.txt
+FILENAME	.\examples\Data\USS\Imbibition\sched_case4_basic.txt
 PINI		1		bar
 POUT		1		bar
 
@@ -53,9 +53,9 @@ POUT		1		bar
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-PRESSURE	 .\Data\USS\Imbibition\pressure_obs_case4.txt
-SWAVG       .\Data\USS\Imbibition\swavg_obs_case4.txt
-PRODUCTION   .\Data\USS\Imbibition\production-obs-case4.txt
+PRESSURE	 .\examples\Data\USS\Imbibition\pressure_obs_case4.txt
+SWAVG       .\examples\Data\USS\Imbibition\swavg_obs_case4.txt
+PRODUCTION   .\examples\Data\USS\Imbibition\production-obs-case4.txt
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS

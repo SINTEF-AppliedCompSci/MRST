@@ -44,7 +44,7 @@ RAMPUPSTEPS      10
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\Data\SS\Imbibition\sched_case1.txt
+FILENAME	.\examples\Data\SS\Imbibition\sched_case1.txt
 PINI		1		bar
 POUT		1		bar
 STARTUP     100     second      2325    rpm
@@ -54,16 +54,16 @@ CENTRAD     14.89   cm
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-PRESSURE	.\Data\SS\Imbibition\pressure_obs_case2.txt
-SWAVG       .\Data\SS\Imbibition\swavg_obs_case2.txt
-#SATPROFILE  .\Data\SS\Imbibition\SatProfile_obs_case2.xlsx
+PRESSURE	.\examples\Data\SS\Imbibition\pressure_obs_case2.txt
+SWAVG       .\examples\Data\SS\Imbibition\swavg_obs_case2.txt
+#SATPROFILE  .\examples\Data\SS\Imbibition\SatProfile_obs_case2.xlsx
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS
 #-------------------------------------------------
 #KR         MODIFIED-COREY      	Swc     Sor     krw@Sor     kro@Swc  nW      nNW     
 KR          MODIFIED-COREY      	0.2    0.2     0.5         0.5      3       3       
-PC			TABLE              		.\Data\SS\Imbibition\pc_sharp.txt
+PC			TABLE              		.\examples\Data\SS\Imbibition\pc_sharp.txt
 #-------------------------------------------------
 # PLOT OPTIONS
 #-------------------------------------------------

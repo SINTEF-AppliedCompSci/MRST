@@ -1,9 +1,0 @@
-HEADER
-'time'	'reference acceleration'
-UNITS
-'hour'	'rpm'
-0.00	735
-5       1040
-8       1470
-11      2079
-15      2079

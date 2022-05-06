@@ -45,7 +45,7 @@ RAMPUPSTEPS      5
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\Data\CENT\Drainage\sched_case5.txt
+FILENAME	.\examples\Data\CENT\Drainage\sched_case5.txt
 PINI		1		bar
 POUT		1		bar
 CENTRAD     29.142  cm
@@ -54,19 +54,19 @@ CENTRAD     29.142  cm
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-#SWAVG      .\Data\CENT\Drainage\swavg_obs_case5.txt
-PRODUCTION   .\Data\CENT\Drainage\prod_obs_case5.txt
+#SWAVG      .\examples\Data\CENT\Drainage\swavg_obs_case5.txt
+PRODUCTION   .\examples\Data\CENT\Drainage\prod_obs_case5.txt
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS
 #-------------------------------------------------
 #KR			MODIFIED-COREY		Swc		Sor		krw@Sor		kro@Swc		nW		nNW		
 KR          MODIFIED-COREY      0.3     0.      1.0         1.0		3       2       
-PC			TABLE				.\Data\CENT\Drainage\pc_centri_table.txt     
-#PC			TABLE				.\Data\CENT\Drainage\pc_case5_analytical.txt
-#PC			TABLE				.\Data\CENT\Drainage\pc_case5_solution.txt
-#KR    TABLE		.\Data\SS\Drainage\kr_synthetic_SS_hm_solution.txt
-#PC	TABLE		.\Data\CENT\Drainage\pc_case5_hm_solution.txt
+PC			TABLE				.\examples\Data\CENT\Drainage\pc_centri_table.txt     
+#PC			TABLE				.\examples\Data\CENT\Drainage\pc_case5_analytical.txt
+#PC			TABLE				.\examples\Data\CENT\Drainage\pc_case5_solution.txt
+#KR    TABLE		.\examples\Data\SS\Drainage\kr_synthetic_SS_hm_solution.txt
+#PC	TABLE		.\examples\Data\CENT\Drainage\pc_case5_hm_solution.txt
 
 #-------------------------------------------------
 # PLOT OPTIONS

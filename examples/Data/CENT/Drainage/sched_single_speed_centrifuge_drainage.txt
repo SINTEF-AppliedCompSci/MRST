@@ -1,7 +1,0 @@
-HEADER
-'time'		'rotational speed'
-UNITS   	
-'hour'		'rpm'
-0       	2000
-10       	2000
-

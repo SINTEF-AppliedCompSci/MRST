@@ -27,7 +27,8 @@ function AddMRST(mrstVersion)
         cd(appDir);
         % SCAL software directory
         addpath(appDir);
-        addpath(genpath(appDir + "\Source"));
+        addpath(genpath(appDir + "\models"));
+        addpath(genpath(appDir + "\utils"));
         % MRST software directory
         mrstFolder = strcat("mrst-",mrstVersion);
         mrstDir = "../" + mrstFolder;
