@@ -3,25 +3,31 @@ function [wells, states] = readJutulOutput(pth, varargin)
     opt = merge_options(opt, varargin{:});
     [filepath, name, ext] = fileparts(pth);
 
+    [states, wells] = deal([]);
+    ok = false;
     fldr = sprintf('%s_output_mrst', name);
     if opt.states
         states = readStates(filepath, fldr, opt.readStates);
-    else
-        states = [];
+        ok = ~isempty(states);
     end
     well_path = fullfile(filepath, fldr, 'wells.mat');
-    if exist(well_path, 'file')
-        wells = load(well_path);
-        if opt.wellSol
-            wells = convertJutulWellSols(wells);
-            if opt.states
-                for i = 1:numel(states)
-                    states{i}.wellSol = wells{i};
+    if opt.wells
+        if exist(well_path, 'file')
+            wells = load(well_path);
+            if opt.wellSol
+                wells = convertJutulWellSols(wells);
+                if opt.states
+                    for i = 1:numel(states)
+                        % states{i}.wellSol = wells{i};
+                    end
                 end
             end
+        else
+            ok = false;
         end
-    else
-        wells = [];
+    end
+    if ~ok
+        warning('No Jutul output found. Case may not be simulated?');
     end
 end
 

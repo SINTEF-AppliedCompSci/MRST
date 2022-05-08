@@ -1,4 +1,65 @@
-function pth = writeJutulInput(state0, model, schedule, name, varargin)
+function pth = writeJutulInput(state0, model, schedule, varargin)
+%Write a MRST case to a .mat file that can be run by Jutul simulator
+%
+% SYNOPSIS:
+%   pth = writeJutulInput(state0, model, schedule, name)
+%   pth = writeJutulInput(state0, model, schedule)
+%
+% REQUIRED PARAMETERS:
+%   state0, model, schedule - Initial state, model and schedule to write.
+%                             Same inputs as simulateScheduleAD.
+%
+%   name - Name that will be used for output file (Optional - defaults to
+%          'unknown').
+%
+% OPTIONAL PARAMETERS:
+%   path - Valid folder path that will be used to write the output mat
+%          file. By default, the Jutul output will be written to this
+%          folder as well.
+%
+%   printcmd - Generate and print the command required to run the case in
+%              Jutul and produce MRST-compatible output files. Default:
+%              true.
+%
+%   extra - If provided, whatever data is given will be written to the
+%           Jutul input .mat file. Useful if you want to pass along more
+%           data for a workflow inside Jutul.
+%
+% RETURNS:
+%   pth - The path of the output file. Will be a normal .mat file.
+%
+% EXAMPLE:
+% mrstModule add test-suite jutul
+% setup = qfs_wo();
+% writeJutulInput(setup.state0, setup.model, setup.schedule)
+%
+% SEE ALSO:
+%   readJutulOutput, runJutulOnDaemon
+
+%{
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+    if mod(numel(varargin), 2) == 1
+        name = varargin{1};
+        varargin = varargin(2:end);
+    else
+        name = 'unknown';
+    end
     opt = struct('path', tempdir(), 'printcmd', true, 'extra', {{}});
     [opt, other] = merge_options(opt, varargin{:});
     assert(isfolder(opt.path))
