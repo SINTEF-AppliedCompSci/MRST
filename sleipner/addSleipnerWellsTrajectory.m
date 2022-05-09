@@ -1,4 +1,4 @@
-function W = addSleipnerWellsTrajectory(G,rock,rate)
+function W = addSleipnerWellsTrajectory(G,rock,rate,varargin)
 % Function to create injection well for Sleipner 2019 benchmark model
 %
 % SYNOPSIS:
@@ -35,6 +35,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+%%
+opt = struct('Name', '15/9_A16');
+opt = merge_options(opt,varargin{:});
+
 %%
 require wellpaths
 % Prior to accurate intersecting algoritms, a more cost effective rough search 
@@ -76,5 +80,5 @@ T = computeTraversedCells(G, traj);  %#ok
 % coordinate direction
 
 W = [];
-W = addWellFromTrajectory(W, G, rock, traj, 'Name', 'w1', 'Type', 'rate','Val',rate,'Name','15/9_A16','comp_i',[0 1]);
+W = addWellFromTrajectory(W, G, rock, traj,'Type', 'rate','Val',rate,'Name',opt.Name,'comp_i',[0 1]);
 

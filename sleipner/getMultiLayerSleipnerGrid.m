@@ -110,7 +110,7 @@ rock.poro = rockfull.poro(gc,:);
 grdeclfull = grdecl;
 
 grdecl = cutGrdecl(grdecl,...
-    [1 grdecl.cartDims(1); 1  grdecl.cartDims(2); 1  grdecl.cartDims(3)-10]);
+    [1 grdecl.cartDims(1); 1  grdecl.cartDims(2); 11  grdecl.cartDims(3)]);
 
 %% Update cartDims for G
 % Because extractSubgrid does not do it for some reason!
