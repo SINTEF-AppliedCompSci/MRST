@@ -1,39 +1,31 @@
 mrstModule add ad-core ad-blackoil spe10 deckformat ad-props test-suite coarsegrid compositional jutul
 close all; clear
-name = 'qfs_wo';
-% name = 'spe10_layer'
-% name = 'fractures_compositional';
-% name = 'spe10_wo'
-% name = '1d_validation'
-setup = [];
+if ~exist('name', 'var')
+    name = 'qfs_wo';
+end
 switch name
     case 'qfs_wo'
-        setup = qfs_wo('nkr', 2, 'ncells', 2, 'pvi', 1);
+        setup = qfs_wo();
     case 'buckley_leverett_wo'
         setup = buckley_leverett_wo();
     case 'spe10_layer'
         setup = spe10_wo('layers', 1);
-    case '1d_validation'
-        [state0, model, schedule, ref] = setupSimpleCompositionalExample(false);
+    case 'fractures_compositional'
+        setup = fractures_compositional();
     otherwise
         setup = eval(name);
 end
-if ~isempty(setup)
-    % Was test case of some sorts
-    [state0, model, schedule] = deal(setup.state0, setup.model, setup.schedule);
-end
-%%
+[state0, model, schedule] = deal(setup.state0, setup.model, setup.schedule);
+%% Write case to disk
 pth = writeJutulInput(state0, model, schedule, name);
 %% Once simulated, read back as MRST format
 [ws, states] = readJutulOutput(pth);
-%%
-nls = getNonLinearSolver(model, 'TimestepStrategy', 'none');
+%% Simulate MRST for comparison purposes
+nls = getNonLinearSolver(model);
 [ws_m, states_m] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nls);
-%%
-close all
+%% Compare the results
 mrstModule add mrst-gui
 G = model.G;
-%%
 figure;
 plotToolbar(G, states_m)
 title('MRST')
@@ -46,4 +38,4 @@ title('Difference')
 %% Plot and compare wells
 % Jutul uses multisegment wells by default which gives small differences in
 % well curves
-plotWellSols({ws, ws_m}, 'datasetnames', {'Jutul', 'MRST'})
+plotWellSols({ws, ws_m}, cumsum(schedule.step.val), 'datasetnames', {'Jutul', 'MRST'})

@@ -12,6 +12,9 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 % 1. Add DaemonMode to your base Julia environment (easiest)
 % 2. Create a separate environment with DaemonMode (advanced users).
 %
+% We assume that you have dev-ed the Jutul repos at least once for this to
+% work.
+%
 % For option 1:
 % Run julia and run 
 %    ]add DaemonMode
@@ -21,11 +24,11 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 %
 %    mkdir jutul-daemon
 %    cd .\jutul-daemon\ # or cd jutul-daemon if you are on Linux/Mac OS
-%    julia
-%    ]activate .
-%    add DaemonMode # Required to run the Daemon, not needed if following (1)
-%    dev Jutul      # Could be add once we get it into package manager
-%    dev JutulDarcy
+%    julia --project="."
+%    ]                    # To enter Pkg prompt
+%    add DaemonMode       # Required to run the Daemon, not needed if following (1)
+%    dev Jutul JutulDarcy # Could be "add" once we get it into package manager
+%    # hit backspace to exit the prompt
 %    pwd() # will give you the absolute path of the folder
 %
 % If you are using dev-ed packages, you may have to go into this
@@ -48,8 +51,12 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 %% We run a small example to demonstrate and verify that it is working
 setup = qfs_wo();
 [state0, model, schedule] = deal(setup.state0, setup.model, setup.schedule);
-[wells, states] = runJutulOnDaemon(state0, model, schedule, 'name', 'qfs_wo');
+
+%% Run in background
+[ws, states] = runJutulOnDaemon(state0, model, schedule, 'name', 'qfs_wo');
 %% Plot the results
 mrstModule add mrst-gui
 figure;
 plotToolbar(model.G, states);
+%% Run in MRST, for comparison
+[wsm, statesm] = simulateScheduleAD(state0, model, schedule);

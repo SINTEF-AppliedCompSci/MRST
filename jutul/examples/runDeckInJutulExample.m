@@ -2,18 +2,14 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite coarsegrid jut
 name = 'spe1';
 reorder = {};
 switch name
-    case 'olympus_1_reduced'
-        pth = fullfile(mrstDataDirectory(), 'olympus', 'ECLIPSE', 'OLYMPUS_1_REDUCED');
-        deck_path = fullfile(pth, 'OLYMPUS_1_REDUCED.DATA');
-        reorder = 'none';
     case 'spe1'
         pth = getDatasetPath('spe1');
         deck_path  = fullfile(pth, 'BENCH_SPE1.DATA');
     case 'spe9'
         pth = getDatasetPath('spe9');
         deck_path  = fullfile(pth, 'BENCH_SPE9.DATA');
-    case 'qfs_wo'
-        setup = qfs_wo('nkr', 2);
+    case 'egg'
+        deck_path = getDeckEGG();
     otherwise
         error('No such case.')
 end
