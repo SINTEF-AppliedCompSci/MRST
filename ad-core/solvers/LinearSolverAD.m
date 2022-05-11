@@ -87,7 +87,7 @@ classdef LinearSolverAD < handle
                 problemCurr, adjVec, objective, model, varargin) %#ok
             
             opt = struct('scalePressure', false, ...
-                         'colIx', []);
+                         'colIx',         nan);
             % For the adjoint problem, the scaling for the rows of the matrix to be inverted
             % corresponds to pressure and, say, saturation. This bad scaling
             % triggers typically a warning from Matlab which says that the
@@ -109,8 +109,9 @@ classdef LinearSolverAD < handle
                 objective = objective{:};
             end
             objective = combineEquations(objective);
-            if isempty(objective)
-                b = zeros(size(problemCurr.A,1),1);
+            if isempty(objective) || isempty(objective.val)
+                % no explicit dependence on this time-step
+                b = [];
             else
                 assert(isa(objective, 'ADI'), 'Objective function was not of type ADI.');
                 b = -objective.jac{1}';
@@ -147,20 +148,28 @@ classdef LinearSolverAD < handle
                 end
                         
                 problemPrev = problemPrev.assembleSystem();
-                if isempty(opt.colIx)
-                    % default case (single column)
-                    b = b - problemPrev.A'*adjVec;
-                else
-                    if max(opt.colIx) > size(adjVec,2)
-                        warning('Insufficient size of Lagrange muliplier matrix');
-                    end
-                    assert(size(b,2) == numel(opt.colIx), 'Dimension mismatch');
-                    tmp = b;
+                if isempty(b)
                     b = - problemPrev.A'*adjVec;
-                    b(:, opt.colIx) = b(:, opt.colIx) + tmp;
+                else
+                    if ~isfinite(opt.colIx)
+                        % standard scalar objective
+                        b = b - problemPrev.A'*adjVec;
+                    else
+                        % Matrix right-hand-side 
+                        if max(opt.colIx) > size(adjVec,2)
+                            warning('Insufficient size of Lagrange muliplier matrix');
+                        end
+                        tmp = b;
+                        b = - problemPrev.A'*adjVec;
+                        b(:, opt.colIx) = b(:, opt.colIx) + tmp;
+                    end
                 end
             end
             A = problemCurr.A;
+            if isempty(b)
+                % should only happen in for scalar objectives
+                b = zeros(size(A,1),1);
+            end
             b = full(b);
             if opt.scalePressure
                 stateCurr = problemCurr.state;
