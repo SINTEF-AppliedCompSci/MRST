@@ -69,7 +69,8 @@ assert(isa(param{1}, 'ModelParameter'), ...
 
 opt = struct('LinearSolver',          [], ...
              'isScalar',            true, ...
-             'accumulateResiduals',   []);       
+             'accumulateResiduals',   [], ...
+             'matchMap',              []);       
 opt = merge_options(opt, varargin{:});
 
 if mrstVerbose && setup.model.toleranceCNV >= 1e-3
@@ -111,10 +112,10 @@ getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
 
 if ~isempty(opt.accumulateResiduals) || ~opt.isScalar
     % allocate correct size of Lagrange multiplier matrix
-    [colIx, nrow, ncol] = getColumnIndex(opt.accumulateResiduals, setup);
+    [colIx, nrow, ncol] = getColumnIndex(opt.accumulateResiduals, opt.matchMap, setup);
     lambda = zeros(nrow, ncol);
 else
-    colIx = repmat({[]}, [nstep, 1]);
+    colIx = repmat({nan}, [nstep, 1]);
     lambda = [];
 end
 
@@ -301,27 +302,48 @@ end
 end
 
 %--------------------------------------------------------------------------
-function [colIx, nrow, ncol] = getColumnIndex(accum, setup)
-    nw  = numel(setup.schedule.control(1).W);
+function [colIx, nrow, ncol] = getColumnIndex(accum, matchMap, setup)
+if ~isempty(accum) && ~isempty(matchMap)
+    warning('Accumulation of residuals will be ignored (not compatible with ''matchMap''-option)');
+end
+ns  = numel(setup.schedule.step.val);
+nw  = numel(setup.schedule.control(1).W);
+nt  = setup.model.water + setup.model.oil + setup.model.gas + 1;
+if isprop(setup.model, 'thermal') && setup.model.thermal
+    nt = nt +1;
+end
+% we need a lambda corresponding to the last step
+nwo  = nnz(vertcat(setup.schedule.control(end).W.status));
+nrow = (nt-1)*setup.model.G.cells.num + nt*nwo; % shaky
+if isempty(matchMap)
     if isempty(accum) || isempty(accum.wells)
         accum.wells = (1:nw)';
     end
     assert(numel(accum.wells)==nw, 'Mismatch: number of wells');
-    nt  = setup.model.water + setup.model.oil + setup.model.gas + 1;
-    if isempty(accum) || isempty(accum.types)
+    if ~isfield(accum, 'types') || isempty(accum.types)
         accum.types = (1:nt)';
     end
     assert(numel(accum.types)==nt, 'Mismatch: number of types (rates/bhp)');
-    ns  = numel(setup.schedule.step.val);
-    if isempty(accum) || isempty(accum.steps)
+    if ~isfield(accum, 'steps') || isempty(accum.steps)
         accum.steps = (1:ns)';
     end
     assert(numel(accum.steps)==ns, 'Mismatch: number of time steps');
-    % build collumn index 
+    % build collumn index
     [mw, mt] = deal(max(accum.wells), max(accum.types));
-    colIx = applyFunction(@plus, repmat({(1:mw*mt)'}, [ns, 1]), ... 
-                                 num2cell(mw*mt*(accum.steps-1)));
+    colIx = applyFunction(@plus, repmat({(1:mw*mt)'}, [ns, 1]), ...
+                          num2cell(mw*mt*(accum.steps-1)));
     [colIx{accum.steps<=0}] = deal({});
     ncol = max(colIx{end});
-    nrow = (nt-1)*setup.model.G.cells.num + nt*nw;
+else
+    nMatch = zeros(ns,1);
+    fn = fieldnames(matchMap);
+    assert(ns == numel(matchMap), ...
+        'Dimension mismatch between schedule and matchMap');
+    for k = 1:numel(fn)
+        nMatch = nMatch +  reshape(cellfun(@(x)nnz(isfinite(x)), {matchMap.(fn{k})}), [], 1);
+    end
+    cum = cumsum(nMatch);
+    colIx = applyFunction(@(x,y)x:y, [0; cum(1:end-1)]+1, cum);
+    ncol  = cum(end);
+end
 end
