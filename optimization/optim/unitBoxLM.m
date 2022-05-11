@@ -178,12 +178,14 @@ if flag
         case 1
             s = sprintf('Reached maximal number of iterations (%d)', it);
         case 2
+            s = sprintf('Reached maximal number of function evaluations (%d)', sum(h.nIt(it)));
+        case 3
             s = sprintf('Norm of projected gradient below tollerance (%7.2e < %7.2e)', hst.pg(it), opt.gradTol);
-        case 3 
+        case 4 
             s = sprintf('Norm of update below tollerance (%7.2e < %7.2e)', hst.du(it), opt.updateTol);
-        case 4
-            s = sprintf('Absolute mismatch below tollerance (%7.2e < %7.2e)', h.val(it), opt.resTolAbs);
         case 5
+            s = sprintf('Absolute mismatch below tollerance (%7.2e < %7.2e)', h.val(it), opt.resTolAbs);
+        case 6
             s = sprintf('Relative mismatch below tollerance (%7.2e < %7.2e)', h.val(it)/h.val(1), opt.resTolRel);
     end
     prnt(s)
