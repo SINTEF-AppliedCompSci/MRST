@@ -26,8 +26,9 @@ opt = struct('computeGradient',          false, ...
              'adjointLinearSolver',         [], ...
              'clearStatesAfterAdjoint', false,  ...
              'maps',                        [], ...
-             'nSteps',                      []);
-opt = merge_options(opt, varargin{:});         
+             'nSteps',                      [], ...
+             'scalarObjective',           true);
+[opt, extra] = merge_options(opt, varargin{:});         
          
 if ~isempty(opt.nSteps)
     problem.SimulatorSetup.schedule.step.val = ...
@@ -52,7 +53,13 @@ if iscell(objective)
     objective = objective{problem.seed};
 end
 vals = objective(setup.model, states, setup.schedule);
-obj.value = sum(vertcat(vals{:}));
+
+if opt.scalarObjective
+    obj.value = sum(vertcat(vals{:}));
+else
+    % assumed to be of ls-type, so return non-squared
+    obj.value = (vertcat(vals{:})).^(1/2);
+end
 
 % compute gradient
 if opt.computeGradient || nargout == 2
@@ -74,7 +81,8 @@ if opt.computeGradient || nargout == 2
     else
         params = opt.parameters;
         gradient = computeSensitivitiesAdjointAD(setup, states, opt.parameters, objh,...
-                                                     'LinearSolver',opt.adjointLinearSolver);
+                                                     'LinearSolver',opt.adjointLinearSolver, ...
+                                                     'isScalar', opt.scalarObjective, extra{:});
         %scaling
         nms = applyFunction(@(x)x.name, params);
         scaledGradient = cell(numel(nms), 1);
@@ -85,7 +93,16 @@ if opt.computeGradient || nargout == 2
             end
             scaledGradient{k} = params{k}.scaleGradient( gradient.(nms{k}), pval);
         end
-        obj.gradient = vertcat(scaledGradient{:});
+        if opt.scalarObjective
+            obj.gradient = vertcat(scaledGradient{:});
+        else
+            J = vertcat(scaledGradient{:})';
+            % adjust jacobian for sum r^2 -> sum r
+            nzIx  = abs(obj.value) > eps*norm(obj.value);
+            numnz = nnz(nzIx);
+            J(nzIx,:) = spdiags((2*obj.value(nzIx)), 0, numnz, numnz)\J(nzIx,:);
+            obj.gradient = J;
+        end
     end
     if opt.clearStatesAfterAdjoint && isa(states, 'ResultHandler')
         states.resetData();
