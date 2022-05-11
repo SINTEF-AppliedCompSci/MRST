@@ -50,7 +50,8 @@ classdef OptimizationProblem < BaseEnsemble
                          'plotProgress',    true, ...
                          'setupType',         '', ...
                          'regularization',    [], ...
-                         'clearStates',   false);
+                         'clearStates',    false, ...
+                         'solverFunOptions', {{}});
             [opt, rest] = merge_options(opt, rest{:});
             
             p = p@BaseEnsemble(samples, rest{:}, ...
@@ -249,19 +250,21 @@ classdef OptimizationProblem < BaseEnsemble
             assert(all(tmp(ix)==1), 'Unexpected non-valid handler ids')
             %
             objList = h(ix);
-            vals = cellfun(@(x)x.value, objList);
-            okVals = isfinite(vals);
+            %vals = cellfun(@(x)x.value, objList);
+            vals = applyFunction(@(x)x.value, objList);
+            okVals = cellfun(@(x)~isempty(x) && all(isfinite(x)), vals);
+            %okVals = isfinite(vals);
             if any(okVals)
-                obj.value = statfun(vals(okVals));
+                obj.value = applyStatFun(statfun, vals(okVals));
             else
                 warning('Not able to produce objective value for iteration %d', p.getCurrentControlNo);
                 obj.value = nan;
             end
             if ~isempty(objList) && isfield(objList{1}, 'gradient')
                 grads = applyFunction(@(x)x.gradient, objList);
-                okGrads = cellfun(@(x)~isempty(x) && all(isfinite(x)), grads);
+                okGrads = cellfun(@(x)~isempty(x) && all(isfinite(x), 'all'), grads);
                 if any(okGrads)
-                    obj.gradient = statfun(horzcat(grads{:}),2);
+                    obj.gradient = applyStatFun(statfun, grads(okGrads));
                 end
             end         
         end
@@ -428,8 +431,14 @@ classdef OptimizationProblem < BaseEnsemble
             end
             if ~opt.background
                 switch lower(opt.optimizer)
-                    case 'default'
+                    case {'default', 'unitboxbfgs'}
                         [~, us, hist] = unitBoxBFGS(us0, @p.getScaledObjective, optimopts{:}, 'maximize', opt.maximize);
+                        if nargout == 2
+                            extra = hist;
+                        end
+                        
+                    case 'unitboxlm'
+                        [~, us, hist] = unitBoxLM(us0, @p.getScaledObjective, optimopts{:});
                         if nargout == 2
                             extra = hist;
                         end
@@ -528,6 +537,17 @@ classdef OptimizationProblem < BaseEnsemble
             if nargin < 4
                 memberNo = p.realizations;
             end
+            [wss, tms, nms] = getWellSols(p, problem, controlNo, memberNo);
+            if ~isempty(wss)
+                plotWellSols(wss, tms, 'Datasetnames', nms);
+            end
+        end
+        
+        %------------------------------------------------------------------
+        function [wss, tms, nms] = getWellSols(p, problem, controlNo, memberNo)
+            if nargin < 4
+                memberNo = p.realizations;
+            end
             [nc,nm] = deal(numel(controlNo),numel(memberNo));
             [wss, tms, nms] = deal(cell(1, nc*nm));
             cnt     = 0;
@@ -550,14 +570,16 @@ classdef OptimizationProblem < BaseEnsemble
             ix = ~cellfun(@isempty, wss);
             if ~any(ix)
                 warning('No well-solutions found for the requested controls/realizations')
+                [wss, tms, nms] = deal([]);
             else
                 if ~all(ix)
                     fprintf('Found well-solutions from only some of the requested controls/realizations')
+                    [wss, tms, nms] = deal(wss(ix), tms(ix), nms(ix));
                 end
-                plotWellSols(wss(ix), tms(ix), 'Datasetnames', nms(ix));
             end
         end
         
+        %------------------------------------------------------------------
         function problem = resetHandlers(p, problem, directory,folder)
             problem = resetHandlers(problem, directory, folder);
         end
@@ -704,12 +726,12 @@ if ~isempty(opt.setupType)
                 simulationSolverFun(problem, obj, 'objectiveHandler', h, ...
                 'computeGradient', computeGradient, ...
                 'parameters', p.parameters, 'maps', p.maps, ...
-                'clearStatesAfterAdjoint', opt.clearStates);
+                'clearStatesAfterAdjoint', opt.clearStates, opt.solverFunOptions{:});
         elseif strcmp(opt.setupType, 'diagnostics')
             p.solverFun = @(problem, obj, h, computeGradient) ...
                 diagnosticsSolverFun(problem, obj, 'objectiveHandler', h, ...
                 'computeGradient', computeGradient, ...
-                'parameters', p.parameters, 'maps', p.maps, 'W', p.W);
+                'parameters', p.parameters, 'maps', p.maps, 'W', p.W, opt.solverFunOptions{:});
         else
             error('Unknown setup-type: %s', opt.setupType);
         end
@@ -813,6 +835,21 @@ function varargout = regularizationFn(us, us0, alpha)
 varargout{1} = alpha*sum( (us-us0).^2 );
 if nargout > 1
     varargout{2} = 2*alpha*(us-us0);
+end
+end
+
+
+function x = applyStatFun(statfun, c)
+% Apply some 'statistic' function to cell-array c, but also accept @vertcat
+if strcmp(func2str(statfun), 'vertcat')
+    x = statfun(c{:});
+else
+    [nRow, nCol] = size(c{1});
+    if nCol > 1
+        c = applyFunction(@(x)x(:), c);
+    end
+    x = statfun(horzcat(c{:}), 2);
+    x = reshape(x, [nRow, nCol]);      
 end
 end
 
