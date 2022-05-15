@@ -224,19 +224,21 @@ if any(isPolicy | isWellControl)
         ceq = setEqToADI(ceq, params);
         ix = find(isWellControl);
         for k = 1:numel(ix)
-            pnum     = ix(k);
-            assert(strcmp(params{pnum}.type, 'value'), ...
-                'Well control parameter of non-value type not supported');
-            cntr     = params{pnum}.controlType;
-            % non-zero gradient only if control is active
-            isActive = isOpen & reshape(strcmp(cntr, {ws.type}), [], 1);
-            jac = - spdiags(double(isActive(isOpen)), 0, nOpen, nOpen);
-            jac = jac(:, params{pnum}.subset);
-            assert(all(size(ceq.jac{pnum}) == size(jac)), 'Problem requires debugging')
-            ceq.jac{pnum} = jac;
+            pnum = ix(k);
+            if ismember(cNo, params{pnum}.controlSteps)
+                assert(strcmp(params{pnum}.type, 'value'), ...
+                    'Well control parameter of non-value type not supported');
+                cntr     = params{pnum}.controlType;
+                % non-zero gradient only if control is active
+                isActive = isOpen & reshape(strcmp(cntr, {ws.type}), [], 1);
+                jac = - spdiags(double(isActive(isOpen)), 0, nOpen, nOpen);
+                jac = jac(:, params{pnum}.subset);
+                assert(all(size(ceq.jac{pnum}) == size(jac)), 'Problem requires debugging')
+                ceq.jac{pnum} = jac;
+            end
         end
     end
-    % scaling (idntical to scaling of well eqs)
+    % scaling (identical to scaling of well eqs)
     scale = getControlEqScaling({ws.type}, model.FacilityModel);
     scale = scale(isOpen);
     problem.equations{eqNo} = scale.*ceq;
