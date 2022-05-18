@@ -132,19 +132,19 @@ function [p,T,sol] = solveODE(dpdz, dTdz, p0, T0, z, z0)
 end
 
 %-------------------------------------------------------------------------%
-function [p, T] = evaluateFn(solTop, solBot, z0, z)
+function [p, T] = evaluateFn(solUp, solDown, z0, z)
 % Evaluate solution in given z coordinates
 
     [p,T] = deal(zeros(size(z)));
     
-    top = z < z0;
-    if any(top) && ~isempty(solTop)
-        y = deval(solTop, z(top)); p(top) = y(1,:); T(top) = y(2,:);
+    top = z <= z0; % Include endpoint in case z0 == max(z)
+    if any(top) && ~isempty(solUp)
+        y = deval(solUp, z(top)); p(top) = y(1,:); T(top) = y(2,:);
     end
     
-    bot = z > z0;
-    if any(bot) && ~isempty(solBot)
-        y = deval(solBot, z(bot)); p(bot) = y(1,:); T(bot) = y(2,:)';
+    bot = z >= z0; % Include endpoint in case z0 == min(z)
+    if any(bot) && ~isempty(solDown)
+        y = deval(solDown, z(bot)); p(bot) = y(1,:); T(bot) = y(2,:)';
     end
     
 end
