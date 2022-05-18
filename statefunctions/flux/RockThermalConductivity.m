@@ -21,7 +21,7 @@ classdef RockThermalConductivity < StateFunction
             else
                 lambdaR = model.rock.lambdaR;
             end
-            vol     = model.G.cells.volumes;
+            vol     = model.operators.vol;
             lambdaR = lambdaR.*(vol - pv)./vol;
         end
     end

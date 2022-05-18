@@ -15,7 +15,7 @@ classdef RockMass < StateFunction
         function massR = evaluateOnDomain(prop,model, state)
             [rhoR, pv] = prop.getEvaluatedDependencies(state, 'RockDensity', ...
                                                               'PoreVolume' );
-            v     = model.G.cells.volumes - pv;
+            v     = model.operators.vol - pv;
             massR = rhoR.*v;
         end       
     end

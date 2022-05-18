@@ -19,7 +19,7 @@ classdef MolecularDiffusivity < StateFunction
             [p, T, pv] = model.getProps(state, 'pressure', 'temperature', 'PoreVolume');
             % Compute tourtuosity and porosity
             tau  = model.rock.tau;
-            poro = pv./model.G.cells.volumes;
+            poro = pv./model.operators.vol;
             % Comoute diffusivity
             ncomp = model.getNumberOfComponents();
             d     = cell(ncomp,1);

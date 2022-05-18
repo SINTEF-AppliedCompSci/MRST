@@ -141,6 +141,8 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 model.operators.Thf_all = Thf;
             end
             
+            model.operators.vol = model.G.cells.volumes;
+            
             % Compute hash
             model.operators.hashRock = obj2hash(rock);
             

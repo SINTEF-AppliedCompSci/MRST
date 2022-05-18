@@ -21,7 +21,7 @@ classdef FluidThermalConductivity < StateFunction
             else
                 lambdaF = repmat(model.fluid.lambdaF, model.G.cells.num, 1);
             end
-            vol     = model.G.cells.volumes;
+            vol     = model.operators.vol;
             lambdaF = lambdaF.*pv./vol;
         end
     end
