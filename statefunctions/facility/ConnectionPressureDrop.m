@@ -30,7 +30,7 @@ classdef ConnectionPressureDrop < StateFunction
             cdp = cell(nw,1);
             
             for i = 1:nw
-                dz = [0; diff(map.W(i).dZ)];
+                dz = diff([0; map.W(i).dZ]);
                 rhoW = rho(map.perf2well == i);
                 np = numel(dz);
                 S = ones(np);
