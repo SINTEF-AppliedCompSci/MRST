@@ -4,6 +4,7 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
     properties
         thermalFormulation   = 'temperature';
         implicitConnectionDP = false;
+        toleranceWellTemperature = 1e-3;
     end
     
     methods
@@ -119,6 +120,17 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             eqs = [eqs, {Teq}];
             names = [names, {'temperatureWells'}];
             types = [types, {'perf'}];
+            
+        end
+        
+        %-----------------------------------------------------------------%
+        function [values, tolerances, names, evalauted] = getFacilityConvergenceValues(model, problem, varargin)
+            
+            [values, tolerances, names, evalauted] = getFacilityConvergenceValues@GenericFacilityModel(model, problem, varargin{:});
+            isTemp = strcmpi(names, 'temperatureWells (perf)');
+            if any(isTemp)
+                tolerances(isTemp) = model.toleranceWellTemperature;
+            end
             
         end
         
