@@ -37,11 +37,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Determine verbosity
     verbose = mrstVerbose();
     % Pressure
-    p       = p./1e6; % conversion from Pa tp MPa 
-    pMinEOS = 0;      % Minimum pressure
-    pMaxEOS = 200;    % Maximum pressure
+    pMinEOS = 0;       % Minimum pressure
+    pMaxEOS = 200*1e6; % Maximum pressure
     % Trim pressure to EOS range
     p = trimToEOSRange(p, pMinEOS, pMaxEOS, 'pressure', verbose);
+    p = p./1e6;  % conversion from Pa tp MPa 
     % Temperature
     t       = t-273.15; % Conversion from Kelvin to Celsius
     tMinEOS = 1e-3;     % Minimum temperature
