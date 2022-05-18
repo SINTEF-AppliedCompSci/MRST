@@ -47,6 +47,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             'cellConstraints', data.fractures, ... % Fractures
             'CCRefinement'   , true          , ... % Refine fractures
             'CCFactor'       , 0.1           );    % Rel fracture cell size
+    G2D.faces = rmfield(G2D.faces, 'tag');
     % Make layered grid
     layers = diff(linspace(0, xmax(3), options.nlayers + 1));
     G = makeLayeredGrid(G2D, layers);
