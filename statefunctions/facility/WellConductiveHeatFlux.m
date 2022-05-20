@@ -16,6 +16,7 @@ classdef WellConductiveHeatFlux < StateFunction
         
         %-----------------------------------------------------------------%
         function qh = evaluateOnDomain(prop, model, state)
+            
             map = prop.getEvaluatedDependencies(state, 'FacilityWellMapping');
             
             [T, lambdaR, lambdaF] = model.ReservoirModel.getProps(state, ...
@@ -30,28 +31,33 @@ classdef WellConductiveHeatFlux < StateFunction
                 Tw = vertcat(map.W.T);
             end
             Tw = Tw(map.perf2well);
-            % Assume thermal conductivity tensors are diagonal for now
-            G      = model.ReservoirModel.G;
-            lambda = lambdaR + lambdaF;
-            rock   = struct('perm', ones(numel(value(lambda)), 1));
-            wi     = cell(numel(map.W),1);
-            for i = 1:numel(map.W)
-                radius = map.W(i).r;
-                cells  = map.W(i).cells;
-                if isfield(G.faces, 'nodePos')
-                    % Compute well index
-                    % Ensure equivalent greater than well radius
-                    [dx, dy, dz] = cellDims(G, cells);
-                    re = 2*0.14*sqrt(dx.^2 + dy.^2)/2;
-                    C  = max(1.1*map.W(i).r(1)./re,1);
-                    dx = [dx.*C, dy.*C, dz];
-                else
-                    dx = [];
+            if model.ReservoirModel.dynamicHeatTransFluid || ...
+                    model.ReservoirModel.dynamicHeatTransRock
+                % Assume thermal conductivity tensors are diagonal for now
+                G      = model.ReservoirModel.G;
+                lambda = lambdaR + lambdaF;
+                rock   = struct('perm', ones(numel(value(lambda)), 1));
+                wi     = cell(numel(map.W),1);
+                for i = 1:numel(map.W)
+                    radius = map.W(i).r;
+                    cells  = map.W(i).cells;
+                    if isfield(G.faces, 'nodePos')
+                        % Compute well index
+                        % Ensure equivalent greater than well radius
+                        [dx, dy, dz] = cellDims(G, cells);
+                        re = 2*0.14*sqrt(dx.^2 + dy.^2)/2;
+                        C  = max(1.1*map.W(i).r(1)./re,1);
+                        dx = [dx.*C, dy.*C, dz];
+                    else
+                        dx = [];
+                    end
+                    wi{i} = computeWellIndex(G, rock, radius, cells, 'cellDims', dx);
+                    wi{i} = wi{i}.*lambda(cells);
                 end
-                wi{i} = computeWellIndex(G, rock, radius, cells, 'cellDims', dx);
-                wi{i} = wi{i}.*lambda(cells);
+                wi = vertcat(wi{:});
+            else
+                wi = vertcat(map.W.WIth);
             end
-            wi = vertcat(wi{:});
             qh = -wi.*(T - Tw);
         end
     end
