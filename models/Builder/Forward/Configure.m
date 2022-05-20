@@ -39,7 +39,6 @@ function model = Configure(path_to_settings)
 % ----------------------------------
 %
 %%
-tic
 [filepath,name] = fileparts(path_to_settings);
 
 fprintf("Configuring from: %s\n", name);
@@ -614,7 +613,6 @@ model.history_match = history_match;
 %% close the file
 
 fclose(fid);
-toc
 % end of main function
 end
 %% Translate relative pathname to absolute pathname.
