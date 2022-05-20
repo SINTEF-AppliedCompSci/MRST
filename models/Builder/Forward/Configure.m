@@ -56,6 +56,10 @@ schedule = struct;
 experiment = struct;
 simulation = struct;
 output = [];
+history_match = struct;
+history_match.multi_point = false;
+history_match.kr.status = false;
+history_match.pc.status = false;
 history_match.UseParallel = false;
 history_match.ScaleProblem = false;
 

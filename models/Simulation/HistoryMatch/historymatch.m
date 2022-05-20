@@ -48,7 +48,9 @@ function [model_flooding, model_cent] = historymatch(model_flooding)
         appDir = model_flooding.history_match.Cent_file_path; 
         name = model_flooding.history_match.Cent_file_name;
         temp_historymatch_variable_hold = model_flooding.history_match;
-        model_cent = Configure(appDir,name);
+        cent_directory = fullfile(model_flooding.history_match.Cent_file_path, ...
+            model_flooding.history_match.Cent_file_name);
+        model_cent = Configure(cent_directory);
         model_cent = CreateGrid(model_cent);
         model_cent = CreateRock(model_cent);
         model_cent = CreatePc(model_cent);
