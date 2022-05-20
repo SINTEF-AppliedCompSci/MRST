@@ -1,4 +1,4 @@
-function [data,table] = ImportTable(fullFile)
+function [data,table] = ImportTable(file_path)
 %
 % DESCRIPTION: reads tabular data from kr, pc, schedule, ... tables in .txt
 %              format
@@ -26,8 +26,8 @@ function [data,table] = ImportTable(fullFile)
 % ----------------------------------
 %
 %%
-file = fopen(fullFile,'r');
-str = fileread(fullFile); % read entire file into string
+file = fopen(file_path,'r');
+str = fileread(file_path); % read entire file into string
 lines = strtrim(regexp( str,'(\r|\n)+','split')); % split by each line
 data = [];
 cols = regexp(string(lines(2)),'''(.[^'']*)''','tokens');

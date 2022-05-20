@@ -66,17 +66,19 @@ for i = 1 : height(scheduleTable)
     scheduleRow = scheduleTable{i,:};
     model.bc = BoudaryConditions(model,scheduleRow);
     processType = model.experiment.process.type; 
-    if(strcmpi(processType,'cent'))
-        model.gravity = scheduleRow(3);
-        model = SetupCentrifuge(model);
-    else
-        gravity off
+    switch lower(processType)
+        case 'cent'
+            model.gravity = scheduleRow(3);
+            model = SetupCentrifuge(model);
+        otherwise
+            gravity off
     end
     twoPhaseOilWaterModel = model.twoPhaseOilWaterModel;
     %---------------------------------------
     periodInterval = params.periodInterval(end);
     n = periodInterval/dt;
-    if isfield(model.simulation, 'load_from_sat_prof') && model.simulation.load_from_sat_prof
+    if isfield(model.simulation, 'load_from_sat_prof') && ...
+        model.simulation.load_from_sat_prof
         try
             rampup = diff(model.experiment.observation.satProfile.table...
                 (2:end,1));

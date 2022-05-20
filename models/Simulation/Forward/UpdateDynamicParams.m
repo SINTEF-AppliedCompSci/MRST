@@ -41,12 +41,11 @@ process     = model.experiment.process;
 processName = process.name;
 processType = lower(process.type);    
 bcl         = bc.left;            
-G           = model.grid.G;
 if (isfield(simulation,'bCells'))
-    total_pv      = sum(model.rock.pv(2:end-1));
+    total_pv = sum(model.rock.pv(2:end-1));
     pv_array = model.rock.pv(2:end-1);
 else
-    total_pv      = sum(model.rock.pv);
+    total_pv = sum(model.rock.pv);
     pv_array = model.rock.pv;
 end
 
@@ -102,22 +101,23 @@ for i = 1:length(params.scheduleSteps)
     % intial water volume
     qi = total_pv * Swi;
 
-    if(strcmpi(processName,"imbibition"))
-        % we do not report the water production for imbibition case
-        WPV = [WPV; nan]; 
-        % net_production_volume
-        NPV(:,1) = WPV;
-        WPR = [WPR; WPV(end) / params.scheduleSteps(i)]; 
-        %net_production_rate
-        NPR(:,1) = WPR;
-        OPV = [OPV; q-qi]; NPV(:,2) = OPV;
-        OPR = [OPR; OPV(end) / params.scheduleSteps(i)]; NPR(:,2) = OPR;
-    elseif(strcmpi(processName,"drainage"))
-        WPV = [WPV; qi-q]; NPV(:,1) = WPV;
-        WPR = [WPR; WPV(end) / params.scheduleSteps(i)]; NPR(:,1) = WPR;
-        % we do not report oil production for drainage case
-        OPV = [OPV; nan]; NPV(:,2) = OPV;
-        OPR = [OPR; OPV(end) / params.scheduleSteps(i)]; NPR(:,2) = OPR;
+    switch lower(processName)
+        case "imbibition"
+            % we do not report the water production for imbibition case
+            WPV = [WPV; nan]; 
+            % net_production_volume
+            NPV(:,1) = WPV;
+            WPR = [WPR; WPV(end) / params.scheduleSteps(i)]; 
+            %net_production_rate
+            NPR(:,1) = WPR;
+            OPV = [OPV; q-qi]; NPV(:,2) = OPV;
+            OPR = [OPR; OPV(end) / params.scheduleSteps(i)]; NPR(:,2) = OPR;
+        case "drainage"
+            WPV = [WPV; qi-q]; NPV(:,1) = WPV;
+            WPR = [WPR; WPV(end) / params.scheduleSteps(i)]; NPR(:,1) = WPR;
+            % we do not report oil production for drainage case
+            OPV = [OPV; nan]; NPV(:,2) = OPV;
+            OPR = [OPR; OPV(end) / params.scheduleSteps(i)]; NPR(:,2) = OPR;
     end 
 
     % Net production

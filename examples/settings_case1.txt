@@ -45,7 +45,7 @@ HIGH_PERCISION_MODE
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\examples\Data\SS\Imbibition\sched_case1.txt
+FILENAME	.\Data\SS\Imbibition\sched_case1.txt
 PINI		1		bar
 POUT		1		bar
 #STARTUP     100     second      2325    rpm
@@ -55,16 +55,16 @@ POUT		1		bar
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-PRESSURE	.\examples\Data\SS\Imbibition\pressure_obs_case1.txt
-SWAVG       .\examples\Data\SS\Imbibition\swavg_obs_case1.txt
-SATPROFILE  .\examples\Data\SS\Imbibition\SatProfile_obs_case1.xlsx
+PRESSURE	.\Data\SS\Imbibition\pressure_obs_case1.txt
+SWAVG       .\Data\SS\Imbibition\swavg_obs_case1.txt
+SATPROFILE  .\Data\SS\Imbibition\SatProfile_obs_case1.xlsx
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS
 #-------------------------------------------------
 #KR         MODIFIED-COREY      	Swc     Sor     krw@Sor     kro@Swc     nW      nNW     
 KR          MODIFIED-COREY      	0.2    0.2     0.5         0.5      3       3       
-PC			TABLE               	.\examples\Data\SS\Imbibition\pc_smooth.txt
+PC			TABLE               	.\Data\SS\Imbibition\pc_smooth.txt
 #PC  ZERO
 #-------------------------------------------------
 # PLOT OPTIONS
@@ -80,11 +80,11 @@ DISPLAYRATE		cm^3/hour
 #-------------------------------------------------
 # OUTPUT OPTIONS
 #-------------------------------------------------
-#SATPROFILE		C:\Users\Omidreza\Documents\GitHub\SCAL\Results\satProfile.xlsx
+#SATPROFILE_OUT		C:\Users\Omidreza\Documents\GitHub\SCAL\Results\satProfile.xlsx
 #SAVECONFIG		C:\Users\Omidreza\Documents\GitHub\SCAL\Results\config.txt
 #QUANTITIES		C:\Users\Omidreza\Documents\GitHub\SCAL\Results\output.txt
 #TIME
-#SWAVG
+#SWAVG_OUT
 #INJ
 #PROD
 #DELTAP
@@ -96,9 +96,9 @@ EXCEL_FILE_NAME    kr_modified_corey.xlsx
 EXCEL_FILE_PATH    .\App\Input_templates_for_SCAL_history_match
 #MULTIPOINT         
 #MULTIPOINT_RANDOM_NUMBERS      10
-KR
+KR_HM
 KR_MODEL    MODIFIED-COREY
-#PC
+#PC_HM
 #PC_MODEL    POINT-BY-POINT
 PDIFF_WEIGHT    1
 SWAVG_WEIGHT    1

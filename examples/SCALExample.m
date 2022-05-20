@@ -17,15 +17,9 @@ clear all;
 close all;
 clear classes;
 
-%% add MRST modules to working path
-year = 2020; release = 'a';
-mrstVersion = strcat(string(year),release);
-AddMRST(mrstVersion);
-% in case it is in the main dir, user can use ".\"
-settings_dir = "./examples";
-
 %% configure model from file
-model = Configure(settings_dir,"settings_case1.txt");
+% input absolute path to the settings file
+model = Configure("C:\Users\omidreza\Documents\GitHub\ad-scal\examples\settings_case1.txt");
 
 %% App function
 model.App.include = false;

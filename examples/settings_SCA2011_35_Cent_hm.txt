@@ -44,7 +44,7 @@ RAMPUPSTEPS      10
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\examples\Data\CENT\Imbibition\sched_SCA2011_35_Cent.txt
+FILENAME	.\Data\CENT\Imbibition\sched_SCA2011_35_Cent.txt
 PINI		1		bar
 POUT		1		bar
 CENTRAD     15   cm
@@ -53,7 +53,7 @@ CENTRAD     15   cm
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-PRODUCTION  .\examples\Data\CENT\Imbibition\production_obs_sca2011_35_Cent.txt
+PRODUCTION  .\Data\CENT\Imbibition\production_obs_sca2011_35_Cent.txt
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS
@@ -76,11 +76,11 @@ DISPLAYRATE		cm^3/hour
 #-------------------------------------------------
 # OUTPUT OPTIONS
 #-------------------------------------------------
-#SATPROFILE		.\Results\satProfile.xlsx
+#SATPROFILE_OUT		.\Results\satProfile.xlsx
 #SAVECONFIG		.\Results\config.txt
 #QUANTITIES		.\Results\output.txt
 #TIME
-#SWAVG
+#SWAVG_OUT
 #INJ
 #PROD
 #DELTAP
@@ -90,9 +90,9 @@ DISPLAYRATE		cm^3/hour
 #-------------------------------------------------
 EXCEL_FILE_NAME    kr_modified_corey_+_pc_modified_Skjaeveland.xlsx
 EXCEL_FILE_PATH    .\docs\excel_templates_hm
-KR
+KR_HM
 KR_MODEL    MODIFIED-COREY
-PC
+PC_HM
 PC_MODEL    MODIFIED-SKJAEVELAND
 PDIFF_WEIGHT    1
 SWAVG_WEIGHT    1
@@ -113,7 +113,7 @@ MAX_FUNCTION_EVALUATIONS    6000
 SCALE_PROBLEM
 OBJECTIVE_FUNCTION_TYPE    Simultaneous
 CENT_FILE_NAME      settings_SCA2011_35_Cent_hm.txt
-CENT_FILE_PATH      .\examples
+CENT_FILE_PATH      .
 HISTORYMATCH_ALGORITHM      active-set
 
 #-------------------------------------------------

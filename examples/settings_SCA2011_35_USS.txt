@@ -43,7 +43,7 @@ RAMPUPSTEPS      10
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\examples\Data\USS\Imbibition\sched_SCA2011_35_USS.txt
+FILENAME	.\Data\USS\Imbibition\sched_SCA2011_35_USS.txt
 PINI		1		bar
 POUT		1		bar
 
@@ -51,8 +51,8 @@ POUT		1		bar
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-PRESSURE	.\examples\Data\USS\Imbibition\pressure_obs_sca2011_35_USS.txt
-PRODUCTION  .\examples\Data\USS\Imbibition\production_obs-sca2011_35_USS.txt
+PRESSURE	.\Data\USS\Imbibition\pressure_obs_sca2011_35_USS.txt
+PRODUCTION  .\Data\USS\Imbibition\production_obs-sca2011_35_USS.txt
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS
@@ -75,11 +75,11 @@ DISPLAYRATE		cm^3/hour
 #-------------------------------------------------
 # OUTPUT OPTIONS
 #-------------------------------------------------
-#SATPROFILE		.\Results\satProfile.xlsx
+#SATPROFILE_OUT		.\Results\satProfile.xlsx
 #SAVECONFIG		.\Results\config.txt
 #QUANTITIES		.\Results\output.txt
 #TIME
-#SWAVG
+#SWAVG_OUT
 #INJ
 #PROD
 #DELTAP
@@ -89,9 +89,9 @@ DISPLAYRATE		cm^3/hour
 #-------------------------------------------------
 EXCEL_FILE_NAME    kr_modified_corey_+_pc_modified_Skjaeveland.xlsx
 EXCEL_FILE_PATH    .\App\Input_templates_for_SCAL_history_match
-KR
+KR_HM
 KR_MODEL    MODIFIED-COREY
-PC
+PC_HM
 PC_MODEL    MODIFIED-SKJAEVELAND
 PDIFF_WEIGHT    1
 SWAVG_WEIGHT    1

@@ -45,7 +45,7 @@ HIGH_PERCISION_MODE
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\examples\Data\USS\Imbibition\sched_case4_basic.txt
+FILENAME	.\Data\USS\Imbibition\sched_case4_basic.txt
 PINI		1		bar
 POUT		1		bar
 
@@ -53,9 +53,9 @@ POUT		1		bar
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-PRESSURE	 .\examples\Data\USS\Imbibition\pressure_obs_case4.txt
-SWAVG       .\examples\Data\USS\Imbibition\swavg_obs_case4.txt
-PRODUCTION   .\examples\Data\USS\Imbibition\production-obs-case4.txt
+PRESSURE	 .\Data\USS\Imbibition\pressure_obs_case4.txt
+SWAVG       .\Data\USS\Imbibition\swavg_obs_case4.txt
+PRODUCTION   .\Data\USS\Imbibition\production-obs-case4.txt
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS
@@ -86,9 +86,9 @@ EXCEL_FILE_NAME    kr_modified_corey.xlsx
 EXCEL_FILE_PATH    C:\Users\omidreza\Documents\GitHub\SCAL\App\Input_templates_for_SCAL_history_match
 #MULTIPOINT         
 #MULTIPOINT_RANDOM_NUMBERS      10
-KR
+KR_HM
 KR_MODEL    MODIFIED-COREY
-#PC
+#PC_HM
 #PC_MODEL    POINT-BY-POINT
 PDIFF_WEIGHT    1
 SWAVG_WEIGHT    1

@@ -45,7 +45,7 @@ HIGH_PERCISION_MODE
 # SCHEDULE
 #-------------------------------------------------
 #			fileName
-FILENAME	.\examples\Data\USS\Imbibition\sched_case3.txt
+FILENAME	.\Data\USS\Imbibition\sched_case3.txt
 PINI		1		bar
 POUT		1		bar
 STARTUP     100     second      2325    rpm
@@ -55,16 +55,16 @@ CENTRAD     14.89   cm
 # OBSERVATION
 #-------------------------------------------------
 #			fileName
-PRESSURE	.\examples\Data\USS\Imbibition\pressure_obs_case3.txt
-SWAVG       .\examples\Data\USS\Imbibition\swavg_obs_case3.txt
-#SATPROFILE  .\examples\Data\USS\Imbibition\SatProfile_obs_case3.xlsx
+PRESSURE	.\Data\USS\Imbibition\pressure_obs_case3.txt
+SWAVG       .\Data\USS\Imbibition\swavg_obs_case3.txt
+#SATPROFILE  .\Data\USS\Imbibition\SatProfile_obs_case3.xlsx
 
 #-------------------------------------------------
 # SATURATION FUNCTIONS
 #-------------------------------------------------
 #KR         MODIFIED-COREY      	Swc     Sor     krw@Sor     kro@Swc  nW      nNW     
 KR          MODIFIED-COREY      	0.2    0.2     0.5         0.5      3       3       
-PC         	TABLE              		.\examples\Data\USS\Imbibition\pc_smooth.txt
+PC         	TABLE              		.\Data\USS\Imbibition\pc_smooth.txt
 
 #-------------------------------------------------
 # PLOT OPTIONS
