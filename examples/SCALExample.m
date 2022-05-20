@@ -18,6 +18,8 @@ close all;
 clear classes;
 
 %% configure model from file
+% adding mrst modules
+mrstModule add ad-core ad-scal
 % input absolute path to the settings file
 model = Configure("C:\Users\omidreza\Documents\GitHub\ad-scal\examples\settings_case1.txt");
 
