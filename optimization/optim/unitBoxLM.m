@@ -127,7 +127,7 @@ while ~converged(it, h, opt)
         % check norm of projected gradient
         pg = norm(u - cap(u-g));
         h.pg(it) = pg;
-        if pg < opt.gradTol
+        if pg < opt.gradTol || it >= opt.maxIt +1
             continue;
         end
         isFree = ~(u==0 & g>0) & ~(u==1 & g<0); % free elems
@@ -161,7 +161,7 @@ function flag = converged(it, h, opt)
 flag = false;
 if it > 0
     flags = ...
-        [it >= opt.maxIt, ...
+        [it >= opt.maxIt+1, ...
         sum(h.nIt(it)) >= opt.maxFunEvals, ...
         h.pg(it) < opt.gradTol, ...
         h.du(it) < opt.updateTol, ...
@@ -250,7 +250,7 @@ end
 
 %--------------------------------------------------------------------------
 function h = initializeHistory(opt)
-n = opt.maxIt;
+n = opt.maxIt+1;
 h = struct('val', nan(1, n), 'u', {cell(1, n)}, 'lambda', nan(1,n), ...
            'rho', nan(1, n), 'nIt', zeros(1, n), 'pg',    nan(1,n), ...
            'du',  nan(1, n));
@@ -294,5 +294,5 @@ end
 %--------------------------------------------------------------------------
 function printInfo(h, it)
 fprintf('It: %2.1d | val: %4.3e | its: %3.1d | lambda: %4.3e | pgrad: %4.3e\n', ...
-        it, h.val(it), h.nIt(it), h.lambda(it), h.pg(it));
+        it-1, h.val(it), h.nIt(it), h.lambda(it), h.pg(it));
 end
