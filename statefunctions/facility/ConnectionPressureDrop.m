@@ -24,7 +24,7 @@ classdef ConnectionPressureDrop < StateFunction
             [rho] = model.ReservoirModel.getProps(state, 'Density');
             rho = cellfun(@(rho) rho(map.cells), rho, 'UniformOutput', false);
             rho = rho{1};
-            g = norm(model.ReservoirModel.gravity());
+            g = norm(model.ReservoirModel.gravity);
             
             nw = numel(map.W);
             cdp = cell(nw,1);
