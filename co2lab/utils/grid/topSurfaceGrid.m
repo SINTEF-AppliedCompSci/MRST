@@ -672,7 +672,8 @@ function [tfaces, bfaces] = identify_lateral_faces(G, cells)
   tfaces = f_mat(row(:) + (0:numel(cells)-1)' * max(fnum));
 
   % picking the deepest faces
-  z_mat(nz_mat < 1/2) = -inf;
+  %z_mat(nz_mat < 1/2) = -inf;
+  z_mat(isinf(z_mat)) = -inf;
   [~, row] = max(z_mat);
   bfaces = f_mat(row(:) + (0:numel(cells)-1)' * max(fnum));
   
