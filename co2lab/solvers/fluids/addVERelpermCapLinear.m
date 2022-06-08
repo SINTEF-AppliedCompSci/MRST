@@ -135,7 +135,7 @@ function h = invS(S, p, fluid, cap_scale, opt)
    
    % regularize square root function near zero
    h_tol = 1e-5; 
-   S_tol = 0.5 * (h_tol ./ double(cap_norm)).^2 .* double(cap_norm); 
+   S_tol = 0.5 * (h_tol ./ value(cap_norm)).^2 .* value(cap_norm); 
    h_tmp = h_tol * S ./ S_tol; 
 
    ind = h<h_tol; 

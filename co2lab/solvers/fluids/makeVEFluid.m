@@ -26,7 +26,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %                                    rugosity.
 %                   - 'sharp interface' : sharp-interface model with linear relative
 %                                         permeabilities and vertically
-%                                         hoogeneous rock.  Includes impact
+%                                         homogeneous rock.  Includes impact
 %                                         of caprock rugosity.
 %                   - 'linear cap.' : Linear capillary fringe model with
 %                                     Brooks-Corey type relative
