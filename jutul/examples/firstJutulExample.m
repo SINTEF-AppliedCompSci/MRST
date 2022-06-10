@@ -1,4 +1,9 @@
-mrstModule add ad-core ad-blackoil spe10 deckformat ad-props test-suite coarsegrid compositional jutul
+%% First introductory example to Jutul as a MRST accelerator
+% JutulDarcy is a reservoir simulator that can be used to accelerate MRST.
+% We can set up a case in MRST, and run it in Jutul for increased
+% computational performance. Jutul supports black-oil, immiscible and
+% compositional models with multisegment wells.
+mrstModule add ad-core ad-blackoil spe10 deckformat ad-props test-suite compositional jutul
 close all; clear
 if ~exist('name', 'var')
     name = 'qfs_wo';
@@ -13,11 +18,14 @@ switch name
     case 'fractures_compositional'
         setup = fractures_compositional();
     otherwise
+        % Assume some test-suite case
         setup = eval(name);
 end
 [state0, model, schedule] = deal(setup.state0, setup.model, setup.schedule);
 %% Write case to disk
 pth = writeJutulInput(state0, model, schedule, name);
+disp('Pausing - run the command in Julia and hit any key to continue')
+pause()
 %% Once simulated, read back as MRST format
 [ws, states] = readJutulOutput(pth);
 %% Simulate MRST for comparison purposes

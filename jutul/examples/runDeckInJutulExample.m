@@ -1,6 +1,10 @@
-mrstModule add ad-core ad-blackoil deckformat ad-props test-suite coarsegrid jutul
+%% Example demonstrating how to run black oil cases from .DATA files in Jutul
+mrstModule add ad-core ad-blackoil ad-props deckformat jutul
 if ~exist('name', 'var')
     name = 'spe1';
+end
+if ~exist('use_daemon', 'var')
+    use_daemon = false;
 end
 reorder = {};
 switch name
@@ -15,12 +19,11 @@ switch name
     otherwise
         error('No such case.')
 end
-[state0, model, schedule, nonlinear] = initEclipseProblemAD(deck_path, 'ReorderStrategy', reorder);
-%% Write case to temporary directory
-jpth = writeJutulInput(state0, model, schedule, name);
-%% Once simulated, read back as MRST format
-[ws, states] = readJutulOutput(jpth);
-%%
-model.OutputStateFunctions = {'ComponentTotalMass', 'Density', 'PhasePressures', 'RelativePermeability', 'ShrinkageFactors'};
-[ws_m, states_m] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', getNonLinearSolver(model));
-%%
+[state0, model, schedule, nls] = initEclipseProblemAD(deck_path, 'ReorderStrategy', reorder);
+%% Write case to temporary directory and run
+% You can set daemon mode to true if set up, see backgroundJutulExample.
+[ws, states] = simulateScheduleJutul(state0, model, schedule, 'daemon', use_daemon);
+%% Run in MRST
+[ws_m, states_m] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nls);
+%% Compare wells
+plotWellSols({ws, ws_m}, 'datasetnames', {'Jutul', 'MRST'})
