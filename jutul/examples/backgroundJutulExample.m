@@ -39,7 +39,7 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 % Daemon freely afterwards.
 %
 % Finally, the daemon can be spun up by calling
-%  julia --project="X" --startup-file=no -e 'using Revise; using DaemonMode; serve()'
+%  julia --project="X" --startup-file=no --color=no -e 'using Revise; using DaemonMode; serve()'
 % where X is the absolute path of the jutul_daemon folder.
 %
 % For example, the author's path on Windows looks like this:
@@ -60,3 +60,8 @@ figure;
 plotToolbar(model.G, states);
 %% Run in MRST, for comparison
 [wsm, statesm] = simulateScheduleAD(state0, model, schedule);
+%% We can also use the high level interface:
+% Run on daemon (default)
+% [ws, states] = simulateScheduleJutul(state0, model, schedule, 'daemon', true);
+% Run manually
+% [ws, states] = simulateScheduleJutul(state0, model, schedule, 'daemon', false);

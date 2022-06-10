@@ -1,5 +1,7 @@
 function [wells, states] = readJutulOutput(pth, varargin)
-    opt = struct('wells', true, 'states', true, 'readStates', true, 'wellSol', true);
+    opt = struct('wells', true, 'states', true, ...
+                 'readStates', true, 'wellSol', true, ...
+                 'error', false);
     opt = merge_options(opt, varargin{:});
     [filepath, name, ext] = fileparts(pth);
 
@@ -27,7 +29,12 @@ function [wells, states] = readJutulOutput(pth, varargin)
         end
     end
     if ~ok
-        warning('No Jutul output found. Case may not be simulated?');
+        msg = 'No Jutul output found. Case may not be simulated?';
+        if opt.error
+            error(msg);
+        else
+            warning(msg);
+        end
     end
 end
 

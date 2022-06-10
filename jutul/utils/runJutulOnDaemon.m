@@ -46,7 +46,7 @@ function [wells, states] = runJutulOnDaemon(state0, model, schedule, varargin)
     end
     dispif(v, 'ok.\n');
     dispif(v, 'Running Julia simulation...\n');
-    fprintf(f, 'using JutulDarcy\nsimulate_mrst_case(\"%s\", write_mrst = true%s)\n', ...
+    fprintf(f, 'using JutulDarcy\nsimulate_mrst_case(\"%s\", write_mrst = true%s, ascii_terminal = true)\n', ...
         pth, extra_str);
     fclose(f);
     % Finally put together the command to invoke the daemon in client mode
