@@ -34,7 +34,7 @@ function pth = writeJutulInput(state0, model, schedule, varargin)
 % writeJutulInput(setup.state0, setup.model, setup.schedule)
 %
 % SEE ALSO:
-%   readJutulOutput, runJutulOnDaemon
+%   readJutulOutput, runJutulOnDaemon, simulateScheduleJutul
 
 %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.

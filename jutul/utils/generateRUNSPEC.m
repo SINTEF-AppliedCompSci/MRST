@@ -1,4 +1,5 @@
 function RUNSPEC = generateRUNSPEC(model, RUNSPEC)
+    % Generate RUNSPEC from model. Very limited internal function.
     if nargin == 1
         RUNSPEC = struct();
     end

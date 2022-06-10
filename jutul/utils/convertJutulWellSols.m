@@ -1,22 +1,16 @@
 function [ws, T] = convertJutulWellSols(wells)
-%Short description
+% Convert Jutul wells to MRST wellSols
 %
 % SYNOPSIS:
-%   f = function(input)
+%   [ws, T] = convertJutulWellSols(wells)
 %
 % REQUIRED PARAMETERS:
-%   inp - Description
-%
-% OPTIONAL PARAMETERS:
-%   key - Parameter description
+%   wells - Well output from wells.mat file that Jutul writes.
 %
 % RETURNS:
-%   out - Description
-% EXAMPLE:
-%   name
+%   ws - wellSols that mimick output from MRST's AD solvers
 %
-% SEE ALSO:
-%   name1, name2
+%   T  - Reservoir time since simulation start for each of the well sols
 
 %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
