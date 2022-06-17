@@ -104,7 +104,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'type', 'rate', 'val', rate, 'compi', 1, 'name', 'Inj');
     W = addWell(W, G, rock, prod, ...
                 'type', 'bhp', 'val', 50*barsa, 'compi', 1, 'name', 'Prod');
-    W = addThermalWellProps(W, 'T', Tinj);
+    W = addThermalWellProps(W, G, rock, fluid, 'T', Tinj);
     % Make schedule
     schedule = simpleSchedule(rampupTimesteps(time, time/options.nstep), 'W', W);
     % Plotting

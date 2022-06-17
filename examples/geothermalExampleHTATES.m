@@ -46,6 +46,14 @@ fig3D(), plotCellData(G, log10(rock.perm), 'edgealpha', 0.2);
 setAxProps3D(gca); camlight; mrstColorbar(gca, log10(rock.perm)); colormap(cmap)
 savepng('htates-setup');
 
+%% Create fluid and rock
+% Viscosity and density are p/T-dependent, and will be set later
+fluid = initSimpleADIFluid('phases', 'W', 'n', 1, 'mu', 1, 'rho', 1);
+% Assign thermal properties of the fluid, with equation of state from
+% Spivey et. al (2004)
+fluid = addThermalFluidProps(fluid, 'useEOS', true);
+rock  = addThermalRockProps(rock);            % Thermal rock properties
+
 %% Assign well schedule
 % The model has two groups of four wells each, which we refer to as hot and
 % cold. The hot group will be used to inject hot water for storage during
@@ -62,7 +70,8 @@ Thot  = K0 + 100*Kelvin;  % Temperature of stored water
 Tcold = K0 + 30*Kelvin;   % Temperature of injected water
 
 [W.compi]  = deal(1);                % Single-phase
-WSt        = addThermalWellProps(W); % Add thermal properties
+W          = addThermalWellProps(W, G, rock, fluid); % Add thermal properties
+WSt        = W;
 [hNo, cNo] = deal(0);
 xmid       = mean(G.cells.centroids); % Reservoir center
 for wNo = 1:numel(W)
@@ -126,12 +135,6 @@ pw = @() plotWell(G, WSt, 'color', 'k', 'height', 45); % For plotting wells
 %% Create model
 % We use a single-phase geothermal model
 gravity reset on
-% Viscosity and density are p/T-dependent, and will be set later
-fluid = initSimpleADIFluid('phases', 'W', 'n', 1, 'mu', 1, 'rho', 1);
-% Assign thermal properties of the fluid, with equation of state from
-% Spivey et. al (2004)
-fluid = addThermalFluidProps(fluid, 'useEOS', true);
-rock  = addThermalRockProps(rock);            % Thermal rock properties
 model = GeothermalModel(G, rock, fluid); % Make model
 % The EOS is valid for pressure/temperature within a given range. We
 % provide these to the model so that pressure/temperature are within these

@@ -40,6 +40,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     data  = load(fullfile(getDatasetPath('geothermal'), 'htates-reservoir.mat'));
     G     = data.G;
     rock  = data.rock;
+    % Viscosity and density are p/T-dependent, and will be set later
+    fluid = initSimpleADIFluid('phases', 'W', 'n', 1, 'mu', 1, 'rho', 1);
+    % Assign thermal properties of the fluid, with equation of state from
+    % Spivey et. al (2004)
+    fluid = addThermalFluidProps(fluid, 'useEOS', true);
+    rock  = addThermalRockProps(rock);            % Thermal rock properties
     W     = data.W;
     layer = data.layer;
     % The model has two groups of four wells each, which we refer to as hot and
@@ -55,11 +61,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     bhpEx = 85*barsa;         % Extraction BHP
     Thot  = K0 + 100*Kelvin;  % Temperature of stored water
     Tcold = K0 + 30*Kelvin;   % Temperature of injected water
-
-    [W.compi]  = deal(1);                % Single-phase
-    WSt        = addThermalWellProps(W); % Add thermal properties
+    
+    [W.compi]  = deal(1);                                % Single-phase
+    W          = addThermalWellProps(W, G, rock, fluid); % Add thermal props
+    WSt        = W;
     [hNo, cNo] = deal(0);
-    xmid       = mean(G.cells.centroids); % Reservoir center
+    xmid       = mean(G.cells.centroids);                % Reservoir center
     for wNo = 1:numel(W)
         w     = W(wNo);
         cells = w.cells;
@@ -116,12 +123,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     dt        = repmat(dt, numCycles, 1);
     schedule  = struct('step'   , struct('val', dt, 'control', controlNo), ...
                        'control', control                                );
-    % Viscosity and density are p/T-dependent, and will be set later
-    fluid = initSimpleADIFluid('phases', 'W', 'n', 1, 'mu', 1, 'rho', 1);
-    % Assign thermal properties of the fluid, with equation of state from
-    % Spivey et. al (2004)
-    fluid = addThermalFluidProps(fluid, 'useEOS', true);
-    rock  = addThermalRockProps(rock);            % Thermal rock properties
     model = GeothermalModel(G, rock, fluid); % Make model
     % The EOS is valid for pressure/temperature within a given range. We
     % provide these to the model so that pressure/temperature are within these

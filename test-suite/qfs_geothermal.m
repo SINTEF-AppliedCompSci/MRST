@@ -74,7 +74,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     % Set schedule properties
     [schedule.control(1).W] ...
-        = deal(addThermalWellProps(schedule.control(1).W, 'T', 273.15*Kelvin + 200));
+        = deal(addThermalWellProps(schedule.control(1).W, G, rock, fluid, ...
+                                                'T', 273.15*Kelvin + 200));
     [schedule.control(1).W.components] = deal(1);
     [schedule.control.W.compi] = deal(1);
     %---------------------------------------------------------------------%

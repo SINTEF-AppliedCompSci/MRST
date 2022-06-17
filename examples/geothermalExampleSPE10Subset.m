@@ -39,32 +39,6 @@ end
 rock = makeRock(G, perm, poro);
 rock = addThermalRockProps(rock);
 
-%% Set up schedule and initial state
-W        = WRef;
-schedule = scheduleRef;
-x  = G.cells.centroids;
-xwR = GRef.cells.centroids(vertcat(WRef.cells),1:2);
-% Slick oneliner to find corresponding cells in the new grid
-[~, c] = min(sum(bsxfun(@minus, reshape(xwR, [], 1 , G.griddim), ...
-                             reshape(x , 1 , [], G.griddim)).^2,3), [], 2);
-K0 = 273.15*Kelvin;
-for i = 1:numel(W)
-    W(i).cells = c(i);
-    W(i).components = 1;
-    if strcmpi(W(i).type, 'rate')
-        W(i).val = 2*W(i).val; % Increase injection rate
-    end
-end
-Tinj = (273.15 + 100)*Kelvin;             % 100 degrees Celsius
-W    = addThermalWellProps(W, 'T', Tinj); % Add temperature field T to wells
-xw = G.cells.centroids(vertcat(W.cells),1:2);
-% [W.components] = deal([0,1]);
-schedule.control.W = W;
-% Set initial state
-state0   = initResSol(G, state0Ref.pressure(1), 1);
-Tres     = (273.15 + 30)*Kelvin;
-state0.T = repmat(Tres, G.cells.num, 1);
-
 %% Inspect the geological model
 figure('Position', [0,0,500,800])
 K = convertTo(rock.perm(:,1),milli*darcy);
@@ -94,6 +68,32 @@ model.minimumTemperature = K0;              % Minimum temperature
 model.maximumTemperature = K0 + 275*Kelvin; % Maximum temperature
 model.extraStateOutput   = true;     % Output density and mobility to state
 model.outputFluxes       = true;     % Output fluxes to state
+
+%% Set up schedule and initial state
+W        = WRef;
+schedule = scheduleRef;
+x  = G.cells.centroids;
+xwR = GRef.cells.centroids(vertcat(WRef.cells),1:2);
+% Slick oneliner to find corresponding cells in the new grid
+[~, c] = min(sum(bsxfun(@minus, reshape(xwR, [], 1 , G.griddim), ...
+                             reshape(x , 1 , [], G.griddim)).^2,3), [], 2);
+K0 = 273.15*Kelvin;
+for i = 1:numel(W)
+    W(i).cells = c(i);
+    W(i).components = 1;
+    if strcmpi(W(i).type, 'rate')
+        W(i).val = 2*W(i).val; % Increase injection rate
+    end
+end
+Tinj = (273.15 + 100)*Kelvin;             % 100 degrees Celsius
+W    = addThermalWellProps(W, G, rock, fluid, 'T', Tinj); % Add temperature field T to wells
+xw = G.cells.centroids(vertcat(W.cells),1:2);
+% [W.components] = deal([0,1]);
+schedule.control.W = W;
+% Set initial state
+state0   = initResSol(G, state0Ref.pressure(1), 1);
+Tres     = (273.15 + 30)*Kelvin;
+state0.T = repmat(Tres, G.cells.num, 1);
 
 %% Simulate
 % No boundary conditions means a completely insulated, closed flow
