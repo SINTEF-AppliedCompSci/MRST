@@ -34,6 +34,7 @@ function groupSol = aggregateGroupData(groups, wellSol)
     active    = ~cellfun(@isempty, {sample.qWs, sample.qOs, sample.qGs});
     dummy      = rateNames(~active);
     rateNames = rateNames(active);
+    rateNames{end+1} = 'effect';
     
     dummy = [dummy, {'type', 'val'}];
     skip = {'name'};
