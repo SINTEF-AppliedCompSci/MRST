@@ -39,14 +39,6 @@ end
 rock = makeRock(G, perm, poro);
 rock = addThermalRockProps(rock);
 
-%% Inspect the geological model
-figure('Position', [0,0,500,800])
-K = convertTo(rock.perm(:,1),milli*darcy);
-plotCellData(G,log10(K),'edgeAlpha',.1); axis tight;
-set(gca,'FontSize',12)
-mrstColorbar(K,'South',true); axis equal tight
-hold on; plot(xw(:,1),xw(:,2),'.r','MarkerSize',18); hold off; drawnow
-
 %% Create model
 % We use a single-phase geothermal model. Viscosity and density are
 % p/T-dependent, and will be set later
@@ -94,6 +86,14 @@ schedule.control.W = W;
 state0   = initResSol(G, state0Ref.pressure(1), 1);
 Tres     = (273.15 + 30)*Kelvin;
 state0.T = repmat(Tres, G.cells.num, 1);
+
+%% Inspect the geological model
+figure('Position', [0,0,500,800])
+K = convertTo(rock.perm(:,1),milli*darcy);
+plotCellData(G,log10(K),'edgeAlpha',.1); axis tight;
+set(gca,'FontSize',12)
+mrstColorbar(K,'South',true); axis equal tight
+hold on; plot(xw(:,1),xw(:,2),'.r','MarkerSize',18); hold off; drawnow
 
 %% Simulate
 % No boundary conditions means a completely insulated, closed flow
