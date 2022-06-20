@@ -19,13 +19,15 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             % model-specific functionality
             model = setupStateFunctionGroupings@GenericFacilityModel(model, useDefaults);
             ffd = model.FacilityFlowDiscretization;
-            ffd = ffd.setStateFunction('AdvectiveHeatFlux' , WellAdvectiveHeatFlux(model) );
-            ffd = ffd.setStateFunction('ConductiveHeatFlux', WellConductiveHeatFlux(model));
-            ffd = ffd.setStateFunction('HeatFlux'          , HeatFlux(model)              );
             if model.implicitConnectionDP
                 ffd = ffd.setStateFunction('ConnectionPressureDrop', ConnectionPressureDrop(model));
                 ffd = ffd.setStateFunction('PressureGradient', PerforationPressureGradientICDP(model));
+                model.FacilityFlowDiscretization = ffd;
             end
+            if ~useDefaults, return; end
+            ffd = ffd.setStateFunction('AdvectiveHeatFlux' , WellAdvectiveHeatFlux(model) );
+            ffd = ffd.setStateFunction('ConductiveHeatFlux', WellConductiveHeatFlux(model));
+            ffd = ffd.setStateFunction('HeatFlux'          , HeatFlux(model)              );
             model.FacilityFlowDiscretization = ffd;
             
         end
@@ -187,6 +189,7 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
             nc      = arrayfun(@(W) numel(W.cells), map.W);
             Tprod   = ok.*Tprod + ~ok.*map.perforationSum*Tperf./nc;
             % Identify injectors and producers
+%             injector = map.perforationSum*value(qT) > 0;
             injector = map.isInjector;
             producer = ~injector;
             % Tprod will have nans in wells with only injection perfs
@@ -217,9 +220,15 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
         % its maximum/minimum bhp limit.
         
             map = model.getProps(state, 'FacilityWellMapping');
-            for i = 1:numel(map.active)
-                state.wellSol(map.active(i)).bhp = map.W(i).lims.bhp;
+            bhp = zeros(numel(map.W),1);
+            for i = 1:numel(map.W)
+                bhp(i) = map.W(i).lims.bhp;
             end
+            isbhp = strcmpi(state.FacilityState.names, 'bhp');
+            if any(isbhp)
+                state.FacilityState.primaryVariables{isbhp} = bhp;
+            end
+            state = model.initStateFunctionContainers(state);
             [pot, map] = model.getProps(state, 'PhaseFlux', 'FacilityWellMapping');
             % Explicit for now to simplify calculations
             pot = abs(map.perforationSum*sum(value(pot),2));
