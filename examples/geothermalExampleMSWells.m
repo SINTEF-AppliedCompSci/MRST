@@ -1,15 +1,20 @@
 mrstModule add test-suite
 mrstModule add ad-core ad-props
 mrstModule add geothermal compositional
+mrstModule add multiphysics-model wellpaths upr
 mrstModule add mrst-gui
+mrstVerbose on
 
 %%
 close all
-test = TestCase('fractured_3d_slice_geothermal');
+test = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', true);
 test.plot(test.state0);
 
 %%
-problem = test.getPackedSimulationProblem();
+% test.model.submodels.Reservoir.applyResidualScaling = true;
+% test.model.submodels.Wellbore.parentModel.applyResidualScaling = true;
+lsol = MultiPhysicsLinearSolver(test.model);
+problem = test.getPackedSimulationProblem('LinearSolver', lsol);
 simulatePackedProblem(problem);
 
 %%
