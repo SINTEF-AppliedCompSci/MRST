@@ -54,6 +54,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
         dhMaxRel = 0.2;
         dhMaxAbs = Inf;
         dxMaxAbs = 0.1;
+        applyResidualScaling = false;
 
     end
     
@@ -141,7 +142,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 model.operators.Thf_all = Thf;
             end
             
-            model.operators.vol = model.G.cells.volumes;
+            model.operators.vol = G.cells.volumes;
             
             % Compute hash
             model.operators.hashRock = obj2hash(rock);
@@ -187,11 +188,25 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     (isfield(ctrl.bc, 'Hflux') ...
                         && numel(ctrl.bc.Hflux) == numel(ctrl.bc.face)),  ...
                     'bc must have a given temperature (T) or heat flux (Hflux)');
+                % Check that bcs have component field
+                if ~isfield(ctrl.bc, 'components')
+                    assert(numel(model.compFluid.names) == 1, ...
+                        ['Model has more than one component - please ', ...
+                         'provide component field to bc (bc.cmomponents)']);
+                    ctrl.bc.components = ones(numel(ctrl.bc.face),1);
+                end
             end
             if isfield(ctrl, 'W') && ~isempty(ctrl.W)
                 % Check that wells have a prescribed temperature
                 assert(all(arrayfun(@(w) isfield(w, 'T'), ctrl.W))  , ...
                        'All wells must have a temperature field (T)');
+                if isempty(ctrl.W(1).components)
+                    assert(numel(model.compFluid.names) == 1, ...
+                        ['Model has more than one component - ...    ', ...
+                         'please provide component field to well (W.components)']);
+                    [ctrl.W.components] = deal(1);
+                end
+                
             end
             
         end
@@ -320,35 +335,29 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
 
         end
         
-        %-----------------------------------------------------------------%
-        function [vararg, control] = getDrivingForces(model, control)
-        % Get driving forces in expanded format.
-    
-            [vararg, control] = getDrivingForces@ReservoirModel(model, control);
-            ix = find(strcmpi(vararg, 'bc'));
-            if ~isempty(ix) && ~isempty(vararg{ix+1})
-                bc = vararg{ix+1};
-                if ~isfield(bc, 'components')
-                    assert(numel(model.compFluid.names) == 1, ...
-                        ['Model has more than one component - please ', ...
-                         'provide component field to bc (bc.cmomponents)']);
-                    bc.components = ones(numel(bc.face),1);
-                    vararg{ix+1}  = bc;
-                end
-            end
-            ix = find(strcmpi(vararg, 'W'));
-            if ~isempty(ix) && ~isempty(vararg{ix+1})
-                W = vararg{ix+1};
-                if isempty(W(1).components)
-                    assert(numel(model.compFluid.names) == 1, ...
-                        ['Model has more than one component - ...    ', ...
-                         'please provide component field to well (W.components)']);
-                    [W.components] = deal(1);
-                    vararg{ix+1} = W;
-                end
-            end
-            
-        end
+%         %-----------------------------------------------------------------%
+%         function [vararg, control] = getDrivingForces(model, control)
+%         % Get driving forces in expanded format.
+%     
+%             [vararg, control] = getDrivingForces@ReservoirModel(model, control);
+%             ix = find(strcmpi(vararg, 'bc'));
+%             if ~isempty(ix) && ~isempty(vararg{ix+1})
+%                 bc = vararg{ix+1};
+%                 
+%             end
+%             ix = find(strcmpi(vararg, 'W'));
+%             if ~isempty(ix) && ~isempty(vararg{ix+1})
+%                 W = vararg{ix+1};
+%                 if isempty(W(1).components)
+%                     assert(numel(model.compFluid.names) == 1, ...
+%                         ['Model has more than one component - ...    ', ...
+%                          'please provide component field to well (W.components)']);
+%                     [W.components] = deal(1);
+%                     vararg{ix+1} = W;
+%                 end
+%             end
+%             
+%         end
         
         %-----------------------------------------------------------------%
         function [vars, names, origin] = getPrimaryVariables(model, state)
@@ -420,31 +429,47 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
         % Get equations from AD states
 
             [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
-            src = model.FacilityModel.getComponentSources(state);
-            % Add sources
-            eqs = model.insertSources(eqs, src);
+            if ~isempty(model.FacilityModel)
+                % Add sources
+                src = model.FacilityModel.getComponentSources(state);
+                eqs = model.insertSources(eqs, src);
+            end
             % Assemble equations
             for i = 1:numel(eqs)
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
             if model.thermal
                 [eeqs, eflux, enames, etypes] = model.FlowDiscretization.energyConservationEquation(model, state, state0, dt);
-                % Add sources
-                esrc = model.FacilityModel.getEnergySources(state);
-                eeqs = model.insertSources(eeqs, esrc);
+                if ~isempty(model.FacilityModel)
+                    % Add sources
+                    esrc = model.FacilityModel.getEnergySources(state);
+                    eeqs = model.insertSources(eeqs, esrc);
+                end
                 % Assemble equations
                 eeqs{1} = model.operators.AccDiv(eeqs{1}, eflux{1});
             else
                 [eeqs, enames, etypes] = deal([]);
             end
-            % Get facility equations
-            [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
             % Concatenate
-            eqs   = [eqs  , eeqs  , weqs  ];
-            names = [names, enames, wnames];
-            types = [types, etypes, wtypes];
+            eqs   = [eqs  , eeqs  ];
+            names = [names, enames];
+            types = [types, etypes];
+            if ~isempty(model.FacilityModel)
+                % Get facility equations
+                [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
+                % Concatenate
+                eqs   = [eqs  , weqs  ];
+                names = [names, wnames];
+                types = [types, wtypes];
+            end
             % Add in boundary conditions
             eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, drivingForces);
+            
+            if ~model.applyResidualScaling, return; end
+            scale = model.getEquationScaling(eqs, names, state, dt);
+            ix    = ~cellfun(@isempty, scale);
+            eqs(ix) = cellfun(@(scale, x) scale.*x, scale(ix), eqs(ix), 'UniformOutput', false);
+    
             
         end
         
@@ -453,6 +478,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
         % Get values for convergence check
         
             [v_eqs, tolerances, names] = getConvergenceValues@ReservoirModel(model, problem, varargin{:});
+            if model.applyResidualScaling, return; end
             scale = model.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
             ix    = ~cellfun(@isempty, scale);
             v_eqs(ix) = cellfun(@(scale, x) norm(scale.*value(x), inf), scale(ix), problem.equations(ix));
