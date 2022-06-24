@@ -14,14 +14,17 @@ function m = markCutGrids(G, faceStatus, varargin)
 %   facesAlongPlane - Optional number indicating faceStatus value of
 %                     the internal boundary. Default is 3, since this
 %                     is the default value in sliceGrid.m.
-%   legacy          - Optional force of older code without graph.
-%   start           - Legacy code requires starting position
+%   legacy          - Setting legacy to true switches to an
+%                     implementation that does not use the graph
+%                     functionality introduced in R2015b (8.6).
+%   start           - Optional starting cell for flooding (legacy
+%                     mode).
 %
 % RETURNS:
 %   m - Vector with marked cells
 %
 % EXAMPLE:
-%   G = computeGeometry(cartGrid([5,4,3]);
+%   G = computeGeometry(cartGrid([5,4,3]));
 %   [G2, gix] = sliceGrid(G, [2,1,1], 'normal', [1,1,0]);
 %   m = markCutGrids(G2, gix.new.faces);
 %   plotCellData(G2, m), view(3)
@@ -55,12 +58,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                  'start', []);
     opt = merge_options(opt, varargin{:});
 
-    if verLessThan('matlab', '8.6') | opt.legacy
+    if opt.legacy
         % Flood
         warning('This is slow')
         m = zeros(G.cells.num, 1);
         checked = zeros(G.cells.num, 1);
-        notDone = findEnclosingCell(G, opt.start);
+        start = opt.start;
+        if isempty(start)
+            start = G.cells.centroids(1, :);
+        end
+        notDone = findEnclosingCell(G, start);
         cnt = 0;
         maxCnt = intmax;
 
@@ -72,7 +79,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             checked(e) = 1;
 
             % Exclude faces that form the cut plane
-            f = G.cells.faces(G.cells.facePos(e):G.cells.facePos(e+1)-1, :);
+            f = G.cells.faces(G.cells.facePos(e):G.cells.facePos(e+1)-1, 1);
             f(faceStatus(f) == opt.facesAlongPlane) = [];
 
             % Add neighboring cells, excluding 0, e and checked elements
