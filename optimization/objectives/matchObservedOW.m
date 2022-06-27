@@ -83,12 +83,8 @@ for step = 1:numSteps
        assert(isnumeric(qWs));
        status = vertcat(state.wellSol.status);
     end
-
-    if all(status == status_obs) 
-        if any(~status)
-            matchCases = matchCases(status);
-        end
-    else % problematic status ignore bhp, treat qWs, qOs as zero
+     
+    if ~all(status) || ~all(status_obs) 
         [bhp, bhp_obs] = expandToFull(bhp, bhp_obs, status, status_obs, true);
         [qWs, qWs_obs] = expandToFull(qWs, qWs_obs, status, status_obs, false);
         [qOs, qOs_obs] = expandToFull(qOs, qOs_obs, status, status_obs, false);
