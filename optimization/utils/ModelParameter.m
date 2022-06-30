@@ -172,7 +172,7 @@ classdef ModelParameter
                 end
                 % scalar param per well or connection
                 if numelValue(v) == numel(sub)
-                    np = ones(p.nParam, 1);
+                    np = ones(size(sub));
                 else
                     np = arrayfun(@(w)numel(w.cells), control.W(sub));
                 end
