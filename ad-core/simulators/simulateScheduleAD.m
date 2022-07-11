@@ -349,9 +349,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Store output in handlers, if configured
         writeOutput(opt.OutputHandler, opt, ind, states(ind))
         writeOutput(opt.WellOutputHandler, opt, ind, wellSols_step)
-        writeOutput(opt.ReportHandler, opt, i, reports(i), false)        
+        writeOutput(opt.ReportHandler, opt, i, reports{i}, false)        
         
-        if report.EarlyStop
+        if reports{i}.EarlyStop
             break;
         end
     end
