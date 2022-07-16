@@ -96,7 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 if nargin == 0
    VETransportCPU();
-   varargout = [];
+   varargout = {};
 else
    [h, max_h] = VETransportCPU(sol, Gt, dT, rock, fluid, varargin{:});  
    varargout{1} = h;
