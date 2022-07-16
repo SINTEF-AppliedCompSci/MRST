@@ -347,7 +347,8 @@ function [val, der, wellSols, states] = ...
    % compute objective:
    vals = obj_fun(wellSols, states, schedule);
    val  = sum(cell2mat(vals))/abs(objScaling);
-
+   val  = full(val); % ensure 'val' is a regular scalar, not a sparse one
+   
    % run adjoint:
    if nargout > 1
       objh = @(tstep,varargin)obj_fun(wellSols, states, schedule, 'ComputePartials', true, 'tStep', tstep);
