@@ -60,7 +60,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         name = 'unknown';
     end
-    opt = struct('path', tempdir(), 'printcmd', true, 'extra', {{}});
+    opt = struct('path', [], 'printcmd', true, 'extra', {{}});
+    if isempty(opt.path)
+        opt.path = fullfile(mrstOutputDirectory(), 'jutul');
+        if ~exist(opt.path, 'dir')
+            mkdir(opt.path)
+        end
+    end
     [opt, other] = merge_options(opt, varargin{:});
     assert(isfolder(opt.path))
     pth = writeToJutul(opt.path, name, state0, model, schedule, opt.extra, other);
