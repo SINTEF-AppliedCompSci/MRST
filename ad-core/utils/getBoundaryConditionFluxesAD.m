@@ -92,7 +92,7 @@ BCTocellMap = cellToBCMap';
 
 % Gravity gradient per bc face
 if any(strcmpi(G.type, 'topSurfaceGrid'))
-   dzbc = model.gravity(3) * (G.cells.z(BCcells) - G.faces.z(bc.face));
+   dzbc = -norm(model.gravity) * (G.cells.z(BCcells) - G.faces.z(bc.face));
 else
    g = model.getGravityVector();
    dz = G.cells.centroids(BCcells, :) - G.faces.centroids(bc.face,:);
