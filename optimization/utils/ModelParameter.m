@@ -168,7 +168,7 @@ classdef ModelParameter
                 % well-parameter special treatment
                 sub = p.subset;
                 if ~isnumeric(sub)
-                    sub = 1:numel(control.W);
+                    sub = (1:numel(control.W))';
                 end
                 % scalar param per well or connection
                 if numelValue(v) == numel(sub)

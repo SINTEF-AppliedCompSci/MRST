@@ -1,7 +1,6 @@
 function f = assignEHYSTR(f, ehystr, reg)
-%
-% Assigns flags for hysteresis computation, as well as input options for
-% hysteresis model according to ECLIPSE EHYSTR keyword. 
+% Assigns flags for hysteresis computation, as well as input options
+% for hysteresis model according to ECLIPSE EHYSTR keyword.
 
 %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
@@ -23,9 +22,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % flags for hysteresis
-if strcmp(ehystr{5}, 'KR') || strcmp(ehystr{5}, 'BOTH')
+if any(strcmp(ehystr{5}, {'KR', 'BOTH'}))
     f.krHyst = 1;
-elseif strcmp(ehystr{5}, 'PC') || strcmp(ehystr{5}, 'BOTH')
+end
+
+if any(strcmp(ehystr{5}, {'PC', 'BOTH'}))
     f.pcHyst = 1;
 end
 
