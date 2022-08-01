@@ -216,9 +216,41 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    Gt = compute_geometry(Gt);
    
    %% Following line takes a bit of computation but will speed up plotting later
-   
    Gt.cells.sortedCellNodes = getSortedCellNodes(Gt);
+
+   %% Ensuring that arrays that are logically integers are stored as such
+   % (this avoids problem with MEX-code)
+   Gt = set_integer_fields_to_int32(Gt);
+   Gt.parent = set_integer_fields_to_int32(Gt.parent);
    
+end
+
+% ----------------------------------------------------------------------------
+function G = set_integer_fields_to_int32(G)
+
+    % fieldnames = {'global', 'neighbors', 'nodePos', 'nodes', 'tag', 'faces', ...
+    %               'facePos', 'indexMap', 'global', 'map3DFace', 'ij', ...
+    %               'columnPos', 'sortedCellNodes', 'cells'};
+    
+    % parts = {'nodes', 'faces', 'cells', 'columns'}
+
+    % Apparently, the MEX code only requires setting the following two fields
+    % to int32 (changing other fields might cause issues, which is why we
+    % leave them commented-out above for now).
+    fieldnames = {'neighbors', 'nodes'};
+    parts = {'faces'};
+        
+    for part = parts
+        part = part{:};
+        if isfield(G, part)
+            for field = fieldnames
+                field = field{:};
+                if isfield(G.(part), field)
+                    G.(part).(field) = int32(G.(part).(field));
+                end
+            end
+        end
+    end
 end
 
 % ----------------------------------------------------------------------------
