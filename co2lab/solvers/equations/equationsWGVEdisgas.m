@@ -83,6 +83,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    [vG, bG, mobG, rhoG, upcg] = ...
        getPhaseFluxAndProps_WGVE(model, pW, pG, krG, trans, gdz, 'G', 0, 0);
 
+   if model.outputFluxes
+       state = model.storeFluxes(state, vW, [], vG);
+   end
+   
    bW0 = f.bW(pW0);
    bG0 = f.bG(pW0); % Yes, using water pressure also for gas here
 

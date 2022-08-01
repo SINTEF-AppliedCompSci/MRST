@@ -105,6 +105,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    bW0 = f.bW(pW0);
    bG0 = f.bG(pW0); % Yes, using water pressure also for gas here
 
+   if model.outputFluxes
+       state = model.storeFluxes(state, vW, [], vG);
+   end
+   
    % Multiply upstream b-factors by interface fluxes to obtain fluxes at
    % standard conditions
    bWvW = s.faceUpstr(upcw, bW) .* vW;
@@ -124,6 +128,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    types = {'cell' , 'cell'};
    names = {'water', 'gas'};  
    % Include influence of boundary conditions
+   if state0.s(end, 2) > 0.1
+       %keyboard;
+   end
+   
+   
    [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
                                                   {pW, pG}, {sW, sG}, {mobW, mobG}, {rhoW, rhoG}, ...
                                                   {}, {}, drivingForces);
