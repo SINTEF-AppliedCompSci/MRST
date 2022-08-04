@@ -20,10 +20,12 @@ mrstModule add ad-blackoil;
 % Plot grid and rock properties
 figure; plotCellData(G, rock.poro); view(-35,15); colorbar; % porosity
 set(gcf, 'position', [531   337   923   356]); axis tight;
-figure; plotCellData(G, rock.perm(:,1)); view(-55, 60); colorbar; % lateral permeability
-set(gcf, 'position', [152   419   689   404]);
-figure; plotCellData(G, rock.perm(:,3)); view(-55, 60); colorbar; % vertical permeability
-set(gcf, 'position', [152   419   689   404]);
+figure; plotCellData(G, rock.perm(:,1)/darcy); view(-55, 60); colorbar; % lateral permeability
+set(gcf, 'position', [152   419   1034   606], 'color', 'white');
+set(gca, 'fontsize', 14);
+figure; plotCellData(G, rock.perm(:,3)/darcy); view(-55, 60); colorbar; % vertical permeability
+set(gcf, 'position', [152   419   1034   606], 'color', 'white');
+set(gca, 'fontsize', 14);
 
 %% Initial state
 gravity on; % tell MRST to turn on gravity
