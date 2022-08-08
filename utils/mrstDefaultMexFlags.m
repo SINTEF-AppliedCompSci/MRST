@@ -249,26 +249,28 @@ end
 %--------------------------------------------------------------------------
 
 function tf = is_visual_cpp()
-   tf = ispc() && ~isempty(regexpi(compiler_short_name(), '^MSVC'));
+   tf = ispc() && ...
+      ~isempty(regexpi(compiler_short_name(), '^MSVC', 'once'));
 end
 
 %--------------------------------------------------------------------------
 
 function tf = is_visual_cpp_intel()
    tf = ispc() && ...
-      ~isempty(regexpi(compiler_short_name(), 'INTELCPP\d+MSVCPP\d+'));
+      ~isempty(regexpi(compiler_short_name(), ...
+                       'INTELCPP\d+MSVCPP\d+', 'once'));
 end
 
 %--------------------------------------------------------------------------
 
 function tf = is_gnu_gcc()
-   tf = ~isempty(regexpi(compiler_short_name(), 'g\+\+'));
+   tf = ~isempty(regexpi(compiler_short_name(), 'g\+\+', 'once'));
 end
 
 %--------------------------------------------------------------------------
 
 function tf = is_xcode_clang()
-   tf = ~isempty(regexpi(compiler_short_name(), 'Clang\+\+'));
+   tf = ~isempty(regexpi(compiler_short_name(), 'Clang\+\+', 'once'));
 end
 
 %--------------------------------------------------------------------------
