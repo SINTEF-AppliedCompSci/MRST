@@ -68,6 +68,15 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+   if ~has_cpp_compiler()
+      error('CppCompiler:Missing', ...
+           ['Cannot derive default MEX flags without ', ...
+            'an installed C++ compiler.\nPlease see the list of ', ...
+            '<a href="https://www.mathworks.com/support/', ...
+            'requirements/supported-compilers.html">supported and ', ...
+            'compatible compilers</a> (mathworks.com) for suggestions.']);
+   end
+
    [defines, opt] = parse_inputs(varargin{:});
 
    [LINK, mwlib, iomp5] = link_libraries();
@@ -86,6 +95,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    end
 
    LIBS = [ iomp5, applyFunction(mwlib, opt.mwlibs) ];
+end
+
+%--------------------------------------------------------------------------
+
+function tf = has_cpp_compiler()
+   tf = ~isempty(compiler_config());
 end
 
 %--------------------------------------------------------------------------
