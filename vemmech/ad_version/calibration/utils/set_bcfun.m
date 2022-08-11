@@ -14,10 +14,6 @@ function [bcfun, num_bc_ctrls] = set_bcfun(G, binfo, bcond)
    side_nodes = setdiff(side_nodes, bottom_edge_nodes);
    bottom_nodes = setdiff(bottom_nodes, bottom_edge_nodes); 
    
-   % compute the ranges within which we optimise
-   % bc_ranges = [bcond(:, 1) - md_mult * bcond(:, 2), ...
-   %              bcond(:, 1) + md_mult * bcond(:, 2)];
-   
    % identify active optimization variables and setup mapping to full vector
    % of optimization variables
    active_u = find(bcond(:,2) > 0);
