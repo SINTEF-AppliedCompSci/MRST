@@ -2,16 +2,16 @@ function varargout = plotPatches(G, faces, varargin)
 %Plot selection of coloured grid faces to current axes (reversed Z axis).
 %
 % SYNOPSIS:
-%       plotFaces(G, faces)
-%       plotFaces(G, faces, 'pn1', pv1, ...)
-%       plotFaces(G, faces, colour)
-%       plotFaces(G, faces, colour, 'pn1', pv1, ...)
-%   h = plotFaces(...)
+%       plotPatches(G, faces)
+%       plotPatches(G, faces, 'pn1', pv1, ...)
+%       plotPatches(G, faces, colour)
+%       plotPatches(G, faces, colour, 'pn1', pv1, ...)
+%   h = plotPatches(...)
 %
 % PARAMETERS:
 %   G       - Grid data structure.
 %
-%   faces   - Vector of face indices.  The graphical output of 'plotFaces'
+%   faces   - Vector of face indices.  The graphical output of 'plotPatches'
 %             will be restricted to the subset of grid faces from 'G'
 %             represented by 'faces'.
 %
@@ -45,16 +45,16 @@ function varargout = plotPatches(G, faces, varargin)
 %       current AXES object.
 %
 % NOTES:
-%   Function 'plotFaces' is implemented directly in terms of the low-level
+%   Function 'plotPatches' is implemented directly in terms of the low-level
 %   function PATCH.  If a separate axes is needed for the graphical output,
-%   callers should employ function newplot prior to calling 'plotFaces'.
+%   callers should employ function newplot prior to calling 'plotPatches'.
 %
 % EXAMPLE:
 %   % Plot grid with boundary faces on left side in red colour:
 %   G     = cartGrid([5, 5, 2]);
 %   faces = boundaryFaceIndices(G, 'LEFT', 1:5, 1:2, []);
-%   plotGrid (G, 'faceColor', 'none'); view(3)
-%   plotFaces(G, faces, 'r');
+%   plotGrid(G, 'faceColor', 'none'); view(3)
+%   plotPatches(G, faces, 'r');
 %
 % SEE ALSO:
 %   `plotCellData`, `plotGrid`, `newplot`, `patch`, `shading`.
