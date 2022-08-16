@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [os-latest]
+        os: [macos-latest]
         
     runs-on: ${{ matrix.os }}
 
