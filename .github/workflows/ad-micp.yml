@@ -1,0 +1,45 @@
+name: Running the numerical examples
+
+on:
+ push:
+   branches:
+     - main
+ pull_request:
+   
+jobs:
+  run-ad-micp-local:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Install octave
+      run: |
+        sudo apt-get update
+        sudo apt-get -y install octave
+    
+    - name: Download mrst (master branch)
+      run: |
+        repos='core autodiff solvers co2lab model-io multiscale visualization thirdparty-modules'
+        for r in $repos; do
+            git clone https://bitbucket.org/mrst/"mrst-${r}.git"
+        done
+        cp tests/startup_user.m mrst-core/
+        pushd ./mrst-thirdparty-modules
+        rm -rf ad-micp
+        rm -rf upr
+        git clone https://github.com/daavid00/ad-micp.git
+        git clone https://github.com/rbe051/UPR.git 
+      
+    - name: Run the two tests
+      run: |
+        pushd ./tests
+        octave run_both_examples.m
