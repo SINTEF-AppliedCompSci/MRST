@@ -97,7 +97,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         'layers', options.layers);
 
     % Plotting
-    if model.G.cartDims(3) > 2
+    if model.G.griddim == 3 && model.G.cartDims(3) > 1
         view = [120,26];
         proj = 'perspective';
         size = [800, 400];
