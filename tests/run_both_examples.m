@@ -1,3 +1,3 @@
 run("../mrst-core/startup.m")
-run("runMICP1DCase.m")
-run("runMICP3DCase.m")
+run("../mrst-thirdparty-modules/ad-micp/examples/runMICP1DCase.m")
+run("../mrst-thirdparty-modules/ad-micp/examples/runMICP3DCase.m")
