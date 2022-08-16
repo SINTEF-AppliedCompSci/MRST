@@ -401,7 +401,7 @@ classdef LinearSolverAD < handle
 
         function [A, b, scaling, x0] = applyScaling(solver, A, b, x0)
             % Apply left or right diagonal scaling
-            if nargin == 4
+            if nargin < 4
                 x0 = [];
             end
             scaling = struct();
@@ -496,7 +496,7 @@ classdef LinearSolverAD < handle
                 A = A(eo, :);
                 b = b(eo);
             end
-            if ~isempty(x0)
+            if ~isempty(x0) && hasVar
                 x0 = x0(vo);
             end
             order = struct('variableOrdering', vo, 'equationOrdering', eo);
