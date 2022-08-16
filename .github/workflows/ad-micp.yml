@@ -37,7 +37,7 @@ jobs:
         rm -rf ad-micp
         rm -rf upr
         git clone https://github.com/daavid00/ad-micp.git
-        git clone https://github.com/rbe051/UPR.git 
+        git clone https://github.com/rbe051/UPR.git upr
       
     - name: Run the two tests
       run: |
