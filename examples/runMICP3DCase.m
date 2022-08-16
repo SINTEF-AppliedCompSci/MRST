@@ -13,16 +13,8 @@
 % field scale. Int. J. Greenh. Gas Control 106, 103256.
 % https://doi.org/10.1016/j.ijggc.2021.103256
 
-% To get distmesh for first time, uncomment and run the 4 following lines
-% pth = fullfile(ROOTDIR, 'utils', '3rdparty', 'distmesh');
-% mkdir(pth)
-% unzip('http://persson.berkeley.edu/distmesh/distmesh.zip', pth);
-% mrstPath('reregister', 'distmesh', pth);
-
 % Required modules
-pth = fullfile(ROOTDIR, 'utils', '3rdparty', 'distmesh');
-mrstPath('reregister', 'distmesh', pth);
-mrstModule add ad-blackoil ad-core ad-micp ad-props co2lab distmesh
+mrstModule add ad-blackoil ad-core ad-micp ad-props co2lab upr
 
 %% Reservoir geometry/properties and model parameters
 %
@@ -45,8 +37,8 @@ hmin = a;           % Minimum grid size, m
 hmid = 3;           % Medium grid size, m
 hmax = L;           % Maximum grid size, m
 B = 10;             % hmid to hmax transition radius, m
-% Here we create the mesh using distmesh. For information/tutorials, visit
-% http://persson.berkeley.edu/distmesh/
+% Here we create the mesh using a modified version of distmesh in the upr 
+% module.
 fd = @(p) drectangle(p, -L / 2, L / 2, -W / 2, W / 2);
 fh = @(p) min(min(hmid + 0.3 * abs(dcircle(p, w, 0, 0)), hmid) .* ...
  (abs(dcircle(p, w, 0, 0)) < B) + min(hmid + 0.3 * abs(dcircle(p, w, 0, ...
@@ -55,7 +47,8 @@ fh = @(p) min(min(hmid + 0.3 * abs(dcircle(p, w, 0, 0)), hmid) .* ...
                   B) + min(hmid + 0.3 * abs(dcircle(p, 0, 0, B)), hmax) ...
                                        .* (abs(dcircle(p, 0, 0, 0)) >= B));
 [p, t] = distmesh2d(fd, fh, hmin, [-L / 2, -W / 2; L / 2, W / 2], ...
-       [-L / 2, -W / 2; L / 2, -W / 2; -L / 2, W / 2; L / 2, W / 2; 0, 0]);
+       [-L / 2, -W / 2; L / 2, -W / 2; -L / 2, W / 2; L / 2, W / 2; 0, ...
+                                                                 0, true]);
 close
 Z = [0 3 10 ht : 10 : ht + hl ht + hl + 3 ht + hl + 10 H];
 G = makeLayeredGrid(pebi(triangleGrid(p, t)), max(size(Z)) - 1);

@@ -15,31 +15,30 @@ function mrsttovtk(G, states, name, formatn)
 %   formatn - Format for writing numerical values.
 %
 % NOTES:
-%   Function `mrsttovtk` only writes cell values (e.g., pressures) but not
-%   faces values (e.g., flux).
+%   The function `mrsttovtk` only writes cell values (e.g., pressures) but 
+%   currenlty not values on faces (e.g., fluxes). This function supports 3D 
+%   tetrahedral, polyhedral, and corner-pont grids, 2D cartesian, triangular,
+%   and polygonal grids, and 1D grids.
 %
 % EXAMPLE:
-%   G = cartGrid([20, 10, 5]);
+%   Let us consider the grid from the MRST 2019 book (pp 97, Fig 3.31):
+%   G = G = simpleGrdecl([20, 20, 5], @(x) .25*(x-.5),'flat',true);
+%   G = processGRDECL(G);
 %
 %   % 1) Writting the content in G.cells.indexMap into the files states.pvd
 %   and states-00001.vtu for visualization in ParaView (this since indexMap
 %   is the only field with the same numbers of values as grid cells).
 %   mrsttovtk(G,G.cells,'states','%.6g');
 %
-%   % 2) If we compute the geometry, the function will write the values
-%   of indexMap, volumes, and centroids.
-%   G = computeGeometry(G);
-%   mrsttovtk(G,G.cells,'states','%.6g');
-%
-%   % 3) After making a structure with 10 values, we run the function to 
-%   write the values to be visualize in ParaView.
-%   for i=1:10
+%   % 2) After making a structure with 100 values, we run the mrsttovtk 
+%   function to write the values to be visualized each 10 values in ParaView.
+%   for i=1:100
 %       states{i}.index=i^2*G.cells.indexMap;
 %   end
-%   mrsttovtk(G,states,'states','%.6g');
+%   mrsttovtk(G,{states{10:10:100}},'states','%.6g');
 
 %{
-Copyright 2021, NORCE Norwegian Research Centre AS, Computational 
+Copyright 2021-2022, NORCE Norwegian Research Centre AS, Computational 
 Geosciences and Modeling. 
 
 This file is part of the ad-micp module.
@@ -51,54 +50,63 @@ the Free Software Foundation, either version 3 of the License, or
 
 ad-micp is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %}
     clear Text
-    form=sprintf('%s',formatn);
-    forms=sprintf('%s ',formatn);
-    Text{1}=sprintf('\t\t\t<Points>\n');
-    Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Float32" ' ...
-           'Name="Coordinates" NumberOfComponents="3" format="ascii">\n']);
+    form = sprintf('%s',formatn);
+    forms = sprintf('%s ',formatn);
+    Text{1} = sprintf('\t\t\t<Points>\n');
+    Text{size(Text,2)+1} = sprintf(['\t\t\t\t<DataArray type="Float32" ' ...
+            'Name="Coordinates" NumberOfComponents="3" format="ascii">\n']);
     Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
-    for i=1:G.nodes.num-1
-        Text{size(Text,2)+1}=sprintf([forms forms forms], ...
+    if G.griddim == 1
+        tg = 3;
+        for i = 1 : G.nodes.num - 1
+            Text{size(Text, 2) + 1} = sprintf([forms forms forms], ...
+              G.nodes.coords(i, 1), 0, 0);
+        end
+        Text{size(Text,2)+1}=sprintf([forms forms form '\n'], ...
+        G.nodes.coords(end,1),0,0);
+    elseif G.griddim == 2
+        if 4*G.cells.num==size(G.cells.faces)(1)
+            tg = 8;
+        else
+            tg = 7;
+        end
+        for i=1:G.nodes.num-1
+            Text{size(Text,2)+1}=sprintf([forms forms forms], ...
+              G.nodes.coords(i,1),G.nodes.coords(i,2),0);
+        end
+        Text{size(Text,2)+1}=sprintf([forms forms form '\n'], ...
+        G.nodes.coords(end,1),G.nodes.coords(end,2),0);
+    else
+        tg = 42;
+        for i=1:G.nodes.num-1
+            Text{size(Text,2)+1}=sprintf([forms forms forms], ...
               G.nodes.coords(i,1),G.nodes.coords(i,2),G.nodes.coords(i,3));
-    end
-    Text{size(Text,2)+1}=sprintf([forms forms form '\n'], ...
+        end
+        Text{size(Text,2)+1}=sprintf([forms forms form '\n'], ...
         G.nodes.coords(end,1),G.nodes.coords(end,2),G.nodes.coords(end,3));
+    end
     Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
     Text{size(Text,2)+1}=sprintf('\t\t\t</Points>\n');
     Text{size(Text,2)+1}=sprintf('\t\t\t<Cells>\n');
     Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="UInt8" ' ...
                  'Name="types" NumberOfComponents="1" format="ascii">\n']);
     Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
-    Text{size(Text,2)+1}=sprintf(repmat('42 ', 1, G.cells.num-1));
-    Text{size(Text,2)+1}=sprintf('42\n');
+    Text{size(Text,2)+1}=sprintf(repmat(cstrcat(num2str(tg),' '), 1, G.cells.num-1));
+    Text{size(Text,2)+1}=sprintf('%d\n',tg);
     Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
-    Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Int32" ' ...
-                 'Name="faces" NumberOfComponents="1" format="ascii">\n']);
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
     ii=rldecode(1:G.cells.num, diff(G.cells.facePos), 2)==1;
-    Text{size(Text,2)+1}=sprintf('%d',sum(ii));
-    kk=-1;
-    mm=0;
-    for j=G.cells.faces(ii,1)'
-        jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==j;
-        Text{size(Text,2)+1}=sprintf(repmat(' %d', 1,...
-                           sum(jj)+1),sum(jj),G.faces.nodes(jj,1)-1);
-        ll=unique([G.faces.nodes(jj,1)'-1 kk]);
-        kk=ll;
-        mm=sum(jj)+mm;
-    end 
-    offsets{1}=ll(2:end);
-    faceoffsets{1}=mm+sum(ii)+1;
-    for i=2:G.cells.num
-        ii=rldecode(1:G.cells.num, diff(G.cells.facePos), 2)==i;
-        Text{size(Text,2)+1}=sprintf(' %d',sum(ii));
+    if G.griddim == 3
+        Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Int32" ' ...
+                 'Name="faces" NumberOfComponents="1" format="ascii">\n']);
+        Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
+        Text{size(Text,2)+1}=sprintf('%d',sum(ii));
         kk=-1;
         mm=0;
         for j=G.cells.faces(ii,1)'
@@ -109,11 +117,79 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
             kk=ll;
             mm=sum(jj)+mm;
         end 
-        offsets{i}=ll(2:end);
-        faceoffsets{i}=mm+sum(ii)+1;
+        offsets{1}=ll(2:end);
+        faceoffsets{1}=mm+sum(ii)+1;
+        for i=2:G.cells.num
+            ii=rldecode(1:G.cells.num, diff(G.cells.facePos), 2)==i;
+            Text{size(Text,2)+1}=sprintf(' %d',sum(ii));
+            kk=-1;
+            mm=0;
+            for j=G.cells.faces(ii,1)'
+                jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==j;
+                Text{size(Text,2)+1}=sprintf(repmat(' %d', 1,...
+                           sum(jj)+1),sum(jj),G.faces.nodes(jj,1)-1);
+                ll=unique([G.faces.nodes(jj,1)'-1 kk]);
+                kk=ll;
+                mm=sum(jj)+mm;
+            end 
+            offsets{i}=ll(2:end);
+            faceoffsets{i}=mm+sum(ii)+1;
+        end
+        Text{size(Text,2)+1}=sprintf('\n');
+        Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
+    else
+        kk=-1;
+        mm=0;
+        vct=zeros(max(size(G.cells.faces(ii,1))),1);
+        jjj=G.cells.faces(ii,1)';
+        jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==jjj(1);
+        [ll,id,ic]=unique([G.faces.nodes(jj,1)'-1 kk],"stable");
+        c = setdiff (ll, kk);
+        vct(1)=c(1);
+        vct(2)=c(2);
+        kk=ll;
+        mm=sum(jj)+mm;
+        itr=3;
+        for indx=2:size(jjj)(2)-1
+            j=jjj(indx);
+            jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==j;
+            [ll,id,ic]=unique([G.faces.nodes(jj,1)'-1 kk],"stable");
+            c = setdiff (ll, kk);
+            vct(itr)=c;
+            kk=ll;
+            mm=sum(jj)+mm;
+            itr++;
+        end 
+        offsets{1}=vct;
+        faceoffsets{1}=mm+sum(ii)+1;
+        for i=2:G.cells.num
+            ii=rldecode(1:G.cells.num, diff(G.cells.facePos), 2)==i;
+            kk=-1;
+            mm=0;
+            vct=zeros(max(size(G.cells.faces(ii,1))),1);
+            jjj=G.cells.faces(ii,1)';
+            jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==jjj(1);
+            [ll,id,ic]=unique([G.faces.nodes(jj,1)'-1 kk],"stable");
+            c = setdiff (ll, kk);
+            vct(1)=c(1);
+            vct(2)=c(2);
+            kk=ll;
+            mm=sum(jj)+mm;
+            itr=3;
+            for indx=2:size(jjj)(2)-1
+                j=jjj(indx);
+                jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==j;
+                ll=unique([G.faces.nodes(jj,1)'-1 kk],"stable");
+                c = setdiff (ll, kk);
+                vct(itr)=c;
+                kk=ll;
+                mm=sum(jj)+mm;
+                itr++;
+            end 
+            offsets{i}=vct;
+            faceoffsets{i}=mm+sum(ii)+1;
+        end
     end
-    Text{size(Text,2)+1}=sprintf('\n');
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
     Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Int32" ' ...
                'Name="offsets" NumberOfComponents="1" format="ascii">\n']);
     ii=0;
@@ -133,19 +209,21 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
                                   max(size(offsets{i}))),offsets{i});   
     end
     Text{size(Text,2)+1}=sprintf(repmat('%d ', 1, ...
-         max(size(offsets{G.cells.num}))-1),offsets{G.cells.num}(1:end-1));
-    Text{size(Text,2)+1}=sprintf('%d\n',offsets{G.cells.num}(end));                    
+        max(size(offsets{G.cells.num}))-1),offsets{G.cells.num}(1:end-1));
+    Text{size(Text,2)+1}=sprintf('%d\n',offsets{G.cells.num}(end));                   
     Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
-    Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Int32" '...
+    if G.griddim == 3
+        Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Int32" '...
            'Name="faceoffsets" NumberOfComponents="1" format="ascii">\n']);
-	Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
-    ii=0;
-    for i=1:G.cells.num-1
-        ii=faceoffsets{i}+ii;
-        Text{size(Text,2)+1}=sprintf('%d ',ii);
+	    Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
+        ii=0;
+        for i=1:G.cells.num-1
+            ii=faceoffsets{i}+ii;
+            Text{size(Text,2)+1}=sprintf('%d ',ii);
+        end
+        Text{size(Text,2)+1}=sprintf('%d\n',faceoffsets{G.cells.num}+ii);
+        Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
     end
-    Text{size(Text,2)+1}=sprintf('%d\n',faceoffsets{G.cells.num}+ii);
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
     Text{size(Text,2)+1}=sprintf('\t\t\t</Cells>\n');
     Text{size(Text,2)+1}=sprintf('\t\t</Piece>\n');
     Text{size(Text,2)+1}=sprintf('\t</UnstructuredGrid>\n');

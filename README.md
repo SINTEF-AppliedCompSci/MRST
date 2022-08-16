@@ -1,8 +1,8 @@
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+![Octave](https://img.shields.io/badge/OCTAVE-darkblue?style=for-the-badge&logo=octave&logoColor=fcd683)[![Build Status](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml/badge.svg)](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml)[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 # ad-micp: A module to study CO2 leakage remediation by microbially induced calcite precipitation (MICP)
 
-<img src="micp-gif.gif" width="900" height="400">
+<img src="micp-gif.gif" width="830" height="400">
 
 ## Description
 MICP is a new and sustainable technology which utilizes biochemical
@@ -21,9 +21,7 @@ In addition, this module includes scripts to run the studies in [A, B].
 
 The ad-micp module is compatible with the (freely available) MATLAB
 Reservoir Simulation Toolbox (MRST) provided by SINTEF Digital, see
-http://www.sintef.no/projectweb/mrst/. There is also a short YouTube
-video with further information on how to install and use this module
-in MATLAB and GNU Octave https://www.youtube.com/watch?v=nvz3bV4QgxM.
+http://www.sintef.no/projectweb/mrst/.
 
 See the Wiki for an extended description, information regarding changes
 respect to previous releases, and using this module in macOS with GNU
@@ -37,6 +35,9 @@ Octave.
 * Set the folder's name to 'ad-micp'.
 * Move the folder inside the 'modules' folder in MRST.
 * Run the 'startup.m' file in MRST.
+
+## Getting started
+See https://www.youtube.com/watch?v=nvz3bV4QgxM.
 
 ## Cite
 If you use ad-micp to write a scientific publication, please cite one of
