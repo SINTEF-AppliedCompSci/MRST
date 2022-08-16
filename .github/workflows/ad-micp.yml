@@ -23,8 +23,9 @@ jobs:
 
     - name: Install octave
       run: |
+        sudo apt-add-repository ppa:octave/stable
         sudo apt-get update
-        sudo apt-get -y install octave
+        sudo apt-get install octave
     
     - name: Download mrst (master branch)
       run: |
@@ -37,7 +38,7 @@ jobs:
         rm -rf ad-micp
         rm -rf upr
         git clone https://github.com/daavid00/ad-micp.git
-        git clone https://github.com/rbe051/UPR.git upr
+        git clone https://github.com/rbe051/UPR.git upr 
       
     - name: Run the two tests
       run: |
