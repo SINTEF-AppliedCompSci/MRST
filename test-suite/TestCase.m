@@ -37,7 +37,8 @@ classdef TestCase
             % Merge options
             opt = struct('plot'        , false, ...
                          'readFromDisk', true , ...
-                         'writeToDisk' , false);
+                         'writeToDisk' , false, ...
+                         'computeID'   , false);
             [opt , varargin] = merge_options(opt, varargin{:});
             [test, extra   ] = merge_options(test, varargin{:});
             if isempty(test.verbose), test.verbose = mrstVerbose(); end
@@ -104,7 +105,17 @@ classdef TestCase
                     plotToolbar(G, v, test.toolbarOptions{:}, varargin{:});
             end
             % Compute test case ID
-            test.id = test.getTestCaseHash();
+            if opt.computeID
+                if test.verbose
+                    timer = tic();
+                    fprintf('Computing test case ID ... ');
+                end
+                test.id = test.getTestCaseHash();
+                if test.verbose
+                    time = toc(timer);
+                    fprintf('Done in %s \n\n', formatTimeRange(time));
+                end
+            end
             
             if opt.writeToDisk
                 % Save test case to disk
@@ -385,8 +396,9 @@ classdef TestCase
         function m = isModified(test)
         % Check is the test case has been modified after construction
             
+            if isempty(test.id), m = -1; return; end
             hash = test.getTestCaseHash();
-            m    = ~strcmpi(hash, test.id);
+            m    = ~strcmpi(hash, test.id)*1;
             
         end
         
@@ -415,11 +427,20 @@ classdef TestCase
                 % Prompt the user in case we are about to save a modified
                 % version of test case.
                 modified = test.isModified();
-                if modified
-                    str = input(['Test case has been changed after '  , ...
-                                 'construction. Do you still want to ', ...
-                                 'save it? y/n [n]: '], 's'           );
-                    if ~strcmpi(str, 'y'), fprintf(rmsg); return; end
+                switch modified
+                    case 0
+                        % Not modified, proceed
+                    case 1
+                        str = input(['Test case has been changed ' , ...
+                                'after construction. Do you still ', ...
+                                'want to save it? y/n [n]: '], 's' );
+                        if ~strcmpi(str, 'y'), fprintf(rmsg); return; end
+                    case -1
+                        str = input(['ID not computed -- cannot '    , ...
+                                'determine if test case has been '   , ...
+                                'changed after construction. Do you ', ...
+                                'still want to save it? y/n [n]: '], 's');
+                        if ~strcmpi(str, 'y'), fprintf(rmsg); return; end
                 end 
                 % Get size of test case and prompt user
                 prefix = {'k', 'M', 'G'};
