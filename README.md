@@ -1,4 +1,4 @@
-![Octave](https://img.shields.io/badge/OCTAVE-darkblue?style=for-the-badge&logo=octave&logoColor=fcd683)[![Build Status](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml/badge.svg)](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml)[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Build Status](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml/badge.svg)](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml)[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 # ad-micp: A module to study CO2 leakage remediation by microbially induced calcite precipitation (MICP)
 
@@ -29,7 +29,7 @@ Octave.
 
 ## Requirements
 * MRST (Tested version: 2022a)
-* MATLAB (Tested version: R2022a) or GNU Octave (Tested version: 6.4.0)
+* MATLAB (Tested version: R2022a) or GNU Octave (Tested version: 7.2.0)
 
 ## Installation (MATLAB/GNU Octave)
 * Set the folder's name to 'ad-micp'.

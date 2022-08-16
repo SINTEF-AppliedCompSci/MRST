@@ -390,7 +390,7 @@ view(340, 20); axis tight; colorbar; caxis([0 1]);
 
 %% Copyright notice
 %{
-Copyright 2021, NORCE Norwegian Research Centre AS, Computational
+Copyright 2021-2022, NORCE Norwegian Research Centre AS, Computational
 Geosciences and Modeling.
 
 This file is part of the ad-micp module.
