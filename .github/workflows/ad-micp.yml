@@ -23,7 +23,7 @@ jobs:
 
     - name: Install octave
       run: |
-        port install octave
+        brew install octave
     
     - name: Download mrst (master branch)
       run: |
