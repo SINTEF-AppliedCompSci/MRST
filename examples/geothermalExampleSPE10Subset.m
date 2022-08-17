@@ -39,6 +39,15 @@ end
 rock = makeRock(G, perm, poro);
 rock = addThermalRockProps(rock);
 
+%% Inspect the geological model
+figure('Position', [0,0,500,800])
+K = convertTo(rock.perm(:,1),milli*darcy);
+plotCellData(G,log10(K),'edgeAlpha',.1); axis tight;
+set(gca,'FontSize',12)
+mrstColorbar(K,'South',true); axis equal tight
+xwR = GRef.cells.centroids(vertcat(WRef.cells),1:2);
+hold on; plot(xwR(:,1),xwR(:,2),'.r','MarkerSize',18); hold off; drawnow
+
 %% Create model
 % We use a single-phase geothermal model. Viscosity and density are
 % p/T-dependent, and will be set later
@@ -52,6 +61,7 @@ Watt  = joule/second;
 rock  = addThermalRockProps(rock, 'lambdaR', 20*Watt/(meter*Kelvin)     , ...
                                   'CpR'    , 100*joule/(kilogram*Kelvin));
 model = GeothermalModel(G, rock, fluid); % Make model
+
 % The EOS is valid for pressure/temperature within a given range. We
 % provide these to the model so that pressure/temperature are within these
 % during the nonlinear solution step

@@ -89,7 +89,6 @@ state0.T = ones(G.cells.num,1).*(273.15+10);  % Temperature
 gravity reset on
 gravity([0 -9.81]); % gravity is downward 
 model = GeothermalModel(G, rock, fluid, 'extraStateOutput', true);
-% wModel  =  GeothermalWaterModel(G, rock, fluid, 'extraStateOutput', true);
 % Define limits of temperature validity for EOS
 model.minimumTemperature = TMin;
 model.maximumTemperature = TMax;

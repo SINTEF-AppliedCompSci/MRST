@@ -3,25 +3,39 @@ mrstModule add ad-core ad-props
 mrstModule add geothermal compositional
 mrstModule add multiphysics-model wellpaths upr
 mrstModule add mrst-gui
+mrstModule add ecmor-2022-geothermal
 mrstVerbose on
 
 %%
 close all
-test = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', true);
-test.plot(test.state0);
+cartDims = [100,1,100];
+test    = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', true, 'cartDims', cartDims);
+testRef = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', false, 'cartDims', cartDims);
 
 %%
-% test.model.submodels.Reservoir.applyResidualScaling = true;
-% test.model.submodels.Wellbore.parentModel.applyResidualScaling = true;
 lsol = MultiPhysicsLinearSolver(test.model);
+nls = NonLinearSolver();
+nls.useLinesearch = true;
+nls.LinearSolver = lsol;
+% test.model.submodels.Wellbore.parentModel.operators.T = test.model.submodels.Wellbore.parentModel.operators.T*100;
 problem = test.getPackedSimulationProblem('LinearSolver', lsol);
-simulatePackedProblem(problem);
+simulatePackedProblem(problem, 'restartStep', 1);
 
 %%
-[wellSols, states, reports] = getPackedSimulatorOutput(problem);
+problemRef = testRef.getPackedSimulationProblem();
+simulatePackedProblem(problemRef, 'restartStep', 1);
+
+%%
+close all
+[wellSols   , states   , reports   ] = getPackedSimulatorOutput(problem);
+wellSol = getWellSolsFromWBState(test.model, states);
+[wellSolsRef, statesRef, reportsRef] = getPackedSimulatorOutput(problemRef);
 
 test.plot(states);
-plotWellSols(wellSols);
+test.plot(statesRef);
+dstates = cellfun(@(st1, st2) compareStructs(st1.Reservoir, st2, 'includeStructs', false, 'relative', true), states, statesRef, 'UniformOutput', true);
+test.plot(dstates);
+% plotWellSols(wellSols);
 
 %%
 traj = linspace(0,max(test.model.G.nodes.coords(:,3)), 100)';
