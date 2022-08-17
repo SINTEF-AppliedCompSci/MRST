@@ -46,6 +46,7 @@ classdef GeothermalFlowDiscretization < FlowDiscretization
             props = props.setStateFunction('ConductiveHeatFlux', ConductiveHeatFlux(model));
             props = props.setStateFunction('AdvectiveHeatFlux' , AdvectiveHeatFlux(model) );
             props = props.setStateFunction('HeatFlux'          , HeatFlux(model)          );
+            if ~any(cellfun(@(comp) comp.molecularDiffusivity, model.Components) > 0), return; end
             % Set molecular diffusion flux
             props = props.setStateFunction('MolecularDiffusivity'       , MolecularDiffusivity(model));
             props = props.setStateFunction('MolecularTransmissibility'  , DynamicTransmissibility(model, 'MolecularDiffusivity'));
@@ -55,6 +56,7 @@ classdef GeothermalFlowDiscretization < FlowDiscretization
         %-----------------------------------------------------------------%
         function [acc, flux, names, types] = componentConservationEquations(fd, model, state, state0, dt)
             [acc, flux, names, types] = componentConservationEquations@FlowDiscretization(fd, model, state, state0, dt);
+            if ~any(cellfun(@(comp) comp.molecularDiffusivity, model.Components) > 0), return; end
             % Conductive and advective heat flux
             flowState = fd.buildFlowState(model, state, state0, dt);
             diffFlux = model.getProp(flowState, 'ComponentTotalDiffusiveFlux');
