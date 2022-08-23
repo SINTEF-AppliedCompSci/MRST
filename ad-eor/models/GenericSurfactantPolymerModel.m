@@ -40,6 +40,18 @@ classdef GenericSurfactantPolymerModel < ThreePhaseSurfactantPolymerModel & Gene
             [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
 
+            if ~isempty(drivingForces.bc) || ~isempty(drivingForces.src)
+                [pressures, sat, mob, rho, rs, rv] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'Rs', 'Rv');
+                dissolved = model.getDissolutionMatrix(rs, rv);
+
+                cnames = model.getComponentNames();
+                components = cellfun(@(x) model.getProp(state, x), cnames, 'UniformOutput',false);
+                eqs = model.addBoundaryConditionsAndSources(eqs, names, types, state, ...
+                                                                 pressures, sat, mob, rho, ...
+                                                                 dissolved, components, ...
+                                                                 drivingForces);
+            end
+
             % Assemble equations and add in sources
             for i = 1:numel(eqs)
                 if ~isempty(src.cells)

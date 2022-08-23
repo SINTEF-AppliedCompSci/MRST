@@ -363,7 +363,7 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
                 % density and add into corresponding equation
                 qW = src.phaseMass{1}./model.fluid.rhoWS;
                 isInj = qW > 0;
-                qC = (isInj.*c + ~isInj.*component(cells)).*qW;
+                qC = (isInj.*c' + ~isInj.*component(cells)).*qW;
               otherwise
                 error(['Unknown component ''', cname, '''. BC not implemented.']);
             end
