@@ -14,6 +14,7 @@ testRef = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', false, '
 
 %%
 lsol = MultiPhysicsLinearSolver(test.model);
+lsol.solveSubproblems = true;
 nls = NonLinearSolver();
 nls.useLinesearch = true;
 nls.LinearSolver = lsol;
@@ -27,15 +28,15 @@ simulatePackedProblem(problemRef, 'restartStep', 1);
 
 %%
 close all
-[wellSols   , states   , reports   ] = getPackedSimulatorOutput(problem);
-wellSol = getWellSolsFromWBState(test.model, states);
+[~   , states   , reports   ] = getPackedSimulatorOutput(problem);
+wellSols = getWellSolsFromWBState(test.model, states);
 [wellSolsRef, statesRef, reportsRef] = getPackedSimulatorOutput(problemRef);
 
 test.plot(states);
 test.plot(statesRef);
 dstates = cellfun(@(st1, st2) compareStructs(st1.Reservoir, st2, 'includeStructs', false, 'relative', true), states, statesRef, 'UniformOutput', true);
 test.plot(dstates);
-% plotWellSols(wellSols);
+plotWellSols({wellSols, wellSolsRef});
 
 %%
 traj = linspace(0,max(test.model.G.nodes.coords(:,3)), 100)';
