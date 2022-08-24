@@ -210,7 +210,6 @@ classdef WellboreModel < WrapperModel
         function [groupings, names, models] = getStateFunctionGroupings(model)
 
             [groupings, names, models] = model.parentModel.getStateFunctionGroupings();
-            % TODO: Set linear relperms inside wellbore
             groupings = [groupings, {model.InletPropertyFunctions}];
             names     = [names    , {'InletPropertyFunctions'}    ];
             models    = [models   , class(model)                  ];
@@ -302,17 +301,15 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
             
-            [eqs, names, types, state] = model.parentModel.getModelEquations(state0, state, dt, drivingForces);
+            % Get parent model equations
+            [eqs, names, types, state] ...
+                = model.parentModel.getModelEquations(state0, state, dt, drivingForces);
+            
+            % Get active wells for this timestep
             if isempty(drivingForces.W), return; end
             Wd = drivingForces.W;
             
-            if ~isfield(state, 'pu')
-                state.pu = state.FluxDisc.PhaseUpwindFlag{1};
-            else
-                state.pu(:,end+1) = state.FluxDisc.PhaseUpwindFlag{1};
-            end
-            
-            % Add inlet fluxes
+            % Add inlet/outlet mass fluxes
             [Q, qs] = model.computeInletFlux(state, Wd);
             cnames = model.parentModel.getComponentNames();
             topCells = model.G.cells.topCell;
@@ -321,25 +318,83 @@ classdef WellboreModel < WrapperModel
                 eqs{mix}(topCells) = eqs{mix}(topCells) - Q{mix};
             end
             
+            % Add inlet/outlet heat fluxes
             eix = strcmpi('energy', names);
             if any(eix)
                 Qh = model.computeInletHeatFlux(state, Wd);
                 eqs{eix}(topCells) = eqs{eix}(topCells) - Qh;
             end
             
-            % Set up well equations, one per phase + one control equation
-            nph = model.parentModel.getNumberOfPhases();
-            weqs = cell(1, nph + 1);
-            % Set rate equations
-            rnames = model.getSurfaceRateNames();
-            qsw = cell(size(rnames));
-            [bhp, qsw{:}] = model.getProps(state, 'bhp', rnames{:});
-            scale = (meter^3/day)^(-1);
-            weqs(1:nph) = cellfun(@(qs, qph) (qs - qph).*scale, qsw, qs, 'UniformOutput', false);
+            % Get extra equations specific to the wellbore model
+            isInj = value(Q) > 0;
+            % Mass fluxes, surface rates and control
+            [fluxEqs, fluxNames, fluxTypes, state] = model.getMassFluxEquations(state);
+            [rateEqs, rateNames, rateTypes, state] = model.getSurfaceRateEquations(state, qs);
+            [ctrlEqs, ctrlNames, ctrlTypes, state] = model.getControlEquations(state, Wd, isInj);
+            % Assemble
+            eqs   = [eqs  , fluxEqs  , rateEqs  , ctrlEqs  ];
+            names = [names, fluxNames, rateNames, ctrlNames];
+            types = [types, fluxTypes, rateTypes, ctrlTypes];
+            % Set inlet/outlet mass/heat fluxes to state
+            state.inletFlux = Q;
+            state.inletHeatFlux = Qh;
+            
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function [eqs, names, types, state] = getMassFluxEquations(model, state)
 
-            ctrl = model.AutoDiffBackend.convertToAD(zeros(model.numWells,1), bhp);
+            roughness = model.getSegmentRoughness(true);
+            
+            d = model.G.faces.radius.*2;
+            l = model.G.faces.length;
+            
+            [v, rho, mu, pot, flag] = model.parentModel.getProps(state, ...
+                                    'ComponentPhaseFlux', ...
+                                    'Density', ...
+                                    'Viscosity', ...
+                                    'PhasePotentialDifference', ...
+                                    'PhaseUpwindFlag');
+            rho{1} = model.parentModel.operators.faceAvg(rho{1});
+            
+            mu{1} = model.parentModel.operators.faceUpstr(flag{1}, mu{1});
+            dp = wellBoreFriction(v{1}, rho{1}, mu{1}, d, l, roughness, 'massRate');
+            
+            bhp = model.getProp(state, 'bhp');
+            eqs   = (pot{1} - dp)./max(max(value(bhp)), 1);
+            eqs   = {eqs};
+            names = {'flux'};
+            types = {'face'};
+            
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function [eqs, names, types, state] = getSurfaceRateEquations(model, state, qs)
+        % Equations realting rates into/out of the wellbore inlet/outlet to
+        % those computed based on wellbore friction/bhp
+
+            nph      = model.getNumberOfPhases();
+            names    = model.getSurfaceRateNames();
+            qsw      = cell(1, nph);
+            [qsw{:}] = model.getProps(state, names{:});
+            scale    = (meter^3/day)^(-1);
+            eqs      = cellfun(@(qs, qph) (qs - qph).*scale, qsw, qs, ...
+                            'UniformOutput', false);
+            types    = repmat({'rate'}, 1, nph);
+                        
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function [eqs, names, types, state] = getControlEquations(model, state, Wd, isInj)
+        % Equations imposing well control for each well
+
+            bhp = model.getProp(state, 'bhp');
+            eqs = model.AutoDiffBackend.convertToAD(zeros(model.numWells,1), bhp);
             ctrlTarget = vertcat(Wd.val);
-            ctrlType = {Wd.type}';
+            ctrlType   = {Wd.type}';
             % Bottom-hole pressure control
             is_bhp  = strcmpi(ctrlType, 'bhp');
             % Surface total rates
@@ -360,12 +415,17 @@ classdef WellboreModel < WrapperModel
             assert(~any(is_resv | is_volume), 'Not implemented yet');
 
             % Set BHP control equations
-            ctrl(is_bhp) = ctrlTarget(is_bhp) - bhp(is_bhp);
+            eqs(is_bhp) = ctrlTarget(is_bhp) - bhp(is_bhp);
 
             % Set rate control equations
+            nph    = model.parentModel.getNumberOfPhases();
             phases = model.parentModel.getPhaseNames();
-            wrates = bhp*0;
+            rnames = model.getSurfaceRateNames();
+            qsw      = cell(1, nph);
+            [qsw{:}] = model.getProps(state, rnames{:});
             is_surface_rate = false(model.numWells(), 1);
+            wrates = bhp*0;
+            % Sum up rate targets
             for ph = 1:nph
                 switch phases(ph)
                     case 'W'
@@ -378,54 +438,23 @@ classdef WellboreModel < WrapperModel
                 wrates(act) = wrates(act) + qsw{ph}(act);
                 is_surface_rate(act) = true;
             end
-            % Set BHP control equations
-            ctrl(is_surface_rate) = ctrlTarget(is_surface_rate) - wrates(is_surface_rate);
+            eqs(is_surface_rate) = ctrlTarget(is_surface_rate) - wrates(is_surface_rate);
             
-            % Append to model equations
-            weqs{end} = ctrl;
-            wnames = [rnames, 'control'];
-            wtypes = [repmat({'rate'}, 1, nph), 'control'];
-            if any(eix)
+            % Pack in standard eqs/names/types format
+            eqs = {eqs}; [names, types] = deal({'control'});
+            
+            % Add bht equation if applicable
+            if model.thermal
                 bht = model.getProp(state, 'bht');
                 Tw  = model.getProp(state, 'T');
-                Tw = Tw(topCells);
-                Twinj = vertcat(Wd.T);
-                flag = Qh > 0;
-                Tw(flag) = Twinj(flag);
-                Teq = bht - Tw;
-                weqs{end+1} = Teq;
-                
-                wnames{end+1} = 'temperature';
-                wtypes{end+1} = 'control';
+                Tw  = Tw(model.G.cells.topCell);
+                TwInj = vertcat(Wd.T);
+                Tw(isInj) = TwInj(isInj);
+                eqTemp = bht - Tw;
+                eqs   = [eqs, {eqTemp}];
+                names = [names, 'temperature'];
+                types = [types, 'control'];
             end
-            
-            roughness = 1e-4;
-            
-            d = model.G.faces.radius.*2;
-            l = model.G.faces.length;
-            
-            % o---o---o
-            [v, rho, mu, pot, flag] = model.parentModel.getProps(state, ...
-                                    'ComponentPhaseFlux', ...
-                                    'Density', ...
-                                    'Viscosity', ...
-                                    'PhasePotentialDifference', ...
-                                    'PhaseUpwindFlag');
-            rho{1} = model.parentModel.operators.faceAvg(rho{1});
-            
-            mu{1} = model.parentModel.operators.faceUpstr(flag{1}, mu{1});
-            dp = wellBoreFriction(v{1}, rho{1}, mu{1}, d, l, roughness, 'massRate');
-            
-            weqs{end+1} = (pot{1} - dp)./mean(value(bhp));
-            wnames{end+1} = 'flux';
-            wtypes{end+1} = 'flux';
-            
-            eqs   = [eqs, weqs];
-            names = [names, wnames];
-            types = [types, wtypes];
-
-            state.inletFlux = Q;
-            state.inletHeatFlux = Qh;
             
         end
         %-----------------------------------------------------------------%
@@ -617,6 +646,26 @@ classdef WellboreModel < WrapperModel
             % Face segment lengths computed as mean of adjacent cells
             N = model.G.faces.neighbors; N = N(all(N>0,2), :);
             l = sum(l(N).*0.5, 2);
+
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function r = getSegmentRoughness(model, face)
+            
+            % Get wellbore rougness (currently assumes one value per well)
+            r = arrayfun(@(W) sum(W.trajectory.roughness, 2), ...
+                    model.W, 'UniformOutput', false);
+            r = cell2mat(r);
+            assert(numel(r) == model.numWells, ['WellboreModel ', ...
+                'currently only supports one roughness value per well']);
+            r = r(model.G.cells.wellNo);
+            
+            if nargin < 2 || ~face, return; end
+            
+            % Face segment roughness computed as mean of adjacent cells
+            N = model.G.faces.neighbors; N = N(all(N>0,2), :);
+            r = sum(r(N).*0.5, 2);
 
         end
         %-----------------------------------------------------------------%
