@@ -19,7 +19,9 @@ classdef WellboreModel < WrapperModel
             if (iscell(trajectories) && isnumeric(trajectories{1})) ...
                     || isstruct(trajectories)
                 % Well trajectories given as 
-                [W, G] = processWellboreTrajectories(rmodel.G, rmodel.rock, trajectories, 'names', opt.names, varargin{:});
+                [W, G] = processWellboreTrajectories( ...
+                            rmodel.G, rmodel.rock, trajectories, ...
+                            'names', opt.names, varargin{:});
             elseif iscell(trajectories) && isfield(trajectories{1}, 'cells')
                 % Well trajectories given as grids
                 error('Not supported yet')
@@ -52,7 +54,7 @@ classdef WellboreModel < WrapperModel
             end
             model = merge_options(model, varargin{:});
             
-            
+            % Set phase and thermal flag
             model.water = model.parentModel.water;
             model.oil   = model.parentModel.oil;
             model.gas   = model.parentModel.gas;
@@ -72,30 +74,37 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function G = computeWellGridGeometry(model, G)
             
-            length = arrayfun(@(W) sqrt(sum(W.trajectory.vec.^2, 2)), model.W, 'UniformOutput', false);
-            length = cell2mat(length);
+            % Get cell segment lengths and radii and set to G.cells for
+            % easy access later
+            G.cells.length = model.getSegmentLength();
+            G.cells.radius = model.getSegmentRadius();
+            % Comute cross-sectional area of each cell segment
+            area = pi.*G.cells.radius.^2;
             
-            area   = pi*vertcat(model.W.r).^2;
-            vol    = length.*area;
+            % Compute cell volumes
+            G.cells.volumes = area.*G.cells.length;
             
-            G.cells.volumes = vol(G.cells.order);
-            area = area(G.cells.order);
-
-            for i = 1:model.numWells()
-                cells = find(G.cells.wellNo == i);
-                faces = all(ismember(G.faces.neighbors, cells), 2);
-                a = area(G.faces.neighbors(faces,:));
-                if size(a,2) == 1, a = a'; end
-                a = mean(a,2);
-                G.faces.areas(faces)= a;
-            end
+            % Compute face area
+            area = [nan; area];
+            N    = G.faces.neighbors + 1;
+            % Remember to rescale area-weighted normals
+            G.faces.normals = G.faces.normals./G.faces.areas;
+            % Compute as mean of well cross-section area of adjacent cells
+            G.faces.areas   = mean(area(N),2,'omitnan');
+            G.faces.normals = G.faces.normals.*G.faces.areas;
+            
+            % Set face segment lengths and radii for easy access later
+            G.faces.length = model.getSegmentLength(true);
+            G.faces.radius = model.getSegmentRadius(true);
             
         end
         
         %-----------------------------------------------------------------%
         function model = validateModel(model, varargin)
             
+            % This will take care of parent model validation
             model = validateModel@WrapperModel(model, varargin{:});
+            % Remove facility model
             model.parentModel.FacilityModel = [];
             
         end
@@ -184,6 +193,7 @@ classdef WellboreModel < WrapperModel
             % Replace component phase flux state function
             fd = model.parentModel.FlowDiscretization;
             fd = fd.setStateFunction('ComponentPhaseFlux', WellboreComponentPhaseFlux(model));
+            % Replace phase puwind flag state function
             fd = fd.setStateFunction('PhaseUpwindFlag', WellborePhaseUpwindFlag(model));
             model.parentModel.FlowDiscretization = fd;
             % Add inlet property functions
@@ -218,7 +228,6 @@ classdef WellboreModel < WrapperModel
             % Euivalent permeability from laminar pipe flow assumption
             r = vertcat(model.W.r); r = r(model.G.cells.order);            
             rock.perm = min(r.^2/8, 1e-5);
-%             rock.perm = r.^2/8;
             rock.poro = ones(GW.cells.num, 1);
             model.parentModel.rock = rock;
             model.parentModel.G = GW;
@@ -392,8 +401,8 @@ classdef WellboreModel < WrapperModel
             
             roughness = 1e-4;
             
-            d = model.getSegmentRadius().*2;
-            l = model.getSegmentLength();
+            d = model.G.faces.radius.*2;
+            l = model.G.faces.length;
             
             % o---o---o
             [v, rho, mu, pot, flag] = model.parentModel.getProps(state, ...
@@ -579,10 +588,15 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function r = getSegmentRadius(model)
+        function r = getSegmentRadius(model, face)
             
+            % Get radius in each cell
             r = vertcat(model.W.r);
             r = r(model.G.cells.order);
+            
+            if nargin < 2 || ~face, return; end
+            
+            % Face segment radii computed as mean of adjacent cells
             N = model.G.faces.neighbors; N = N(all(N>0,2), :);
             r = mean(r(N),2);
             
@@ -590,15 +604,19 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function l = getSegmentLength(model)
+        function l = getSegmentLength(model, face)
             
-            x = model.G.cells.centroids;
+            % Compute segments within each cell
+            l = arrayfun(@(W) sqrt(sum(W.trajectory.vec.^2, 2)), ...
+                        model.W, 'UniformOutput', false);
+            l = cell2mat(l);
+            l = l(model.G.cells.order);
+            
+            if nargin < 2 || ~face, return; end
+            
+            % Face segment lengths computed as mean of adjacent cells
             N = model.G.faces.neighbors; N = N(all(N>0,2), :);
-            dx = zeros(nnz(model.parentModel.operators.internalConn), model.G.griddim);
-            for d = 1:model.G.griddim
-                dx(:, d) = x(N(:,1),d) - x(N(:,2),d);
-            end
-            l = sqrt(sum(dx.^2,2));
+            l = sum(l(N).*0.5, 2);
 
         end
         %-----------------------------------------------------------------%
