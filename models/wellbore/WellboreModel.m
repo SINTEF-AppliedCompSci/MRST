@@ -1,10 +1,12 @@
 classdef WellboreModel < WrapperModel
     
     properties
+        
         W
         water, oil, gas
         InletPropertyFunctions
         thermal = false
+        
     end
    
     methods
@@ -74,10 +76,28 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function G = computeWellGridGeometry(model, G)
             
+            % Add inlet cells as copies of the top cell
+            G.cells.num = G.cells.num + model.numWells;
+            % Set volumes and centroids
+            G.cells.volumes   = [G.cells.volumes  ; G.cells.volumes(G.cells.topCell)];
+            G.cells.centroids = [G.cells.centroids; G.cells.centroids(G.cells.topCell,:)];
+            % Set facePos
+            nf = diff(G.cells.facePos); nf = nf(G.cells.topCell);
+            facePos = cumsum([G.cells.facePos(end); nf]);
+            G.cells.facePos = [G.cells.facePos; facePos(2:end)];
+            % Set faces
+            faces = G.cells.faces(mcolon(G.cells.facePos(G.cells.topCell), ...
+                                         G.cells.facePos(G.cells.topCell + 1) - 1),:);
+            G.cells.faces = [G.cells.faces; faces];
+            % Set inlet cells to be neighbors of the topcells
+            N = G.faces.neighbors(G.faces.topFace,:);
+            N(N == 0) = (G.cells.num-model.numWells+1:G.cells.num);
+            G.faces.neighbors(G.faces.topFace,:) = N;
+            
             % Get cell segment lengths and radii and set to G.cells for
             % easy access later
-            G.cells.length = model.getSegmentLength();
-            G.cells.radius = model.getSegmentRadius();
+            G.cells.length = model.getSegmentLength(G);
+            G.cells.radius = model.getSegmentRadius(G);
             % Comute cross-sectional area of each cell segment
             area = pi.*G.cells.radius.^2;
             
@@ -94,8 +114,13 @@ classdef WellboreModel < WrapperModel
             G.faces.normals = G.faces.normals.*G.faces.areas;
             
             % Set face segment lengths and radii for easy access later
-            G.faces.length = model.getSegmentLength(true);
-            G.faces.radius = model.getSegmentRadius(true);
+            G.faces.length = model.getSegmentLength(G, true);
+            G.faces.radius = model.getSegmentRadius(G, true);
+            
+            % Set flag indicating if cell is perforation (i.e., connected
+            % to a reservoir cell). Otherwise, it is an inlet(/outlet) cell
+            G.cells.isPerf = true(G.cells.num,1);
+            G.cells.isPerf(end-model.numWells+1:end) = false;
             
         end
         
@@ -220,18 +245,29 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function model = setupOperators(model, G, rock, varargin)
             
-            % Make wellbore grid
+            % Make wellbore grid and set to model
             GW = model.computeWellGridGeometry(G);
+            
             % Make rock structure to represent wellbore
             rock = model.parentModel.rock;
             % Euivalent permeability from laminar pipe flow assumption
-            r = vertcat(model.W.r); r = r(model.G.cells.order);            
-            rock.perm = min(r.^2/8, 1e-5);
+            rock.perm = min(GW.cells.radius.^2/8, 1e-5);
             rock.poro = ones(GW.cells.num, 1);
+            fnames = fieldnames(rock)';
+            for name = fnames
+                v = rock.(name{1});
+                if size(v,1) == GW.cells.num - model.numWells
+                    rock.(name{1}) = [v; v(GW.cells.topCell,:)];
+                end
+            end
+            
             model.parentModel.rock = rock;
             model.parentModel.G = GW;
+            model.G = GW;
+                        
             % Compute operators in standard way
             model.parentModel = model.parentModel.setupOperators(GW, rock, varargin{:});
+
             % Set well indices
             WI = vertcat(model.W.WI);
             WI = WI(model.G.cells.order);
@@ -243,12 +279,9 @@ classdef WellboreModel < WrapperModel
                 model.parentModel.operators.WIth = WIth;
             end
             
-            % Set well grid to model
-            model.G = GW;
-            
         end
         %-----------------------------------------------------------------%
-
+        
         %-----------------------------------------------------------------%
         function [vars, names, origin] = getPrimaryVariables(model, state)
             
@@ -345,11 +378,11 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function [eqs, names, types, state] = getMassFluxEquations(model, state)
 
-            roughness = model.getSegmentRoughness(true);
-            
+            roughness = model.getSegmentRoughness(model.G, true);
+
             d = model.G.faces.radius.*2;
             l = model.G.faces.length;
-            
+
             [v, rho, mu, pot, flag] = model.parentModel.getProps(state, ...
                                     'ComponentPhaseFlux', ...
                                     'Density', ...
@@ -357,16 +390,16 @@ classdef WellboreModel < WrapperModel
                                     'PhasePotentialDifference', ...
                                     'PhaseUpwindFlag');
             rho{1} = model.parentModel.operators.faceAvg(rho{1});
-            
+
             mu{1} = model.parentModel.operators.faceUpstr(flag{1}, mu{1});
             dp = wellBoreFriction(v{1}, rho{1}, mu{1}, d, l, roughness, 'massRate');
-            
+
             bhp = model.getProp(state, 'bhp');
             eqs   = (pot{1} - dp)./max(max(value(bhp)), 1);
             eqs   = {eqs};
             names = {'flux'};
             types = {'face'};
-            
+
         end
         %-----------------------------------------------------------------%
         
@@ -576,9 +609,10 @@ classdef WellboreModel < WrapperModel
             Qh = Qh(model.G.cells.wellNo);
             [mass, energy] = model.parentModel.getProps(problem.state, 'ComponentTotalMass', 'TotalThermalEnergy');
             
-            scaleMass = max(value(mass{1})./dt, Q);
+            pad = zeros(model.numWells,1);
+            scaleMass = max(value(mass{1})./dt, [Q; pad]);
             
-            scaleEnergy = max(value(energy)./dt, Qh);
+            scaleEnergy = max(value(energy)./dt, [Qh; pad]);
             
             values(1) = norm(value(problem.equations{1}./scaleMass), inf);
             values(2) = norm(value(problem.equations{2}./scaleEnergy), inf);
@@ -617,74 +651,92 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function r = getSegmentRadius(model, face)
+        function r = getSegmentRadius(model, G, face)
             
             % Get radius in each cell
             r = vertcat(model.W.r);
-            r = r(model.G.cells.order);
+            r = r(G.cells.order);
+            r = [r; arrayfun(@(W) W.r(1), model.W)];
             
-            if nargin < 2 || ~face, return; end
+            if nargin < 3 || ~face, return; end
             
             % Face segment radii computed as mean of adjacent cells
-            N = model.G.faces.neighbors; N = N(all(N>0,2), :);
+            N = G.faces.neighbors; N = N(all(N>0,2), :);
             r = mean(r(N),2);
             
         end
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function l = getSegmentLength(model, face)
+        function l = getSegmentLength(model, G, face)
             
             % Compute segments within each cell
-            l = arrayfun(@(W) sqrt(sum(W.trajectory.vec.^2, 2)), ...
+            l0 = arrayfun(@(W) sqrt(sum(W.trajectory.vec.^2, 2)), ...
                         model.W, 'UniformOutput', false);
-            l = cell2mat(l);
-            l = l(model.G.cells.order);
+            l = cell2mat(l0);
+            l = l(G.cells.order);
+            l = [l; cellfun(@(l) l(1), l0)];
             
-            if nargin < 2 || ~face, return; end
+            if nargin < 3 || ~face, return; end
             
             % Face segment lengths computed as mean of adjacent cells
-            N = model.G.faces.neighbors; N = N(all(N>0,2), :);
+            N = G.faces.neighbors; N = N(all(N>0,2), :);
             l = sum(l(N).*0.5, 2);
 
         end
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function r = getSegmentRoughness(model, face)
+        function r = getSegmentRoughness(model, G, face)
             
             % Get wellbore rougness (currently assumes one value per well)
-            r = arrayfun(@(W) sum(W.trajectory.roughness, 2), ...
+            r0 = arrayfun(@(W) sum(W.trajectory.roughness, 2), ...
                     model.W, 'UniformOutput', false);
-            r = cell2mat(r);
+            r = cell2mat(r0);
             assert(numel(r) == model.numWells, ['WellboreModel ', ...
                 'currently only supports one roughness value per well']);
-            r = r(model.G.cells.wellNo);
+            r = [r(G.cells.wellNo); cellfun(@(r) r(1), r0)];
             
-            if nargin < 2 || ~face, return; end
+            if nargin < 3 || ~face, return; end
             
             % Face segment roughness computed as mean of adjacent cells
-            N = model.G.faces.neighbors; N = N(all(N>0,2), :);
+            N = G.faces.neighbors; N = N(all(N>0,2), :);
             r = sum(r(N).*0.5, 2);
 
         end
         %-----------------------------------------------------------------%
         
+        %-----------------------------------------------------------------%
         function names = getComponentNames(model)
+            
             names = model.parentModel.getComponentNames();
+            
         end
+        %-----------------------------------------------------------------%
         
+        %-----------------------------------------------------------------%
         function ncomp = getNumberOfComponents(model)
+            
             ncomp = model.parentModel.getComponentNames();
+            
         end
+        %-----------------------------------------------------------------%
         
+        %-----------------------------------------------------------------%
         function nph = getNumberOfPhases(model)
+            
             nph = model.parentModel.getNumberOfPhases();
+            
         end
+        %-----------------------------------------------------------------%
         
+        %-----------------------------------------------------------------%
         function active = getActivePhases(model)
+            
             active = model.parentModel.getActivePhases();
+            
         end
+        %-----------------------------------------------------------------%
         
 
     end
