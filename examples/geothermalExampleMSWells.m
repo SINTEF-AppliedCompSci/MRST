@@ -9,8 +9,9 @@ mrstVerbose on
 %%
 close all
 cartDims = [100,1,100];
-test    = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', true, 'cartDims', cartDims);
-testRef = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', false, 'cartDims', cartDims);
+test    = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', false, 'cartDims', cartDims, 'dt', 0.5*hour);
+test = convertToWBMultiModel(test);
+testRef = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', false, 'cartDims', cartDims, 'dt', 0.5*hour);
 
 %%
 lsol = MultiPhysicsLinearSolver(test.model);
