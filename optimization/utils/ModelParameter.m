@@ -15,8 +15,8 @@ classdef ModelParameter
         scalingBase   = nan;          
         controlSteps  = [];         % Default set/get for all control steps
         controlType   = 'none';     % types 'bhp', 'rate', 'orat', ... and 'policy' requires special 
-                                    % treatment 
-                                    % for sensitivitry computations 
+                                    % treatment for sensitivitry computations
+        extraLocations = [];        % additional locations of parameter
     end
     
     methods
@@ -132,7 +132,7 @@ classdef ModelParameter
                     v   = setSubset(tmp, v, p.subset);
                 end
                 setup.(p.belongsTo) = ...
-                    p.setfun(setup.(p.belongsTo), p.location{:}, v);
+                    p.setfunApply(setup.(p.belongsTo), v);
             else % control-parameter (assume constant over selected control steps)
                 nc = numel(p.controlSteps);
                 for k = 1:nc
@@ -190,6 +190,13 @@ classdef ModelParameter
                     v   = setSubset(tmp, v, p.subset);
                 end
                 control = p.setfun(control, loc{:}, v);
+            end
+        end
+        %------------------------------------------------------------------
+        function s = setfunApply(p, s, v)
+            s = p.setfun(s, p.location{:}, v);
+            for k = 1:numel(p.extraLocations)
+                s = p.setfun(s, p.extraLocations{k}{:}, v);
             end
         end
     end
@@ -301,8 +308,13 @@ switch lower(p.name)
         belongsTo = 'model';
         map = getScalerMap();
         ix  = map.kw.(upper(p.name));
-        [ph, col] = deal(map.ph{ix(1)}, ix(2));
+        if ~iscell(ix), ix = {ix}; end
+        [ph, col] = deal(map.ph{ix{1}(1)}, ix{1}(2));
         location = {'rock', 'krscale', 'drainage', ph, {':', col}};
+        for k = 2:numel(ix)
+            [ph, col] = deal(map.ph{ix{k}(1)}, ix{k}(2));
+            p.extraLocations{k-1} = {'rock', 'krscale', 'drainage', ph, {':', col}};
+        end
         setfun   = @setRelPermScalersFun;
     case {'bhp', 'rate', 'wrat', 'orat', 'grat'}
         belongsTo = 'schedule';
@@ -337,7 +349,7 @@ phOpts = {'w', 'ow', 'g', 'og'};
 kw  = struct('SWL',   [1,1], 'SWCR',  [1,2], 'SWU', [1,3], ...
              'SGL',   [3,1], 'SGCR',  [3,2], 'SGU', [3,3], ...
              'SOWCR', [2,2], 'SOGCR', [4,2], ...
-             'KRW',   [1,4], 'KRO',   [2,4], 'KRG', [3,4]);
+             'KRW',   [1,4], 'KRO',   {{[2, 4],[4,4]}}, 'KRG', [3,4]);
 map = struct('ph', {phOpts}, 'kw', kw);
 end
 
@@ -384,6 +396,10 @@ assert(all(chk(~isnan(tmp))), 'Parameter values are not within given limits');
 if ~strcmp(p.controlType, 'none')
     assert(any(strcmp(p.controlType, {'bhp', 'rate', 'wrat', 'orat', 'grat', 'policy'})), ...
         'Well control of type "%s" is not supported', p.controlType);
+end
+if ~isempty(p.extraLocations)
+    assert(~strcmp(p.belongsTo, 'schedule'), ...
+        'Multiple locations for schedule-parameters are not supported');
 end
 end
 
