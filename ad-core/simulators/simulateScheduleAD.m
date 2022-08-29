@@ -351,7 +351,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         writeOutput(opt.WellOutputHandler, opt, ind, wellSols_step)
         writeOutput(opt.ReportHandler, opt, i, reports{i}, false)        
         
-        if reports{i}.EarlyStop
+        if wantReport && reports{i}.EarlyStop
             break;
         end
     end
