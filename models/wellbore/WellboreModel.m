@@ -374,7 +374,7 @@ classdef WellboreModel < WrapperModel
             [T, bht] = model.getProps(state, 'T', 'bht');
             iic = model.getInletSegments();
             eqs{1}(iic) = p(iic) - bhp;
-            eqs{2}(iic) = T(iic) - bht;
+            %eqs{2}(iic) = T(iic) - bht;
             eqs   = [eqs  , fluxEqs  , rateEqs  , ctrlEqs  ];
             names = [names, fluxNames, rateNames, ctrlNames];
             types = [types, fluxTypes, rateTypes, ctrlTypes];
@@ -586,9 +586,7 @@ classdef WellboreModel < WrapperModel
                 T     = T(iic);
                 TwInj = vertcat(wCtrl.T);
                 T(isInj) = TwInj(isInj);
-                
                 eqTemp = bht - T;
-                
                 eqs   = [eqs, {eqTemp}];
                 names = [names, 'temperature'];
                 types = [types, 'control'];
