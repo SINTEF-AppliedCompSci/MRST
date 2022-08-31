@@ -327,7 +327,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if ~isempty(opt.processOutputFn)
             [substates, wellSols_step, report] = opt.processOutputFn(substates, wellSols_step, report);
         end
-
+        % Store output in handlers, if configured
+        writeOutput(opt.OutputHandler, opt, ind, substates)
+        writeOutput(opt.WellOutputHandler, opt, ind, wellSols_step)
+        writeOutput(opt.ReportHandler, opt, i, report, false)
         
         % Write to the cell arrays that will be outputs from the function
         wellSols(ind) = wellSols_step;
@@ -344,14 +347,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 warning('Aborting due to external function');
                 break
             end
-        end
+        end        
         
-        % Store output in handlers, if configured
-        writeOutput(opt.OutputHandler, opt, ind, states(ind))
-        writeOutput(opt.WellOutputHandler, opt, ind, wellSols_step)
-        writeOutput(opt.ReportHandler, opt, i, reports{i}, false)        
-        
-        if wantReport && reports{i}.EarlyStop
+        if report.EarlyStop
             break;
         end
     end
