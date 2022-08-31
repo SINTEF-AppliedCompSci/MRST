@@ -5,7 +5,6 @@ classdef WellboreModel < WrapperModel
         wells
         groups
         water, oil, gas
-%         InletPropertyFunctions
         thermal = false
         
     end
@@ -47,6 +46,10 @@ classdef WellboreModel < WrapperModel
             % Construct WrapperModel
             model = model@WrapperModel(rmodel);
             model.wells = W;
+            % Process groups
+            if ~isempty(opt.groups)
+                groups = model.processGroups(opt.groups);
+            end
 
             % Set trajectories, default refDepths and names
             refDepth = zeros(model.numWells(), 1);
@@ -75,6 +78,12 @@ classdef WellboreModel < WrapperModel
         end
         %-----------------------------------------------------------------%
 
+        %-----------------------------------------------------------------%
+        function groups = processGroups(model, groups)
+            
+        end
+        %-----------------------------------------------------------------%
+        
         %-----------------------------------------------------------------%
         function G = computeWellGridGeometry(model, G)
             
