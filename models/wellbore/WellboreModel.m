@@ -2,9 +2,10 @@ classdef WellboreModel < WrapperModel
     
     properties
         
-        W
+        wells
+        groups
         water, oil, gas
-        InletPropertyFunctions
+%         InletPropertyFunctions
         thermal = false
         
     end
@@ -14,8 +15,9 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function model = WellboreModel(rmodel, trajectories, varargin)
             
-            opt = struct('names', {{}}, ...
-                         'WI'   , []);
+            opt = struct('names' , {{}}, ...
+                         'WI'    , []  , ...
+                         'groups', {{}});
             [opt, varargin] = merge_options(opt, varargin{:});
             % Get reservoir model subgrid consisting of all perforated cells
             if (iscell(trajectories) && isnumeric(trajectories{1})) ...
@@ -44,7 +46,7 @@ classdef WellboreModel < WrapperModel
             
             % Construct WrapperModel
             model = model@WrapperModel(rmodel);
-            model.W = W;
+            model.wells = W;
 
             % Set trajectories, default refDepths and names
             refDepth = zeros(model.numWells(), 1);
@@ -78,9 +80,12 @@ classdef WellboreModel < WrapperModel
             
             % Add inlet cells as copies of the top cell
             G.cells.num = G.cells.num + model.numWells;
-            % Set volumes and centroids
-            G.cells.volumes   = [G.cells.volumes  ; G.cells.volumes(G.cells.topCell)];
-            G.cells.centroids = [G.cells.centroids; G.cells.centroids(G.cells.topCell,:)];
+            % Set volumes
+            G.cells.volumes = [G.cells.volumes  ; G.cells.volumes(G.cells.topCell)];
+            % Set centroids, with depth equal to refDepth
+            refDepth = arrayfun(@(W) W.refDepth, model.wells);
+            x = G.cells.centroids(G.cells.topCell,:); x(:,3) = refDepth;
+            G.cells.centroids = [G.cells.centroids; x];
             % Set facePos
             nf = diff(G.cells.facePos); nf = nf(G.cells.topCell);
             facePos = cumsum([G.cells.facePos(end); nf]);
@@ -93,11 +98,20 @@ classdef WellboreModel < WrapperModel
             N = G.faces.neighbors(G.faces.topFace,:);
             N(N == 0) = (G.cells.num-model.numWells+1:G.cells.num);
             G.faces.neighbors(G.faces.topFace,:) = N;
+             
+            % Set flag indicating if cell is perforation (i.e., connected
+            % to a reservoir cell). Otherwise, it is an inlet(/outlet) cell
+            G.cells.isPerf = true(G.cells.num,1);
+            G.cells.isPerf(end-model.numWells+1:end) = false;
+            
+            % Compute segment lengths and radii
+            [lengthCell, lengthFace] = model.getSegmentLength(G);
+            [radiusCell, radiusFace] = model.getSegmentRadius(G);
             
             % Get cell segment lengths and radii and set to G.cells for
             % easy access later
-            G.cells.length = model.getSegmentLength(G);
-            G.cells.radius = model.getSegmentRadius(G);
+            G.cells.length = lengthCell;
+            G.cells.radius = radiusCell;
             % Comute cross-sectional area of each cell segment
             area = pi.*G.cells.radius.^2;
             
@@ -114,13 +128,8 @@ classdef WellboreModel < WrapperModel
             G.faces.normals = G.faces.normals.*G.faces.areas;
             
             % Set face segment lengths and radii for easy access later
-            G.faces.length = model.getSegmentLength(G, true);
-            G.faces.radius = model.getSegmentRadius(G, true);
-            
-            % Set flag indicating if cell is perforation (i.e., connected
-            % to a reservoir cell). Otherwise, it is an inlet(/outlet) cell
-            G.cells.isPerf = true(G.cells.num,1);
-            G.cells.isPerf(end-model.numWells+1:end) = false;
+            G.faces.length = lengthFace;
+            G.faces.radius = radiusFace;
             
         end
         
@@ -138,6 +147,8 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function state = validateState(model, state)
             
+            iic = model.getInletSegments();
+            
             % Parent model state validation
             state = model.parentModel.validateState(state);
             % Add mass flux if not already set
@@ -148,7 +159,7 @@ classdef WellboreModel < WrapperModel
             % Add bhp if not already set
             if ~isfield(state, 'bhp')
                 bhp       = model.getProp(state, 'pressure');
-                state.bhp = bhp(model.G.cells.topCell);
+                state.bhp = bhp(iic);
             end
             % Add surface rates if not already set
             rnames = model.getSurfaceRateNames();
@@ -157,12 +168,20 @@ classdef WellboreModel < WrapperModel
                     state.(rname{1}) = zeros(model.numWells(), 1);
                 end
             end
+            
+            % Check if we have a thermal model
+            if ~(isprop(model.parentModel, 'thermal') && model.parentModel.thermal)
+                return
+            end
+            
             % Add bht if not already set
-            if isprop(model.parentModel, 'thermal') && model.parentModel.thermal
-                if ~isfield(state, 'bht')
-                    bht       = model.getProp(state, 'temperature');
-                    state.bht = bht(model.G.cells.topCell);
-                end
+            if ~isfield(state, 'bht')
+                bht       = model.getProp(state, 'temperature');
+                state.bht = bht(iic);
+            end
+            % Add effect if not already set
+            if ~isfield(state, 'effect')
+                state.effect = zeros(model.numWells(), 1);
             end
             
         end
@@ -221,24 +240,7 @@ classdef WellboreModel < WrapperModel
             % Replace phase puwind flag state function
             fd = fd.setStateFunction('PhaseUpwindFlag', WellborePhaseUpwindFlag(model));
             model.parentModel.FlowDiscretization = fd;
-            % Add inlet property functions
-            if isempty(model.InletPropertyFunctions)
-                ip = StateFunctionGrouping('InletPropertyFunctions');
-                ip = ip.setStateFunction('InletPressure', WellboreInletPressure(model));
-                model.InletPropertyFunctions = ip;
-            end
             
-        end
-        %-----------------------------------------------------------------%
-
-        %-----------------------------------------------------------------%
-        function [groupings, names, models] = getStateFunctionGroupings(model)
-
-            [groupings, names, models] = model.parentModel.getStateFunctionGroupings();
-            groupings = [groupings, {model.InletPropertyFunctions}];
-            names     = [names    , {'InletPropertyFunctions'}    ];
-            models    = [models   , class(model)                  ];
-
         end
         %-----------------------------------------------------------------%
 
@@ -250,7 +252,9 @@ classdef WellboreModel < WrapperModel
             
             % Make rock structure to represent wellbore
             rock = model.parentModel.rock;
-            % Euivalent permeability from laminar pipe flow assumption
+            % Euivalent permeability from laminar pipe flow assumption.
+            % This is now obsoloete due to dofs for the segment mass fluxes
+            % + wellbore friction loss, but still kept here for reference.
             rock.perm = min(GW.cells.radius.^2/8, 1e-5);
             rock.poro = ones(GW.cells.num, 1);
             fnames = fieldnames(rock)';
@@ -267,14 +271,23 @@ classdef WellboreModel < WrapperModel
                         
             % Compute operators in standard way
             model.parentModel = model.parentModel.setupOperators(GW, rock, varargin{:});
-
+            op = model.parentModel.operators;
+            names = {'T', 'Thr', 'Thf'};
+            [~, iif] = model.getInletSegments();
+            for name = names
+                if ~isfield(op, name{1}), continue; end
+                fix = isnan(op.(name{1})(iif));
+                op.(name{1})(fix) = 0;
+                op.([name{1}, '_all'])(op.internalConn) = op.(name{1});
+            end
+            model.parentModel.operators = op;
             % Set well indices
-            WI = vertcat(model.W.WI);
+            WI = vertcat(model.wells.WI);
             WI = WI(model.G.cells.order);
             model.parentModel.operators.WI = WI;
             
             if model.thermal
-                WIth = vertcat(model.W.WIth);
+                WIth = vertcat(model.wells.WIth);
                 WIth = WIth(model.G.cells.order);
                 model.parentModel.operators.WIth = WIth;
             end
@@ -302,12 +315,13 @@ classdef WellboreModel < WrapperModel
             % Add bht if applicable
             if isprop(model.parentModel, 'thermal') && model.parentModel.thermal
                 bht = model.getProp(state, 'bht');
-                wvars{end+1}   = bht;
-                wnames{end+1}  = 'bht';
-                worigin{end+1} = class(model);
+                qh  = model.getProp(state, 'effect');
+                wvars   = [wvars, {bht, qh}];
+                wnames  = [wnames, {'bht', 'effect'}];
+                worigin = [worigin, repmat({class(model)}, 1, 2)];
             end
-            vars   = [vars, wvars];
-            names  = [names, wnames];
+            vars   = [vars  , wvars  ];
+            names  = [names , wnames ];
             origin = [origin, worigin];
 
         end
@@ -340,51 +354,22 @@ classdef WellboreModel < WrapperModel
             % Get parent model equations
             [eqs, names, types, state] ...
                 = model.parentModel.getModelEquations(state0, state, dt, drivingForces);
-            
-            % Get active wells for this timestep
-%             if isempty(drivingForces.W), return; end
-%             Wd = drivingForces.W;
-            
-%             % Add inlet/outlet mass fluxes
-%             [Q, qs] = model.computeInletFlux(state, Wd);
-%             cnames = model.parentModel.getComponentNames();
-%             topCells = model.G.cells.topCell;
-%             for name = cnames
-%                 mix = strcmpi(name{1}, names);
-%                 eqs{mix}(topCells) = eqs{mix}(topCells) - Q{mix};
-%             end
-            
-%             % Add inlet/outlet heat fluxes
-%             eix = strcmpi('energy', names);
-%             if any(eix)
-%                 Qh = model.computeInletHeatFlux(state, Wd);
-%                 eqs{eix}(topCells) = eqs{eix}(topCells) - Qh;
-%             end
-            
-            % Get extra equations specific to the wellbore model
-%             isInj = value(Q) > 0;
             % Mass fluxes, surface rates and control
             [fluxEqs, fluxNames, fluxTypes, state] = model.getMassFluxEquations(state);
             [rateEqs, rateNames, rateTypes, state] = model.getSurfaceRateEquations(state);
+            [effEqs , effNames , effTypes , state] = model.getHeatFluxEquations(state);
             [ctrlEqs, ctrlNames, ctrlTypes, state] = model.getControlEquations(state, drivingForces);
-            % Assemble
-%             eqs{1} = eqs{1}(model.G.cells.isPerf);
-%             eqs{2} = eqs{1}(model.G.cells.isPerf);
+            % Replace conservation equations in inlet nodes with equations
+            % ensuring inlet pressure/temperature equal to well bhp/bht
             [p, bhp] = model.getProps(state, 'pressure', 'bhp');
             [T, bht] = model.getProps(state, 'T', 'bht');
             iic = model.getInletSegments();
             eqs{1}(iic) = p(iic) - bhp;
-            %eqs{2}(iic) = T(iic) - bht;
-            eqs   = [eqs  , fluxEqs  , rateEqs  , ctrlEqs  ];
-            names = [names, fluxNames, rateNames, ctrlNames];
-            types = [types, fluxTypes, rateTypes, ctrlTypes];
-            
-            
-            
-%             % Agument linearized system so that properties in the inlet
-%             % nodes remains unchanged
-%             eqs = model.augmentLinearSystem(eqs);
-            
+            eqs{2}(iic) = T(iic) - bht;
+            % Assemble
+            eqs   = [eqs  , fluxEqs  , rateEqs  , effEqs  , ctrlEqs  ];
+            names = [names, fluxNames, rateNames, effNames, ctrlNames];
+            types = [types, fluxTypes, rateTypes, effTypes, ctrlTypes];
             % Set inlet/outlet mass/heat fluxes to state
             [Q, Qh]  = model.getProps(state, 'ComponentTotalFlux', 'HeatFlux');
             [~, iif] = model.getInletSegments();
@@ -396,62 +381,11 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function state = setControls(model, state, drivingForces)
-
-            % Get driving forces and check that it's non-empty
-            wCtrl = drivingForces.W;
-            if isempty(wCtrl), return; end
-            
-            % Logical mask of inlet nodes
-            isInlet = ~model.G.cells.isPerf;
-            % Number of phases and components
-            nph   = model.getNumberOfPhases();
-            ncomp = model.getNumberOfComponents();
-            
-            % Set inlet pressure equal to bhp
-            bhp = model.getProps(state, 'bhp');
-            state.pressure(isInlet) = bhp;
-            
-            % Set inlet "saturation"
-            if ~iscell(state.s)
-                state.s(isInlet,:) = vertcat(wCtrl.compi);
-            else
-                compi = vertcat(wCtrl.compi);
-                for ph = 1:nph
-                    state.s{ph}(isInlet) = compi(:,ph);
-                end
-            end
-            
-            % Set inlet composition
-            if isfield(state, 'components')
-                if ~iscell(state.components)
-                    state.components(isInlet,:) ...
-                        = vertcat(wCtrl.components);
-                else
-                    components = vertcat(wCtrl.components);
-                    for c = 1:ncomp
-                        state.components{c}(isInlet) = components(:,c);
-                    end
-                end
-            end
-            
-            if model.thermal
-                % Set inlet temperature equal to bht
-                bht = model.getProp(state, 'bht');
-                state.T(isInlet) = bht;
-                % Ensure geothermal equilibrium
-                state = computeFlashGeothermal(model.parentModel, state);
-            end
-            
-        end
-        %-----------------------------------------------------------------%
-        
-        %-----------------------------------------------------------------%
         function [eqs, names, types, state] = getMassFluxEquations(model, state)
         % Equations realting segment mass fluxes to the pressure by means
         % of a wellbore friction model
             
-            roughness = model.getSegmentRoughness(model.G, true);
+            [~, roughness] = model.getSegmentRoughness();
 
             d = model.G.faces.radius.*2;
             l = model.G.faces.length;
@@ -484,18 +418,18 @@ classdef WellboreModel < WrapperModel
             % TODO: Implement support for multiphase/multicomponent
         
             % Get properties
-            [qs, rho, flag] = model.parentModel.getProps(state, ...
+            [qs, rhoS, flag] = model.parentModel.getProps(state, ...
                                 'ComponentPhaseFlux', ...
-                                'Density', ...
+                                'SurfaceDensity', ...
                                 'PhaseUpwindFlag');                
             % Upstream-wheight density
-            rho = cellfun(@(flag, rho) ...
+            rhoS = cellfun(@(flag, rho) ...
                 model.parentModel.operators.faceUpstr(flag, rho), ...
-                flag, rho, 'UniformOutput', false);
+                flag, rhoS, 'UniformOutput', false);
             % Get surface rates across inlet face segment
             [~, iif] = model.getInletSegments();
             qs = cellfun(@(qs, rho) qs(iif)./rho(iif), ...
-                    qs, rho, 'UniformOutput', false);
+                    qs, rhoS, 'UniformOutput', false);
             
             % Get surface rate dofs
             nph      = model.getNumberOfPhases();
@@ -509,6 +443,27 @@ classdef WellboreModel < WrapperModel
                             'UniformOutput', false);
             types = repmat({'rate'}, 1, nph);
 
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function [eqs, names, types, state] = getHeatFluxEquations(model, state)
+        % Equations realting heat flux into/out of the wellbore
+        % inlet/outlet (i.e., effect) to 
+
+            % Get properties
+            [qh, qhw, h] = model.getProps(state, ...
+                                'HeatFlux', ...
+                                'effect', ...
+                                'enthalpy');
+            [~, iif] = model.getInletSegments();
+            qh = qh(iif);
+            
+            scale = (mean(value(h))*meter^3/day).^(-1); %@@ Set reasonable scaling
+            eqs   = {(qh - qhw).*scale};
+            names = {'effect'};
+            types = {'effect'};
+        
         end
         %-----------------------------------------------------------------%
         
@@ -581,37 +536,23 @@ classdef WellboreModel < WrapperModel
                 % Get logical masks for cell and face inlet segments
                 [iic, iif] = model.getInletSegments();
                 
-                [bht, T, q] = model.getProps(state, 'bht', 'T', 'massFlux');
-                q = value(q); isInj = q(iif) > 0;
-                T     = T(iic);
-                TwInj = vertcat(wCtrl.T);
-                T(isInj) = TwInj(isInj);
-                eqTemp = bht - T;
-                eqs   = [eqs, {eqTemp}];
-                names = [names, 'temperature'];
-                types = [types, 'control'];
-            end
-            
-        end
-        %-----------------------------------------------------------------%
-        
-        %-----------------------------------------------------------------%
-        function eqs = augmentLinearSystem(model, eqs)
-            
-            n = model.G.cells.num;
-            P = spdiags( model.G.cells.isPerf, 0, n, n);
-            I = spdiags(~model.G.cells.isPerf, 0, n, n);
-            
-            for i = 1:numel(eqs)
-                eq = eqs{i};
-                n = numel(eqs{i});
-                if n == model.G.cells.num, eqs{i} = S*eqs{i}; end
-                if isa(eq, 'ADI')
-                    m = cellfun(@(jac) sizeJac(jac, 2), eqs{i}.jac);
-                    for j = 1:numel(eqs{i}.jac)
-                        
-                    end
+                [bht, h, qhw, rhoS, flag] = model.getProps(state, ...
+                                    'bht', 'PhaseEnthalpy', 'effect', ...
+                                    'SurfaceDensity', 'PhaseUpwindFlag');
+                h = applyFunction(@(x) x(iic), h);
+                rhoS = applyFunction(@(x) x(iic), rhoS);
+                is_inj = flag{1}(iif);
+                qh = 0;
+                for ph = 1:nph
+                    qh = qh + qsw{ph}.*rhoS{ph}.*h{ph};
                 end
+                eqTh = qh - qhw;
+                Tw = vertcat(wCtrl.T);
+                eqTh(is_inj) = bht(is_inj) - Tw(is_inj);
+                
+                eqs   = [eqs, {eqTh}];
+                names = [names, 'thermal'];
+                types = [types, 'control'];
             end
             
         end
@@ -636,87 +577,6 @@ classdef WellboreModel < WrapperModel
 
         %-----------------------------------------------------------------%        
         function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces) %#ok
-            
-        end
-        %-----------------------------------------------------------------%
-        
-        %-----------------------------------------------------------------%
-        function [Q, qph, stateInlet] = computeInletFlux(model, state, W)
-
-            pi = model.getProps(state, 'InletPressure');
-            [p, mob, rho] = model.parentModel.getProps(state, 'pressure', 'Mobility', 'Density');
-            p   = p(model.G.cells.topCell);
-            mob = applyFunction(@(x) x(model.G.cells.topCell), mob);
-            rho = applyFunction(@(x) x(model.G.cells.topCell), rho);
-
-            % Get top face transmissibility
-            T = model.parentModel.operators.T_all(model.G.faces.topFace);
-
-            nph   = model.parentModel.getNumberOfPhases();
-            ncomp = model.parentModel.getNumberOfComponents();
-
-            stateInlet = state;
-            stateInlet.pressure(model.G.cells.topCell) = pi;
-            if isprop(model.parentModel, 'thermal') && model.parentModel.thermal
-                bht = model.getProp(state, 'bht');
-                stateInlet.T(model.G.cells.topCell) = bht;
-            end
-            if ~iscell(stateInlet.s)
-                stateInlet.s(model.G.cells.topCell,:) = vertcat(W.compi);
-            else
-                compi = vertcat(W.compi);
-                for ph = 1:nph
-                    stateInlet.s{ph}(model.G.cells.topCell) = compi(:,ph);
-                end
-            end
-            if isfield(stateInlet, 'components')
-                if ~iscell(stateInlet.components)
-                    stateInlet.components(model.G.cells.topCell,:) = vertcat(W.components);
-                else
-                    components = vertcat(W.components);
-                    for c = 1:ncomp
-                        stateInlet.components{c}(model.G.cells.topCell) = components(:,c);
-                    end
-                end
-            end
-            stateInlet = model.initStateFunctionContainers(stateInlet);
-            if model.thermal
-                stateInlet = computeFlashGeothermal(model.parentModel, stateInlet);
-            end
-            [mobIn, rhoIn, rhoS] = model.parentModel.getProps(stateInlet, 'Mobility', 'Density', 'SurfaceDensity');
-            mobIn = applyFunction(@(x) x(model.G.cells.topCell), mobIn);
-            rhoIn = applyFunction(@(x) x(model.G.cells.topCell), rhoIn);
-            rhoS  = applyFunction(@(x) x(model.G.cells.topCell), rhoS);
-
-            q = -T.*(p - pi);
-
-            [Qph, qph] = deal(cell(1, nph));
-            for ph = 1:nph
-                % TODO: Add gravity effects
-                flag = q > 0;
-                mobRho  = flag.*mobIn{ph}.*rhoIn{ph} + ~flag.*mob{ph}.*rho{ph};
-                Qph{ph} = mobRho.*q;
-                qph{ph} = Qph{ph}./rhoS{ph};
-            end
-            % TODO: account for compositional flow
-            Q = Qph;
-
-        end
-        %-----------------------------------------------------------------%
-
-        %-----------------------------------------------------------------%
-        function Qh = computeInletHeatFlux(model, state, W)
-            
-            [Q, ~, stateInlet] = computeInletFlux(model, state, W);
-%             stateInlet.T(model.G.cells.topCell) = vertcat(W.T);
-            
-            h   = model.parentModel.getProps(state, 'PhaseEnthalpy');
-            h = h{1}(model.G.cells.topCell);
-            hIn = model.parentModel.getProps(stateInlet, 'PhaseEnthalpy');
-            hIn = hIn{1}(model.G.cells.topCell);
-
-            flag = Q{1} > 0;
-            Qh = Q{1}.*(flag.*hIn + ~flag.*h);
             
         end
         %-----------------------------------------------------------------%
@@ -749,21 +609,9 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-            
-            [state, report] = updateAfterConvergence@WrapperModel(model, state0, state, dt, drivingForces);
-            
-            state = model.initStateFunctionContainers(state);
-            Qh = model.computeInletHeatFlux(state, drivingForces.W);
-            state.effect = Qh;
-            
-        end
-        %-----------------------------------------------------------------%
-        
-        %-----------------------------------------------------------------%
         function n = numWells(model)
             
-            n = numel(model.W);
+            n = numel(model.wells);
             
         end
         %-----------------------------------------------------------------%
@@ -777,66 +625,70 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function [iiCell, iiFace] = getInletSegments(model)
+        function [iiCell, iiFace] = getInletSegments(model, G)
             
-            iiCell = ~model.G.cells.isPerf;
+            if nargin < 2, G = model.G; end
+            iiCell = ~G.cells.isPerf;
             iiFace = any(iiCell(model.parentModel.operators.N),2);
             
         end
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function r = getSegmentRadius(model, G, face)
+        function [rc, rf] = getSegmentRadius(model, G)
+            
+            if nargin < 2, G = model.G; end
             
             % Get radius in each cell
-            r = vertcat(model.W.r);
-            r = r(G.cells.order);
-            r = [r; arrayfun(@(W) W.r(1), model.W)];
-            
-            if nargin < 3 || ~face, return; end
+            rc = vertcat(model.wells.r);
+            rc = rc(G.cells.order);
+            rc = [rc; arrayfun(@(W) W.r(1), model.wells)];
             
             % Face segment radii computed as mean of adjacent cells
             N = G.faces.neighbors; N = N(all(N>0,2), :);
-            r = mean(r(N),2);
+            rf = mean(rc(N),2);
             
         end
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function l = getSegmentLength(model, G, face)
+        function [lc, lf] = getSegmentLength(model, G)
+            
+            if nargin < 2, G = model.G; end
             
             % Compute segments within each cell
-            l0 = arrayfun(@(W) sqrt(sum(W.trajectory.vec.^2, 2)), ...
-                        model.W, 'UniformOutput', false);
-            l = cell2mat(l0);
-            l = l(G.cells.order);
-            l = [l; cellfun(@(l) l(1), l0)];
-            
-            if nargin < 3 || ~face, return; end
+            lc = arrayfun(@(W) sqrt(sum(W.trajectory.vec.^2, 2)), ...
+                        model.wells, 'UniformOutput', false);
+            lc = cell2mat(lc);
+            lc = lc(G.cells.order);
+            x = G.cells.centroids;
+            iic = model.getInletSegments(G);
+            l0 = sqrt(sum((x(G.cells.topCell,:) - x(iic,:)).^2, 2));
+            lc = [lc; l0];
             
             % Face segment lengths computed as mean of adjacent cells
             N = G.faces.neighbors; N = N(all(N>0,2), :);
-            l = sum(l(N).*0.5, 2);
+            lf = sum(lc(N).*0.5, 2);
 
         end
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function r = getSegmentRoughness(model, G, face)
+        function [rc, rf] = getSegmentRoughness(model, G)
             
+             if nargin < 2, G = model.G; end
+             
             % Get wellbore rougness (currently assumes one value per well)
             r0 = arrayfun(@(W) sum(W.trajectory.roughness, 2), ...
-                    model.W, 'UniformOutput', false);
-            r = cell2mat(r0);
-            assert(numel(r) == model.numWells, ['WellboreModel ', ...
+                    model.wells, 'UniformOutput', false);
+            rc = cell2mat(r0);
+            assert(numel(rc) == model.numWells, ['WellboreModel ', ...
                 'currently only supports one roughness value per well']);
-            r = [r(G.cells.wellNo); cellfun(@(r) r(1), r0)];
-            
-            if nargin < 3 || ~face, return; end
+            rc = [rc(G.cells.wellNo); cellfun(@(r) r(1), r0)];
             
             % Face segment roughness computed as mean of adjacent cells
             N = G.faces.neighbors; N = N(all(N>0,2), :);
-            r = sum(r(N).*0.5, 2);
+            rf = sum(rc(N).*0.5, 2);
 
         end
         %-----------------------------------------------------------------%
