@@ -255,9 +255,13 @@ for k = 1:3
             na_prev  = na;
             na       = nnz(isActive);
             if na > na_prev % redo projection for all active 
-                [Q, s] = svd([c.i.A(isActive,:)', c.e.A'], 0);
-                s  = diag(s);
-                Q  = Q(:, s > sqrt(eps)*s(1));
+                if ~issparse(c.i.A)
+                    [Q, s] = svd([c.i.A(isActive,:)', c.e.A'], 0);
+                    s  = diag(s);
+                    Q  = Q(:, s > sqrt(eps)*s(1));
+                else
+                    Q = c.i.A(isActive,:)';
+                end
                 if kd == 1 
                     pg = -projQ(g0, Q);
                 else       
@@ -270,26 +274,35 @@ for k = 1:3
     if norm(pg, inf) <= sqrt(eps)*norm(g0, inf) %  nothing more to do
         [d, maxStep] = deal([]);
         return
-    end
+    end   
+    
     % Iteratively find all constraints that become active from u0 to u0+d,
     % and project remaining line segments accordingly.
     [dr, gr] = deal(d, g0);
     becomesActive = isActive;
     d    = 0;
     done = false;
+    % Approximate how many will become active
+    nApprox     = nnz(c.i.A*(u0+dr)-c.i.b > 0);
+    chunkSize   = max(1, round(nApprox/10)); % do ~10 its below 
+
     while ~done
         if norm(dr) > sqrt(eps)
             sgn     = classifyConstraints(c.i.A, c.i.b, u0+d, dr);
-            [ix, s] = findNextConstraint(c.i.A, c.i.b, u0+d, dr, sgn<=0 | becomesActive);
+            [ix, s] = findNextConstraint(c.i.A, c.i.b, u0+d, dr, sgn<=0 | becomesActive, chunkSize);
         else
             [ix, s] = deal([], 0);
         end
-        if ~isempty(ix) && s <= 1+sqrt(eps)
-            becomesActive(ix) = true;
-            d  = d + s*dr;
-            gr = (1-s)*gr;
-            Q  = expandQ(Q, c.i.A(ix,:)');
-            dr = -projQ(gr, Q, Hi);
+        if ~isempty(ix) && min(s) <= 1+sqrt(eps)
+            ii = s <= 1+sqrt(eps);
+            if any(ii)
+                [ix, s] = deal(ix(ii), max(s(ii)));
+                becomesActive(ix) = true;
+                d  = d + s*dr;
+                gr = (1-s)*gr;
+                Q  = expandQ(Q, c.i.A(ix,:)');
+                dr = -projQ(gr, Q, Hi);
+            end
         else
             d    = d+dr;
             done = true;
@@ -351,8 +364,14 @@ end
 
 function c = getConstraints(u, opt)
 % Box constraints, always 0<= u <= 1
+c.lb = 0;
+c.ub = 1;
 nu = numel(u);
-c.i.A = [diag(-ones(nu,1)); diag(ones(nu,1))];
+if isempty(opt.linIneq) && isempty(opt.linEq)
+    c.i.A = [-speye(nu,nu); speye(nu,nu)];
+else
+    c.i.A = [diag(-ones(nu,1)); diag(ones(nu,1))];
+end
 c.i.b = [zeros(nu,1); ones(nu,1)];
 % Add general linear constraints 
 if ~isempty(opt.linIneq)
@@ -388,6 +407,13 @@ end
 if nargin < 3
     enforce = false;
 end
+if any(u < c.lb + sqrt(eps)) || any(u > c.ub - sqrt(eps))
+    if enforce
+        u = max(c.lb, min(c.ub, u));
+    end
+end
+
+
 hasEC = ~isempty(c.e.A);
 hasIC = ~isempty(c.i.A);
 [ecOK, icOK] = deal(true);
@@ -481,23 +507,36 @@ sgn(abs(sgn)<sqrt(eps)) = 0;
 sgn = sign(sgn);
 act = A*u-b > -sqrt(eps) & sgn > 0;
 end
+
+function n = numBrokenConstraints(A, b, u)
+    n = nnz(A*u-b > 0)
+end
+ 
 %--------------------------------------------------------------------------
 
-function [ix, s] = findNextConstraint(A, b, u, d, ac)
+function [ix, s] = findNextConstraint(A, b, u, d, ac, chunkSize)
+if nargin < 6
+    chunkSize = 1;
+end
 s = (b-A*u)./(A*d);
 s(ac)  = inf;
 s(s<eps) = inf;
-[s, ix] = min(s);
+[s, ix] = mink(s, chunkSize);
 end
 %--------------------------------------------------------------------------
 
 function Q = expandQ(Q, v)
-n0 = norm(v);
-v = v - Q*(Q'*v);
-if norm(v)/n0 > sqrt(eps)
-    Q = [Q, v/norm(v)];
+if issparse(v)
+    % simple version
+    Q = [Q, v];
 else
-    fprintf('Newly active constraint is linear combination of other active constraints ??!!\n')
+    n0 = norm(v);
+    v = v - Q*(Q'*v);
+    if norm(v)/n0 > sqrt(eps)
+        Q = [Q, v/norm(v)];
+    else
+        fprintf('Newly active constraint is linear combination of other active constraints ??!!\n')
+    end
 end
 end
 %--------------------------------------------------------------------------
