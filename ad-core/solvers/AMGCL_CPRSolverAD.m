@@ -45,12 +45,12 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            [dx, result, report] = solveLinearProblem@LinearSolverAD(solver, problem, model);
        end
 
-       function [dx, result, report] = solveAdjointProblem(solver, problemPrev,problemCurr, adjVec, objective, model)
+       function [dx, result, report] = solveAdjointProblem(solver, problemPrev,problemCurr, adjVec, objective, model, varargin)
            if ~isempty(problemPrev)
                 problemPrev = solver.prepareProblemCPR(problemPrev, model);
            end
            problemCurr = solver.prepareProblemCPR(problemCurr, model);
-           [dx, result, report] = solveAdjointProblem@LinearSolverAD(solver, problemPrev,problemCurr, adjVec, objective, model);
+           [dx, result, report] = solveAdjointProblem@LinearSolverAD(solver, problemPrev,problemCurr, adjVec, objective, model, varargin{:});
        end
 
         function [d, sn] = getDescription(solver)
