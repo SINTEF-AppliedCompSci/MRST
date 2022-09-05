@@ -208,7 +208,7 @@ classdef LinearSolverAD < handle
             eqScale = opt.equationScaling;
             if ~isempty(eqScale)
                 if iscell(eqScale)
-                    eqScale = vertcat(eqScale);
+                    eqScale = vertcat(eqScale{:});
                 end
                 result = eqScale.*result;
             end
