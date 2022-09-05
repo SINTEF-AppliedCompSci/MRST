@@ -127,13 +127,19 @@ for step = nstep:-1:1
     [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
         getObjective, setup.schedule, lambda, step, 'colIx', colIx{step});
     [eqdth, modelParam] = partialWRTparam(modelParam, getState, scheduleParam, step, param);
-    for kp = 1:numel(param)
-        nm = param{kp}.name;
-        for nl = 1:numel(lami)
-            if isa(eqdth{nl}, 'ADI')
-                sens.(nm) = sens.(nm) + eqdth{nl}.jac{kp}'*lami{nl};
-            end
-        end
+    result = 0;
+    for k = 1:numel(lami)
+        result = result + lami{k}'*eqdth{k};
+    end
+    result = result.jac;
+    if numel(result) ~= numel(param) % might be the case for e.g., GenericAD
+        result = horzcat(result{:});
+        cumn   = reshape(cumsum(cellfun(@(p)p.nParam, param)), [], 1);
+        [lo, hi] = deal([1; cumn(1:end-1)+1], cumn);
+        result = applyFunction(@(i1, i2)result(i1:i2), lo, hi);
+    end
+    for k = 1:numel(param)
+        sens.(param{k}.name) = result{k}(:);
     end
 end
 
