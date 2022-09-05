@@ -80,10 +80,12 @@ if mrstVerbose && setup.model.toleranceCNV >= 1e-3
             'model.toleranceCNV.'] )
 end
 
-if isempty(opt.LinearSolver)
-    linsolve = BackslashSolverAD();
-else
+if ~isempty(opt.LinearSolver) 
     linsolve = opt.LinearSolver;
+elseif isfield(setup, 'AdjointLinearSolver')
+    linsolve = setup.AdjointLinearSolver;
+else
+    linsolve = BackslashSolverAD();
 end
 
 sens = struct;
@@ -338,11 +340,11 @@ if isempty(matchMap)
     ncol = max(colIx{end});
 else
     nMatch = zeros(ns,1);
-    fn = fieldnames(matchMap);
-    assert(ns == numel(matchMap), ...
+    fn = fieldnames(matchMap.steps);
+    assert(ns == numel(matchMap.steps), ...
         'Dimension mismatch between schedule and matchMap');
     for k = 1:numel(fn)
-        nMatch = nMatch +  reshape(cellfun(@(x)nnz(isfinite(x)), {matchMap.(fn{k})}), [], 1);
+        nMatch = nMatch +  reshape(cellfun(@(x)nnz(isfinite(x)), {matchMap.steps.(fn{k})}), [], 1);
     end
     cum = cumsum(nMatch);
     colIx = applyFunction(@(x,y)x:y, [0; cum(1:end-1)]+1, cum);
