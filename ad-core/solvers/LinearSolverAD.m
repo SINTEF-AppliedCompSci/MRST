@@ -126,14 +126,16 @@ classdef LinearSolverAD < handle
                 % hack
                 ix = find(cellfun(@(x)isa(x, 'GenericAD'), problemPrev.equations));
                 if any(ix)
-                    mismatch = numel(b) - sum(problemPrev.equations{ix(1)}.numVars);
-                    if mismatch ~= 0
-                        % adjust size of jacobians
-                        nd = numel(problemPrev.equations) - numel(ix);
-                        assert(mod(mismatch, nd)==0, 'Unable to resolve jacobian mismatch');
-                        for k = 1:numel(ix)
-                            problemPrev.equations{ix(k)}.jac{2}.dim(1) = ...    
-                                problemPrev.equations{ix(k)}.jac{2}.dim(1) + mismatch/nd;
+                    if ~isempty(b)
+                        mismatch = numel(b) - sum(problemPrev.equations{ix(1)}.numVars);
+                        if mismatch ~= 0
+                            % adjust size of jacobians
+                            nd = numel(problemPrev.equations) - numel(ix);
+                            assert(mod(mismatch, nd)==0, 'Unable to resolve jacobian mismatch');
+                            for k = 1:numel(ix)
+                                problemPrev.equations{ix(k)}.jac{2}.dim(1) = ...
+                                    problemPrev.equations{ix(k)}.jac{2}.dim(1) + mismatch/nd;
+                            end
                         end
                     end
                     nad = cellfun(@numelValue, problemPrev.equations(ix));
