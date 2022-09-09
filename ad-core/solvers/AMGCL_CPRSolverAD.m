@@ -46,11 +46,9 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
        end
 
        function [dx, result, report] = solveAdjointProblem(solver, problemPrev,problemCurr, adjVec, objective, model, varargin)
-           if ~isempty(problemPrev)
-                problemPrev = solver.prepareProblemCPR(problemPrev, model);
-           end
-           problemCurr = solver.prepareProblemCPR(problemCurr, model);
-           [dx, result, report] = solveAdjointProblem@LinearSolverAD(solver, problemPrev,problemCurr, adjVec, objective, model, varargin{:});
+           [problemCurr, eqScaling] = solver.prepareProblemCPR(problemCurr, model);
+           [dx, result, report] = solveAdjointProblem@LinearSolverAD(solver, problemPrev,problemCurr, adjVec, objective, ...
+                                                                     model, 'equationScaling', eqScaling, varargin{:});
        end
 
         function [d, sn] = getDescription(solver)
@@ -77,7 +75,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
            solver.setParameterGroup('relaxation', 's_relaxation', varargin{:});
        end
 
-       function problem = prepareProblemCPR(solver, problem, model)
+       function [problem, scale] = prepareProblemCPR(solver, problem, model)
            n = model.G.cells.num;
            solver.pressureScaling = mean(value(problem.state.pressure));
            setup = solver.amgcl_setup;
@@ -103,6 +101,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
 
 
            % Get and apply scaling
+           scale = [];
            if solver.doApplyScalingCPR && strcmpi(solver.decoupling, 'trueimpes')
                 if ~isempty(problem.A)
                     problem = problem.clearSystem();
@@ -119,6 +118,8 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                    ds = value(scale{i});
                    if (numel(ds) > 1 || any(ds ~= 0))
                        problem.equations{i} = problem.equations{i}.*scale{i};
+                   else
+                       scale{i} = [];
                    end
                end
            end
@@ -178,6 +179,15 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                otherwise
                    error('Unknown CPR strategy %s', solver.strategy);
            end
+           % output equation scaling for e.g., adjoint
+           if ~isempty(scale)
+               for k = 1:numel(scale)
+                   if isempty(scale{k})
+                       scale{k} = ones(numelValue(problem.equations{k}), 1); %#ok
+                   end
+               end
+               assert(all(cellfun(@(x)isa(x, 'double'), scale)));
+           end 
        end
 
         function [A, b, scaling, x0] = applyScaling(solver, A, b, x0)
@@ -232,6 +242,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                     A = D*A;
                     b = D*b;
                 end
+                scaling.D = D;
                 w_override = zeros(ncv, 1);
                 w_override(psub) = 1;
                 solver.amgcl_setup.drs_row_weights = w_override;
@@ -239,14 +250,31 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                 solver.amgcl_setup.drs_row_weights = getScalingInternalCPR(solver, A, b);
             end
         end
-
+        
         function x = undoScaling(solver, x, scaling) %#ok
             % Undo effects of scaling applied to linear system
             if isfield(scaling, 'M') && ~isempty(scaling.M)
                 x = scaling.M*x;
             end
         end
-
+        
+        function [A, b, scaling] = applyScalingAdjoint(solver, A, b)
+            [A, b, scaling] = solver.applyScaling(A, b);
+            if isfield(scaling, 'D') && ~isempty(scaling.D)
+                b = scaling.D\b; % undo mult by D
+            end
+            if isfield(scaling, 'M') && ~isempty(scaling.M)
+                b = scaling.M'*b;
+            end
+        end
+        
+        function x = undoScalingAdjoint(solver, x, scaling) %#ok
+            % Undo effects of scaling applied to linear system
+            if isfield(scaling, 'D') && ~isempty(scaling.D)
+                x = scaling.D'*x;
+            end
+        end
+        
         function M = getDiagonalInverse(solver, A)
             % Reciprocal of diagonal matrix
             if solver.applyRightDiagonalScaling
