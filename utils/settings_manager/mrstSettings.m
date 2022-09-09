@@ -252,6 +252,9 @@ end
 
 % Listing
 function listSettings(settings, isDesktop)
+    if isBatchMode()
+        return
+    end
     [names, fldrs] = getNames(settings);
     n = 0;
     for i = 1:numel(names)
