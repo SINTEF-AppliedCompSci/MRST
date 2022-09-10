@@ -86,8 +86,9 @@ classdef LinearSolverAD < handle
         function [grad, result, report] = solveAdjointProblem(solver, problemPrev,...
                 problemCurr, adjVec, objective, model, varargin) %#ok
             
-            opt = struct('scalePressure', false, ...
-                         'colIx',         nan);
+            opt = struct('scalePressure',  false, ...
+                         'colIx',            nan,   ...
+                         'equationScaling',   []);
             % For the adjoint problem, the scaling for the rows of the matrix to be inverted
             % corresponds to pressure and, say, saturation. This bad scaling
             % triggers typically a warning from Matlab which says that the
@@ -125,14 +126,16 @@ classdef LinearSolverAD < handle
                 % hack
                 ix = find(cellfun(@(x)isa(x, 'GenericAD'), problemPrev.equations));
                 if any(ix)
-                    mismatch = numel(b) - sum(problemPrev.equations{ix(1)}.numVars);
-                    if mismatch ~= 0
-                        % adjust size of jacobians
-                        nd = numel(problemPrev.equations) - numel(ix);
-                        assert(mod(mismatch, nd)==0, 'Unable to resolve jacobian mismatch');
-                        for k = 1:numel(ix)
-                            problemPrev.equations{ix(k)}.jac{2}.dim(1) = ...    
-                                problemPrev.equations{ix(k)}.jac{2}.dim(1) + mismatch/nd;
+                    if ~isempty(b)
+                        mismatch = numel(b) - sum(problemPrev.equations{ix(1)}.numVars);
+                        if mismatch ~= 0
+                            % adjust size of jacobians
+                            nd = numel(problemPrev.equations) - numel(ix);
+                            assert(mod(mismatch, nd)==0, 'Unable to resolve jacobian mismatch');
+                            for k = 1:numel(ix)
+                                problemPrev.equations{ix(k)}.jac{2}.dim(1) = ...
+                                    problemPrev.equations{ix(k)}.jac{2}.dim(1) + mismatch/nd;
+                            end
                         end
                     end
                     nad = cellfun(@numelValue, problemPrev.equations(ix));
@@ -190,7 +193,7 @@ classdef LinearSolverAD < handle
                 % Reorder linear system
                 [A, b, ordering] = solver.reorderLinearSystem(A, b);
                 % Apply scaling
-                [A, b, scaling] = solver.applyScaling(A, b);
+                [A, b, scaling] = solver.applyScalingAdjoint(A, b);
                 % Apply transpose
                 A = A';
                 t_prepare = toc(timer);
@@ -204,7 +207,13 @@ classdef LinearSolverAD < handle
                 % Recover eliminated variables on linear level
                 result = solver.recoverLinearSystemAdjoint(result, lsys);
             end
-
+            eqScale = opt.equationScaling;
+            if ~isempty(eqScale)
+                if iscell(eqScale)
+                    eqScale = vertcat(eqScale{:});
+                end
+                result = eqScale.*result;
+            end
             report.SolverTime = toc(timer);
             report.LinearSolutionTime = t_solve;
             report.PreparationTime = t_prepare;
@@ -424,6 +433,31 @@ classdef LinearSolverAD < handle
             scaling.M = M;
         end
         
+        function [A, b, scaling, x0] = applyScalingAdjoint(solver, A, b, x0)
+            % Apply left or right diagonal scaling
+            if nargin < 4
+                x0 = [];
+            end
+            scaling = struct();
+            applyLeft = solver.applyLeftDiagonalScaling;
+            applyRight = solver.applyRightDiagonalScaling;
+            if ~applyLeft && ~applyRight
+                return
+            end
+            M = solver.getDiagonalInverse(A);
+            if solver.applyLeftDiagonalScaling
+                assert(~applyRight, 'Cannot both apply left and right diagonal scaling');
+                A = M*A;
+                if ~isempty(x0)
+                    x0 = M'\x0;
+                end
+            else
+                A = A*M;
+                b = M'*b;
+            end
+            scaling.M = M;
+        end
+        
         function x = undoScaling(solver, x, scaling)
             % Undo effects of scaling applied to linear system
             if solver.applyRightDiagonalScaling
@@ -435,7 +469,7 @@ classdef LinearSolverAD < handle
             % Undo effects of scaling applied to linear system (adjoint
             % version)
             if solver.applyLeftDiagonalScaling
-                x = scaling.M*x;
+                x = scaling.M'*x;
             end
         end
 
