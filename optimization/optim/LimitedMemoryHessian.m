@@ -63,7 +63,11 @@ methods
             if H.itCount == 0
                 r = (H.sign*H.initScale)*v;
                 if ~isempty(H.nullspace)
-                    r = r - H.nullspace*(H.nullspace'*r);
+                    if islogical(H.nullspace)
+                        r = r.*(~H.nullspace);
+                    else
+                        r = r - H.nullspace*(H.nullspace'*r);
+                    end
                 end
             else
                 assert(all(size(v)==[size(H.S, 1), 1]), ...
@@ -111,7 +115,7 @@ methods
         if nargin < 2
             H.nullspace = [];
         else
-            if H.itCount > 0
+            if H.itCount > 0 && ~islogical(Q)
                 assert(size(Q,1)==size(H.S, 1), 'Dimension mismatch');
                 assert(size(Q,1)>=size(Q,2), ...
                     'Number of columns in nullspace matrix exceeds number of rows');
@@ -164,7 +168,11 @@ else
     D   = diag(diag(tmp));
     M   = [-D, L'; L, (S'*S)/th];
     % projection onto active subspace (u -> Z*Z'*u)
-    projSub = @(u)u-Q*(Q'*u);
+    if islogical(Q)
+        projSub = @(u)u.*(~Q);
+    else
+        projSub = @(u)u-Q*(Q'*u);
+    end
     r   = M\(W'*projSub(v));
     r   = (eye(2*n) - th*(M\(W'*projSub(W))))\r;
     r   = projSub(th*v + th^2*(W*r));
