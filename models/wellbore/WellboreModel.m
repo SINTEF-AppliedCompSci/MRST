@@ -16,7 +16,7 @@ classdef WellboreModel < WrapperModel
             
             opt = struct('names' , {{}}, ...
                          'WI'    , []  , ...
-                         'groups', {{}});
+                         'groups', []);
             [opt, varargin] = merge_options(opt, varargin{:});
             % Get reservoir model subgrid consisting of all perforated cells
             if (iscell(trajectories) && isnumeric(trajectories{1})) ...
@@ -48,7 +48,7 @@ classdef WellboreModel < WrapperModel
             model.wells = W;
             % Process groups
             if ~isempty(opt.groups)
-                groups = model.processGroups(opt.groups);
+                model.groups = model.processGroups(opt.groups);
             end
 
             % Set trajectories, default refDepths and names
@@ -81,6 +81,15 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function groups = processGroups(model, groups)
             
+            ng = numel(groups);
+            wnames = {model.wells.name};
+            memberIx = cell(model.numWells, 1);
+            for i = 1:ng
+                group = groups(i);
+                memberIx{i} = find(ismember(wnames, group.members));
+            end
+            [groups.memberIx] = deal(memberIx{:});
+            
         end
         %-----------------------------------------------------------------%
         
@@ -88,24 +97,42 @@ classdef WellboreModel < WrapperModel
         function G = computeWellGridGeometry(model, G)
             
             % Add inlet cells as copies of the top cell
-            G.cells.num = G.cells.num + model.numWells;
+            G.cells.num = G.cells.num + model.numWells + model.numGroups;
+            % Get top cells for each well
+            topCells = G.cells.topCell;
+            if ~isempty(model.groups)
+                % For groups, this we use the top cell of the first member
+                % in the group
+                gwix = arrayfun(@(group) group.memberIx(1), model.groups);
+                topCells = [topCells; topCells(gwix)];
+            end
             % Set volumes
-            G.cells.volumes = [G.cells.volumes  ; G.cells.volumes(G.cells.topCell)];
+            G.cells.volumes = [G.cells.volumes  ; G.cells.volumes(topCells)];
             % Set centroids, with depth equal to refDepth
             refDepth = arrayfun(@(W) W.refDepth, model.wells);
-            x = G.cells.centroids(G.cells.topCell,:); x(:,3) = refDepth;
+            if ~isempty(model.groups)
+               refDepth = [refDepth; refDepth(gwix)]; 
+            end
+            x = G.cells.centroids(topCells,:); x(:,3) = refDepth;
             G.cells.centroids = [G.cells.centroids; x];
             % Set facePos
-            nf = diff(G.cells.facePos); nf = nf(G.cells.topCell);
+            % @@TODO: Add one top face for each well
+            nf = diff(G.cells.facePos); nf = nf(topCells);
             facePos = cumsum([G.cells.facePos(end); nf]);
             G.cells.facePos = [G.cells.facePos; facePos(2:end)];
             % Set faces
-            faces = G.cells.faces(mcolon(G.cells.facePos(G.cells.topCell), ...
-                                         G.cells.facePos(G.cells.topCell + 1) - 1),:);
+            faces = G.cells.faces(mcolon(G.cells.facePos(topCells), ...
+                                         G.cells.facePos(topCells + 1) - 1),:);
             G.cells.faces = [G.cells.faces; faces];
             % Set inlet cells to be neighbors of the topcells
-            N = G.faces.neighbors(G.faces.topFace,:);
-            N(N == 0) = (G.cells.num-model.numWells+1:G.cells.num);
+            topFaces = G.faces.topFace;
+            if ~isempty(model.groups)
+                topFaces = [topFaces; G.face.num + model.numGroups];
+            end
+            N = G.faces.neighbors(topFaces,:);
+            N = [N; zeros(model.numGroups)];
+            N(N == 0) = (G.cells.num-model.numWells-model.numGroups+1:G.cells.num);
+            
             G.faces.neighbors(G.faces.topFace,:) = N;
              
             % Set flag indicating if cell is perforation (i.e., connected
@@ -621,6 +648,14 @@ classdef WellboreModel < WrapperModel
         function n = numWells(model)
             
             n = numel(model.wells);
+            
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function n = numGroups(model)
+            
+            n = numel(model.groups);
             
         end
         %-----------------------------------------------------------------%

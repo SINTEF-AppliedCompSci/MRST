@@ -6,7 +6,7 @@ function test = convertToWBMultiModel(test, varargin)
     
     fluidModel    = test.model;
     W = test.schedule.control(1).W;
-    wellboreModel = WellboreModel(fluidModel, W);
+    wellboreModel = WellboreModel(fluidModel, W, varargin{:});
     model = MultiPhysicsModel({fluidModel, wellboreModel}, ...
                               'names', {'Reservoir', 'Wellbore'});
                           
