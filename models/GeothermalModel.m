@@ -812,7 +812,9 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
         
         % ----------------------------------------------------------------%
         function scaling = getScalingFactorsCPR(model, problem, names, solver) %#ok
+            
             scaling = model.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
+            
         end
         
         %-----------------------------------------------------------------%
