@@ -180,10 +180,12 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                    error('Unknown CPR strategy %s', solver.strategy);
            end
            % output equation scaling for e.g., adjoint
-           if ~isempty(scale)
+           if nargout > 1 && ~isempty(scale)
                for k = 1:numel(scale)
                    if isempty(scale{k})
                        scale{k} = ones(numelValue(problem.equations{k}), 1); %#ok
+                   else
+                       scale{k} = value(scale{k});
                    end
                end
                assert(all(cellfun(@(x)isa(x, 'double'), scale)));
