@@ -254,6 +254,7 @@ for nTrial = 1:3
     pg     = g(~active);
     if norm(pg, Inf) <= opt.gradTol
         [d, maxStep, dObj] = deal([], 0, 0);
+        qpinfo = struct('nit', 0, 'nitOuter', 0);
         return;
     end
     
