@@ -70,10 +70,12 @@ p2 = assignPoint(aMax, inf, inf);
 a  = 1;
 lineSearchDone = false;
 it = 0;
+vals = nan(1, maxIt);
 while ~lineSearchDone && it < maxIt
     it = it +1;
     u = u0 + a*d;
     [v, g]  = f(u); % function evaluation / simulation
+    vals(it) = v;
     p = assignPoint(a, v, d'*g); % new point
     if w1(p) && w2(p)
         lineSearchDone = true;
@@ -133,7 +135,7 @@ if ~lineSearchDone
         [v, g]  = f(u);
     end
 end
-info = struct('flag', flag, 'step', a, 'nits', it);
+info = struct('flag', flag, 'step', a, 'nits', it, 'objVals', vals(1:it));
 end
 
 function p = negatePnt(p)
