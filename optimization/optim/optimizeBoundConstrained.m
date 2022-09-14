@@ -156,8 +156,8 @@ if isempty(opt.history) % starting from scratch
         step = opt.maxInitialUpdate/max(abs(g0));
     end
     rTrust = opt.trustRegionInit;
-    if opt.useTrustRegion && ~isnan(rTrust)
-        rTrust = step;
+    if opt.useTrustRegion && isnan(rTrust)
+        rTrust = opt.maxInitialUpdate;
     end
     Hi = LimitedMemoryHessian('initScale', step, ...
                               'm', opt.lbfgsNum, ...
