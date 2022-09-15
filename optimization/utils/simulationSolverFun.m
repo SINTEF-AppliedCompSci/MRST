@@ -37,22 +37,40 @@ if ~isempty(opt.nSteps)
          problem.SimulatorSetup.schedule.step.control(1:opt.nSteps);
 end
 
+setup   = problem.SimulatorSetup;
 % simulate       
 if isfield(problem, 'OutputHandlers')
     simulatePackedProblem(problem); 
-    states  = problem.OutputHandlers.states;
+    states = problem.OutputHandlers.states;
+    report = problem.OutputHandlers.reports;
+    nStates = states.numelData;
 else
-    setup = problem.SimulatorSetup;
-    [~, states]  = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
+    [~, states, report]  = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
+    nStates = numel(states);
 end
+hasMinisteps = isfield(setup, 'OutputMinisteps') && setup.OutputMinisteps;
 
 % compute objective
-setup   = problem.SimulatorSetup;
 if iscell(objective)
     % multiple objectives
     objective = objective{problem.seed};
 end
-vals = objective(setup.model, states, setup.schedule);
+% Check for 1-1 between states and schedule and handle mini-steps
+objArg = {};
+if nStates ~= numel(setup.schedule.step) 
+    if hasMinisteps
+        [setup.schedule, stepMap] = includeMiniSteps(states, setup.schedule, report);
+        % For parameter calibration, provide a map from steps to reportstep.
+        % It's up to the objective whether this is treated adequately
+        if ~isempty(opt.parameters)
+            objArg = {'reportStepMap', stepMap};
+        end
+    else
+        error('Unable to resolve incompatibility between states end schedule');
+    end
+end
+
+vals = objective(setup.model, states, setup.schedule, objArg{:});
 
 if opt.scalarObjective
     obj.value = sum(vertcat(vals{:}));
@@ -64,7 +82,8 @@ end
 % compute gradient
 if opt.computeGradient || nargout == 2
     objh = @(tstep, model, state)objective(model, states, setup.schedule, ...
-           'ComputePartials', true, 'tStep', tstep,'state', state, 'from_states', false);
+           'ComputePartials', true, 'tStep', tstep,'state', state, ...
+           'from_states', false, objArg{:});
     if isempty(opt.parameters) % assume standard type
         gradient = computeGradientAdjointAD(setup.state0, states, setup.model, ...
                    setup.schedule, objh, 'OutputPerTimestep', true);
@@ -134,3 +153,19 @@ for k = 1:numel(g)
     g(k) = grad.(tp)(wno, sno);
 end
 end
+
+function [schedule, stepMap] = includeMiniSteps(schedule, report, nStates)
+if isa(report, 'ResultHandler')
+    tmp  = cell(report.numelData, 1);
+    for k = 1:nRep
+        tmp{k} = report{k};
+    end
+    report = tmp;
+end
+[schedule, ts, nSteps] = convertReportToSchedule(report, schedule);
+assert(nStates == sum(nSteps), ...
+    'Number of ministeps in report did not match number of states');
+stepMap = nan(numel(ts),1);
+stepMap(cumsum(nSteps)) = (1:numel(nSteps))';
+end
+
