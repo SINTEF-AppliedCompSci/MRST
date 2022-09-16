@@ -89,6 +89,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             'Failed to open intermediate file ''%s'': %s.', name, msg);
    end
 
+   cleanup = onCleanup(@() fclose(fp));
+
    vertexWeights = false;
    if nargin < 3
        opts = '';
@@ -141,8 +143,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       fprintf(fp, ' %d %d', t(:, p(i) : p(i + 1) - 1));
       fprintf(fp, '\n');
    end
-
-   fclose(fp);
 
    command = sprintf('"%s" %s "%s" %d', binname, opts, name, n);
    result  = sprintf('%s.part.%d'  , name, n);
