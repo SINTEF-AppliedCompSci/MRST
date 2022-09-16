@@ -132,7 +132,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 % Compute static heat transmissibility
                 Thr = opt.transHr;
                 if isempty(Thr)
-                    lambdaR = model.rock.lambdaR.*(vol - pv)./vol;
+                    lambdaR = rock.lambdaR.*(vol - pv)./vol;
                     r       = struct('perm', lambdaR);
                     Thr     = getFaceTransmissibility(model.G, r);
                 end
