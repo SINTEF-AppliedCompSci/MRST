@@ -59,7 +59,7 @@ segments  = segments(:, 1:2);
 nseg = size(segments,1)-1;
 % pick intial candidate subset of faces
 if nseg > 1
-    fix0 = getFacesCloseToSegment(G, segments);
+    fix0 = getFacesCloseToSegment(G, segments, 'projVec', [0 0 1]);
 else
     [fix0] = deal([]);
 end
@@ -70,7 +70,7 @@ ts = 0;
 cumlen = zeros(nseg+1, 1);
 for k = 1:nseg
     curseg = segments([k, k+1],:);
-    fix = getFacesCloseToSegment(G, curseg, 'faceIx', fix0);
+    fix = getFacesCloseToSegment(G, curseg, 'faceIx', fix0, 'projVec', [0 0 1]);
     
     [p1, p2, faceNo] = getFaceSegments(G, fix);
     
