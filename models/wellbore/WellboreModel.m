@@ -86,7 +86,8 @@ classdef WellboreModel < WrapperModel
             memberIx = cell(model.numWells, 1);
             for i = 1:ng
                 group = groups(i);
-                memberIx{i} = find(ismember(wnames, group.members));
+                mix = find(ismember(wnames, group.members));
+                memberIx{i} = reshape(mix, [], 1);
             end
             [groups.memberIx] = deal(memberIx{:});
             
@@ -97,48 +98,32 @@ classdef WellboreModel < WrapperModel
         function G = computeWellGridGeometry(model, G)
             
             % Add inlet cells as copies of the top cell
-            G.cells.num = G.cells.num + model.numWells + model.numGroups;
-            % Get top cells for each well
             topCells = G.cells.topCell;
-            if ~isempty(model.groups)
-                % For groups, this we use the top cell of the first member
-                % in the group
-                gwix = arrayfun(@(group) group.memberIx(1), model.groups);
-                topCells = [topCells; topCells(gwix)];
-            end
-            % Set volumes
-            G.cells.volumes = [G.cells.volumes  ; G.cells.volumes(topCells)];
-            % Set centroids, with depth equal to refDepth
+            [G, wcno] = copyCells(G, G.cells.topCell, 'nnc', repmat(topCells, 1, 2));
+            % Set vertical coordinate equal to refDepth
             refDepth = arrayfun(@(W) W.refDepth, model.wells);
-            if ~isempty(model.groups)
-               refDepth = [refDepth; refDepth(gwix)]; 
-            end
-            x = G.cells.centroids(topCells,:); x(:,3) = refDepth;
-            G.cells.centroids = [G.cells.centroids; x];
-            % Set facePos
-            % @@TODO: Add one top face for each well
-            nf = diff(G.cells.facePos); nf = nf(topCells);
-            facePos = cumsum([G.cells.facePos(end); nf]);
-            G.cells.facePos = [G.cells.facePos; facePos(2:end)];
-            % Set faces
-            faces = G.cells.faces(mcolon(G.cells.facePos(topCells), ...
-                                         G.cells.facePos(topCells + 1) - 1),:);
-            G.cells.faces = [G.cells.faces; faces];
-            % Set inlet cells to be neighbors of the topcells
-            topFaces = G.faces.topFace;
-            if ~isempty(model.groups)
-                topFaces = [topFaces; G.face.num + model.numGroups];
-            end
-            N = G.faces.neighbors(topFaces,:);
-            N = [N; zeros(model.numGroups)];
-            N(N == 0) = (G.cells.num-model.numWells-model.numGroups+1:G.cells.num);
+            G.cells.centroids(wcno,3) = refDepth;
             
-            G.faces.neighbors(G.faces.topFace,:) = N;
-             
+            gcno = 0;
+            if ~isempty(model.groups)
+                % For groups, we use the top cell of the first member in
+                % the group
+                gw1 = arrayfun(@(group) group.memberIx(1), model.groups);
+                gw  = arrayfun(@(group) group.memberIx, model.groups, 'UniformOutput', false);
+                % Make nncs
+                nnc = [rldecode(gw1, cellfun(@numel, gw), 1), vertcat(gw{:})];
+                nnc = wcno(nnc);
+                % Copy cells
+                [G, gcno] = copyCells(G, wcno(gw1), 'nnc', nnc);
+                % Set vertical coord equal to refDepth of first group well
+                G.cells.centroids(gcno,3) = refDepth(gw1);
+            end
+  
             % Set flag indicating if cell is perforation (i.e., connected
             % to a reservoir cell). Otherwise, it is an inlet(/outlet) cell
-            G.cells.isPerf = true(G.cells.num,1);
-            G.cells.isPerf(end-model.numWells+1:end) = false;
+            G.cells.type = zeros(G.cells.num, 1);
+            G.cells.type(wcno) = 1;
+            G.cells.type(gcno) = 2;
             
             % Compute segment lengths and radii
             [lengthCell, lengthFace] = model.getSegmentLength(G);
@@ -672,7 +657,7 @@ classdef WellboreModel < WrapperModel
         function [iiCell, iiFace] = getInletSegments(model, G)
             
             if nargin < 2, G = model.G; end
-            iiCell = ~G.cells.isPerf;
+            iiCell = G.cells.type ~= 0;
             iiFace = any(iiCell(model.parentModel.operators.N),2);
             
         end
@@ -686,10 +671,19 @@ classdef WellboreModel < WrapperModel
             % Get radius in each cell
             rc = vertcat(model.wells.r);
             rc = rc(G.cells.order);
-            rc = [rc; arrayfun(@(W) W.r(1), model.wells)];
+            
+            % Add radii for inlet well cells
+            rc = [rc; rc(G.cells.topCell)];
+            
+            if ~isempty(model.groups)
+            % Add radii for inlet group cells
+                gw1 = arrayfun(@(group) group.memberIx(1), model.groups);
+                rc = [rc; rc(G.cells.topCell(gw1))];
+            end
             
             % Face segment radii computed as mean of adjacent cells
             N = G.faces.neighbors; N = N(all(N>0,2), :);
+            N = [N; G.nnc.cells];
             rf = mean(rc(N),2);
             
         end
@@ -700,18 +694,20 @@ classdef WellboreModel < WrapperModel
             
             if nargin < 2, G = model.G; end
             
-            % Compute segments within each cell
+            % Compute lenght of segments within each cell
             lc = arrayfun(@(W) sqrt(sum(W.trajectory.vec.^2, 2)), ...
                         model.wells, 'UniformOutput', false);
             lc = cell2mat(lc);
             lc = lc(G.cells.order);
-            x = G.cells.centroids;
-            iic = model.getInletSegments(G);
-            l0 = sqrt(sum((x(G.cells.topCell,:) - x(iic,:)).^2, 2));
-            lc = [lc; l0];
+
+            % Compute lenght of segments for each inlet cell
+            x  = G.cells.centroids;
+            li = sqrt(sum((x(G.nnc.cells(:,1), :) - x(G.nnc.cells(:,2), :)).^2, 2));
+            lc = [lc; li];
             
-            % Face segment lengths computed as mean of adjacent cells
+            % Face segment lengths computed as mean of adjacent cells            
             N = G.faces.neighbors; N = N(all(N>0,2), :);
+            N = [N; G.nnc.cells];
             lf = sum(lc(N).*0.5, 2);
 
         end
