@@ -267,6 +267,11 @@ classdef ADI
              h = v;
              h.val = u.^v.val;
              h.jac = v.lMultDiag((u.^v.val).*log(u), v.jac);
+
+             if numel(v.val) == 1
+                 h.jac = cellfun(@(x) diag(x), h.jac, 'uniformoutput', false);
+             end
+             
          else % u and v are both ADI
              h = u;
              h.val = u.val.^v.val;
