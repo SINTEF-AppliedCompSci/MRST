@@ -75,7 +75,7 @@ function W = computeThermalWellIndex(W, G, rock, fluid, opt)
     for i = 1:numel(W)
         cells  = W(i).cells;
         if givenWIth
-            W(i).WIth = repmat(WIth, numel(cells),1);
+            W(i).WIth = repmat(opt.WIth, numel(cells),1);
             continue
         end
         % Assume thermal conductivity tensors are diagonal for now
