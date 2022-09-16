@@ -34,7 +34,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    ff = fopen(filename);
+
+    [ff, msg] = fopen(filename, 'rt');
+    if ff < 0
+        error('File:Open', 'Failed to open ''%s'': %s', filename, msg);
+    end
+
+    cleanup = onCleanup(@() fclose(ff));
+
     meta = struct();
     while 1
         line = fgetl(ff);
