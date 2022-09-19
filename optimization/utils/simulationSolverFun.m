@@ -57,7 +57,7 @@ if iscell(objective)
 end
 % Check for 1-1 between states and schedule and handle mini-steps
 objArg = {};
-if nStates ~= numel(setup.schedule.step) 
+if nStates ~= numel(setup.schedule.step.val) 
     if hasMinisteps
         [setup.schedule, stepMap] = includeMiniSteps(states, setup.schedule, report);
         % For parameter calibration, provide a map from steps to reportstep.
