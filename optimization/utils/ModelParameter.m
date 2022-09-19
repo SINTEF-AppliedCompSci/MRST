@@ -16,6 +16,7 @@ classdef ModelParameter
         controlSteps  = [];         % Default set/get for all control steps
         controlType   = 'none';     % types 'bhp', 'rate', 'orat', ... and 'policy' requires special 
                                     % treatment for sensitivitry computations
+        wellSubsets   = [];         % subset of individual well parameters 
         extraLocations = [];        % additional locations of parameter
     end
     
@@ -33,7 +34,8 @@ classdef ModelParameter
                 p.getfun = @getfield;
             end
             opt = struct('relativeLimits', [.5 2], ...
-                         'uniformLimits',  true);
+                         'uniformLimits',  true,   ...
+                         'wellSubsets',     []);
             opt = merge_options(opt, extra{:});
             p   = setupDefaults(p, setup, opt);
             checkSetup(p, setup);
@@ -151,6 +153,9 @@ classdef ModelParameter
                 % well-parameter subset applies to well numbers 
                 loc = p.location(3:end);
                 v = applyFunction(@(x)p.getfun(x, loc{:}), control.W(p.subset));
+                if ~isempty(p.wellSubsets)
+                    v = applyFunction(@(x,y)x(y), v, p.wellSubsets);
+                end
                 v = vertcat(v{:});
             else
                 % apply subset to parameter
@@ -179,7 +184,13 @@ classdef ModelParameter
                 [i1, i2] = deal(cumsum([1;np(1:end-1)]), cumsum(np));
                 v  = applyFunction(@(i1,i2)v(i1:i2), i1, i2);
                 loc = p.location(3:end);
-                for k = 1:numel(sub)
+                if ~isempty(p.wellSubsets)
+                    for k = 1:numel(sub)
+                        tmp  = p.getfun(control.W(sub(k)), loc{:});
+                        v{k} = setSubset(tmp, v{k}, p.wellSubset{k});
+                    end
+                end
+                for k = 1:numel(sub)   
                     control.W(sub(k)) = p.setfun(control.W(sub(k)), loc{:}, v{k});
                 end
             else
@@ -212,6 +223,11 @@ end
 if islogical(p.subset)
     p.subset = find(p.subset);
 end
+for k = 1:numel(p.wellSubsets)
+    if islogical(p.wellSubsets{k})
+        p.wellSubsets{k} = find(p.wellSubsets{k});
+    end
+end
 
 if strcmp(p.belongsTo, 'schedule')
     if isempty(p.controlSteps)
@@ -220,25 +236,30 @@ if strcmp(p.belongsTo, 'schedule')
         % set name depending on first selected control step
         p.name = sprintf('%s_step%d', p.name, p.controlSteps(1));
     end
+    if iscell(p.lumping)
+        p = handleWellLumping(p, setup);
+    end
 end
 
 v = getParameterValue(p, setup, false);
 
 if ~isempty(p.lumping)
-    p.nParam = max(p.lumping);
+    p.nParam = max(double(p.lumping));
+    if numel(p.lumping) == 1 && p.lumping == 1
+        p.lumping = ones(numel(v), 1);
+    end
 else
     p.nParam = numel(v);
 end
    
 if strcmp(p.type, 'multiplier')
     if any(v==0)
-        error('Can''t set parameter-type ''multiplier'' for zero-value parameter');
+        error('Parameters (''%s'') of type ''multiplier'' can''t be zero.', p.name);
     end
     p.referenceValue = v;
 end
 
 % handle default parameter limits
-limsOK = false; 
 if isempty(p.boxLims)
     rlim  = opt.relativeLimits;
     if strcmp(p.type, 'value')
@@ -246,7 +267,6 @@ if isempty(p.boxLims)
             tmp = [min(min(v)), max(max(v))];
             ii  = [1+(tmp(1)<0), 2-(tmp(2)<0)];
             p.boxLims = tmp.*rlim(ii);
-            limsOK = ~all(tmp==0);
         else
             p.boxLims = bsxfun(@times, v, rlim);
         end
@@ -258,7 +278,7 @@ if isempty(p.boxLims)
     % special treatment of saturations
     if any(strcmp(p.name, {'sw', 'sg'}))
          p.boxLims = [0, 1];
-    elseif any(v==0) && ~limsOK 
+    elseif any(v==0) 
     % check if relative limits are set for zero-value params
         p.boxLims(v==0, 1) = -1; 
         p.boxLims(v==0, 2) =  1;
@@ -375,7 +395,7 @@ end
 
 %--------------------------------------------------------------------------
 function v = setSubset(v, vi, sub)
-if isa(vi, 'ADI')
+if isa(vi, 'ADI') && ~isa(v, 'ADI')
     v = double2ADI(v, vi);
 end
 v(sub) = vi;
@@ -551,6 +571,34 @@ function base = getScalingBase(p)
 base = p.scalingBase;
 if isnan(base)
     base = p.boxLims(:,2)./p.boxLims(:,1);
+end
+end
+%--------------------------------------------------------------------------     
+function p = handleWellLumping(p, setup)
+% This is a bit intricate
+assert(strcmp(p.belongsTo, 'schedule'), 'Expected parameter to be of schedule-type');
+W = setup.schedule.control(1).W;
+ss = p.subset;
+if ~isnumeric(ss)
+    ss = (1:numel(W))';
+end
+if iscell(p.lumping) % lumping given for each well
+    assert(numel(ss) == numel(p.lumping), 'Well subset vs well lumping mismatch');
+    if any(cellfun(@islogical, p.lumping))
+        % a logical (true) is treated as individual well lumping
+        assert(all(cellfun(@islogical, p.lumping)));
+        p.lumping = num2cell((1:numel(p.lumping)));
+    end
+    for k = 1:numel(ss)
+        nc = numel(W(ss(k)).cells);
+        if ~isempty(p.wellSubsets)
+            nc = numel(p.wellSubsets{k});
+        end
+        if numel(p.lumping{k}) == 1 && nc > 1
+            p.lumping{k} = ones(nc,1)*p.lumping{k};
+        end
+    end
+    p.lumping = vertcat(p.lumping{:});
 end
 end
 
