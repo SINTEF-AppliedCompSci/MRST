@@ -26,18 +26,27 @@ output = model.output;
 if(isfield(output,'quantities'))
     if(output.quantities.include)        
         quantities = output.quantities;
+        if ~isfolder(quantities.filePath)
+            mkdir(quantities.filePath)
+        end
         SaveOutput(model,fullfile(quantities.filePath,quantities.fileName));            
     end
 end
 if(isfield(output,'satProfile'))
     if(output.satProfile.include)
         satProfile = output.satProfile;
+        if ~isfolder(satProfile.filePath)
+            mkdir(satProfile.filePath)
+        end
         SaveSatProfile(model,fullfile(satProfile.filePath,satProfile.fileName));           
     end
 end    
 if(isfield(output,'saveConfig'))
     if(output.saveConfig.include)        
         saveConfig = output.saveConfig;
+        if ~isfolder(saveConfig.filePath)
+            mkdir(saveConfig.filePath)
+        end
         SaveConfig(model,fullfile(saveConfig.filePath,saveConfig.fileName));
     end
 end
