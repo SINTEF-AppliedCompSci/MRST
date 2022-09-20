@@ -45,9 +45,7 @@ if not(strcmpi(model.simulation.type,strcat('historymatch')))
         PlotKrPcComparison(model)
     end
     % just a pause before you run the simulations to check if you have the
-    % correct input relative permeability and capillary pressures for 
-    % your simulations - you can also plot them against other kr and pc 
-    % curves for comparison purposes
+    % correct input relative permeabili
     disp('Check input saturation functions, continue? [enter for yes/control + c to no]');
     pause()
 end

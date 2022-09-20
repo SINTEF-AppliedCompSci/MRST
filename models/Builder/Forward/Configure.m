@@ -109,6 +109,7 @@ while ~feof(fid)
             case 'PERMEABILITY'
                 value = str2double(splitted_lin{2});
                 unit = string(splitted_lin{3});
+                rock.perm.include = true;
                 rock.perm.inputValue = value;
                 rock.perm.inputUnit = string(unit);
                 rock.perm.value = value * Convert(unit); 
@@ -117,7 +118,8 @@ while ~feof(fid)
                 rock.Swi.include = true;               
                 rock.Swi.inputValue = value;
                 rock.Swi.value = value;
-            % Enables simulations including capillary heterogeneities
+            % Enables simulations including capillary heterogeneities/ !not
+            % implemented yet
             case 'HETEROGENEOUS'
                 rock.heterogeneous = true;
             % Read the porosity profile for heterogeneous modelling
@@ -434,10 +436,6 @@ while ~feof(fid)
                 plot.displayRate.inputUnit = AppUnit(string(splitted_lin{2}));
             %% block OUTPUT OPTIONS = ["PATH" "SATPROFILE" "SAVEVIDEO" "SAVECONFIG"
             % "QUANTITIES" "SWAVG" "INJ" "PROD" "DELTAP"]
-            % path to save the requested output
-            case 'PATH'
-                output.path.include = true;
-                output.path.dir = abs_path(splitted_lin{2}, path_to_settings);
             % path to output saturation profile
             case 'SATPROFILE_OUT'
                 output.include = true;
@@ -454,7 +452,7 @@ while ~feof(fid)
                 [filePath,fileName,fileExt] = fileparts(output.saveConfig.fullFile);
                 output.saveConfig.filePath = filePath;
                 output.saveConfig.fileName = strcat(fileName,fileExt);
-            % use alone to activate output quantities 
+            % indicate path to save output quantities
             case 'QUANTITIES'
                 output.include = true;
                 output.quantities.include = true;

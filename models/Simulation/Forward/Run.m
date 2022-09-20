@@ -96,12 +96,14 @@ for i = 1 : height(scheduleTable)
     schedule.counter = i;
     % simulate the schedule
     %---------------------------------------
-    verbose = false;
-%   [model.state, model.schedulereport] = Simulate(...
-%       model,twoPhaseOilWaterModel,schedule, verbose);
+    if model.verbose
+      [model.state, model.schedulereport] = Simulate(...
+          model,twoPhaseOilWaterModel,schedule, model.verbose);
+    else
     % we use this to hide the time steps report from MRST
-    [~, model.state, model.schedulereport] = evalc...
-        ('Simulate(model,twoPhaseOilWaterModel,schedule, verbose)');
+        [~, model.state, model.schedulereport] = evalc...
+            ('Simulate(model,twoPhaseOilWaterModel,schedule, model.verbose)');
+    end
     %---------------------------------------
     params.schedule = [params.schedule; schedule];
     params.fromIdx = params.toIdx;

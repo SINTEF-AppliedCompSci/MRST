@@ -80,9 +80,10 @@ DISPLAYRATE		cm^3/hour
 #-------------------------------------------------
 # OUTPUT OPTIONS
 #-------------------------------------------------
-#SATPROFILE_OUT		C:\Users\Omidreza\Documents\GitHub\SCAL\Results\satProfile.xlsx
-#SAVECONFIG		C:\Users\Omidreza\Documents\GitHub\SCAL\Results\config.txt
-#QUANTITIES		C:\Users\Omidreza\Documents\GitHub\SCAL\Results\output.txt
+#SATPROFILE_OUT		.\Results\satProfile.xlsx
+#SAVECONFIG		.\Results\config.txt
+# indicates the path to save the parameters below
+#QUANTITIES		.\Results\output.txt
 #TIME
 #SWAVG_OUT
 #INJ
