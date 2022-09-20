@@ -263,6 +263,11 @@ classdef ADI
              h = u;
              h.val = h.val.^v;
              h.jac = u.lMultDiag(v.*u.val.^(v-1), u.jac);
+
+             if numel(u.val) == 1
+                 h.jac = cellfun(@(x) diag(x), h.jac, 'uniformoutput', false);
+             end
+
          elseif ~isa(u,'ADI') % u is a scalar and v is ADI
              h = v;
              h.val = u.^v.val;
