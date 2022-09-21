@@ -19,17 +19,21 @@ schedule = simpleSchedule(dt, 'bc', bc);
 [~, states] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nlsolver);
 
 %% visualizing some results
-f=figure(1);
-f.Position=[50 500 900 300];
-subplot(1,3,1), hold all
-plot(model.G.cells.centroids(:,1),states{end}.s(:,1),'LineWidth',2); title('water saturation')
-subplot(1,3,2), hold all
-plot(model.G.cells.centroids(:,1),states{end}.cp(:,1),'LineWidth',2); title ('polymer concentration (m^3/kg)')
-subplot(1,3,3), hold all
-plot(model.G.cells.centroids(:,1),states{end}.pressure(:,1)/barsa,'LineWidth',2); title('pressure (barsa)')
+plt = @(x) plot(model.G.cells.centroids(:,1), x, 'LineWidth', 2);
+
+figure('Position', [50, 500, 900, 300])
+
+subplot(1,3,1)
+plt(states{end}.s(:,1)); title('water saturation')
+
+subplot(1,3,2)
+plt(states{end}.cp); title('polymer concentration (kg/m^3)')
+
+subplot(1,3,3)
+plt(convertTo(states{end}.pressure, barsa)); title('pressure (barsa)')
 
 % interactively visualizing the running result
-figure(2)
+figure
 plotToolbar(model.G, states, 'plot1d', true, 'field', 'cp');
 
 %% Copyright Notice
