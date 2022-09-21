@@ -670,47 +670,6 @@ classdef ADI
    
    methods (Static)
 
-        function h = slice(v, rows)
-
-        % h = v(subs);
-            
-            subs = struct('type', '()', 'subs', {{rows}});
-            h = subsref(v, subs);
-            
-
-            % if isa(v, 'ADI')
-            %     vals = v.val(rows);
-            %     % for k = 1:numel(v.jac)
-            %     %     jac{k} = v.jac{k}(rows, :);
-            %     % end
-            %     jac = ADI.subsrefJac(v.jac, rows);
-            %     h = ADI(vals, jac);
-            % else
-            %     h = v(rows);
-            % end
-
-        end
-
-        %--------------------------------------------------------------------------
-
-        function h = assignSlice(h, v, rows)
-
-            subs = struct('type', '()', 'subs', {{rows}});
-            h = subsasgn(h, subs, v);
-
-            
-            % if isa(h, 'ADI')
-            %     h.val(rows) = v.val;
-            %     % for k = 1:numel(v.jac)
-            %     %     h.jac{k}(rows, :) = v.jac{k};
-            %     % end
-            %     h.jac = ADI.subsasgnJac(h.jac, rows, v.jac);
-            % else
-            %     h(rows) = v;
-            % end
-
-        end
-
         %**************************************************************************
         %-------- Helper functions involving Jacobians  ---------------------------
         %**************************************************************************
