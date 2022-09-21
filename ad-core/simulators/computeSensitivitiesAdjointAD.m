@@ -80,12 +80,14 @@ if mrstVerbose && setup.model.toleranceCNV >= 1e-3
             'model.toleranceCNV.'] )
 end
 
-if isempty(opt.LinearSolver)
-    linsolve = BackslashSolverAD();
-else
+if ~isempty(opt.LinearSolver)
     linsolve = opt.LinearSolver;
+elseif isfield(setup, 'AdjointLinearSolver')
+    linsolve = setup.AdjointLinearSolver;
+else
+    linsolve = BackslashSolverAD();
 end
-
+    
 sens = struct;
 for k = 1:numel(param)
     sens.(param{k}.name) = 0;
@@ -125,13 +127,19 @@ for step = nstep:-1:1
     [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
         getObjective, setup.schedule, lambda, step, 'colIx', colIx{step});
     [eqdth, modelParam] = partialWRTparam(modelParam, getState, scheduleParam, step, param);
-    for kp = 1:numel(param)
-        nm = param{kp}.name;
-        for nl = 1:numel(lami)
-            if isa(eqdth{nl}, 'ADI')
-                sens.(nm) = sens.(nm) + eqdth{nl}.jac{kp}'*lami{nl};
-            end
-        end
+    result = 0;
+    for k = 1:numel(lami)
+        result = result + lami{k}'*eqdth{k};
+    end
+    result = result.jac;
+    if numel(result) ~= numel(param) % might be the case for e.g., GenericAD
+        result = horzcat(result{:});
+        cumn   = reshape(cumsum(cellfun(@(p)p.nParam, param)), [], 1);
+        [lo, hi] = deal([1; cumn(1:end-1)+1], cumn);
+        result = applyFunction(@(i1, i2)result(i1:i2), lo, hi);
+    end
+    for k = 1:numel(param)
+        sens.(param{k}.name) = sens.(param{k}.name) + result{k}.';
     end
 end
 
@@ -212,7 +220,7 @@ if any(isPolicy | isWellControl)
     nOpen  = nnz(isOpen);
     eqNo   = strcmp('closureWells', problem.equationNames);
     ceq    = problem.equations{eqNo};
-    assert(~isa(ceq, 'ADI'));
+    assert(~isa(ceq, 'ADI'), 'Expected equation to be of class ADI');
     if any(isPolicy) && step > 1
         % experimental support for policies: 
         assert(isfield(control.misc, 'policy'));
@@ -261,7 +269,12 @@ end
 
 function [modelParam, scheduleParam] = initModelParametersADI(setup, param)
 v  = applyFunction(@(p)p.getParameter(setup), param);
-% use same backend as problem.model
+if isprop(setup.model.AutoDiffBackend, 'useMex') && setup.model.AutoDiffBackend.useMex
+    % mex-version of operators are not compatible
+    setup.model.AutoDiffBackend.useMex = false;
+    % operators are updated in subsequent call to validateModel
+end
+% use same backend as setup.model
 if isfield(setup, 'model') && isprop(setup.model, 'AutoDiffBackend')
     [v{:}] = setup.model.AutoDiffBackend.initVariablesAD(v{:});
 else
@@ -338,11 +351,11 @@ if isempty(matchMap)
     ncol = max(colIx{end});
 else
     nMatch = zeros(ns,1);
-    fn = fieldnames(matchMap);
-    assert(ns == numel(matchMap), ...
+    fn = fieldnames(matchMap.steps);
+    assert(ns == numel(matchMap.steps), ...
         'Dimension mismatch between schedule and matchMap');
     for k = 1:numel(fn)
-        nMatch = nMatch +  reshape(cellfun(@(x)nnz(isfinite(x)), {matchMap.(fn{k})}), [], 1);
+        nMatch = nMatch +  reshape(cellfun(@(x)nnz(isfinite(x)), {matchMap.steps.(fn{k})}), [], 1);
     end
     cum = cumsum(nMatch);
     colIx = applyFunction(@(x,y)x:y, [0; cum(1:end-1)]+1, cum);

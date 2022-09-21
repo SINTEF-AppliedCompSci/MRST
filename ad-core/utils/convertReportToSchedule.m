@@ -1,4 +1,4 @@
-function [schedule, timesteps] = convertReportToSchedule(report, schedule)
+function [schedule, timesteps, numsteps] = convertReportToSchedule(report, schedule)
 % Create a new schedule based on actual ministeps from a simulation report
 %
 % SYNOPSIS:
@@ -58,12 +58,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         n = crs.numelData();
     end
+    numsteps = nan(n,1); 
     for i = 1:n
         cr = crs{i};
         steprep = cr.StepReports(cellfun(@(x) x.Converged, cr.StepReports));
         timesteps = [timesteps; cellfun(@(x) x.Timestep, steprep)]; %#ok
         controls = [controls;...
             repmat(schedule.step.control(i), numel(steprep), 1)]; %#ok
+        numsteps(i) = numel(steprep);
     end
     schedule.step.val = timesteps;
     schedule.step.control = controls;

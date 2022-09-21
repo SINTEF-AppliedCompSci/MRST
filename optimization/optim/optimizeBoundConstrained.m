@@ -136,12 +136,13 @@ if opt.maximize
     objSign = -1;
 end
 % scale problem to 0 <= u <= 1
-[lb, ub] = deal(opt.lb, opt.ub);
 objScale = false;
-if any(lb~= 0) || any(ub~=1)
-    f = @(u)fScale(u, f, lb, ub);
+if any(opt.lb~= 0) || any(opt.ub~=1)
+    f = @(u)fScale(u, f, opt.lb, opt.ub);
     objScale = true;
+    u0 = (u0-opt.lb)./(opt.ub-opt.lb);
 end
+[lb, ub] = deal(0,1);
 
 if isempty(opt.history) % starting from scratch
     if any(lb > u0) || any(u0 > ub)
@@ -220,6 +221,7 @@ while ~success
         history = gatherInfo(history, objSign*v, u, norm(pg,inf), lsinfo.step, ...
             lsinfo.nits, lsinfo.flag, Hi, rho, rTrust, qpinfo.nit, qpinfo.nitOuter, opt.outputHessian);
     else
+        if it == 1, [u,v, rho] = deal(u0, v0, nan); end
         history = gatherInfo(history, objSign*v, u, norm(pg,inf), 0, 0, 0, ...
             Hi, rho, rTrust, qpinfo.nit, qpinfo.nitOuter, opt.outputHessian);
     end  
@@ -233,9 +235,9 @@ while ~success
         plotInfo(evFig, history, opt.logPlot)
     end
     printInfo(history, it);
-    if objScale
-        u = u.*(ub-lb)+lb;
-    end
+end
+if objScale
+    u = u.*(opt.ub-opt.lb)+opt.lb;
 end
 end
 
