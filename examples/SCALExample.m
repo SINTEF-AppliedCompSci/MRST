@@ -24,7 +24,7 @@ clear classes;
 mrstModule add ad-core ad-props ad-blackoil ad-scal
 % input absolute path to the settings file containing the keywords and
 % input parameters/tables
-model = Configure("C:\Users\omidreza\Documents\GitHub\ad-scal\examples\settings_case4.txt");
+model = Configure("C:\Users\omidreza\Documents\GitHub\ad-scal\examples\settings_case1.txt");
 
 %% verbose to display internal messages
 % set true to show detailed messages about the simulation
@@ -130,6 +130,6 @@ end
 %% compute and plot fractional flow
 % plot and compute the fractional flow
 % most useful for steady state experimetns 
-[sw, fw] = compute_fractional_flow (model);
-plot_fractional_flow(sw, fw);
+% [sw, fw] = compute_fractional_flow (model);
+% plot_fractional_flow(sw, fw);
 
