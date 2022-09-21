@@ -112,6 +112,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             if nargin < 3, rock = model.rock; end
             if nargin < 2, G = model.G;       end
             
+            hasNNC = isfield(G, 'nnc');
+            if hasNNC
+                assert(all(isfield(G.nnc, {'transHr', 'transHf'})),          ...
+                    ['Struct G.nnc (non-neighboring connections must ', ...
+                     'have fields transHr and transHf (rock/fluid heat trans)']);
+            end
+            
             drock = rock;
             if model.dynamicFlowTrans()
                 % Assign dummy transmissibilities to appease
@@ -135,6 +142,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     lambdaR = rock.lambdaR.*(vol - pv)./vol;
                     r       = struct('perm', lambdaR);
                     Thr     = getFaceTransmissibility(model.G, r);
+                    if hasNNC, Thr = [Thr; G.nnc.transHr]; end
                 end
                 % Assign to model.operators
                 if numel(Thr) < model.G.faces.num
@@ -153,6 +161,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     lambdaF = repmat(model.fluid.lambdaF, model.G.cells.num, 1).*pv./vol;
                     r       = struct('perm', lambdaF);
                     Thf     = getFaceTransmissibility(model.G, r);
+                    if hasNNC, Thf = [Thr; G.nnc.transHr]; end
                 end
                 % Assign to model.operators
                  if numel(Thf) < model.G.faces.num
