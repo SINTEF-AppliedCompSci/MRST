@@ -18,8 +18,8 @@ classdef WellboreReservoirComponentFlux < CouplingTerm
             
             reservoir = prop.submodels.reservoir;
             well      = prop.submodels.well;
-            cells     = model.submodels.(well).getWellCells();
-            isPerf    = model.submodels.(well).G.cells.isPerf;
+            cells     = model.submodels.(well).getGlobalWellCells();
+            isPerf    = model.submodels.(well).G.cells.type == 0;
             
             % Get reservoir pressure in perforated cells
             p = model.submodels.(reservoir).getProp(state.(reservoir), 'Pressure');

@@ -196,7 +196,7 @@ classdef WellboreModel < WrapperModel
             rnames = model.getSurfaceRateNames();
             for rname = rnames
                 if ~isfield(state, rname{1})
-                    state.(rname{1}) = zeros(model.numWells(), 1);
+                    state.(rname{1}) = zeros(model.numWells() + model.numGroups(), 1);
                 end
             end
             
@@ -212,7 +212,7 @@ classdef WellboreModel < WrapperModel
             end
             % Add effect if not already set
             if ~isfield(state, 'effect')
-                state.effect = zeros(model.numWells(), 1);
+                state.effect = zeros(model.numWells() + model.numGroups(), 1);
             end
             
         end
@@ -336,14 +336,20 @@ classdef WellboreModel < WrapperModel
         
         %-----------------------------------------------------------------%
         function [vars, names, origin] = getPrimaryVariables(model, state)
+        % Get primary variables for model. These are the parent model
+        % primary variables, in addition to interface mass fluxes, bhp, and
+        % surface rates (and well bht and surface effect for models with
+        % thermal effects)
             
             % Get primary variable set of parent model
             [vars, names, origin] = model.parentModel.getPrimaryVariables(state);
+            
             % Add mass flux
             vm = model.getProps(state, 'massFlux');
             vars = [vars, {vm}];
             names  = [names, 'massFlux'];
             origin = [origin, class(model)];
+            
             % Add bhp and inlet/outlet rates
             rnames = model.getSurfaceRateNames();
             qs     = cell(size(rnames));
@@ -351,6 +357,7 @@ classdef WellboreModel < WrapperModel
             wvars = [{bhp}, qs];
             wnames = [{'bhp'}, rnames];
             worigin = repmat({class(model)}, 1, 1 + numel(rnames));
+            
             % Add bht if applicable
             if isprop(model.parentModel, 'thermal') && model.parentModel.thermal
                 bht = model.getProp(state, 'bht');
@@ -359,6 +366,8 @@ classdef WellboreModel < WrapperModel
                 wnames  = [wnames, {'bht', 'effect'}];
                 worigin = [worigin, repmat({class(model)}, 1, 2)];
             end
+            
+            % Assemble
             vars   = [vars  , wvars  ];
             names  = [names , wnames ];
             origin = [origin, worigin];
@@ -468,6 +477,7 @@ classdef WellboreModel < WrapperModel
             % Get surface rates across well/reservoir inlet face segments
             [~, iif] = model.getInletSegments();
             
+            % @@ TODO: sum fluxes for all groups
             qs = cellfun(@(qs, rho) qs(iif)./rho(iif), ...
                     qs, rhoS, 'UniformOutput', false);
             
@@ -512,16 +522,33 @@ classdef WellboreModel < WrapperModel
         % Equations imposing well control for each well
 
             % Get driving forces and check that it's non-empty
-            wCtrl = drivingForces.W;
-            if isempty(wCtrl)
-                [eqs, names, types] = deal({});
-                return;
+            [wCtrl, gCtrl] = deal([]);
+            hasWellCtrl  = isfield(drivingForces, 'W');
+            hasGroupCtrl = isfield(drivingForces, 'groups');
+            if hasWellCtrl , wCtrl = drivingForces.W;      end
+            if hasGroupCtrl, gCtrl = drivingForces.groups; end
+            if isempty(wCtrl) && isempty(gCtrl)
+                [eqs, names, types] = deal({}); return;
             end
+            
+            nw = model.numWells();
+            ng = model.numGroups();
+            
+            ctrl0 = struct('type', 'none', 'val', nan, 'T', nan);
+            if ~hasWellCtrl , wCtrl = repmat(ctrl0, nw, 1) ; end
+            if ~hasGroupCtrl, gCtrl = repmat(ctrl0, ng, 1); end
         
+            ctrlTarget = [vertcat(wCtrl.val); vertcat(gCtrl.val)];
+            ctrlType   = vertcat({wCtrl.type}', {gCtrl.type}');
+
             bhp = model.getProp(state, 'bhp');
-            eqs = model.AutoDiffBackend.convertToAD(zeros(model.numWells,1), bhp);
-            ctrlTarget = vertcat(wCtrl.val);
-            ctrlType   = {wCtrl.type}';
+            eqs = model.AutoDiffBackend.convertToAD(zeros(nw + ng,1), bhp);
+            
+            % No control - well is controlled by group or group is not
+            % actively controlling wells
+            is_none  = strcmpi(ctrlType, 'none');
+            % Well is controlled by its group
+            is_group = strcmpi(ctrlType, 'group');
             % Bottom-hole pressure control
             is_bhp  = strcmpi(ctrlType, 'bhp');
             % Surface total rates
@@ -550,7 +577,7 @@ classdef WellboreModel < WrapperModel
             rnames = model.getSurfaceRateNames();
             qsw      = cell(1, nph);
             [qsw{:}] = model.getProps(state, rnames{:});
-            is_surface_rate = false(model.numWells(), 1);
+            is_surface_rate = false(model.numWells() + model.numGroups(), 1);
             wrates = bhp*0;
             % Sum up rate targets
             for ph = 1:nph
@@ -567,6 +594,10 @@ classdef WellboreModel < WrapperModel
             end
             eqs(is_surface_rate) = ctrlTarget(is_surface_rate) - wrates(is_surface_rate);
             
+            %@@ Change to equation that sets group rate equal to sum of
+            % group well rates
+            eqs(is_none) = 0 - qsw{1}(is_none);
+            
             % Pack in standard eqs/names/types format
             eqs = {eqs}; [names, types] = deal({'control'});
             
@@ -581,13 +612,16 @@ classdef WellboreModel < WrapperModel
                                     'SurfaceDensity', 'PhaseUpwindFlag');
                 h = applyFunction(@(x) x(iic), h);
                 rhoS = applyFunction(@(x) x(iic), rhoS);
-                is_inj = flag{1}(iif);
+                is_inj = flag{1}(iif); is_inj = is_inj | is_none;
+                
                 qh = 0;
                 for ph = 1:nph
                     qh = qh + qsw{ph}.*rhoS{ph}.*h{ph};
                 end
                 eqTh = qh - qhw;
-                Tw = vertcat(wCtrl.T);
+                Tw = [vertcat(wCtrl.T); vertcat(gCtrl.T)];
+                bhtv = value(bht);
+                Tw(isnan(Tw)) = bhtv(isnan(Tw));
                 eqTh(is_inj) = bht(is_inj) - Tw(is_inj);
                 
                 eqs   = [eqs, {eqTh}];
@@ -635,9 +669,9 @@ classdef WellboreModel < WrapperModel
             Qh = Qh(model.G.cells.wellNo);
             [mass, energy] = model.parentModel.getProps(problem.state, 'ComponentTotalMass', 'TotalThermalEnergy');
             
-            pad = zeros(model.numWells,1);
-            scaleMass = max(value(mass{1})./dt, [Q; pad]);
+            pad = zeros(model.numWells() + model.numGroups() ,1);
             
+            scaleMass = max(value(mass{1})./dt, [Q; pad]);
             scaleEnergy = max(value(energy)./dt, [Qh; pad]);
             
             values(1) = norm(value(problem.equations{1}./scaleMass), inf);

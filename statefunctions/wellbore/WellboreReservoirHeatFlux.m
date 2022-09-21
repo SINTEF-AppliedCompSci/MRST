@@ -20,8 +20,8 @@ classdef WellboreReservoirHeatFlux < CouplingTerm
             
             reservoir = prop.submodels.reservoir;
             well      = prop.submodels.well;
-            cells     = model.submodels.(well).getWellCells();
-            isPerf    = model.submodels.(well).G.cells.isPerf;
+            cells     = model.submodels.(well).getGlobalWellCells();
+            isPerf    = model.submodels.(well).G.cells.type == 0;
             
             h = model.submodels.(reservoir).getProp(state.(reservoir), 'PhaseEnthalpy');
             h = h{1}(cells);
