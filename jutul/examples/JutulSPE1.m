@@ -1,15 +1,16 @@
 %% Example demonstrating SPE1 in Jutul
+mrstModule add ad-core ad-blackoil deckformat jutul
 pth = getDatasetPath('spe1');
 deck_path  = fullfile(pth, 'BENCH_SPE1.DATA');
 problem = initEclipsePackedProblemAD(deck_path);
 schedule = problem.SimulatorSetup.schedule;
 model = problem.SimulatorSetup.model;
 %% Simulate in Jutul
-[ws, states] = simulatePackedProblemJutul(problem);
+[ws, states] = simulatePackedProblemJutul(problem, 'daemon', false);
 %% Simulate in MRST
 simulatePackedProblem(problem);
 [ws_m, states_m] = getPackedSimulatorOutput(problem);
-%% Compare a 
+%% Compare well curves
 t = cumsum(schedule.step.val);
 qg = abs(getWellOutput(ws, 'qGs', 'PRODUCER'));
 qg_m = abs(getWellOutput(ws_m, 'qGs', 'PRODUCER'));
@@ -46,7 +47,7 @@ axis off tight
 view(50, 50)
 colorbar('horiz')
 title('Difference')
-%% Compare wells
+%% Compare wells interactively
 n = numel(ws);
 T = cumsum(schedule.step.val);
 plotWellSols({ws(1:n), ws_m(1:n)}, T(1:n), 'datasetnames', {'Jutul', 'MRST'})

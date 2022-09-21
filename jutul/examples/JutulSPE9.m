@@ -1,21 +1,25 @@
 %% Example demonstrating SPE9 run in Jutul
+mrstModule add ad-core ad-blackoil deckformat jutul
+
 pth = getDatasetPath('spe9');
 deck_path  = fullfile(pth, 'BENCH_SPE9.DATA');
 problem = initEclipsePackedProblemAD(deck_path);
+
 schedule = problem.SimulatorSetup.schedule;
 model = problem.SimulatorSetup.model;
-
 %% Simulate in Jutul
-[ws, states] = simulatePackedProblemJutul(problem);
+[ws, states] = simulatePackedProblemJutul(problem, 'daemon', false);
 %% Simulate in MRST
 simulatePackedProblem(problem);
 [ws_m, states_m] = getPackedSimulatorOutput(problem);
 %% Plot states interactively
 mrstModule add mrst-gui
 G = model.G;
-figure; plotToolbar(G, states)
+figure; plotToolbar(G, states, 'field', 'pressure')
+view(30, 45)
 title('Jutul')
-figure; plotToolbar(G, states_m)
+figure; plotToolbar(G, states_m, 'field', 'pressure')
+view(30, 45)
 title('MRST')
 %% Plot wells interactively
 n = numel(ws);

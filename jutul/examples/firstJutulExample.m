@@ -1,13 +1,31 @@
 %% First introductory example to Jutul as a MRST accelerator
-% JutulDarcy is a reservoir simulator that can be used to accelerate MRST.
-% We can set up a case in MRST, and run it in Jutul for increased
-% computational performance. Jutul supports black-oil, immiscible and
-% compositional models with multisegment wells.
+% JutulDarcy is a reservoir simulator written in Julia by SINTEF Digital
+% based on on the Jutul solver framework. We can set up a case in MRST, and
+% run it in Jutul for increased computational performance. Jutul supports
+% black-oil, immiscible and compositional models with multisegment wells.
+%
+% To install Jutul, first install the latest version of Julia [1].
+% Once installed, run Julia and add the JutulDarcy package . If you are
+% interested in using Julia, for other things, we recommend adding it to an
+% environment[3]. Otherwise, you can add it to the default environment by
+% running the following command in the Julia prompt:
+%
+% using Pkg; Pkg.add("JutulDarcy")
+%
+% Once downloaded, you are ready to run this example. Note that the example
+% pauses once the simulation is ready to be run in the Julia terminal.
+%
+% For more details on Jutul, see the JutulDarcy repository on GitHub [3]
+
+% [1] https://julialang.org/downloads/
+% [2] https://pkgdocs.julialang.org/v1/environments/
+% [3] https://github.com/sintefmath/JutulDarcy.jl
+
 mrstModule add ad-core ad-blackoil spe10 deckformat ad-props test-suite compositional jutul
-close all; clear
 if ~exist('name', 'var')
     name = 'qfs_wo';
 end
+%%
 switch name
     case 'qfs_wo'
         setup = qfs_wo();

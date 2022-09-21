@@ -12,28 +12,31 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 % 1. Add DaemonMode to your base Julia environment (easiest)
 % 2. Create a separate environment with DaemonMode (advanced users).
 %
-% We assume that you have dev-ed the Jutul repos at least once for this to
-% work.
-%
 % For option 1:
 % Run julia and run 
 %    ]add DaemonMode
-% It should then be added to your base environment.
+%    ]add JutulDarcy
+% DaemonMode and JutulDarcy will then be added to your base environment.
 %
-% Then, proceed with the following 
+% You can then run the JutulDarcy daemon by executing the following
+% command:
+%  julia --startup-file=no --color=no -e 'using Revise; using DaemonMode; serve()'
 %
+% For option 2:
+% Go to your favorite terminal and navigate to where you want to place your
+% environment. Then, execute the following:
 %    mkdir jutul-daemon
-%    cd .\jutul-daemon\ # or cd jutul-daemon if you are on Linux/Mac OS
+%    cd jutul-daemon # Linux command - use cd .\jutul-daemon\ if you are on Windows
 %    julia --project="."
 %    ]                    # To enter Pkg prompt
 %    add DaemonMode       # Required to run the Daemon, not needed if following (1)
-%    dev Jutul JutulDarcy # Could be "add" once we get it into package manager
+%    add JutulDarcy       # Reservoir simulator itself
 %    # hit backspace to exit the prompt
 %    pwd() # will give you the absolute path of the folder
 %
 % If you are using dev-ed packages, you may have to go into this
 % environment as noted above and run the following:
-%     using Jutul, JutulDarcy
+%     using JutulDarcy
 %
 % This needs to be done once per reboot (it seems). You can restart the
 % Daemon freely afterwards.
@@ -58,8 +61,6 @@ setup = qfs_wo();
 mrstModule add mrst-gui
 figure;
 plotToolbar(model.G, states);
-%% Run in MRST, for comparison
-[wsm, statesm] = simulateScheduleAD(state0, model, schedule);
 %% We can also use the high level interface:
 % Run on daemon (default)
 % [ws, states] = simulateScheduleJutul(state0, model, schedule, 'daemon', true);

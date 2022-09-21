@@ -1,4 +1,6 @@
 %% Example demonstrating how to run black oil cases from .DATA files in Jutul
+% Black oil cases can also be run in Jutul, provided that they are
+% constructed from a .DATA file.
 mrstModule add ad-core ad-blackoil ad-props deckformat jutul
 if ~exist('name', 'var')
     name = 'spe1';
@@ -21,8 +23,8 @@ switch name
 end
 [state0, model, schedule, nls] = initEclipseProblemAD(deck_path, 'ReorderStrategy', reorder);
 %% Write case to temporary directory and run
-% You can set daemon mode to true if set up, see backgroundJutulExample.
-[ws, states] = simulateScheduleJutul(state0, model, schedule, 'daemon', use_daemon);
+% You can set daemon mode to true if set up, see backgroundJutulExample for more details.
+[ws, states] = simulateScheduleJutul(state0, model, schedule, 'name', name, 'daemon', use_daemon);
 %% Run in MRST
 [ws_m, states_m] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nls);
 %% Compare wells
