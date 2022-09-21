@@ -13,6 +13,9 @@ classdef Viscosity < StateFunction
             nph = numel(names);
             mu = cell(1, nph);
             p_phase = prop.getEvaluatedDependencies(state, 'PhasePressures');
+            if ~iscell(p_phase)
+                p_phase = {p_phase};
+            end
             [sample, isAD] = getSampleAD(p_phase{:});
             for ph = 1:nph
                 mu{ph} = prop.evaluatePhaseViscosity(model, state, names(ph), p_phase{ph});
