@@ -3,7 +3,7 @@
 % boundary condition and generic surfactant-polymer model. In this case,
 % only water and polymer are involved and polymer is injecting from one
 % end (left) to the other end (right).
-mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat
+mrstModule add ad-core ad-blackoil ad-eor ad-props deckformat mrst-gui
 
 %% Run fine-grid simulation
 fn = '1D_FLOODING.DATA';
