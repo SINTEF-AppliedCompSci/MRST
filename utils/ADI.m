@@ -258,32 +258,47 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = power(u,v)
-          % Element-wise poewr. `h=u.^v`
-         if ~isa(v,'ADI') % v is a scalar and u is ADI
-             h = u;
-             h.val = h.val.^v;
-             h.jac = u.lMultDiag(v.*u.val.^(v-1), u.jac);
+          % Element-wise power. `h=u.^v`.
 
-             if numel(u.val) == 1
-                 h.jac = cellfun(@(x) diag(x), h.jac, 'uniformoutput', false);
-             end
+          if numelValue(u) == 1
+              u = repmat(u, [numelValue(v), 1]);
+          end
 
-         elseif ~isa(u,'ADI') % u is a scalar and v is ADI
-             h = v;
-             h.val = u.^v.val;
-             h.jac = v.lMultDiag((u.^v.val).*log(u), v.jac);
+          if numelValue(v) == 1
+              v = repmat(v, [numelValue(u), 1]);
+          end
+          
+          p = find(value(u) > 0);
+          n = find(value(u) < 0);
+          
+          % Initialize to zero
+          h = 0 * u + 0 * v;
 
-             if numel(v.val) == 1
-                 h.jac = cellfun(@(x) diag(x), h.jac, 'uniformoutput', false);
-             end
-             
-         else % u and v are both ADI
-             h = u;
-             h.val = u.val.^v.val;
-             h.jac = h.plusJac( ...
-               h.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
-               h.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
-         end
+          % Positive bases
+          if any(p)
+              subs = struct('type', '()', 'subs', {{p}});
+              vp = subsref(v, subs);
+              up = subsref(u, subs);
+              hp = exp(vp .* log(up));
+              h = subsasgn(h, subs, hp);
+          end
+          
+          % Negative bases
+          if any(n)
+              subs = struct('type', '()', 'subs', {{n}});
+              vn = subsref(v, subs);
+              w = value(vn);
+              a = floor(w) ~= ceil(w);
+              if any(a)
+                  error('Operation not supported. Only integer exponents are implemented for negative bases.');
+              else
+                  sgn = (-1).^w;
+                  un = subsref(u, subs);
+                  hn = sgn .* power(abs(un), vn);
+                  h = subsasgn(h, subs, hn);
+              end
+          end
+          
       end
 
       %--------------------------------------------------------------------
@@ -451,6 +466,14 @@ classdef ADI
          h.jac = h.lMultDiag(-1./sqrt(1-u.val.^2), u.jac);
       end
       
+      %-------------------------------------------------------------------- 
+      function h = atan(u)
+         atanu = atan(u.val);
+         h = u;
+         h.val = atanu;
+         h.jac = h.lMultDiag(1./(1 + u.val.^2), u.jac);
+      end
+
       %--------------------------------------------------------------------
 
       function h = max(u,v)
@@ -646,6 +669,48 @@ classdef ADI
    end
    
    methods (Static)
+
+        function h = slice(v, rows)
+
+        % h = v(subs);
+            
+            subs = struct('type', '()', 'subs', {{rows}});
+            h = subsref(v, subs);
+            
+
+            % if isa(v, 'ADI')
+            %     vals = v.val(rows);
+            %     % for k = 1:numel(v.jac)
+            %     %     jac{k} = v.jac{k}(rows, :);
+            %     % end
+            %     jac = ADI.subsrefJac(v.jac, rows);
+            %     h = ADI(vals, jac);
+            % else
+            %     h = v(rows);
+            % end
+
+        end
+
+        %--------------------------------------------------------------------------
+
+        function h = assignSlice(h, v, rows)
+
+            subs = struct('type', '()', 'subs', {{rows}});
+            h = subsasgn(h, subs, v);
+
+            
+            % if isa(h, 'ADI')
+            %     h.val(rows) = v.val;
+            %     % for k = 1:numel(v.jac)
+            %     %     h.jac{k}(rows, :) = v.jac{k};
+            %     % end
+            %     h.jac = ADI.subsasgnJac(h.jac, rows, v.jac);
+            % else
+            %     h(rows) = v;
+            % end
+
+        end
+
         %**************************************************************************
         %-------- Helper functions involving Jacobians  ---------------------------
         %**************************************************************************
@@ -836,7 +901,7 @@ end
 
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
