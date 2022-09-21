@@ -13,10 +13,13 @@ model.fluid.mixPar = 0.85;
 dt = schedule_deck.step.val;
 bc = fluxside([], model.G, 'xmin', schedule_deck.control.W(1).val, 'sat', 1);
 bc = pside(bc, model.G, 'xmax', schedule_deck.control.W(2).val, 'sat', 1);
+
 % the cp should only apply to the left boundary
 bc.cp = [schedule_deck.control.W(:).cp];
 schedule = simpleSchedule(dt, 'bc', bc);
-[~, states] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nlsolver);
+
+[~, states] = simulateScheduleAD(state0, model, schedule, ...
+                                 'NonLinearSolver', nlsolver);
 
 %% visualizing some results
 plt = @(x) plot(model.G.cells.centroids(:,1), x, 'LineWidth', 2);
