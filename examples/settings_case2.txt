@@ -1,3 +1,6 @@
+# Case 2. Steady-State imbibition with sharp Pc curve.
+# Same as case 1 but with a sharper Pc curve
+#
 # Comments starts with hash(#) symbol. 
 # Between the keyword and the value should be at least one tab.
 # Press enter key at the end of each line of data, even the last line of the file.

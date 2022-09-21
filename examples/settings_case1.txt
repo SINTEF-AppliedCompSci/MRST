@@ -1,3 +1,7 @@
+# Case 1. Steady-State imbibition with smooth Pc curve.
+# Water and oil injected at increasing water fractional flow, followed by several “bumps”
+# (only water injected for the bumps)
+#
 # Comments starts with hash(#) symbol. 
 # Between the keyword and the value should be at least one tab.
 # Press enter key at the end of each line of data, even the last line of the file.
@@ -83,6 +87,7 @@ DISPLAYRATE		cm^3/hour
 #SATPROFILE_OUT		.\Results\satProfile.xlsx
 #SAVECONFIG		.\Results\config.txt
 # indicates the path to save the parameters below
+# !quantities keyword has to be activated for this
 #QUANTITIES		.\Results\output.txt
 #TIME
 #SWAVG_OUT

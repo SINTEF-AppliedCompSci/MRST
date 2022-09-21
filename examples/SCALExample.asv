@@ -1,9 +1,7 @@
 %% Automated History Matching of SCAL Experiments
 %
 % DESCRIPTION: Example of how to run a case with the SCAL module
-% Have a look at "docs/list of examples.docx" for a list of available input
-% examples + "doc/List of keywords in the settings files.docx" for a
-% documentation about what is the role of each keyword
+%
 % ----------------------------------
 % (c) 2020-2022
 % Siroos Azizmohammadi
@@ -24,6 +22,8 @@ clear classes;
 mrstModule add ad-core ad-props ad-blackoil ad-scal
 % input absolute path to the settings file containing the keywords and
 % input parameters/tables
+% have a look at docs/list of examples.docx for a list of available input
+% examples + doc/List of keywords in the settings files.docx for 
 model = Configure("C:\Users\omidreza\Documents\GitHub\ad-scal\examples\settings_case4.txt");
 
 %% verbose to display internal messages

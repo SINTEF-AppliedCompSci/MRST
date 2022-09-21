@@ -123,6 +123,13 @@ for i = 1 : height(scheduleTable)
     end
     dynamic.params.plotNo = params.plotNo;
 end  
+%---------------------------------------
+% saving parameters for history match
+%---------------------------------------
+model = save_for_HM(model,state0);
+%---------------------------------------
+% output results
+%---------------------------------------
 if visualization
     model.dynamic.params.frames = frames;
     if not(isempty(model.output))
@@ -131,10 +138,6 @@ if visualization
         end
     end
 end
-%---------------------------------------
-% saving parameters for history match
-%---------------------------------------
-model = save_for_HM(model,state0);
 %---------------------------------------
 % plotting diagnostics toolbar
 % figure

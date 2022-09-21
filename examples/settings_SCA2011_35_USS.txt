@@ -1,3 +1,5 @@
+# Unsteady-state imbibition forward simulation (from SCA2011_35)
+#
 # Comments starts with hash(#) symbol. 
 # Between the keyword and the value should be at least one tab.
 # Press enter key at the end of each line of data, even the last line of the file.
