@@ -268,8 +268,8 @@ classdef ADI
               v = repmat(v, [numelValue(u), 1]);
           end
           
-          p = find(value(u) > 0);
-          n = find(value(u) < 0);
+          p = value(u) > 0;
+          n = value(u) < 0;
           
           % Initialize to zero
           h = 0 * u + 0 * v;
