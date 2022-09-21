@@ -260,12 +260,12 @@ classdef ADI
       function h = power(u,v)
           % Element-wise power. `h=u.^v`.
 
-          if numelValue(u) == 1
-              u = repmat(u, [numelValue(v), 1]);
+          if numel(value(u)) == 1
+              u = repmat(u, [numel(value(v)), 1]);
           end
 
-          if numelValue(v) == 1
-              v = repmat(v, [numelValue(u), 1]);
+          if numel(value(v)) == 1
+              v = repmat(v, [numel(value(u)), 1]);
           end
           
           p = value(u) > 0;
