@@ -96,7 +96,7 @@ DELTAP
 # OBJECTIVE FUNCTION CONFIGURATIONS
 #-------------------------------------------------
 EXCEL_FILE_NAME    kr_modified_corey.xlsx
-EXCEL_FILE_PATH    C:\Users\omidreza\Documents\GitHub\SCAL\App\Input_templates_for_SCAL_history_match
+EXCEL_FILE_PATH    .\Input_templates_for_SCAL_history_match
 #MULTIPOINT         
 #MULTIPOINT_RANDOM_NUMBERS      10
 KR_HM
@@ -122,7 +122,7 @@ MAX_FUNCTION_EVALUATIONS    6000
 SCALE_PROBLEM
 OBJECTIVE_FUNCTION_TYPE    normal    #Simultaneous
 #CENT_FILE_NAME      ABC.txt
-#CENT_FILE_PATH      C:\Users\Omidreza\Documents\GitHub\SCAL
+#CENT_FILE_PATH      .\SCAL
 HISTORYMATCH_ALGORITHM      active-set
 
 #-------------------------------------------------

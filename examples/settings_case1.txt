@@ -125,7 +125,7 @@ MAX_FUNCTION_EVALUATIONS    6000
 SCALE_PROBLEM
 OBJECTIVE_FUNCTION_TYPE    normal    #Simultaneous
 #CENT_FILE_NAME      ABC.txt
-#CENT_FILE_PATH      C:\Users\Omidreza\Documents\GitHub\SCAL
+#CENT_FILE_PATH      .\SCAL
 HISTORYMATCH_ALGORITHM      active-set
 
 #-------------------------------------------------
