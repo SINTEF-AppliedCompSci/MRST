@@ -59,7 +59,7 @@ end
 objArg = {};
 if nStates ~= numel(setup.schedule.step.val) 
     if hasMinisteps
-        [setup.schedule, stepMap] = includeMiniSteps(states, setup.schedule, report);
+        [setup.schedule, stepMap] = includeMiniSteps(setup.schedule, report, states.numelData);
         % For parameter calibration, provide a map from steps to reportstep.
         % It's up to the objective whether this is treated adequately
         if ~isempty(opt.parameters)
@@ -157,7 +157,7 @@ end
 function [schedule, stepMap] = includeMiniSteps(schedule, report, nStates)
 if isa(report, 'ResultHandler')
     tmp  = cell(report.numelData, 1);
-    for k = 1:nRep
+    for k = 1:report.numelData
         tmp{k} = report{k};
     end
     report = tmp;
