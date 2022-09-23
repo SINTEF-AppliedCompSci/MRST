@@ -1,4 +1,24 @@
 function [funs, num_ctrls] = set_material_fun(G, props, matcond, u_offset)
+%Undocumented Utility Function
+
+%{
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
    cells = (1:G.cells.num)';
    nlc = G.cells.nodePos(cells + 1) - G.cells.nodePos(cells);
@@ -144,4 +164,3 @@ function [E, nu] = KG2Enu(K, G)
    E = 9 * K .* G ./ (3 * K + G);
    nu = (3 * K - 2 * G) ./ (2 * (3 * K + G));
 end
-
