@@ -40,7 +40,14 @@ switch name
 end
 [state0, model, schedule] = deal(setup.state0, setup.model, setup.schedule);
 
-%% Write case to disk
+%% Write case to disk and output Jutul command
+% The routine will write the MRST setup to disk in a *.mat file and then
+% output a command you can paste into an existing Julia session that
+% already has JutulDarcy preloaded. Once the resulting simulation is
+% finished, you can hit the return button to continue execution in MATLAB.
+% Notice that the first time you run the simulation, it will take a long
+% time since Julia has to compile necessary code. Once compiled, however,
+% the simulation is fast.
 pth = writeJutulInput(state0, model, schedule, name);
 disp('Pausing - run the command in Julia and hit any key to continue')
 pause()

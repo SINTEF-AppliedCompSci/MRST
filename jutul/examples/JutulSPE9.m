@@ -1,4 +1,33 @@
 %% Example demonstrating SPE9 run in Jutul
+% This example runs the model from the SPE9 benchmark, which was posed
+% twenty years ago to compare contemporary black-oil simulators (Killough,
+% 1995). The reservoir is described by a 24 x 25 x 15 grid, having a 10
+% degree dipping-angle in the x-direction. The 25 producers initially operate
+% at a maximum rate of 1500 STBO/D, which is lowered to 100 STBO/D from day
+% 300 to 360, and then raised up again to its initial value until the end
+% of simulation at 900 days. The single water injector is set to a maximum
+% rate of 5000 STBW/D with a maximum bottom-hole pressure of 4000 psi at
+% reference depth. This setup will cause free gas to form after ~100 days
+% when the reservoir pressure is reduced below the original saturation
+% pressure. The free gas migrates to the top of the reservoir. During the
+% simulation most of the wells convert from rate control to pressure
+% control. A second problem is a discontinuity in the water-oil capillary
+% pressure curve, which may cause difficulties in the Newton solver when
+% saturations are changing significantly.
+%
+% The example simulates the setup using both Jutul and MRST and compares
+% the results from these simulators with precomputed simulation results
+% from ECLIPSE.  will be slight differences in well responses because
+% wells are modelled differently in the two simulations. MRST uses a
+% standard Peacemann well model, whereas Jutul uses multisegment wells with
+% property tables interpolated and exported from MRST.
+%
+%   Killough, J. E. 1995. Ninth SPE comparative solution project: A
+%   reexamination of black-oil simulation. In SPE Reservoir Simulation
+%   Symposium,  12-15 February 1995, San Antonio, Texas. SPE 29110-MS, doi:
+%   10.2118/29110-MS
+
+%% Load MRST modules and set up the model based on a standard input deck
 mrstModule add ad-core ad-blackoil deckformat jutul
 
 pth = getDatasetPath('spe9');
@@ -7,25 +36,42 @@ problem = initEclipsePackedProblemAD(deck_path);
 
 schedule = problem.SimulatorSetup.schedule;
 model = problem.SimulatorSetup.model;
+
 %% Simulate in Jutul
+% The simulation does not start automatically. Instead, the routine
+% outputs a command which you must paste into an existing Julia session
+% that already has JutulDarcy preloaded. Once this simulation is finished,
+% you can hit the return button to continue execution in MATLAB. Notice
+% that the first time you run the simulation, it will take a long time
+% since Julia has to compile necessary code. Once compiled, however, the
+% simulation is fast. 
 [ws, states] = simulatePackedProblemJutul(problem, 'daemon', false);
+
 %% Simulate in MRST
 simulatePackedProblem(problem);
 [ws_m, states_m] = getPackedSimulatorOutput(problem);
+
 %% Plot states interactively
 mrstModule add mrst-gui
 G = model.G;
 figure; plotToolbar(G, states, 'field', 'pressure')
-view(30, 45)
+view(30, 45), 
+plotWell(G, problem.SimulatorSetup.schedule.control(1).W,'FontSize',8);
 title('Jutul')
+
 figure; plotToolbar(G, states_m, 'field', 'pressure')
 view(30, 45)
+plotWell(G, problem.SimulatorSetup.schedule.control(1).W,'FontSize',8);
 title('MRST')
-%% Plot wells interactively
+
+%% Plot well responses interactively
 n = numel(ws);
 T = cumsum(schedule.step.val);
 plotWellSols({ws(1:n), ws_m(1:n)}, T(1:n), 'datasetnames', {'Jutul', 'MRST'})
-%% Compare wells
+
+%% Compare well responses from ECLIPSE100, Jutul, and MRST
+% While ECLIPSE100 and MRST match very well, Jutul gives slightly different
+% results because of the different well treatment.
 addir = mrstPath('ad-blackoil');
 compare = fullfile(addir, 'examples', 'spe9', 'compare');
 smry = readEclipseSummaryUnFmt(fullfile(compare, 'SPE9'));

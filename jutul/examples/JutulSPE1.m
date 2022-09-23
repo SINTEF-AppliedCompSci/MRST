@@ -32,7 +32,10 @@ model = problem.SimulatorSetup.model;
 % The simulation does not start automatically. Instead, the routine
 % outputs a command which you must paste into an existing Julia session
 % that already has JutulDarcy preloaded. Once this simulation is finished,
-% you can hit the return button to continue execution in MATLAB.
+% you can hit the return button to continue execution in MATLAB. Notice
+% that the first time you run the simulation, it will take a long time
+% since Julia has to compile necessary code. Once compiled, however, the
+% simulation is fast.
 [ws, states] = simulatePackedProblemJutul(problem, 'daemon', false);
 
 %% Simulate in MRST
