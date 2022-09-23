@@ -65,9 +65,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     opt = struct('name', class(model), 'daemon', true, 'pause', true, 'printcmd', true);
-    opt = merge_options(opt, varargin{:});
+    [opt, extra] = merge_options(opt, varargin{:});
     if opt.daemon
-        [ws, states] = runJutulOnDaemon(state0, model, schedule, 'name', opt.name, varargin{:});
+        [ws, states] = runJutulOnDaemon(state0, model, schedule, 'name', opt.name, extra{:});
     else
         jpth = writeJutulInput(state0, model, schedule, opt.name, 'printcmd', opt.printcmd);
         if opt.pause
