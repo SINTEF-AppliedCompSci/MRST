@@ -30,6 +30,7 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 %    julia --project="."
 %    ]                    # To enter Pkg prompt
 %    add DaemonMode       # Required to run the Daemon, not needed if following (1)
+%    add Revise           # Recommended
 %    add JutulDarcy       # Reservoir simulator itself
 %    # hit backspace to exit the prompt
 %    pwd() # will give you the absolute path of the folder
