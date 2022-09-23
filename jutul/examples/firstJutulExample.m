@@ -32,8 +32,16 @@ switch name
         setup = qfs_wo();
     case 'spe10_layer'
         setup = spe10_wo('layers', 1);
-    %case 'fractures_compositional'
-    %    setup = fractures_compositional();
+    case 'fractures_compositional'
+        setup = fractures_compositional();
+        % Jutul has built-in separator support. We set up a single
+        % separator with conditions that match the default in the other
+        % simulator.
+        setup.model.AutoDiffBackend = AutoDiffBackend();
+        s  = EOSSeparator('pressure', 101325.0, 'T', 288.15);
+        sg = SeparatorGroup(s);
+        sg.mode = 'moles';
+        setup.model.FacilityModel.SeparatorGroup = sg;
     otherwise
         % Assume some test-suite case
         setup = eval(name);
