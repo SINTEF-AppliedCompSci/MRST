@@ -1,11 +1,12 @@
 %% First introductory example to Jutul as a MRST accelerator
 % JutulDarcy is a reservoir simulator written in Julia by SINTEF Digital
-% based on on the Jutul solver framework. We can set up a case in MRST, and
+% based on the Jutul solver framework, developed for high-performance
+% testing of new simulator concepts. We can thus set up a case in MRST and
 % run it in Jutul for increased computational performance. Jutul supports
-% black-oil, immiscible and compositional models with multisegment wells.
+% black-oil, immiscible, and compositional models with multisegment wells.
 %
-% To install Jutul, first install the latest version of Julia [1].
-% Once installed, run Julia and add the JutulDarcy package . If you are
+% To install Jutul, you must first install the latest version of Julia [1].
+% Once installed, run Julia and add the JutulDarcy package. If you are
 % interested in using Julia, for other things, we recommend adding it to an
 % environment[3]. Otherwise, you can add it to the default environment by
 % running the following command in the Julia prompt:
@@ -29,39 +30,47 @@ end
 switch name
     case 'qfs_wo'
         setup = qfs_wo();
-    case 'buckley_leverett_wo'
-        setup = buckley_leverett_wo();
     case 'spe10_layer'
         setup = spe10_wo('layers', 1);
-    case 'fractures_compositional'
-        setup = fractures_compositional();
+    %case 'fractures_compositional'
+    %    setup = fractures_compositional();
     otherwise
         % Assume some test-suite case
         setup = eval(name);
 end
 [state0, model, schedule] = deal(setup.state0, setup.model, setup.schedule);
+
 %% Write case to disk
 pth = writeJutulInput(state0, model, schedule, name);
 disp('Pausing - run the command in Julia and hit any key to continue')
 pause()
+
 %% Once simulated, read back as MRST format
 [ws, states] = readJutulOutput(pth);
+
 %% Simulate MRST for comparison purposes
 nls = getNonLinearSolver(model);
 [ws_m, states_m] = simulateScheduleAD(state0, model, schedule, 'NonLinearSolver', nls);
+
 %% Compare the results
+% The two simulators use somewhat different well models: MRST is set up
+% with a standard Peacemann well model while Jutul uses multisegment wells
+% by default based on tables generated from MRST.  This can give certain
+% differences for high flow rates, e.g., in the near-well region. This is
+% particularly evident during the initial transitional phase for the SPE10
+% example.
 mrstModule add mrst-gui
 G = model.G;
 figure;
-plotToolbar(G, states_m)
+plotToolbar(G, states_m, 'field', 'pressure')
 title('MRST')
 figure;
-plotToolbar(G, states)
+plotToolbar(G, states, 'field', 'pressure')
 title('Jutul')
 figure;
-plotToolbar(G, applyFunction(@(x, y) compareStructs(x, y), states, states_m))
+plotToolbar(G, applyFunction(@(x, y) compareStructs(x, y), states, states_m), 'field','pressure')
 title('Difference')
+
 %% Plot and compare wells
-% Jutul uses multisegment wells by default which gives small differences in
-% well curves
+% Results will differ because the two simulators use different well models
 plotWellSols({ws, ws_m}, cumsum(schedule.step.val), 'datasetnames', {'Jutul', 'MRST'})
