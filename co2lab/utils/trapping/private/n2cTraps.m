@@ -326,7 +326,7 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
                     % No such edge.  The river is here going diagonally
                     % across a cell.  Determine this cell, and add it as a
                     % river cell
-                    c_ix = diag_lookup(enodes(1), enodes(2));
+                    c_ix = full(diag_lookup(enodes(1), enodes(2)));
                     assert(c_ix ~= 0); % should be one of the two diagonals
                     cells_ix = [cells_ix, c_ix]; %#ok<AGROW>
                 else
