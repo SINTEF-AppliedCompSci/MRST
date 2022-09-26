@@ -67,7 +67,7 @@ for i = 1:nwp
 end
 [W.group] = deal(group{:});
 
-W = addThermalWellProps(W, 'T', convertFromCelcius(80));
+W = addThermalWellProps(W, G, rock, fluid, 'T', convertFromCelcius(80));
 
 [W.WI] = deal(W(1).WI);
 
