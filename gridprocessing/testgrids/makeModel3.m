@@ -48,7 +48,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 
 physDims = [1000, 600, 15];
-if (nargin > 1) && isnumeric(varargin{1}) && (numel(varargin{1}) == 3),
+if (nargin > 1) && isnumeric(varargin{1}) && (numel(varargin{1}) == 3)
    physDims = varargin{1};
 end
 g.cartDims = reshape(dims, 1, []);
@@ -63,7 +63,7 @@ fun = @(x, y, a, s) -5 *sin(pi * (x - 1/2)) - ...
                      3 *sin(pi * (y + 2*x)) + ...
                     a/2*sin(2*pi*x + s(1)) .* sin(4*pi*y + s(2));
 
-for k = 1 : dims(3) + 1,
+for k = 1 : dims(3) + 1
    xi       = X(:,:,k) ./ physDims(1);
    eta      = Y(:,:,k) ./ physDims(2);
    Z(:,:,k) = Z(:,:,k) -  fun(xi, eta, a(k), s(k,:));
