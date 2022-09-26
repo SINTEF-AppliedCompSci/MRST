@@ -5,11 +5,23 @@
 % with a different well pattern consisting of two central injectors and
 % producers at each of the four corners.
 
-mrstModule add diagnostics spe10 coarsegrid agmg incomp
-% Check for agmg
-if ~exist('agmg', 'file') || ...
-      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8,
-   error('This example requires the AGMG linear solver package');
+mrstModule add diagnostics spe10 coarsegrid agmg incomp linearsolvers
+
+%% Set up an iterative linear solver
+% Computing flow on SPE10 gives rise to a large linear system that is
+% hardly computationally tractable with the standard direct solvers in
+% MATLAB. Instead, we will either use the AGMG or the AMGCL multigrid
+% solvers. To run the example, you will therefore have to make sure that
+% one of these are installed on your computer.
+if exist('agmg', 'file') || ...
+      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
+    linsolver = @(A,b) agmg(A,b,1);
+    disp('Using AGMG as linear solver');
+elseif norm(callAMGCL(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
+    linsolver = @(A,b) callAMGCL(A,b);
+    disp('Using AMGCL as linear solver');
+else
+    error('This example requires the AGMG or AMGCL linear solvers');
 end
 
 %% Set up fine-scale problem
@@ -35,7 +47,7 @@ wrad     = [0.125, 0.125, 0.125, 0.125, 0.125, 0.125] .* meter;
 wloc     = [  1,   60,     1,   60,  20, 40;
               1,    1,   220,  220, 130, 90];
 wname    = {'P1', 'P2', 'P3', 'P4', 'I1', 'I2'};
-for w = 1 : numel(wtype),
+for w = 1 : numel(wtype)
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), 1 : cartDims(end), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
                     'Radius', wrad(w), 'Name', wname{w}, ...
@@ -50,7 +62,7 @@ fprintf(1,'done\n');
 fprintf(1,'Solving fine-scale problem with diagnostics ...');
 rS = initState(G, W, 0);
 T  = computeTrans(G, rock);
-rS = incompTPFA(rS, G, T, fluid, 'wells', W, 'LinSolve', @(A,b) agmg(A,b,1));
+rS = incompTPFA(rS, G, T, fluid, 'wells', W, 'LinSolve', @(A,b) linsolver(A,b));
 D  = computeTOFandTracer(rS, G, rock, 'wells', W);
 WP = computeWellPairs(rS, G, rock, W, D);
 fprintf(1,'done\n');
@@ -72,7 +84,7 @@ if flowbased
    CG = generateCoarseGrid(G, p);
    crock.perm = upscalePerm(G, CG, rock, 'Verbose',true);
 else
-   for i=1:3; %#ok<UNRCH>
+   for i=1:3 %#ok<UNRCH>
       K = accumarray(p,1./rock.perm(:,i))./accumarray(p,1);
       crock.perm(:,i) = 1./K;
    end
@@ -87,7 +99,7 @@ Gc  = computeGeometry(Gc);
 cwloc(1,:) = ceil(wloc(1,:)/cfac(1));
 cwloc(2,:) = ceil(wloc(2,:)/cfac(2));
 Wc = [];
-for w = 1 : numel(wtype),
+for w = 1 : numel(wtype)
    Wc = verticalWell(Wc, Gc, crock, cwloc(1,w), cwloc(2,w), ...
                      1 : (cartDims(end)/cfac(end)), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
