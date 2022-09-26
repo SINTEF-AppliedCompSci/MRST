@@ -11,19 +11,31 @@
 % geological model will be simple a Cartesian grid with anisotropic,
 % homogeneous permeability.
 
-if isempty(mrstPath('agmg'))
-   error('This Example Requires the AGMG Module');
-end
+mrstModule add incomp agmg linearsolvers
 
-mrstModule add incomp
+%% Setup iterative linear solver
+% When working with large models, one cannot use the standard MLDIVIDE
+% ('\') solver in MATLAB. Here, we use the AGMG or AMGCL algebraic
+% multigrid solver.
+if ~exist('agmg', 'file') && ...
+      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
+    linsolver = @(A,b) agmg(A,b,1);
+    disp('Using AGMG as linear solver');
+elseif norm(callAMGCL(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
+    linsolver = @(A,b) callAMGCL(A,b);
+    disp('Using AMGCL as linear solver');
+else
+    error('This example requires the AGMG or AMGCL linear solvers');
+end
 
 %% Define geometry
 % Construct a Cartesian grid of size 200-by-100-by-100 (=2,000,000) cells
 % in a box of dimensions 10-by-10-by-4 metres. We have been able to run
 % this problem with a peak memory use of slightly less than 4GB.
+fprintf('Constructing grid ... ');
 nx = 200; ny = 100; nz = 100;
 G = cartGrid([nx, ny, nz], [10, 10, 4]);
-
+fprintf('done\n');
 
 %% Process geometry
 % The computation of geometric information (centroids and volumes of the
@@ -31,17 +43,21 @@ G = cartGrid([nx, ny, nz], [10, 10, 4]);
 % significantly in MRST R2016a, but is still faster if one uses the
 % C-accelerated routine instead of the standard call to computeGeometry(G)
 mrstModule add libgeometry incomp
+fprintf('Computing geometry ...');
 G = mcomputeGeometry(G);
+fprintf('done\n');
 
 %% Set rock and fluid data
 % The only parameters in the single-phase pressure equation are the
 % permeability $K$ and the fluid viscosity $\mu$.
+fprintf('Setting up rock and fluid parameters ...');
 rock = makeRock(G, [1000, 100, 10].* milli*darcy(), 1);
 T         = computeTrans(G, rock);
 
 gravity off;
 fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
                             'rho', 1014*kilogram/meter^3);
+fprintf('done\n');
 
 %% Set boundary conditions
 % Here, we impose Neumann conditions (flux of 1 m^3/day) on the global
@@ -49,26 +65,28 @@ fluid     = initSingleFluid('mu' ,    1*centi*poise     , ...
 % the global right-hand side of the grid. For a single-phase
 % flow, we need not specify the saturation at inflow boundaries and the
 % fluid composition over outflow faces (here, right) is ignored by pside.
+fprintf('Initializing and setting boundary conditions ...');
 resSol = initResSol(G, 0.0);
 bc     = fluxside([], G, 'LEFT',  1*meter^3/day());
 bc     = pside   (bc, G, 'RIGHT', 0);
-
+fprintf('done\n');
 
 %% Solve the linear system
 % Solve linear system construced from T and bc to obtain solution for flow
-% and pressure in the reservoir. When working with large models, one cannot
-% use the standard MLDIVIDE ('\') solver in MATLAB. Here, we use the AGMG
-% algebraic multigrid solver.
-mrstModule add agmg
+% and pressure in the reservoir.
+fprintf('Solving linear system ...');
 resSol = incompTPFA(resSol, G, T, fluid, 'bc', bc, ...
-                    'LinSolve', @(A,b) agmg(A,b,1));
+                    'LinSolve', @(A,b) linsolver(A,b));
+fprintf('done\n');
 
+fprintf('Plotting results ...');
 clf
 plotCellData(G, convertTo(resSol.pressure(1:G.cells.num), barsa()),'EdgeColor','none');
 title('Cell Pressure [bar]')
 xlabel('x'), ylabel('y'), zlabel('Depth');
 view(3); camproj perspective; axis tight;
 colorbar
+fprintf('done\n');
 
 %% Copyright notice
 
