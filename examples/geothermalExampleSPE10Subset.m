@@ -55,6 +55,7 @@ model = GeothermalModel(G, rock, fluid); % Make model
 % The EOS is valid for pressure/temperature within a given range. We
 % provide these to the model so that pressure/temperature are within these
 % during the nonlinear solution step
+K0 = 273.15*Kelvin;
 model.maximumPressure    = 200e6;           % Maximum pressure
 model.minimumTemperature = K0;              % Minimum temperature 
 model.maximumTemperature = K0 + 275*Kelvin; % Maximum temperature
@@ -69,7 +70,6 @@ xwR = GRef.cells.centroids(vertcat(WRef.cells),1:2);
 % Slick oneliner to find corresponding cells in the new grid
 [~, c] = min(sum(bsxfun(@minus, reshape(xwR, [], 1 , G.griddim), ...
                              reshape(x , 1 , [], G.griddim)).^2,3), [], 2);
-K0 = 273.15*Kelvin;
 for i = 1:numel(W)
     W(i).cells = c(i);
     W(i).components = 1;
