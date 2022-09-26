@@ -302,7 +302,6 @@ classdef WellboreModel < WrapperModel
                     rock.(name{1}) = [v; v(cells,:)];
                 end
             end
-            
             % Set rock and grid to model/parentModel
             model.parentModel.rock         = rock;
             [model.parentModel.G, model.G] = deal(GW);
@@ -320,10 +319,20 @@ classdef WellboreModel < WrapperModel
                 op.([name{1}, '_all'])(op.internalConn) = op.(name{1});
             end
             model.parentModel.operators = op;
+            
             % Set well indices
             WI = vertcat(model.wells.WI);
             WI = WI(model.G.cells.order);
             model.parentModel.operators.WI = WI;
+            
+            % Make mapping from wells to groups
+            nw = model.numWells(); ng = model.numGroups();
+            mix = arrayfun(@(group) group.memberIx', model.groups, 'UniformOutput', false);
+            ngw = cellfun(@numel, mix);
+            ii = [(1:model.numWells)'; rldecode((1:numel(mix))', ngw, 1) + nw];
+            jj = [(1:model.numWells)'; vertcat(mix{:}) + nw];
+            M = sparse(ii, jj, 1, nw + ng, nw + ng);
+            model.parentModel.operators.groupSum = @(v) M*v;
             
             if model.thermal
                 WIth = vertcat(model.wells.WIth);
@@ -406,14 +415,7 @@ classdef WellboreModel < WrapperModel
             [fluxEqs, fluxNames, fluxTypes, state] = model.getMassFluxEquations(state);
             [rateEqs, rateNames, rateTypes, state] = model.getSurfaceRateEquations(state);
             [effEqs , effNames , effTypes , state] = model.getHeatFluxEquations(state);
-            [ctrlEqs, ctrlNames, ctrlTypes, state] = model.getControlEquations(state, drivingForces);
-            % Replace conservation equations in inlet nodes with equations
-            % ensuring inlet pressure/temperature equal to well bhp/bht
-            [p, bhp] = model.getProps(state, 'pressure', 'bhp');
-            [T, bht] = model.getProps(state, 'T', 'bht');
-            iic = model.getInletSegments();
-            eqs{1}(iic) = p(iic) - bhp;
-            eqs{2}(iic) = T(iic) - bht;
+            [ctrlEqs, ctrlNames, ctrlTypes, state, eqs] = model.getControlEquations(state, drivingForces, eqs);
             % Assemble
             eqs   = [eqs  , fluxEqs  , rateEqs  , effEqs  , ctrlEqs  ];
             names = [names, fluxNames, rateNames, effNames, ctrlNames];
@@ -487,6 +489,9 @@ classdef WellboreModel < WrapperModel
             qsw      = cell(1, nph);
             [qsw{:}] = model.getProps(state, names{:});
             
+            qs = cellfun(@(qs) model.parentModel.operators.groupSum(qs), ...
+                                                qs, 'UniformOutput', false);
+            
             % Assemble surface rate equations
             scale = (meter^3/day)^(-1);
             eqs   = cellfun(@(qs, qph) (qs - qph).*scale, qsw, qs, ...
@@ -518,7 +523,7 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function [eqs, names, types, state] = getControlEquations(model, state, drivingForces)
+        function [eqs, names, types, state, consEqs] = getControlEquations(model, state, drivingForces, consEqs)
         % Equations imposing well control for each well
 
             % Get driving forces and check that it's non-empty
@@ -547,8 +552,8 @@ classdef WellboreModel < WrapperModel
             % No control - well is controlled by group or group is not
             % actively controlling wells
             is_none  = strcmpi(ctrlType, 'none');
-            % Well is controlled by its group
-            is_group = strcmpi(ctrlType, 'group');
+%             % Well is controlled by its group
+%             is_group = strcmpi(ctrlType, 'group');
             % Bottom-hole pressure control
             is_bhp  = strcmpi(ctrlType, 'bhp');
             % Surface total rates
@@ -568,6 +573,15 @@ classdef WellboreModel < WrapperModel
             % Check for unsupported well controls
             assert(~any(is_resv | is_volume), 'Not implemented yet');
 
+            % Replace conservation equations in inlet nodes with equations
+            % ensuring inlet pressure/temperature equal to well bhp/bht
+            p = model.getProps(state, 'pressure');
+            [T, bht] = model.getProps(state, 'T', 'bht');
+            iic = find(model.getInletSegments());
+            iic = iic(~is_none);
+            consEqs{1}(iic) = p(iic) - bhp(~is_none);
+            consEqs{2}(iic) = T(iic) - bht(~is_none);
+            
             % Set BHP control equations
             eqs(is_bhp) = ctrlTarget(is_bhp) - bhp(is_bhp);
 
@@ -596,7 +610,7 @@ classdef WellboreModel < WrapperModel
             
             %@@ Change to equation that sets group rate equal to sum of
             % group well rates
-            eqs(is_none) = 0 - qsw{1}(is_none);
+            eqs(is_none) = qsw{1}(is_none) - qsw{1}(~is_none);
             
             % Pack in standard eqs/names/types format
             eqs = {eqs}; [names, types] = deal({'control'});
@@ -612,7 +626,7 @@ classdef WellboreModel < WrapperModel
                                     'SurfaceDensity', 'PhaseUpwindFlag');
                 h = applyFunction(@(x) x(iic), h);
                 rhoS = applyFunction(@(x) x(iic), rhoS);
-                is_inj = flag{1}(iif); is_inj = is_inj | is_none;
+                is_inj = flag{1}(iif); is_inj = is_inj & ~is_none;
                 
                 qh = 0;
                 for ph = 1:nph
