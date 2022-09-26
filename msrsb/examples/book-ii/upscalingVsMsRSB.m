@@ -10,15 +10,25 @@
 % model. To simplify the comparison, the fine-scale allocation factors are
 % indicated by lines on top of those of the coarse scale.
 
-%% Set up fine-scale problem
-mrstModule add agmg book coarsegrid diagnostics 
+mrstModule add agmg linearsolvers book coarsegrid diagnostics 
 mrstModule add incomp libgeometry msrsb spe10 upscaling 
 
-if ~exist('agmg', 'file') || ...
-      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8
-   error('This example requires the AGMG linear solver package');
+%% Setup iterative linear solver
+% When working with large models, one cannot use the standard MLDIVIDE
+% ('\') solver in MATLAB. Here, we use the AGMG or AMGCL algebraic
+% multigrid solver.
+if exist('agmg', 'file') && ...
+      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
+    linsolver = @(A,b) agmg(A,b,1);
+    disp('Using AGMG as linear solver');
+elseif norm(callAMGCL(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
+    linsolver = @(A,b) callAMGCL(A,b);
+    disp('Using AMGCL as linear solver');
+else
+    error('This example requires the AGMG or AMGCL linear solvers');
 end
 
+%% Set up fine-scale problem
 fprintf(1,'Setting up fine-scale problem ...');
 cartDims  = [  60,  220, 24];  % Number of z-layers must be multiple of 3.
 physDims  = [1200, 2200, 2*cartDims(end)] .* ft();   % ft -> m
@@ -58,7 +68,7 @@ colormap(colormap.^1.5)
 fprintf(1,'Solving fine-scale problem ...');
 rS = initState(G, W, 0);
 hT = computeTrans(G, rock);
-rS = incompTPFA(rS, G, hT, fluid, 'wells', W, 'LinSolve', @(A,b) agmg(A,b,1));
+rS = incompTPFA(rS, G, hT, fluid, 'wells', W, 'LinSolve', @(A,b) linsolver(A,b));
 D  = computeTOFandTracer(rS, G, rock, 'wells', W);
 WP = computeWellPairs(rS, G, rock, W, D);
 fprintf(1,'done\n');
