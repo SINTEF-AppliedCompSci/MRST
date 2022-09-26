@@ -13,7 +13,7 @@ mrstModule add diagnostics spe10 coarsegrid agmg incomp linearsolvers
 % MATLAB. Instead, we will either use the AGMG or the AMGCL multigrid
 % solvers. To run the example, you will therefore have to make sure that
 % one of these are installed on your computer.
-if exist('agmg', 'file') || ...
+if exist('agmg', 'file') && ...
       norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
     linsolver = @(A,b) agmg(A,b,1);
     disp('Using AGMG as linear solver');
