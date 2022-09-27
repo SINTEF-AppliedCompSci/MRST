@@ -179,7 +179,7 @@ view(-50, 50), axis tight off
 % steps initially, followed by 25 larger steps. We keep the well controls
 % fixed throughout the simulation. To accelerate the simulation, we set
 % somewhat stricter tolerances and use a CPR preconditioner with an
-% algebraic multigrid solver (agmg) for the elliptic pressure system
+% algebraic multigrid solver (AMGCL) for the elliptic pressure system
 
 % Compute the timestep
 nstep   = 25;
@@ -198,9 +198,12 @@ model.dsMaxAbs  = .1;
 
 % Set up CPR preconditioner
 try
-    mrstModule add agmg
-    pressureSolver = AGMGSolverAD('tolerance', 1e-4);
+    mrstModule add linearsolvers
+    callAMGCL(speye(5), ones(5,1));
+    pressureSolver = AMGCLSolverAD('tolerance', 1e-4);
 catch
+    warning(['Failed to use algebraic multigrid solver from AMGCL. ' ...
+        'Trying to proceed with the default direct solver in MATLAB.']);
     pressureSolver = BackslashSolverAD();
 end
 linsolve = CPRSolverAD('ellipticSolver', pressureSolver, 'relativeTolerance', 1e-3);

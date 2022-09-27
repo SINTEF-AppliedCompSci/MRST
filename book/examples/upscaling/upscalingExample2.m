@@ -20,11 +20,15 @@
 % indicated by lines on top of those of the coarse scale.
 
 %% Set up fine-scale problem
-mrstModule add diagnostics spe10 coarsegrid upscaling agmg incomp libgeometry
+mrstModule add diagnostics spe10 coarsegrid upscaling incomp libgeometry linearsolvers
 
-if ~exist('agmg', 'file') || ...
-      norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) > 1.0e-8
-   error('This example requires the AGMG linear solver package');
+try
+    callAMGCL(speye(5), ones(5,1));
+    linsolver = @(A,b) callAMGCL(A,b);
+catch
+   warning(['Cannot use the algebraic multigrid solver from AMGCL.' ...
+       ' Trying to proceed with the default backslash solver']);
+   linsolver = @(A,b) A\b;
 end
 
 fprintf(1,'Setting up fine-scale problem ...');
@@ -45,7 +49,7 @@ for w = 1 : numel(wtype)
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), 1 : cartDims(end), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
                     'Radius', wrad(w), 'Name', wname{w}, ...
-                    'InnerProduct', 'ip_tpf');
+                    'InnerProduct', 'ip_tpf', 'compi', 1);
 end
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
 fprintf(1,'done\n');
@@ -54,7 +58,7 @@ fprintf(1,'done\n');
 fprintf(1,'Solving fine-scale problem ...');
 rS = initState(G, W, 0);
 hT = computeTrans(G, rock);
-rS = incompTPFA(rS, G, hT, fluid, 'wells', W, 'LinSolve', @(A,b) agmg(A,b,1));
+rS = incompTPFA(rS, G, hT, fluid, 'wells', W, 'LinSolve', linsolver);
 D  = computeTOFandTracer(rS, G, rock, 'wells', W);
 WP = computeWellPairs(rS, G, rock, W, D);
 fprintf(1,'done\n');
@@ -99,7 +103,7 @@ for method=1:4
          [Tc, Wc] = upscaleTransGlobal(CG, Wc, Tf, ...
             'GlobalFieldCases', 'revolving', ...
             'handleNegative', 'ignore', ...
-            'fluxThreshold', sqrt(eps), 'LinSolve', @(A,b) agmg(A,b,1));
+            'fluxThreshold', sqrt(eps), 'LinSolve', linsolver);
          Gc = CG;
    end
    crock.poro = accumarray(p, rock.poro)./accumarray(p,1);
@@ -118,7 +122,7 @@ for method=1:4
             1 : (cartDims(end)/cfac(end)), ...
             'Type', wtype{w}, 'Val', wtarget(w), ...
             'Radius', wrad(w), 'Name', wname{w}, ...
-            'InnerProduct', 'ip_tpf');
+            'InnerProduct', 'ip_tpf', 'compi', 1);
       end
    end
    fprintf(1,'done\n');

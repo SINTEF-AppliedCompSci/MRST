@@ -70,7 +70,7 @@ Gr = removeCells(Gr, ~inside);
 
 %
 P = [];
-for r = exp([-3.5:.2:0, 0, .1]),
+for r = exp([-3.5:.2:0, 0, .1])
    [x,y] = cylinder(r,25); P = [P [x(1,:); y(1,:)]]; %#ok<AGROW>
 end
 P = unique([P'; 0 0],'rows');
@@ -134,7 +134,7 @@ for i=[4 1:3]
   plot(r, state{i}.pressure/barsa, [col(i) '.'],'MarkerSize',ms(i));
 end
 axis([0 300 40 50]);
-h=legend(ttext{[4 1:3]},4); set(h,'FontSize',14);
+h=legend(ttext{[4 1:3]},'location','best'); set(h,'FontSize',14);
 chld = get(h,'Children');
 set(chld(1:3:end),'MarkerSize',20);
 
@@ -157,7 +157,7 @@ set(h,'position',[0.13 0.01 0.8 0.03],'YTick',1,'YTickLabel','[year]');
 % Compare TPFA and mimetic for the SAIGUP model
 % Grid
 grdecl = fullfile(getDatasetPath('SAIGUP'), 'SAIGUP.GRDECL');
-if ~exist(grdecl, 'file'),
+if ~exist(grdecl, 'file')
    error('SAIGUP model data is not available.')
 end
 grdecl = readGRDECL(grdecl);
@@ -187,7 +187,7 @@ I = [ 3, 20,  3, 25,  3, 30,  5, 29];
 J = [ 4,  3, 35, 35, 70, 70,113,113];
 R = [ 1,  3,  3,  3,  2,  4,  2,  3]*500*meter^3/day;
 [Wt,Wm] = deal([]);
-for i = 1 : numel(I),
+for i = 1 : numel(I)
    Wt = verticalWell(Wt, G, rock, I(i), J(i), 1:nz, 'Type', 'rate', ...
       'Val', R(i), 'Radius', .1*meter, 'Comp_i', 1, ...
       'name', ['I$_{', int2str(i), '}$']);
@@ -200,7 +200,7 @@ in = numel(Wt);
 
 I = [15, 12, 25, 21, 29, 12];
 J = [25, 51, 51, 60, 95, 90];
-for i = 1 : numel(I),
+for i = 1 : numel(I)
    Wt = verticalWell(Wt, G, rock, I(i), J(i), 1:nz, 'Type', 'bhp', ...
       'Val', 200*barsa(), 'Radius', .1*meter, ...
       'name', ['P$_{', int2str(i), '}$'], 'Comp_i',1);
@@ -214,8 +214,8 @@ plotWell(G,Wt(in+1:end),'height',30,'color','b');
 state = initState(G, Wt, 350*barsa, 1);
 tstate = incompTPFA(state, G, hT, fluid, 'wells', Wt);
 
-mrstModule add agmg
-mstate = incompMimetic(state, G, S, fluid, 'wells', Wm, 'LinSolve', @agmg);
+mrstModule add linearsolvers
+mstate = incompMimetic(state, G, S, fluid, 'wells', Wm, 'LinSolve', @callAMGCL);
 
 % Plot pressure discrepancy
 figure('position',[440 317 866 480]);
@@ -234,7 +234,7 @@ mtf = computeTimeOfFlight(mstate, G, rock, 'wells', Wm)/year;
 mtb = computeTimeOfFlight(mstate, G, rock, 'wells', Wm, 'reverse', true)/year;
 
 ip=in+1:numel(Wt); 
-for i=1:numel(ip), 
+for i=1:numel(ip) 
    subplot(2,3,i), plot(Wt(ip(i)).dZ,ttf(Wt(ip(i)).cells), '-o',...
       Wm(ip(i)).dZ, mtf(Wm(ip(i)).cells), '--s'); 
 end

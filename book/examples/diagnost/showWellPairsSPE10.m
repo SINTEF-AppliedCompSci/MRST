@@ -4,7 +4,7 @@
 % such as volumes, well-allocation factors, etc. We also show how to
 % subdivide wells into multiple segments and use this to study the flow
 % patterns in more detail.
-mrstModule add diagnostics spe10 incomp libgeometry agmg coarsegrid
+mrstModule add diagnostics spe10 incomp libgeometry linearsolvers coarsegrid
 
 %% Set up  and solve the flow problem
 % As our example, we consider a subsample of Model 2 from the 10th SPE
@@ -28,12 +28,12 @@ for w = 1 : numel(wtype)
    W = verticalWell(W, G, rock, wloc(1,w), wloc(2,w), 1 : cartDims(end), ...
                     'Type', wtype{w}, 'Val', wtarget(w), ...
                     'Radius', wrad(w), 'Name', wname{w}, ...
-                    'InnerProduct', 'ip_tpf');
+                    'InnerProduct', 'ip_tpf', 'compi', 1);
 end
 fluid = initSingleFluid('mu', 1*centi*poise, 'rho', 1014*kilogram/meter^3);
 rS    = initState(G, W, 0);
 T     = computeTrans(G, rock);
-rS    = incompTPFA(rS, G, T, fluid, 'wells', W, 'LinSolve', @agmg);
+rS    = incompTPFA(rS, G, T, fluid, 'wells', W, 'LinSolve', @callAMGCL);
 
 %% Show model setup
 fig1=clf; set(fig1,'position',[450 450 750 350]);
@@ -143,7 +143,7 @@ set(gca,'dataaspect',[1 1 0.06]), view(120,15); axis off
 % that can be attributed to the different well segments. To this end, we
 % first recompute well-pair regions for all well segments and then use
 % accumarray to sum all well pairs that involve segments from I2.
-figure(fig2);
+figure(fig2); clf
 WPp = computeWellPairs(rSp, G, rock, Wp, Dp);
 avols = accumarray(WPp.pairIx(:,1),WPp.vols);
 h = pie(avols(4:end)); set(h(2:2:end),'FontSize',16);
