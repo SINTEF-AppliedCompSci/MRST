@@ -41,8 +41,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('doVem'    , false, ...
-                 'verbose'  , false, ...
+    opt = struct('verbose'  , false, ...
                  'blocksize', []   , ...
                  'bcetazero', false);
     
@@ -113,41 +112,6 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             seL2(iter1) = sqrt(sum(fa.^2 .* (stress - s_ex).^2)) / sqrt(sum(fa.^2 .* s_ex.^2)); 
         end
         
-        % Compute VEM solution
-        if opt.doVem
-            error('bc not implemented yet for VEM');
-            [E, nu] = elasticModuloTransform(lambda, mu, 'lam_mu', 'E_nu'); 
-            Ev = repmat(E, G.cells.num, 1); 
-            nuv = repmat(nu, G.cells.num, 1); 
-            C = Enu2C(Ev, nuv, G); 
-            % set all boundary to no displacement
-            faces = find(any(G.faces.neighbors == 0, 2)); 
-            inodes = mcolon(G.faces.nodePos(faces), G.faces.nodePos(faces + 1) - 1); 
-            nodes = unique(G.faces.nodes(inodes)); 
-            el_bc = struct('disp_bc', struct('nodes', nodes, 'uu', zeros(numel(nodes), G.griddim), 'faces', faces,...
-                                             'uu_face', zeros(numel(nodes), G.griddim), 'mask', true(numel(nodes), G.griddim)),...
-                           'force_bc', []); 
-            load = @(coord) - [force_fun{1}(coord( :, 1), coord( :, 2)), force_fun{2}(coord( :, 1), coord( :, 2))]; 
-            
-            [uVEM, extra] = VEM_linElast(G, C, el_bc, load); 
-            
-            % Prepare input for analytical functions
-            for idim = 1 : Nd
-                ncc{idim} = G.nodes.coords(G.cells.nodes, idim);
-            end
-            % Analytical solution : displacement at ncc
-            dnex = NaN(numel(ncc{1}), Nd);
-            for idim = 1 : Nd
-                dnex(:, idim) = u_fun{idim}(ncc{:}); 
-            end        
-            w = G.weights.cell_nodes;
-            deVEM(iter1) = sqrt(sum(sum(bsxfun(@times, (uVEM(G.cells.nodes, : ) - ...
-                                                        dnex).^2, w), 2)))./ ...
-                sqrt(sum(sum(bsxfun(@times, dnex.^2, w), 2))); 
-            % make CC solution with global interface
-            [uu, out] = CC_linElast(G, C, el_bc, load); 
-        end
-                    
     end
 
     
