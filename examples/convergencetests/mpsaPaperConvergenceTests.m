@@ -314,7 +314,7 @@ function savethisfigure(params)
         eta = 3;
     end
     filename = sprintf('convd_d%d_g%d_k%1.g_a%d_eta%d.png', d, gridtype, kappa, alpha, eta);
-    savedir = '/home/xavier/Dropbox/figs/';
+    savedir = mrstOutputDirectory();
     filename = fullfile(savedir, filename);
     saveas(gcf, filename);
 end
