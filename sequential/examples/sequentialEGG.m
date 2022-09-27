@@ -8,13 +8,14 @@
 % geological ensemble for reservoir simulation." Geoscience Data Journal
 % 1.2 (2014): 192-195.
 
-mrstModule add ad-core ad-blackoil spe10 sequential mrst-gui test-suite
+mrstModule add ad-core ad-blackoil spe10 sequential mrst-gui test-suite linearsolvers
 
 % Set up pressure and transport linear solvers
-if ~isempty(mrstPath('agmg'))
-    mrstModule add agmg
-    psolver = AGMGSolverAD();
-else
+try
+    callAMGCL(speye(5), ones(5,1));
+    psolver = AMGCLSolverAD();
+catch
+    disp('AMGCL test failed. May not be compiled. Using backslash solver instead.');
     psolver = BackslashSolverAD();
 end
 tsolver = GMRES_ILUSolverAD();
