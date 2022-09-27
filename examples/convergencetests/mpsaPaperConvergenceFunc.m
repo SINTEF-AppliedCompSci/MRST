@@ -122,10 +122,5 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % L2 error between analytical and mpsa
     output.deL2 = deL2;
     
-    % displacement for mpsa solution (last refinement)
-    if opt.doVem
-        output.uVem = uVem;
-    end
-    
 end
 
