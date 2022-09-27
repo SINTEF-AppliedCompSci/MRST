@@ -14,8 +14,8 @@ function nonlinear = getNonLinearSolver(model, varargin)
 %
 %   'useCPR'            - Set up CPR-type preconditioner as the linear
 %                         solver. Will try to use the best known linear
-%                         solver (either AMGCL or Matlab builtin at the
-%                         moment).
+%                         solver (either AMGCL, AGMG, or Matlab builtin at
+%                         the moment).
 % RETURNS:
 %   solver    - NonLinearSolver instance.
 %
