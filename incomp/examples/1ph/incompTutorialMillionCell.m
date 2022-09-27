@@ -17,13 +17,13 @@ mrstModule add incomp agmg linearsolvers
 % When working with large models, one cannot use the standard MLDIVIDE
 % ('\') solver in MATLAB. Here, we use the AGMG or AMGCL algebraic
 % multigrid solver.
-if exist('agmg', 'file') && ...
+if norm(callAMGCL(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
+    linsolver = @(A,b) callAMGCL(A,b);
+    disp('Using AMGCL as linear solver');
+elseif exist('agmg', 'file') && ...
       norm(agmg(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
     linsolver = @(A,b) agmg(A,b,1);
     disp('Using AGMG as linear solver');
-elseif norm(callAMGCL(speye(3), [ 1 ; 2 ; 3 ]) - [ 1 ; 2 ; 3 ]) < 1.0e-8
-    linsolver = @(A,b) callAMGCL(A,b);
-    disp('Using AMGCL as linear solver');
 else
     error('This example requires the AGMG or AMGCL linear solvers');
 end
