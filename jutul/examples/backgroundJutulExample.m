@@ -20,7 +20,9 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 %
 % You can then run the JutulDarcy daemon by executing the following
 % command:
-%  julia --startup-file=no --color=no -e 'using Revise; using DaemonMode; serve()'
+%   julia --startup-file=no --color=no -e 'using Revise; using DaemonMode; serve()'
+% (On Windows, you may possibly have to replace the single quotes (') with
+% double quotes (").)
 %
 % For option 2:
 % Go to your favorite terminal and navigate to where you want to place your
