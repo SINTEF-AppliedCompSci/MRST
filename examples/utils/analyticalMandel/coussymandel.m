@@ -1,5 +1,3 @@
-clear all
-
 N = 20;
 dx = N/1000;
 x = (dx : dx : N)';

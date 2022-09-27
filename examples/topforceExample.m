@@ -1,17 +1,15 @@
-%% Example where we impose a controled force at the top. The intensity of the force is gradually increased (see setup of
-%% schedule below).
-
+%% Example where we impose a controlled force at the top
+% The intensity of the force is gradually increased (see setup of schedule
+% below).
 clear all
 close all
 
 %% Load required modules
-
 mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
 
 %% Setup grid
-
 physdim = [1, 1] * meter;
-nx = 40;, ny = 40;
+nx = 40; ny = 40;
 resolution = [nx, ny];
 G = cartGrid(resolution, physdim);
 G = computeGeometry(G);
@@ -51,7 +49,6 @@ cW = 0; % incompressible
 pref = 0*barsa;
 
 %% setup mechanics mech structure (with field prop and loadstruct)
-
 lambda = lambda*ones(G.cells.num, 1);
 mu = mu*ones(G.cells.num, 1);
 mechprop = struct('lambda', lambda, 'mu', mu);
@@ -202,7 +199,6 @@ initState.extforce = 0*extforce;
 [wsol, states] = simulateScheduleAD(initState, model, schedule);
 
 %% Pressure for some selected times
-
 figure
 clf
 xind = (1 : nx)';
@@ -212,7 +208,7 @@ hold on
 inds = 1 : floor(tsteps1/5) : tsteps1; 
 legends = {};
 tt = cumsum(schedule.step.val);
-for i = 1 : numel(inds);
+for i = 1 : numel(inds)
     ind = inds(i);
     p = states{ind}.pressure;
     p = p(xind);
@@ -242,7 +238,31 @@ tt = cumsum(schedule.step.val);
 plot(tt, pmid, '*');
 title('Pressure evolution at left edge')
 
-
-
-
+%% Copyright Notice
+%
+% <html>
+% <p><font size="-1">
+% Copyright 2020 University of Bergen and SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of the MPSA-W module for the MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% The MPSA-W module is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% The MPSA-W module is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with the MPSA-W module.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
 

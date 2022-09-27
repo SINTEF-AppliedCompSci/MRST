@@ -1,19 +1,12 @@
-classdef BiotDilatation < StateFunction
+function [G, cornercelltbl] = gridForPaperConvTest(Nx, gridType)
+% We split the square (cube in 3d) in 4 (8 in 3d) parts. Indices of the cells of
+% the (upper) north-west are returned.
     
-    methods
-        function gp = BiotDilatation(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'displacement', 'pressure', 'extforce', 'lambdamech'}, 'state');
-            gp.label = '\nabla\cdot u';
-        end
-        
-        function divu = evaluateOnDomain(prop, model, state)
-            [u, p, extforce, lm] = model.getProps(state, 'displacement', 'pressure', 'extforce', 'lambdamech');
-            divuop = model.operators.divuop;
-            divu = divuop(u, p, lm, extforce);
-        end
-    end
-end
+% Planned Grid type:
+% 1: Cartesian
+% 2: Triangles by alternating bisection of triangles
+% 3: Equilateral triangles
+% 4: Triangles by uniform bisection (grid greated by Dolfin)
 
 %{
 Copyright 2020 University of Bergen and SINTEF Digital, Mathematics & Cybernetics.
@@ -34,3 +27,16 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    
+    Nd = numel(Nx);
+    
+    switch gridType
+      case 1
+        G = computeGeometry(cartGrid(Nx, ones(1, Nd)));
+        c = G.cells.centroids;
+        cornercelltbl.cells = find(all(c > 0.5, 2));
+        cornercelltbl = IndexArray(cornercelltbl);
+      otherwise
+        error('gridType not recognized');
+    end
+end

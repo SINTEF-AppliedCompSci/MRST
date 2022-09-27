@@ -6,8 +6,9 @@ function G = computeGeometryCalc(G, varargin)
 %% Setup
 
 %{ 
-Copyright 2009-2014 SINTEF ICT, Applied Mathematics
-%} 
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+%}
+
 assert(size(G.faces.nodes, 2) == 1);
 opt = struct('verbose',              mrstVerbose, ...
                  'findNeighbors',        false,       ...

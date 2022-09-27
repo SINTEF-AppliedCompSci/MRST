@@ -13,7 +13,27 @@ function mpsaPaperConvergenceTests()
 % year={2017},
 % publisher={Wiley Online Library}
 
-    %% Load necessary modules
+%{
+Copyright 2020 University of Bergen and SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of the MPSA-W module for the MATLAB Reservoir Simulation Toolbox (MRST).
+
+The MPSA-W module is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+The MPSA-W module is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
+    % Load necessary modules
     mrstModule add vem mpfa mpsaw vemmech libgeometry
 
     close all
@@ -21,7 +41,7 @@ function mpsaPaperConvergenceTests()
     savecount = 1; % counter for setting up filenames.
     filerootname = 'mpsaconvoutput';
     
-    %% params setting
+    % params setting
     % nref     : degree of refinement
     % Nd       : dimension (2D or 3D)
     % kappa    : Value of heterogenity in the domain (see paper)
@@ -30,7 +50,7 @@ function mpsaPaperConvergenceTests()
     % eta      : Value used to set the position of the continuity point
     
 
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
@@ -53,7 +73,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end
 
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
@@ -77,7 +97,7 @@ function mpsaPaperConvergenceTests()
 
     return
 
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
@@ -99,7 +119,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end
 
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
@@ -121,7 +141,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end
     
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
@@ -143,7 +163,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end
     
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 6, ...
@@ -165,7 +185,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end
     
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 4, ...
@@ -188,7 +208,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end
     
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...
@@ -211,7 +231,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end
     
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...
@@ -234,7 +254,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end
     
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...
@@ -257,7 +277,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end
     
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...
@@ -279,7 +299,7 @@ function mpsaPaperConvergenceTests()
         savethisfigure(params);
     end    
     
-    %% New Case
+    % New Case
     dothiscase = true;
     if dothiscase
         params = struct('nref'    , 5, ...

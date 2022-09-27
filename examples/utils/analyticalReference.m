@@ -1,6 +1,26 @@
 function res = analyticalReference(lambda, mu)
 % Compute reference analytical solution
 
+%{
+Copyright 2020 University of Bergen and SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of the MPSA-W module for the MATLAB Reservoir Simulation Toolbox (MRST).
+
+The MPSA-W module is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+The MPSA-W module is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+
     % Analytical solution
     d1 = @(x, y) x .* (1 - x) .* sin(2 * pi * y); 
     d2 = @(x, y) sin(2 * pi * x) .* sin(2 * pi * y); 
@@ -44,5 +64,4 @@ function res = analyticalReference(lambda, mu)
                  's21'   , s21   , ...  
                  's12'   , s12   , ... 
                  's22'   , s22);
-    
 end

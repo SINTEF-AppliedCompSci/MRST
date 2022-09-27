@@ -1,19 +1,5 @@
-classdef BiotDilatation < StateFunction
-    
-    methods
-        function gp = BiotDilatation(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'displacement', 'pressure', 'extforce', 'lambdamech'}, 'state');
-            gp.label = '\nabla\cdot u';
-        end
-        
-        function divu = evaluateOnDomain(prop, model, state)
-            [u, p, extforce, lm] = model.getProps(state, 'displacement', 'pressure', 'extforce', 'lambdamech');
-            divuop = model.operators.divuop;
-            divu = divuop(u, p, lm, extforce);
-        end
-    end
-end
+function G = createBisectedTetrahedralGrid(Nx,alternate)
+%Undocumented Utility Function
 
 %{
 Copyright 2020 University of Bergen and SINTEF Digital, Mathematics & Cybernetics.
@@ -34,3 +20,9 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+
+    [X,Y,Z] = meshgrid(linspace(0,1,Nx(1)+1), linspace(0,1,Nx(2)+1),linspace(0,1,Nx(3)+1));
+    p = [X(:), Y(:), Z(:)];
+
+    G = mcomputeGeometry(tetrahedralGrid(p));
+end
