@@ -109,7 +109,6 @@ state.cmax = zeros(G.cells.num, 1);
 % schedule.step.val     = schedule.step.val(1:lim);
 % schedule.step.control = schedule.step.control(1:lim);
 %%
-mrstModule add agmg
 mrstVerbose on
 clear solver
 
