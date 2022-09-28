@@ -112,7 +112,7 @@ plotWell(G,W);
 % transmissiblity matrix 'A' using the 'two-point flux approximation'
 % scheme and initialize the solution structure.
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
-state  = initResSol (G, 0);
+state  = initResSol (G, 0, [0, 1]);
 state.wellSol = initWellSol(W, 0);
 [A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true); 
 
@@ -243,7 +243,7 @@ B = basis_sb.B;
 R = controlVolumeRestriction(CG.partition);
 count = 1;
 hwb = waitbar(0,'Time loop');
-while t < Time,
+while t < Time
     state_fs = implicitTransport(state_fs, G, dT, G.rock, fluid, 'wells', W, 'Trans', T,'verbose',true);
     state_ms = implicitTransport(state_ms, G, dT, G.rock, fluid, 'wells', W, 'Trans', T);
     % Check for inconsistent saturations
@@ -261,7 +261,7 @@ while t < Time,
 
     %-------------------------------Multiscale----------------------------%
     A = getSystemIncompTPFA(state_ms, G, T, fluid, 'use_trans', true);
-    B = iteratedJacobiBasis(A, CG, 'interpolator', basis_sb.B);
+    B = getMultiscaleRestrictionSmoothedBasis(A, CG, 'interpolator', basis_sb.B);
     basis_sb = struct('B', B, 'R', R);
     state_ms = incompMultiscale(state_ms, CG, T, fluid, basis_sb, 'Wells', W,...
         'use_trans',true);

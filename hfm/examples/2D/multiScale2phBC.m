@@ -100,7 +100,7 @@ fluid = initSimpleFluid('mu' , [   1,  2] .* centi*poise     , ...
 % scheme and initialize the solution structure.
 
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
-state  = initResSol(G, 5*barsa, [1, 0]);
+state  = initResSol(G, 5*barsa, [0, 1]);
 
 % Get A matrix without source
 [A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true);

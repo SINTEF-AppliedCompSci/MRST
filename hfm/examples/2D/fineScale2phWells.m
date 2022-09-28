@@ -120,7 +120,7 @@ W = addWell(W, G.Matrix, G.Matrix.rock, prod, 'InnerProduct', 'ip_tpf', 'Type', 
 % the wells defined above.
 
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
-state  = initResSol (G, 0);
+state  = initResSol (G, 0, [0, 1]);
 state.wellSol = initWellSol(W, 0);
 
 %% Compute initial pressure
@@ -163,7 +163,7 @@ sol = cell(nt,1);
 t  = 0;
 count = 1; title('Saturation');
 colorbar off; colormap(flipud(winter));
-while t < Time,
+while t < Time
     state = implicitTransport(state, G, dT, G.rock, fluid, 'wells', W, 'Trans', T,'verbose',true);
     
     % Check for inconsistent saturations
@@ -171,7 +171,8 @@ while t < Time,
 
     % Plot saturation
     delete(hp)
-    hp = plotCellData(G,state.s,state.s>0); drawnow; pause(.1);
+    sw = state.s(:, 1);
+    hp = plotCellData(G, sw, sw>0); drawnow; pause(.1);
     
     % Update solution of pressure equation.
     state  = incompTPFA(state, G, T, fluid, 'wells', W, 'use_trans',true);

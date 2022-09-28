@@ -83,7 +83,7 @@ fluid = initSimpleFluid('mu' , [   1,  1] .* centi*poise     , ...
 %% Initialize state variables
 
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
-state  = initResSol (G, 0);
+state  = initResSol (G, 0, [0, 1]);
 state.wellSol = initWellSol(G, 0);
 [A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true); 
 

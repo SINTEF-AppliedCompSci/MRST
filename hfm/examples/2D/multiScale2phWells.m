@@ -127,7 +127,7 @@ W = addWell(W, G.Matrix, G.Matrix.rock, prod(celldim), 'InnerProduct', 'ip_tpf',
 % scheme and initialize the solution structure.
 
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
-state  = initResSol (G, 0);
+state  = initResSol (G, 0, [0, 1]);
 state.wellSol = initWellSol(W, 0);
 [A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true); 
 
