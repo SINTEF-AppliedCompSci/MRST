@@ -19,7 +19,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    opt = struct('makeConsistent', true);
+    opt = struct('makeConsistent', [], 'G', []);
     firstString = find(cellfun(@ischar, varargin), 1, 'first');
     if ~isempty(firstString)
         opt = merge_options(opt, varargin{firstString:end});
@@ -28,8 +28,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     for i = 1:numel(varargin)
         schedule = combine(schedule, varargin{i});
     end
+    if isempty(opt.makeConsistent)
+       opt.makeConsistent = ~isempty(opt.G);
+    end
     if opt.makeConsistent
-        schedule = makeScheduleConsistent(schedule);
+        schedule = makeScheduleConsistent(schedule, 'G', opt.G);
     end
 end
 
