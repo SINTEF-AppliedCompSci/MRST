@@ -258,22 +258,31 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = power(u,v)
-          % Element-wise poewr. `h=u.^v`
-         if ~isa(v,'ADI') % v is a scalar and u is ADI
-             h = u;
-             h.val = h.val.^v;
-             h.jac = u.lMultDiag(v.*u.val.^(v-1), u.jac);
-         elseif ~isa(u,'ADI') % u is a scalar and v is ADI
-             h = v;
-             h.val = u.^v.val;
-             h.jac = v.lMultDiag((u.^v.val).*log(u), v.jac);
-         else % u and v are both ADI
-             h = u;
-             h.val = u.val.^v.val;
-             h.jac = h.plusJac( ...
-               h.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
-               h.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
-         end
+      % Element-wise power. `h=u.^v`.
+          
+          if numel(value(u)) == 1
+              u = repmat(u, [numel(value(v)), 1]);
+          end
+
+          if numel(value(v)) == 1
+              v = repmat(v, [numel(value(u)), 1]);
+          end
+
+          if ~isa(v,'ADI') % v is a scalar and u is ADI
+              h = u;
+              h.val = h.val.^v;
+              h.jac = u.lMultDiag(v.*u.val.^(v-1), u.jac);
+          elseif ~isa(u,'ADI') % u is a scalar and v is ADI
+              h = v;
+              h.val = u.^v.val;
+              h.jac = v.lMultDiag((u.^v.val).*log(u), v.jac);
+          else % u and v are both ADI
+              h = u;
+              h.val = u.val.^v.val;
+              h.jac = h.plusJac( ...
+                  h.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
+                  h.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
+          end
       end
 
       %--------------------------------------------------------------------
@@ -441,6 +450,14 @@ classdef ADI
          h.jac = h.lMultDiag(-1./sqrt(1-u.val.^2), u.jac);
       end
       
+      %--------------------------------------------------------------------
+      function h = atan(u)
+         atanu = atan(u.val);
+         h = u;
+         h.val = atanu;
+         h.jac = h.lMultDiag(1./(1 + u.val.^2), u.jac);
+      end
+
       %--------------------------------------------------------------------
 
       function h = max(u,v)
