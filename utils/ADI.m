@@ -258,27 +258,8 @@ classdef ADI
       %--------------------------------------------------------------------
 
       function h = power(u,v)
-
-      %  % Element-wise poewr. `h=u.^v`
-      % if ~isa(v,'ADI') % v is a scalar and u is ADI
-      %     h = u;
-      %     h.val = h.val.^v;
-      %     h.jac = u.lMultDiag(v.*u.val.^(v-1), u.jac);
-      % elseif ~isa(u,'ADI') % u is a scalar and v is ADI
-      %     h = v;
-      %     h.val = u.^v.val;
-      %     h.jac = v.lMultDiag((u.^v.val).*log(u), v.jac);
-      % else % u and v are both ADI
-      %     h = u;
-      %     h.val = u.val.^v.val;
-      %     h.jac = h.plusJac( ...
-      %       h.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
-      %       h.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
-      % end
-      % return
-
       % Element-wise power. `h=u.^v`.
-
+          
           if numel(value(u)) == 1
               u = repmat(u, [numel(value(v)), 1]);
           end
@@ -287,142 +268,26 @@ classdef ADI
               v = repmat(v, [numel(value(u)), 1]);
           end
 
-          h = 0 * u + 0 * v;
-
-          % Positive bases
-          p = value(u) > 0;
-          if any(p)
-              only_p = sum(p) == numel(value(u));
-
-              if only_p
-                  up = u;
-                  vp = v;
-              else
-                  subs = struct('type', '()', 'subs', {{p}});
-                  up = subsref(u, subs);
-                  vp = subsref(v, subs);
-              end
-
-              if ~isa(u,'ADI')
-                  hp = vp;
-                  hp.val = up.^vp.val;
-                  hp.jac = vp.lMultDiag((up.^vp.val).*log(up), vp.jac);
-              elseif ~isa(v,'ADI')
-                  hp = up;
-                  hp.val = up.val.^vp;
-                  hp.jac = up.lMultDiag(vp.*up.val.^(vp-1), up.jac);
-              else
-                  hp = exp(vp .* log(up));
-              end
-
-              if only_p
-                  h = hp;
-                  return
-              else
-                  h = subsasgn(h, subs, hp);
-              end
+          if ~isa(v,'ADI') % v is a scalar and u is ADI
+              h = u;
+              h.val = h.val.^v;
+              h.jac = u.lMultDiag(v.*u.val.^(v-1), u.jac);
+          elseif ~isa(u,'ADI') % u is a scalar and v is ADI
+              h = v;
+              h.val = u.^v.val;
+              h.jac = v.lMultDiag((u.^v.val).*log(u), v.jac);
+          else % u and v are both ADI
+              h = u;
+              h.val = u.val.^v.val;
+              h.jac = h.plusJac( ...
+                  h.lMultDiag((u.val.^v.val).*(v.val./u.val), u.jac), ...
+                  h.lMultDiag((u.val.^v.val).*log(u.val),     v.jac) );
           end
-
-          % Negative bases
-          n = value(u) < 0;
-          if any(n)
-              if ~isa(v, 'ADI')
-                  vn = v(n);
-                  a = floor(vn) ~= ceil(vn);
-                  if any(a)
-                      error('Only integer exponents are implemented for negative bases');
-                  else
-                      subs = struct('type', '()', 'subs', {{n}});
-                      un = subsref(u, subs);
-                      hn = un;
-                      hn.val = un.val.^vn;
-                      hn.jac = un.lMultDiag(vn.*un.val.^(vn-1), un.jac);
-                      h = subsasgn(h, subs, hn);
-                  end
-              else
-                  error('Operation yields a complex number');
-              end
-          end
-
-          % Zero bases
-          z = value(u) == 0;
-          if any(z)
-              vval = value(v);
-              h.val = value(u).^vval;
-
-              vn0 = vval == 0 & z;
-              vn1 = (vval < 0 | (vval > 0 & vval < 1)) & z;
-              vz1 = vval == 1 & z;
-              vp1 = vval > 1 & z;
-              vsgn = 2*(vval >= 0) - 1;
-
-              if any(vn0)
-                  if ~isa(v, 'ADI')
-                      warning('Operation yields -Inf')
-                      hvn0 = h;
-                      d = -Inf(sum(vn0), 1);
-                      % FIXME allow for different backends
-                      hvn0.jac = h.lMultDiag(d, u.jac, z, vn0);
-                      subs = struct('type', '()', 'subs', {{vn0}});
-                      htmp = subsref(hvn0, subs);
-                      h = subsasgn(h, subs, htmp);
-                  else
-                      error('Operation yields NaN');
-                  end
-              end
-
-              if any(vn1)
-                  warning('Operation yields Inf or -Inf')
-                  hvn1 = h;
-                  d = vsgn(vn1) * Inf;
-                  if ~isa(v, 'ADI')
-                      % FIXME allow for different backends
-                      hvn1.jac = h.lMultDiag(d, u.jac, z, vn1);
-                  elseif ~isa(u, 'ADI')
-                      % FIXME allow for different backends
-                      hvn1.jac = h.lMultDiag(d, v.jac, z, vn1);
-                  else
-                      error('Operation yields NaN')
-                  end
-                  subs = struct('type', '()', 'subs', {{vn1}});
-                  htmp = subsref(hvn1, subs);
-                  h = subsasgn(h, subs, htmp);
-              end
-
-              if any(vz1)
-                  hvz1 = h;
-                  d = ones(sum(vz1), 1);
-                  if ~isa(v, 'ADI')
-                      % FIXME allow for different backends
-                      hvz1.jac = h.lMultDiag(d, u.jac, z, vz1);
-                      subs = struct('type', '()', 'subs', {{vz1}});
-                      htmp = subsref(hvz1, subs);
-                      h = subsasgn(h, subs, htmp);
-                  else
-                      error('Operation yields NaN');
-                  end
-              end
-
-              if any(vp1)
-                  hvp1 = h;
-                  d = zeros(sum(vp1), 1);
-                  if ~isa(v, 'ADI')
-                      % FIXME allow for different backends
-                      hvp1.jac = h.lMultDiag(d, u.jac, z, vp1);
-                      subs = struct('type', '()', 'subs', {{vp1}});
-                      htmp = subsref(hvp1, subs);
-                      h = subsasgn(h, subs, htmp);
-                  else
-                      error('Operation yields NaN');
-                  end
-              end
-          end
-
       end
 
       %--------------------------------------------------------------------
       function h = polyval(p,v)
-         if ~isa(p,'ADI') % p should be integers and v adi
+         if ~isa(p,'ADI') % p should be intigers and v adi
              h = v;
              h.val = polyval(p,v.val);
              h.jac = v.lMultDiag(polyval(polyder(p),v.val),v.jac);
@@ -585,14 +450,6 @@ classdef ADI
          h.jac = h.lMultDiag(-1./sqrt(1-u.val.^2), u.jac);
       end
       
-      %-------------------------------------------------------------------- 
-      function h = atan(u)
-         atanu = atan(u.val);
-         h = u;
-         h.val = atanu;
-         h.jac = h.lMultDiag(1./(1 + u.val.^2), u.jac);
-      end
-
       %--------------------------------------------------------------------
 
       function h = max(u,v)
@@ -788,7 +645,6 @@ classdef ADI
    end
    
    methods (Static)
-
         %**************************************************************************
         %-------- Helper functions involving Jacobians  ---------------------------
         %**************************************************************************
@@ -858,27 +714,18 @@ classdef ADI
 
         %--------------------------------------------------------------------------
 
-        function J = lMultDiag(d, J1, r, c)
-            switch nargin
-              case 2
-                if any(d)
-                    n = numel(d);
-                    ix = (1:n)';
-                    D = sparse(ix, ix, d, n, n);
-                else
-                    D = 0;
-                end
-              case 4
-                n = numel(c);
-                ix = (1:n)';
-                D = sparse(ix(r), ix(c), d, n, n);
-              otherwise
-                error('Wrong number of arguments')
-            end
-            J = cell(1, numel(J1));
-            for k = 1:numel(J)
-                J{k} = D*J1{k};
-            end
+        function J = lMultDiag(d, J1)
+        n = numel(d);
+        if any(d)
+            ix = (1:n)';
+            D = sparse(ix, ix, d, n, n);
+        else
+            D = 0;
+        end
+        J = cell(1, numel(J1));
+        for k = 1:numel(J)
+            J{k} = D*J1{k};
+        end
         end
 
         %--------------------------------------------------------------------------
