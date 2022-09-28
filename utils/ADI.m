@@ -451,6 +451,14 @@ classdef ADI
       end
       
       %--------------------------------------------------------------------
+      function h = atan(u)
+         atanu = atan(u.val);
+         h = u;
+         h.val = atanu;
+         h.jac = h.lMultDiag(1./(1 + u.val.^2), u.jac);
+      end
+
+      %--------------------------------------------------------------------
 
       function h = max(u,v)
           % Take the element-wise maximum value of two objects
