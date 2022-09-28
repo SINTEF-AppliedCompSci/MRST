@@ -1,13 +1,13 @@
 function g = makeModel3(dims, varargin)
-%Build a synthetic geometry with two faults.
+%Build a Synthetic Geometry With Two Faults.
 %
 % SYNOPSIS:
 %   grdecl = makeModel3(dims)
 %   grdecl = makeModel3(dims, physDims)
 %
 % PARAMETERS:
-%  dims     - A 3-vector `[nx, ny, nz]` giving the number of cells in each of
-%             the three coordinate directions.
+%  dims     - A 3-vector `[nx, ny, nz]` giving the number of cells in each
+%             of the three coordinate directions.
 %
 %  physdims - A 3-vector `[hx, hy, hz]` giving the physical extent (in units
 %             of meters) of the original sandbox before the transformations
@@ -25,7 +25,7 @@ function g = makeModel3(dims, varargin)
 %   plotGrid(processGRDECL(makeModel3([100, 60, 15])));
 %
 % SEE ALSO:
-%   `processGRDECL`
+%   `processGRDECL`.
 
 %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
@@ -46,6 +46,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+% Generate consistent random numbers when running on MATLAB.
+if mrstPlatform('matlab')
+   rng(0);
+end
 
 physDims = [1000, 600, 15];
 if (nargin > 1) && isnumeric(varargin{1}) && (numel(varargin{1}) == 3)
