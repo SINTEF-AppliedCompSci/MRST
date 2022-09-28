@@ -8,7 +8,7 @@
 % To install Jutul, you must first install the latest version of Julia [1].
 % Once installed, run Julia and add the JutulDarcy package. If you are
 % interested in using Julia for other things, we recommend adding it to an
-% environment[3]. Otherwise, you can add it to the default environment by
+% environment[2]. Otherwise, you can add it to the default environment by
 % running the following command in the Julia prompt:
 %
 % using Pkg; Pkg.add("JutulDarcy")
