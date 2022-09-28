@@ -100,7 +100,7 @@ fluid = initSimpleFluid('mu' , [   1,  2] .* centi*poise     , ...
 % scheme and initialize the solution structure.
 
 dispif(mrstVerbose, 'Computing coefficient matrix...\n\n');
-state  = initResSol (G, 5*barsa);
+state  = initResSol(G, 5*barsa, [1, 0]);
 
 % Get A matrix without source
 [A,q] = getSystemIncompTPFA(state, G, T, fluid, 'use_trans', true);
@@ -206,7 +206,7 @@ figure
 B = basis_sb.B;
 R = controlVolumeRestriction(CG.partition);
 hwb = waitbar(0,'Time loop');
-while t < Time,
+while t < Time
     state_fs = implicitTransport(state_fs, G, dT, G.rock, fluid, 'bc', bc, 'Trans', T, 'verbose', true);
     state_ms = implicitTransport(state_ms, G, dT, G.rock, fluid, 'bc', bc, 'Trans', T);
     % Check for inconsistent saturations
@@ -219,7 +219,7 @@ while t < Time,
     %-------------------------------Multiscale----------------------------%
     A = incompTPFA(state_ms, G, T, fluid, 'MatrixOutput', true, ...
         'use_trans',true); A = A.A;
-    B = iteratedJacobiBasis(A, CG, 'interpolator', B);
+    B = getMultiscaleRestrictionSmoothedBasis(A, CG, 'interpolator', B);
     basis_sb = struct('B', B, 'R', R);
     state_ms = incompMultiscale(state_ms, CG, T, fluid, basis_sb,...
         'bc', bc, 'use_trans', true, 'reconstruct', true);

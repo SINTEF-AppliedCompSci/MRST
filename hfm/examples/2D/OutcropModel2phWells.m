@@ -11,7 +11,7 @@
 % Notice that you need to have Metis installed to get this example to work.
 % To get Metis working, you also need to set the global variable METISPATH.
 % This can be done in your 'startup_user.m' file.
-
+gravity reset off
 % Load necessary modules, etc 
 mrstModule add hfm;             % hybrid fracture module
 mrstModule add coarsegrid;      % functionality for coarse grids
@@ -162,7 +162,7 @@ R = controlVolumeRestriction(CG.partition);
 count = 1;
 clf, set(gcf,'Position',[0 0 800 400]); colormap(flipud(winter));
 hwb = waitbar(0,'Time loop');
-while t < Time,
+while t < Time
     state_fs = implicitTransport(state_fs, G, dT, G.rock, fluid, 'wells', W, 'Trans', T,'verbose',true);
     state_ms = implicitTransport(state_ms, G, dT, G.rock, fluid, 'wells', W, 'Trans', T);
     % Check for inconsistent saturations
@@ -187,7 +187,7 @@ while t < Time,
     %-------------------------------Multiscale----------------------------%
     
     A = getSystemIncompTPFA(state_ms, G, T, fluid, 'use_trans', true);
-    B = iteratedJacobiBasis(A, CG, 'interpolator', B); 
+    B = getMultiscaleRestrictionSmoothedBasis(A, CG, 'interpolator', B); 
     basis_sb = struct('B', B, 'R', R);
     state_ms = incompMultiscale(state_ms, CG, T, fluid, basis_sb, 'Wells', W,'use_trans',true);
 

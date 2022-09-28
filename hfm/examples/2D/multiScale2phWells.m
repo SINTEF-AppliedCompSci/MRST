@@ -66,8 +66,8 @@ clf; plotFractureNodes2D(G,F,fracture); box on
 dispif(mrstVerbose, 'Initializing rock and fluid properties...\n\n');
 
 mrstModule add spe10
-rock = SPE10_rock(1);
-p = reshape(rock.perm(:,1)*milli*darcy,60,[]);
+rock = getSPE10rock(1);
+p = reshape(rock.perm(:,1),60,[]);
 perm = sampleFromBox(G,p');
 p = reshape(rock.poro,60,[]);
 poro = sampleFromBox(G,p');
@@ -238,7 +238,7 @@ while t < Time,
     %-------------------------------Multiscale----------------------------%
     
     A = getSystemIncompTPFA(state_ms, G, T, fluid, 'use_trans', true);
-    B = iteratedJacobiBasis(A, CG, 'interpolator', B); 
+    B = getMultiscaleRestrictionSmoothedBasis(A, CG, 'interpolator', B); 
     basis_sb = struct('B', B, 'R', R);
     state_ms = incompMultiscale(state_ms, CG, T, fluid, basis_sb, 'Wells', W,'use_trans',true);
 
