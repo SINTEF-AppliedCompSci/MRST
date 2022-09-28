@@ -67,7 +67,8 @@ title('MRST')
 %% Plot well responses interactively
 n = numel(ws);
 T = cumsum(schedule.step.val);
-plotWellSols({ws(1:n), ws_m(1:n)}, T(1:n), 'datasetnames', {'Jutul', 'MRST'})
+
+plotWellSols({ws, ws_m}, T, 'datasetnames', {'Jutul', 'MRST'})
 
 %% Compare well responses from ECLIPSE100, Jutul, and MRST
 % While ECLIPSE100 and MRST match very well, Jutul gives slightly different
@@ -109,6 +110,9 @@ for i = 1:nn
     ylabel('Pressure (Pa)')
 end
 legend({'MRST', 'ECLIPSE', 'Jutul'})
+%% Plot all three simulators interactively
+[ws_e, T_e] = convertSummaryToWellSols(smry, 'field');
+plotWellSols({ws, ws_m, ws_e}, {T, T, T_e}, 'datasetnames', {'Jutul', 'MRST', 'ECLIPSE'})
 
 %% Copyright Notice
 %
