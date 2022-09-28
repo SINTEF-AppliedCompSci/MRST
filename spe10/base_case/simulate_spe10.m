@@ -1,6 +1,7 @@
 %% Simulate the SPE10 base case
 % The simulation uses a mimetic pressure solver and an implicit transport
 % solver.
+mrstModule add incomp agmg
 
 clear, close all hidden
 
@@ -9,8 +10,8 @@ use_mimetic = false;
 use_reorder = false;
 spe10_data  = fullfile(fileparts(mfilename('fullpath')), ...
                        '..', 'spe10_rock.mat');
-if ~exist(spe10_data, 'file'),
-   if ~make_spe10_data,
+if ~exist(spe10_data, 'file')
+   if ~make_spe10_data
       error(['Failed to establish on-disk representation of ', ...
              'SPE10 rock data']);
    end
@@ -31,7 +32,7 @@ physDims = cartDims .* [20, 10, 2]*ft;
 
 G = computeGeometry(cartGrid(cartDims, physDims));
 
-if use_mimetic,
+if use_mimetic
    try
       require mimetic
    catch
@@ -51,7 +52,7 @@ fluid = initSimpleFluid('mu' , [   1,  10]*centi*poise     , ...
 %%
 % Set Comp_i=[0,0] in producers to counter X-flow effects...
 %
-if use_mimetic,
+if use_mimetic
    well_ip = 'ip_simple';
 else
    well_ip = 'ip_tpf';
@@ -82,14 +83,14 @@ W = verticalWell(W , G, rock, 30, 110, [], 'Type', 'rate',   ...
                  'Name', 'I1', 'Comp_i', [1, 0]);
 
 %%
-x         = initResSol (G, 0);
+x         = initResSol (G, 0, [0 1]);
 x.wellSol = initWellSol(W, 0);
 
 %%
 linsolve_p = @(S, h) agmg(S, h,  1, 5.0e-11, 1000, 0);
 linsolve_t = @(J, F) agmg(J, F, 50, 5.0e-11, 2000, 0);
 
-if use_mimetic,
+if use_mimetic
    psolve = @(x) ...
       incompMimetic(x, G, S, fluid, 'wells', W, 'LinSolve', linsolve_p);
 else
@@ -97,7 +98,7 @@ else
       incompTPFA(x, G, T, fluid, 'wells', W, 'LinSolve', linsolve_p);
 end
 
-if ~use_reorder,
+if ~use_reorder
    tsolve = @(x, dt) ...
       implicitTransport(x, G, dt, rock, fluid, 'wells', W, ...
                         'LinSolve', linsolve_t);
@@ -130,7 +131,7 @@ append_wres = @(x, t, vpt, opr, wpr, wc) ...
 
 wres = cell([1, 4]);
 
-for k = 1 : nstep,
+for k = 1 : nstep
    t0 = tic; x = psolve(x);     dt = toc(t0);
    fprintf('[%02d]: Pressure:  %12.5f [s]\n', k, dt);
 
