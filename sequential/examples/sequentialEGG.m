@@ -7,31 +7,40 @@
 % For details on the EggModel, see Jansen, J. D., et al. "The egg model–a
 % geological ensemble for reservoir simulation." Geoscience Data Journal
 % 1.2 (2014): 192-195.
-
+useMEX = mrstSettings('get', 'useMEX');
 mrstModule add ad-core ad-blackoil spe10 sequential mrst-gui test-suite linearsolvers
 
-% Set up pressure and transport linear solvers
-try
-    callAMGCL(speye(5), ones(5,1));
-    psolver = AMGCLSolverAD();
-catch
-    disp('AMGCL test failed. May not be compiled. Using backslash solver instead.');
-    psolver = BackslashSolverAD();
-end
-tsolver = GMRES_ILUSolverAD();
 % Select layer 1
 layers = 1;
-mrstModule add ad-core ad-blackoil sequential spe10
 
 % The base case for the model is 2000 days. This can be reduced to make the
 % problem faster to run.
 [G, rock, fluid, deck, state] = setupEGG();
 model = selectModelFromDeck(G, rock, fluid, deck);
+% Set up pressure and transport linear solvers
+if useMEX
+    % Use AMG for pressure system
+    try
+        callAMGCL(speye(5), ones(5,1));
+        psolver = AMGCLSolverAD('tolerance', 1e-4);
+    catch
+        disp('AMGCL test failed. May not be compiled. Using backslash solver instead.');
+        psolver = BackslashSolverAD();
+    end
+    model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', true);
+else
+    psolver = BackslashSolverAD();
+end
+% Transport: Best option should be selected if available, block-ILU(0) using AMGCL
+tsolver = selectLinearSolverAD(model, 'useCPR', false);
 
 schedule = convertDeckScheduleToMRST(model, deck);
 % Set up the sequential model
 seqModel = getSequentialModelFromFI(model, 'pressureLinearSolver', psolver,....
                                            'transportLinearSolver', tsolver);
+if useMEX
+    seqModel.transportModel.AutoDiffBackend.deferredAssembly = true;
+end
 % Run problem
 [wsSeq, statesSeq, repSeq] = simulateScheduleAD(state, seqModel, schedule);
 
@@ -40,7 +49,7 @@ seqModel = getSequentialModelFromFI(model, 'pressureLinearSolver', psolver,....
 % preconditioner that uses the same linear solver for the pressure as the
 % sequential solver.
 solver = NonLinearSolver();
-solver.LinearSolver = CPRSolverAD('ellipticSolver', psolver);
+solver.LinearSolver = selectLinearSolverAD(model);
 
 [wsFIMP, statesFIMP, repFIMP] = simulateScheduleAD(state, model, schedule, 'nonlinearsolver', solver);
 
