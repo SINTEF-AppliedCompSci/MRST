@@ -48,6 +48,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         model = GenericOverallCompositionModel(arg{:});
     end
+    model.inputdata = deck;
     schedule = convertDeckScheduleToMRST(model, deck);
 
     % Manually set the injection composition
