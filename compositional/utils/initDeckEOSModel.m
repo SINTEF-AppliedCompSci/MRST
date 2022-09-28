@@ -30,7 +30,7 @@ function model = initDeckEOSModel(deck)
     
     fluid = CompositionalMixture(names, Tcrit, Pcrit, Vcrit, acf, mw, T_ref, P_ref);
     
-    if isfield(deck.PROPS, 'BIC')
+    if isfield(deck.PROPS, 'BIC') && any(deck.PROPS.BIC ~= 0)
         fluid = fluid.setBinaryInteraction(deck.PROPS.BIC);
     end
     
