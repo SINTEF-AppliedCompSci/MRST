@@ -25,6 +25,10 @@ function [ws, states] = runJutulOnDaemon(state0, model, schedule, varargin)
 %
 %   path - Path to folder where input and output files are written.
 %
+%   julia_path - Path to julia executable. If not provided, MRST will
+%                assume that Julia is available directly on path in the
+%                system() call.
+%
 % NOTE:
 %    Additional inputs are passed as keyword arguments to Julia simulator.
 %    First simulation can take some time, as this triggers compilation.
@@ -61,6 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     opt = struct('name', 'jutul_case', ...
                  'project', '', ...
+                 'julia_path', 'julia', ...
                  'path', tempdir());
     [opt, extra] = merge_options(opt, varargin{:});
     v = mrstVerbose();
@@ -111,8 +116,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fclose(f);
     % Finally put together the command to invoke the daemon in client mode
     % and run the case.
-    cmd = sprintf('julia %s --startup-file=no --color=no -e "using DaemonMode; runargs()" %s', ...
-        opt.project, cmd_pth);
+    cmd = sprintf('%s %s --startup-file=no --color=no -e "using DaemonMode; runargs()" %s', ...
+        opt.julia_path, opt.project, cmd_pth);
     id = system(cmd);
     if id == 1
         error('Julia simulation was unable to complete successfully.')

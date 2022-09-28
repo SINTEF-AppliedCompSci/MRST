@@ -53,7 +53,13 @@ mrstModule add ad-core ad-blackoil deckformat ad-props test-suite jutul
 %
 % If you were following path (2) you will need to specify the directory X of
 % your project via the 'project' optional input argument to
-% runJutulOnDaemon.
+% runJutulOnDaemon. You may also need to provide runJutulOnDaemon with the
+% 'julia_path' keyword argument containing the full path to your julia
+% executable. This is only required if Julia is not available on the path
+% where MATLAB was launched. On Linux, this can occur if you launch MATLAB
+% without running your .bashrc (for example by using a icon to launch
+% MATLAB). On Windows, this will be need if you have not added Julia to
+% path during the installation.
 %% We run a small example to demonstrate and verify that it is working
 setup = qfs_wo();
 [state0, model, schedule] = deal(setup.state0, setup.model, setup.schedule);
