@@ -1,32 +1,36 @@
 %% trajectoryExampleEgg
-% This example launches the (limited robustness) TrajectoryGUI for the Egg 
-% model. The GUI enables drawing and draging around well-trajectories which 
-% can be saves as an MRST well structues. Diagnostics for the newly created 
-% wells can be investigated by launcing the DiagnosticsViewer. 
+% This example launches the TrajectoryGUI for the Egg model. The GUI enables 
+% editing, drawing and draging around well-trajectories which can be saved as 
+% MRST well structues. Diagnostics for the newly edited/created wells can 
+% be investigated by launcing the DiagnosticsViewer. 
 % 
-% INSTRUCTIONS
+% INSTRUCTIONS for editing a well-trajectory and comparing diagnostics with
+% the base-case.
+% 1) Make a new well-case by clicking "New" in the "Well cases"-box. We now 
+%    have two identical well-cases ("base" and "case 1").
+% 2) In the "Edit/Add well"-box, select a well-name in the drop-down menu.
+% 3) Edit the well-trajectory by 
+%    a) Drag the heel/toe green endpoints along the 2D-slice in the left plot. 
+%       Change the slice by adjusting the slice-angle in the "Trajectory slice
+%       options"-box.
+%    b) To make curved trajectories, add points along the trajectory:
+%       Right-click inside axis of the left plot -> Draw points -> Along line. 
+%       Left-click to place new points. Right-click point to delete. To switch 
+%       off point-drawing: Right-click inside axis of the left plot -> Draw 
+%       points -> off.
+%    c) To move the entire trajectory in the horizontal plane, drag pink 
+%       square in the right plot.
+%    d) To undo all changes, press "Undo".
+% 4) Save the new well-trajectory in "case 1" by pressing "Save".
+% 5) Optionally modify and save other wells in "case 1".
+% 6) Optionally make additional cases by repeating steps 1)-5)
+% 7) Select all cases listed in the "Well cases"-box, and press 
+%    "Launch diagnostics" to compare e.g., the effect an updated trajectory 
+%    has on sweep- and drainage-regions
 %
-% To create a new well:
-% * press "New"
-% * right-click inside left-side axis for drawing options ("along line" is recommend). 
-% * This enables you to draw the horizontal path of the well. Use left-click on the points 
-%   to move them, add additional points by left-clicking where you want new points, and 
-%   right-click on the points to delete.
-% * On the right-hand axis you now see a vertical cross section along the horizontal path 
-%   from the left-hand axis. To draw the path of the well onto this cross section , 
-%   right-click in the right-hand axis and choose "Draw points -> along line".
-%
-% To view the well(s):
-% * When you have drawn both a horizontal and cross-sectional well path, you can press the 
-%   "View" button to get a 3D view of the well(s) with the traversered grid cells.
-%
-% Configure and save well:
-% * Specify our well parameters by selecting Type, Control and Value
-% * Save your new well by pressing the "Save" button. It now appears in the topmost dropdown list
-% 
-% Launch diagnostics:
-% * When you are happy with your well(s) and have saved them, launch diagnostics by pressing the 
-%   "Launch diagnostics" button. 
+% Other options in GUI, includes drawing new wells, and changing well control 
+% types and values (the latter may produce strange results unless values are
+% selected with care). 
 
 mrstModule add diagnostics mrst-gui ad-core ad-blackoil wellpaths test-suite
 
