@@ -129,10 +129,10 @@ ecl = fullfile(mrstPath('opm-tests'), 'norne', 'ECL.2014.2', 'NORNE_ATW2013');
 wellSols{end+1} = ws_ecl;
 time{end+1} = T_ecl;
 names{end+1} = 'Eclipse (Hysteresis)';
-fn = fullfile(mrstDataDirectory(), 'smry_nohyst.mat');
+fn = fullfile(mrstDataDirectory(), 'opm_smry_nohyst.mat');
 
 if ~exist(fn, 'file')
-    url = 'https://www.sintef.no/contentassets/124f261f170947a6bc51dd76aea66129/smry_nohyst.mat';
+    url = 'https://www.sintef.no/contentassets/124f261f170947a6bc51dd76aea66129/opm_smry_nohyst.mat';
     dfcn = mrstWebSave();
     dfcn(fn, url);
 end
