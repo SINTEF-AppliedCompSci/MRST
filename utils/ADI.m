@@ -259,13 +259,14 @@ classdef ADI
 
       function h = power(u,v)
       % Element-wise power. `h=u.^v`.
-          
-          if numel(value(u)) == 1
-              u = repmat(u, [numel(value(v)), 1]);
+          nu = numel(value(u));
+          nv = numel(value(v));
+          if nu == 1 && nv > 1
+              u = repmat(u, [nv, 1]);
           end
 
-          if numel(value(v)) == 1
-              v = repmat(v, [numel(value(u)), 1]);
+          if nv == 1 && nu > 1
+              v = repmat(v, [nu, 1]);
           end
 
           if ~isa(v,'ADI') % v is a scalar and u is ADI
