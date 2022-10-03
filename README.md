@@ -28,8 +28,8 @@ respect to previous releases, and using this module in macOS with GNU
 Octave.
 
 ## Requirements
-* MRST (Tested version: 2022a)
-* MATLAB (Tested version: R2022a) or GNU Octave (Tested version: 7.2.0)
+* MRST (Tested version: 2022b)
+* MATLAB (Tested version: R2022b) or GNU Octave (Tested version: 7.2.0)
 
 ## Installation (MATLAB/GNU Octave)
 * Set the folder's name to 'ad-micp'.
