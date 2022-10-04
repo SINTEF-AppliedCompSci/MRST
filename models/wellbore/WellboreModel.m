@@ -105,7 +105,7 @@ classdef WellboreModel < WrapperModel
             G.cells.centroids(wcno,3) = refDepth;
             G.cells.global = [G.cells.global; G.cells.global(topCells)];
             
-            gcno = 0;
+            gcno = [];
             if ~isempty(model.groups)
                 % For groups, we use the top cell of the first member in
                 % the group
@@ -637,28 +637,26 @@ classdef WellboreModel < WrapperModel
                 rhoS = applyFunction(@(x) x(iic), rhoS);
                 is_inj = flag{1}(iif);
                 
-                is_temp   = is_inj | is_none;
-                is_effect = ~(is_temp | is_none);
-                is_effect = ~is_temp;
-                
+                is_temp   = is_inj   | is_none;
+                is_effect = ~is_temp & ~is_none;
                 
                 qh = 0;
                 for ph = 1:nph
                     qh = qh + qsw{ph}.*rhoS{ph}.*h{ph};
                 end
-                
-                eqTh = model.AutoDiffBackend.convertToAD(zeros(nw + ng,1), bht);
+
+                eqTh = model.AutoDiffBackend.convertToAD(zeros(nw + ng, 1), bht);
                 
 %                 eqTh = qh - qhw;
                 Tw = [vertcat(wCtrl.T); vertcat(gCtrl.T)];
-%                 bhtv = value(bht);
-%                 Tw(isnan(Tw)) = bhtv(isnan(Tw));
+                bhtv = value(bht);
+                Tw(isnan(Tw)) = bhtv(isnan(Tw));
                 
                 eqTh(is_temp) = bht(is_temp) - Tw(is_temp);
                 eqTh(is_effect) = qh(is_effect) - qhw(is_effect);
                 
-%                 qhw_gs = model.parentModel.operators.groupSum(qhw);
-%                 eqTh(is_none) = qhw(is_none) - qhw_gs(is_none);
+                qhw_gs = model.parentModel.operators.groupSum(qhw);
+                eqTh(is_none) = qhw(is_none) - qhw_gs(is_none);
                 
                 eqs   = [eqs, {eqTh}];
                 names = [names, 'thermal'];
@@ -818,13 +816,14 @@ classdef WellboreModel < WrapperModel
             
             % Face segment lengths computed as mean of adjacent cells            
             N = G.faces.neighbors; N = N(all(N>0,2), :);
+            N = [N; G.nnc.cells];
             lf = sum(lc(N).*0.5, 2);
-            if model.numGroups > 0
-                x  = G.cells.centroids;
-                li = sqrt(sum((x(G.nnc.cells(:,1), :) ...
-                                - x(G.nnc.cells(:,2), :)).^2, 2)); 
-                lf = [lf; li];
-            end
+%             if model.numGroups > 0
+%                 x  = G.cells.centroids;
+%                 li = sqrt(sum((x(G.nnc.cells(:,1), :) ...
+%                                 - x(G.nnc.cells(:,2), :)).^2, 2)); 
+%                 lf = [lf; li];
+%             end
 
         end
         %-----------------------------------------------------------------%
