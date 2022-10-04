@@ -332,6 +332,10 @@ classdef WellboreModel < WrapperModel
             ii = [(1:model.numWells)'; rldecode((1:numel(mix))', ngw, 1) + nw];
             jj = [(1:model.numWells)'; vertcat(mix{:}) + nw];
             M = sparse(ii, jj, 1, nw + ng, nw + ng);
+            model.parentModel.operators.fluxSum = @(v) M*v;
+            
+            jj = [(1:model.numWells)'; vertcat(mix{:})];
+            M = sparse(ii, jj, 1, nw + ng, nw + ng);
             model.parentModel.operators.groupSum = @(v) M*v;
             
             if model.thermal
@@ -482,15 +486,14 @@ classdef WellboreModel < WrapperModel
             % @@ TODO: sum fluxes for all groups
             qs = cellfun(@(qs, rho) qs(iif)./rho(iif), ...
                     qs, rhoS, 'UniformOutput', false);
+            qs = cellfun(@(qs) model.parentModel.operators.fluxSum(qs), ...
+                    qs, 'UniformOutput', false);
             
             % Get surface rate dofs
             nph      = model.getNumberOfPhases();
             names    = model.getSurfaceRateNames();
             qsw      = cell(1, nph);
             [qsw{:}] = model.getProps(state, names{:});
-            
-            qs = cellfun(@(qs) model.parentModel.operators.groupSum(qs), ...
-                                                qs, 'UniformOutput', false);
             
             % Assemble surface rate equations
             scale = (meter^3/day)^(-1);
@@ -513,6 +516,7 @@ classdef WellboreModel < WrapperModel
                                 'enthalpy');
             [~, iif] = model.getInletSegments();
             qh = qh(iif);
+            qh = model.parentModel.operators.fluxSum(qh);
             
             scale = (mean(value(h))*meter^3/day).^(-1); %@@ Set reasonable scaling
             eqs   = {(qh - qhw).*scale};
@@ -572,15 +576,9 @@ classdef WellboreModel < WrapperModel
             is_volume = strcmp(ctrlType, 'volume');
             % Check for unsupported well controls
             assert(~any(is_resv | is_volume), 'Not implemented yet');
-
-            % Replace conservation equations in inlet nodes with equations
-            % ensuring inlet pressure/temperature equal to well bhp/bht
-            p = model.getProps(state, 'pressure');
-            [T, bht] = model.getProps(state, 'T', 'bht');
-            iic = find(model.getInletSegments());
-            iic = iic(~is_none);
-            consEqs{1}(iic) = p(iic) - bhp(~is_none);
-            consEqs{2}(iic) = T(iic) - bht(~is_none);
+           
+% %             consEqs{1}(iic) = p(iic) - bhp(~is_none);
+%             consEqs{2}(iic) = T(iic) - bht(~is_none);
             
             % Set BHP control equations
             eqs(is_bhp) = ctrlTarget(is_bhp) - bhp(is_bhp);
@@ -608,12 +606,19 @@ classdef WellboreModel < WrapperModel
             end
             eqs(is_surface_rate) = ctrlTarget(is_surface_rate) - wrates(is_surface_rate);
             
-            %@@ Change to equation that sets group rate equal to sum of
-            % group well rates
-            eqs(is_none) = qsw{1}(is_none) - qsw{1}(~is_none);
+            % Set group rate equal to sum of group well rates for inactive
+            % wells
+            qsw_gs = model.parentModel.operators.groupSum(qsw{1});
+            eqs(is_none) = qsw{1}(is_none) - qsw_gs(is_none);
             
             % Pack in standard eqs/names/types format
             eqs = {eqs}; [names, types] = deal({'control'});
+            
+            % Replace conservation equations in inlet nodes with equations
+            % ensuring inlet pressure equal to well bhp
+            p = model.getProps(state, 'pressure');
+            iic = find(model.getInletSegments());
+            consEqs{1}(iic) = p(iic) - bhp;
             
             % Add bht equation if applicable
             if model.thermal
@@ -621,27 +626,61 @@ classdef WellboreModel < WrapperModel
                 % Get logical masks for cell and face inlet segments
                 [iic, iif] = model.getInletSegments();
                 
-                [bht, h, qhw, rhoS, flag] = model.getProps(state, ...
+                st = state;
+%                 st.T(iic) = st.bht;
+%                 st.PVTProps.PhaseEnthalpy = [];
+%                 
+                [bht, h, qhw, rhoS, flag] = model.getProps(st, ...
                                     'bht', 'PhaseEnthalpy', 'effect', ...
                                     'SurfaceDensity', 'PhaseUpwindFlag');
                 h = applyFunction(@(x) x(iic), h);
                 rhoS = applyFunction(@(x) x(iic), rhoS);
-                is_inj = flag{1}(iif); is_inj = is_inj & ~is_none;
+                is_inj = flag{1}(iif);
+                
+                is_temp   = is_inj | is_none;
+                is_effect = ~(is_temp | is_none);
+                is_effect = ~is_temp;
+                
                 
                 qh = 0;
                 for ph = 1:nph
                     qh = qh + qsw{ph}.*rhoS{ph}.*h{ph};
                 end
-                eqTh = qh - qhw;
+                
+                eqTh = model.AutoDiffBackend.convertToAD(zeros(nw + ng,1), bht);
+                
+%                 eqTh = qh - qhw;
                 Tw = [vertcat(wCtrl.T); vertcat(gCtrl.T)];
-                bhtv = value(bht);
-                Tw(isnan(Tw)) = bhtv(isnan(Tw));
-                eqTh(is_inj) = bht(is_inj) - Tw(is_inj);
+%                 bhtv = value(bht);
+%                 Tw(isnan(Tw)) = bhtv(isnan(Tw));
+                
+                eqTh(is_temp) = bht(is_temp) - Tw(is_temp);
+                eqTh(is_effect) = qh(is_effect) - qhw(is_effect);
+                
+%                 qhw_gs = model.parentModel.operators.groupSum(qhw);
+%                 eqTh(is_none) = qhw(is_none) - qhw_gs(is_none);
                 
                 eqs   = [eqs, {eqTh}];
                 names = [names, 'thermal'];
                 types = [types, 'control'];
+                
+                [T, bht] = model.getProps(state, 'T', 'bht');            
+                consEqs{2}(iic) = T(iic) - bht;
+                
             end
+            
+            % Replace conservation equations in inlet nodes with equations
+            % ensuring inlet pressure/temperature equal to well bhp/bht
+            
+
+            
+%             iic = iic(~is_none);
+%             consEqs{1}(iic) = p(iic) - bhp(~is_none);
+%             consEqs{2}(iic) = T(iic) - bht(~is_none);
+            
+            
+            
+
             
         end
         %-----------------------------------------------------------------%
