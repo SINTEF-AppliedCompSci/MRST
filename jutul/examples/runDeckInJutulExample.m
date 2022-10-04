@@ -1,7 +1,7 @@
 %% Example demonstrating how to run black oil cases from .DATA files in Jutul
 % Black oil cases can also be run in Jutul, provided that they are
 % constructed from a .DATA file.
-mrstModule add ad-core ad-blackoil ad-props deckformat jutul
+mrstModule add ad-core ad-blackoil ad-props deckformat jutul test-suite
 if ~exist('name', 'var')
     name = 'spe1';
 end
