@@ -83,7 +83,7 @@ classdef WellboreModel < WrapperModel
             
             ng = numel(groups);
             wnames = {model.wells.name};
-            memberIx = cell(model.numWells, 1);
+            memberIx = cell(model.numGroups, 1);
             for i = 1:ng
                 group = groups(i);
                 mix = find(ismember(wnames, group.members));
@@ -327,15 +327,16 @@ classdef WellboreModel < WrapperModel
             
             % Make mapping from wells to groups
             nw = model.numWells(); ng = model.numGroups();
-            mix = arrayfun(@(group) group.memberIx', model.groups, 'UniformOutput', false);
+            mix = arrayfun(@(group) group.memberIx, model.groups, 'UniformOutput', false);
             ngw = cellfun(@numel, mix);
             ii = [(1:model.numWells)'; rldecode((1:numel(mix))', ngw, 1) + nw];
             jj = [(1:model.numWells)'; vertcat(mix{:}) + nw];
-            M = sparse(ii, jj, 1, nw + ng, nw + ng);
+            M = sparse(ii, jj, 1, nw + ng, nw + sum(ngw));
             model.parentModel.operators.fluxSum = @(v) M*v;
             
-            jj = [(1:model.numWells)'; vertcat(mix{:})];
-            M = sparse(ii, jj, 1, nw + ng, nw + ng);
+            ii = rldecode((1:numel(mix))', ngw, 1);
+            jj = vertcat(mix{:});
+            M = sparse(ii, jj, 1, ng, sum(ngw));
             model.parentModel.operators.groupSum = @(v) M*v;
             
             if model.thermal
@@ -416,9 +417,9 @@ classdef WellboreModel < WrapperModel
             [eqs, names, types, state] ...
                 = model.parentModel.getModelEquations(state0, state, dt, drivingForces);
             % Mass fluxes, surface rates and control
-            [fluxEqs, fluxNames, fluxTypes, state] = model.getMassFluxEquations(state);
-            [rateEqs, rateNames, rateTypes, state] = model.getSurfaceRateEquations(state);
-            [effEqs , effNames , effTypes , state] = model.getHeatFluxEquations(state);
+            [fluxEqs, fluxNames, fluxTypes, state]      = model.getMassFluxEquations(state);
+            [rateEqs, rateNames, rateTypes, state]      = model.getSurfaceRateEquations(state);
+            [effEqs , effNames , effTypes , state]      = model.getHeatFluxEquations(state);
             [ctrlEqs, ctrlNames, ctrlTypes, state, eqs] = model.getControlEquations(state, drivingForces, eqs);
             % Assemble
             eqs   = [eqs  , fluxEqs  , rateEqs  , effEqs  , ctrlEqs  ];
@@ -542,6 +543,7 @@ classdef WellboreModel < WrapperModel
             
             nw = model.numWells();
             ng = model.numGroups();
+            [iic, iif] = model.getInletSegments(); ic = find(iic);
             
             ctrl0 = struct('type', 'none', 'val', nan, 'T', nan);
             if ~hasWellCtrl , wCtrl = repmat(ctrl0, nw, 1) ; end
@@ -556,8 +558,10 @@ classdef WellboreModel < WrapperModel
             % No control - well is controlled by group or group is not
             % actively controlling wells
             is_none  = strcmpi(ctrlType, 'none');
-%             % Well is controlled by its group
-%             is_group = strcmpi(ctrlType, 'group');
+            % Well is controlled by its group
+            is_group = strcmpi(ctrlType, 'group');
+            % Treat wells controlled by a group as "no control"
+            is_none = is_none | is_group;
             % Bottom-hole pressure control
             is_bhp  = strcmpi(ctrlType, 'bhp');
             % Surface total rates
@@ -576,10 +580,7 @@ classdef WellboreModel < WrapperModel
             is_volume = strcmp(ctrlType, 'volume');
             % Check for unsupported well controls
             assert(~any(is_resv | is_volume), 'Not implemented yet');
-           
-% %             consEqs{1}(iic) = p(iic) - bhp(~is_none);
-%             consEqs{2}(iic) = T(iic) - bht(~is_none);
-            
+
             % Set BHP control equations
             eqs(is_bhp) = ctrlTarget(is_bhp) - bhp(is_bhp);
 
@@ -604,81 +605,68 @@ classdef WellboreModel < WrapperModel
                 wrates(act) = wrates(act) + qsw{ph}(act);
                 is_surface_rate(act) = true;
             end
-            eqs(is_surface_rate) = ctrlTarget(is_surface_rate) - wrates(is_surface_rate);
+            eqs(is_surface_rate) ...
+                = ctrlTarget(is_surface_rate) - wrates(is_surface_rate);
             
-            % Set group rate equal to sum of group well rates for inactive
-            % wells
-            qsw_gs = model.parentModel.operators.groupSum(qsw{1});
-            eqs(is_none) = qsw{1}(is_none) - qsw_gs(is_none);
+            % Equation ensuring that bhp equals cell pressure in well top
+            % cells and group cells. For wells operated by groups and for
+            % passive groups, we set this with the control equation. For
+            % wells and groups enforcing controls, we use the corresponding
+            % conservation equation instead
+            p = model.getProps(state, 'pressure'); p = p(iic);
+            pressureEq               = bhp - p;
+            eqs(is_none)             = pressureEq(is_none);
+%             scaleBHP = mean(value(consEqs{1}(ic(~is_none))))./mean(value(bhp));
+            scaleBHP = 1;
+            consEqs{1}(ic(~is_none)) = pressureEq(~is_none).*scaleBHP;
             
             % Pack in standard eqs/names/types format
             eqs = {eqs}; [names, types] = deal({'control'});
             
-            % Replace conservation equations in inlet nodes with equations
-            % ensuring inlet pressure equal to well bhp
-            p = model.getProps(state, 'pressure');
-            iic = find(model.getInletSegments());
-            consEqs{1}(iic) = p(iic) - bhp;
-            
             % Add bht equation if applicable
             if model.thermal
                 
-                % Get logical masks for cell and face inlet segments
-                [iic, iif] = model.getInletSegments();
-                
-                st = state;
-%                 st.T(iic) = st.bht;
-%                 st.PVTProps.PhaseEnthalpy = [];
-%                 
-                [bht, h, qhw, rhoS, flag] = model.getProps(st, ...
-                                    'bht', 'PhaseEnthalpy', 'effect', ...
-                                    'SurfaceDensity', 'PhaseUpwindFlag');
+                % Get thermal properties
+                [bht, h, qhw, rhoS, flag, T] = model.getProps(state, ...
+                    'bht', 'PhaseEnthalpy', 'effect', 'SurfaceDensity', ...
+                    'PhaseUpwindFlag', 'T');
                 h = applyFunction(@(x) x(iic), h);
                 rhoS = applyFunction(@(x) x(iic), rhoS);
-                is_inj = flag{1}(iif);
+                is_inj = value(qsw{1}) > 0;
                 
-                is_temp   = is_inj   | is_none;
+                is_temp   =  is_inj  & ~is_none;
                 is_effect = ~is_temp & ~is_none;
                 
+                eqTh = model.AutoDiffBackend.convertToAD(zeros(nw + ng, 1), bht);
+                % Set temperature control equation
+                Tw = [vertcat(wCtrl.T); vertcat(gCtrl.T)];
+                assert(~any(isnan(Tw(is_temp))), ...
+                    'Temperature in active well/group not set!');
+                eqTh(is_temp) = bht(is_temp) - Tw(is_temp);
+                % Set effect control equation
                 qh = 0;
                 for ph = 1:nph
                     qh = qh + qsw{ph}.*rhoS{ph}.*h{ph};
                 end
-
-                eqTh = model.AutoDiffBackend.convertToAD(zeros(nw + ng, 1), bht);
-                
-%                 eqTh = qh - qhw;
-                Tw = [vertcat(wCtrl.T); vertcat(gCtrl.T)];
-                bhtv = value(bht);
-                Tw(isnan(Tw)) = bhtv(isnan(Tw));
-                
-                eqTh(is_temp) = bht(is_temp) - Tw(is_temp);
                 eqTh(is_effect) = qh(is_effect) - qhw(is_effect);
                 
-                qhw_gs = model.parentModel.operators.groupSum(qhw);
-                eqTh(is_none) = qhw(is_none) - qhw_gs(is_none);
+                % Equation ensuring that bht equals cell temperature in
+                % well top cells and group cells. For wells operated by
+                % groups and for passive groups, we use the control
+                % equation. For wells and groups enforcing controls, we use
+                % the corresponding conservation equation
+                temperatureEq            = bht - T(iic);
+                eqTh(is_none)            = temperatureEq(is_none);
+%                 scaleBHT = mean(value(consEqs{2}(ic(~is_none))))./mean(value(bht));
+                scaleBHT = 1;
+                consEqs{2}(ic(~is_none)) = temperatureEq(~is_none).*scaleBHT;
                 
+                % Assemble
                 eqs   = [eqs, {eqTh}];
                 names = [names, 'thermal'];
                 types = [types, 'control'];
                 
-                [T, bht] = model.getProps(state, 'T', 'bht');            
-                consEqs{2}(iic) = T(iic) - bht;
-                
             end
-            
-            % Replace conservation equations in inlet nodes with equations
-            % ensuring inlet pressure/temperature equal to well bhp/bht
-            
-
-            
-%             iic = iic(~is_none);
-%             consEqs{1}(iic) = p(iic) - bhp(~is_none);
-%             consEqs{2}(iic) = T(iic) - bht(~is_none);
-            
-            
-            
-
             
         end
         %-----------------------------------------------------------------%
