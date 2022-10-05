@@ -9,11 +9,11 @@ mrstVerbose on
 
 %%
 close all
-cartDims = [100,1,100];
-test    = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', false, 'cartDims', cartDims);
+test    = TestCase('fivespot_geothermal', 'cartDims', [5,5,2]);
+test.model.FacilityModel = [];
 groups = [];
-groups = addFacilityGroup(groups, {'W1'});
-groups = addFacilityGroup(groups, {'W2'});
+groups = addFacilityGroup(groups, {'Hot'});
+groups = addFacilityGroup(groups, {'Cold-1-1', 'Cold-2-1', 'Cold-2-2', 'Cold-1-2'});
 test = convertToWBMultiModel(test, 'groups', groups);
 testRef = TestCase('fractured_3d_slice_geothermal', 'useWellboreModel', false, 'cartDims', cartDims);
 
@@ -25,7 +25,7 @@ nls.useLinesearch = true;
 nls.LinearSolver = lsol;
 % test.model.submodels.Wellbore.parentModel.operators.T = test.model.submodels.Wellbore.parentModel.operators.T*100;
 problem = test.getPackedSimulationProblem('LinearSolver', lsol);
-simulatePackedProblem(problem, 'restartStep', 1);
+simulatePackedProblem(problem, 'restartStep', nan);
 
 %%
 problemRef = testRef.getPackedSimulationProblem();
@@ -44,6 +44,8 @@ dstates = cellfun(@(st1, st2) compareStructs(st1.Reservoir, st2, 'includeStructs
 test.plot(dstates);
 plotWellSols({wellSols, wellSolsRef});
 plotWellSols({wellSols, wellSolsRef}, test.schedule.step.val);
+
+plotWellSols({wellSols});
 
 %%
 traj = linspace(0,max(test.model.G.nodes.coords(:,3)), 100)';
