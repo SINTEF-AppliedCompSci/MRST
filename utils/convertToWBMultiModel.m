@@ -50,6 +50,7 @@ function test = convertToWBMultiModel(test, varargin)
     model = model.setCouplingTerm(coupling);
                           
     state0 = struct();
+    test.state0 = rmfield(test.state0, 'wellSol');
     [state0.Reservoir, state0.Wellbore] = deal(test.state0);
     wc = wellboreModel.G.cells.global;
     state0.Wellbore.pressure = state0.Wellbore.pressure(wc);
