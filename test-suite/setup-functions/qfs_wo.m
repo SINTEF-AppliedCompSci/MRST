@@ -58,7 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     require ad-core ad-props ad-blackoil
 
     % Cartesian grid covering a 1000 x 1000 m domain
-    G     = computeGeometry(cartGrid([1,1]*options.ncells, [1000, 1000]*meter));
+    G     = computeGeometry(cartGrid([1,1].*options.ncells, [1000, 1000]*meter));
     rock  = makeRock(G, 100*milli*darcy, 0.4); % Rock with 100 md perm and 0.4 poro
     fluid = initSimpleADIFluid('phases', 'WO'             , ... % Water and oil
                                'n'     , [1,1]*options.nkr, ... % Relperm exponents
@@ -72,14 +72,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rate = options.pvi*sum(poreVolume(G, rock))/options.time;
     bhp  = 50*barsa;
     W = [];
-    W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate, 'comp_i', [1,0]);
-    W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', bhp, 'comp_i', [1,0]);
+    W = addWell(W, G, rock, 1          , 'type', 'rate', 'val', rate, 'comp_i', [1,0], 'sign', 1);
+    W = addWell(W, G, rock, G.cells.num, 'type', 'bhp', 'val', bhp, 'comp_i', [1,0], 'sign', -1);
     
     % Schedule
     schedule = simpleSchedule(rampupTimesteps(options.time, options.dt), 'W', W);
     
     % Initial state
-    state0 = initResSol(G, 10*barsa, [0,1]);
+    state0 = initResSol(G, 100*barsa, [0,1]);
     
     % Pack setup
     setup = packTestCaseSetup(mfilename,                  ...
