@@ -113,7 +113,7 @@ classdef WellboreModel < WrapperModel
                 gw  = arrayfun(@(group) group.memberIx, model.groups, 'UniformOutput', false);
                 % Make nncs
                 nnc = [rldecode(gw1, cellfun(@numel, gw), 1), vertcat(gw{:})];
-                nnc = wcno(nnc);
+                nnc = wcno(nnc); if size(nnc,2) == 1; nnc = nnc'; end
                 % Copy cells
                 [G, gcno] = copyCells(G, wcno(gw1), 'nnc', nnc);
                 % Set vertical coord equal to refDepth of first group well
@@ -330,12 +330,13 @@ classdef WellboreModel < WrapperModel
             mix = arrayfun(@(group) group.memberIx, model.groups, 'UniformOutput', false);
             ngw = cellfun(@numel, mix);
             ii = [(1:model.numWells)'; rldecode((1:numel(mix))', ngw, 1) + nw];
-            jj = [(1:model.numWells)'; vertcat(mix{:}) + nw];
+            jj = [(1:model.numWells)'; (1:sum(ngw))' + nw];
             M = sparse(ii, jj, 1, nw + ng, nw + sum(ngw));
+            
             model.parentModel.operators.fluxSum = @(v) M*v;
             
             ii = rldecode((1:numel(mix))', ngw, 1);
-            jj = vertcat(mix{:});
+            jj = (1:sum(ngw))';
             M = sparse(ii, jj, 1, ng, sum(ngw));
             model.parentModel.operators.groupSum = @(v) M*v;
             
@@ -510,6 +511,8 @@ classdef WellboreModel < WrapperModel
         % Equations realting heat flux into/out of the wellbore
         % inlet/outlet (i.e., effect) to 
 
+            if ~model.thermal, [eqs, names, types] = deal({}); return; end
+        
             % Get properties
             [qh, qhw, h] = model.getProps(state, ...
                                 'HeatFlux', ...
@@ -614,8 +617,8 @@ classdef WellboreModel < WrapperModel
             % wells and groups enforcing controls, we use the corresponding
             % conservation equation instead
             p = model.getProps(state, 'pressure'); p = p(iic);
-            pressureEq               = bhp - p;
-            eqs(is_none)             = pressureEq(is_none);
+            pressureEq   = bhp - p;
+            eqs(is_none) = pressureEq(is_none);
 %             scaleBHP = mean(value(consEqs{1}(ic(~is_none))))./mean(value(bhp));
             scaleBHP = 1;
             consEqs{1}(ic(~is_none)) = pressureEq(~is_none).*scaleBHP;
@@ -627,12 +630,15 @@ classdef WellboreModel < WrapperModel
             if model.thermal
                 
                 % Get thermal properties
-                [bht, h, qhw, rhoS, flag, T] = model.getProps(state, ...
+                [bht, h, qhw, rhoS, qr, T] = model.getProps(state, ...
                     'bht', 'PhaseEnthalpy', 'effect', 'SurfaceDensity', ...
-                    'PhaseUpwindFlag', 'T');
+                    'massFlux', 'T');
+%                 h = {model.parentModel.fluid.hW(bhp, bht)};
                 h = applyFunction(@(x) x(iic), h);
                 rhoS = applyFunction(@(x) x(iic), rhoS);
-                is_inj = value(qsw{1}) > 0;
+                qr = value(qr); qr = qr(iif);
+                qr = model.parentModel.operators.fluxSum(qr);
+                is_inj = qr > 0 | (is_surface_rate & ctrlTarget > 0);
                 
                 is_temp   =  is_inj  & ~is_none;
                 is_effect = ~is_temp & ~is_none;
@@ -655,8 +661,8 @@ classdef WellboreModel < WrapperModel
                 % groups and for passive groups, we use the control
                 % equation. For wells and groups enforcing controls, we use
                 % the corresponding conservation equation
-                temperatureEq            = bht - T(iic);
-                eqTh(is_none)            = temperatureEq(is_none);
+                temperatureEq = bht - T(iic);
+                eqTh(is_none) = temperatureEq(is_none);
 %                 scaleBHT = mean(value(consEqs{2}(ic(~is_none))))./mean(value(bht));
                 scaleBHT = 1;
                 consEqs{2}(ic(~is_none)) = temperatureEq(~is_none).*scaleBHT;
@@ -880,6 +886,24 @@ classdef WellboreModel < WrapperModel
         end
         %-----------------------------------------------------------------%
         
+        %-----------------------------------------------------------------%
+        function plotWellNetwork(model)
+            nnc = model.G.nnc.cells(model.numWells + 1:end, :);
+            nnc = max(nnc(:)) - nnc + 1;
+            names = [{model.wells.name}, {model.groups.name}];
+            names = fliplr(names);
+            network = graph(nnc(:,1), nnc(:,2), [], names);
+            
+            plot(network, 'layout', 'layered', 'LineWidth', 2);
+            
+%             cc = network.conncomp;
+%             hold on;
+%             for i = 1:max(cc)
+%                 wix = cc == cc(i);
+%                 plot(network.subgraph(wix), 'layout', 'layered', 'LineWidth', 2);
+%             end
+        end
+        %-----------------------------------------------------------------%
 
     end
     
