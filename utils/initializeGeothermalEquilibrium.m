@@ -71,8 +71,8 @@ function opt = processInput(model, opt, varargin)
 
     opt = merge_options(opt, varargin{:});
     if isempty(opt.thermalGradient)
-        if isprop(model, 'thermalGradient')
-            opt.thermalGradient = model.thermalGradient;
+        if isprop(model, 'geothermalGradient')
+            opt.thermalGradient = model.geothermalGradient;
         else
             opt.thermalGradient = 30*Kelvin/(kilo*meter);
         end
