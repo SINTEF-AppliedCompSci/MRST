@@ -161,7 +161,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     lambdaF = repmat(model.fluid.lambdaF, model.G.cells.num, 1).*pv./vol;
                     r       = struct('perm', lambdaF);
                     Thf     = getFaceTransmissibility(model.G, r);
-                    if hasNNC, Thf = [Thr; G.nnc.transHr]; end
+                    if hasNNC, Thf = [Thf; G.nnc.transHr]; end
                 end
                 % Assign to model.operators
                  if numel(Thf) < model.G.faces.num
