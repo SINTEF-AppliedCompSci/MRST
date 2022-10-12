@@ -97,6 +97,8 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function G = computeWellGridGeometry(model, G)
             
+            is_fractured = isfield(G.cells, 'hybrid');
+            
             % Add inlet cells as copies of the top cell
             topCells = G.cells.topCell;
             [G, wcno] = copyCells(G, G.cells.topCell, 'nnc', repmat(topCells, 1, 2));
@@ -104,6 +106,9 @@ classdef WellboreModel < WrapperModel
             refDepth = arrayfun(@(W) W.refDepth, model.wells);
             G.cells.centroids(wcno,3) = refDepth;
             G.cells.global = [G.cells.global; G.cells.global(topCells)];
+            if is_fractured
+                G.cells.hybrid = [G.cells.hybrid; zeros(numel(wcno),1)]; 
+            end
             
             gcno = [];
             if ~isempty(model.groups)
@@ -119,6 +124,9 @@ classdef WellboreModel < WrapperModel
                 % Set vertical coord equal to refDepth of first group well
                 G.cells.centroids(gcno,3) = refDepth(gw1);
                 G.cells.global = [G.cells.global; G.cells.global(gw1)];
+                if is_fractured
+                    G.cells.hybrid = [G.cells.hybrid; zeros(numel(gcno),1)]; 
+                end
             end
             
             % Add heat transmissibility fields for nncs
@@ -314,7 +322,7 @@ classdef WellboreModel < WrapperModel
             for name = names
                 if ~isfield(op, name{1}), continue; end
                 fix = isnan(op.(name{1}));
-                assert(~any(fix(~iif)), 'Computed non-finite transmissibilites');
+%                 assert(~any(fix(~iif)), 'Computed non-finite transmissibilites');
                 op.(name{1})(fix) = 0;
                 op.([name{1}, '_all'])(op.internalConn) = op.(name{1});
             end
@@ -331,14 +339,14 @@ classdef WellboreModel < WrapperModel
             ngw = cellfun(@numel, mix);
             ii = [(1:model.numWells)'; rldecode((1:numel(mix))', ngw, 1) + nw];
             jj = [(1:model.numWells)'; (1:sum(ngw))' + nw];
-            M = sparse(ii, jj, 1, nw + ng, nw + sum(ngw));
+            FS = sparse(ii, jj, 1, nw + ng, nw + sum(ngw));
             
-            model.parentModel.operators.fluxSum = @(v) M*v;
+            model.parentModel.operators.fluxSum = @(v) FS*v;
             
             ii = rldecode((1:numel(mix))', ngw, 1);
             jj = (1:sum(ngw))';
-            M = sparse(ii, jj, 1, ng, sum(ngw));
-            model.parentModel.operators.groupSum = @(v) M*v;
+            GS = sparse(ii, jj, 1, ng, sum(ngw));
+            model.parentModel.operators.groupSum = @(v) GS*v;
             
             if model.thermal
                 WIth = vertcat(model.wells.WIth);
@@ -411,9 +419,6 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
             
-            % Set well controls (bhp, bht, composition) to inlet node
-%             state = model.setControls(state, drivingForces);
-            
             % Get parent model equations
             [eqs, names, types, state] ...
                 = model.parentModel.getModelEquations(state0, state, dt, drivingForces);
@@ -476,8 +481,8 @@ classdef WellboreModel < WrapperModel
             % Get properties
             [qs, rhoS, flag] = model.parentModel.getProps(state, ...
                                 'ComponentPhaseFlux', ...
-                                'SurfaceDensity', ...
-                                'PhaseUpwindFlag');                
+                                'SurfaceDensity'    , ...
+                                'PhaseUpwindFlag'   );
             % Upstream-wheight density
             rhoS = cellfun(@(flag, rho) ...
                 model.parentModel.operators.faceUpstr(flag, rho), ...
@@ -499,7 +504,7 @@ classdef WellboreModel < WrapperModel
             
             % Assemble surface rate equations
             scale = (meter^3/day)^(-1);
-            eqs   = cellfun(@(qs, qph) (qs - qph).*scale, qsw, qs, ...
+            eqs   = cellfun(@(qsw, qs) (qsw - qs).*scale, qsw, qs, ...
                             'UniformOutput', false);
             types = repmat({'rate'}, 1, nph);
 
@@ -594,7 +599,7 @@ classdef WellboreModel < WrapperModel
             qsw      = cell(1, nph);
             [qsw{:}] = model.getProps(state, rnames{:});
             is_surface_rate = false(model.numWells() + model.numGroups(), 1);
-            wrates = bhp*0;
+            wrates = model.AutoDiffBackend.convertToAD(zeros(nw + ng, 1), bhp);
             % Sum up rate targets
             for ph = 1:nph
                 switch phases(ph)
@@ -620,6 +625,7 @@ classdef WellboreModel < WrapperModel
             pressureEq   = bhp - p;
             eqs(is_none) = pressureEq(is_none);
 %             scaleBHP = mean(value(consEqs{1}(ic(~is_none))))./mean(value(bhp));
+%             scaleBHP = max(scaleBHP, 1e-3);
             scaleBHP = 1;
             consEqs{1}(ic(~is_none)) = pressureEq(~is_none).*scaleBHP;
             
@@ -635,10 +641,12 @@ classdef WellboreModel < WrapperModel
                     'massFlux', 'T');
 %                 h = {model.parentModel.fluid.hW(bhp, bht)};
                 h = applyFunction(@(x) x(iic), h);
+                
                 rhoS = applyFunction(@(x) x(iic), rhoS);
                 qr = value(qr); qr = qr(iif);
                 qr = model.parentModel.operators.fluxSum(qr);
                 is_inj = qr > 0 | (is_surface_rate & ctrlTarget > 0);
+                if all(qr == 0), is_inj = is_inj | true; end
                 
                 is_temp   =  is_inj  & ~is_none;
                 is_effect = ~is_temp & ~is_none;
@@ -664,6 +672,7 @@ classdef WellboreModel < WrapperModel
                 temperatureEq = bht - T(iic);
                 eqTh(is_none) = temperatureEq(is_none);
 %                 scaleBHT = mean(value(consEqs{2}(ic(~is_none))))./mean(value(bht));
+%                 scaleBHT = max(scaleBHT, 1e-3);
                 scaleBHT = 1;
                 consEqs{2}(ic(~is_none)) = temperatureEq(~is_none).*scaleBHT;
                 
@@ -894,7 +903,7 @@ classdef WellboreModel < WrapperModel
             names = fliplr(names);
             network = graph(nnc(:,1), nnc(:,2), [], names);
             
-            plot(network, 'layout', 'layered', 'LineWidth', 2);
+            plot(network, 'layout', 'layered', 'LineWidth', 2, 'MarkerSize', 8);
             
 %             cc = network.conncomp;
 %             hold on;
