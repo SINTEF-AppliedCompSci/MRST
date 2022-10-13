@@ -1,4 +1,4 @@
-function plotAdjustiblePlane(G, data, varargin)
+function h = plotAdjustiblePlane(G, data, varargin)
  %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -44,9 +44,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     crange = (Mgc - mgc)/2;
     agc    = (mgc + Mgc)/2;
 
-
     pts = bsxfun(@rdivide, bsxfun(@minus, G.cells.centroids, agc), crange);
-
 
     x = createSlider([-2 2], [.05  0 .90 .1], 0);
     createText('Translate', [.3  .1 .4 .05])
@@ -73,6 +71,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     addlistener(selecttype, 'Value', 'PostSet', @plotPlane);
 
     plotPlane(0, [])
+
+    h = struct('x'         , x        , ...
+               'phi'       , phi      , ...
+               'theta'     , theta    , ...
+               'thickness' , thickness, ...
+               'selecttype', selecttype);
     
     function plotPlane(src, event)
         if isempty(opt.Callback)
