@@ -127,6 +127,11 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
     jutul.state0 = state0;
     jutul.deck = deck;
     jutul.schedule = schedule;
+    if isprop(model, 'FacilityModel') && isa(model.FacilityModel, 'GenericFacilityModel')
+        p = model.FacilityModel.pressure;
+        T = model.FacilityModel.T;
+        jutul.surface_conditions = struct('pressure', p, 'T', T);
+    end
     jutul.extra = extra;
     if isa(model, 'ThreePhaseCompositionalModel')
         [jutul.eos, jutul.mixture] = getCompositionalOutputs(model);
