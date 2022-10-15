@@ -8,4 +8,4 @@ Download MRST with the SCAL module: https://www.sintef.no/projectweb/mrst/downlo
 
 References:
 
-Amrollahinasab O., Azizmohammadi S., Ott H.: Simultaneous Interpretation of SCAL Data with Different Degrees of Freedom and Uncertainty Analysis (2022) - Under review
+Amrollahinasab O., Azizmohammadi S., Ott H.: Simultaneous interpretation of SCAL data with different degrees of freedom and uncertainty analysis (2022) - https://doi.org/10.1016/j.compgeo.2022.105074
