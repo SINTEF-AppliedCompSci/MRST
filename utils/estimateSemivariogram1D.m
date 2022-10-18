@@ -110,14 +110,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    tmp = find(curve >= fac * sill, 1, 'first');
    range = (tmp / numel(curve)) * vg_max;
    curve = [0; curve(1:tmp)];
-
 end
 
 % ----------------------------------------------------------------------------
 function val = estimate_variogram_value(dists, vals, pos, rad)
-   %w = (abs(dists-pos) < rad) * 1.0;
-   w = max(1 - abs(dists - pos)/rad, 0); % value of weighting function @@
-   %w = max(1 - (dists - pos)/rad, 0); % value of weighting function       
-   %fprintf('sum: %f;   mean %f\n', sum(w), sum(w) / numel(w));
+   w = max(1 - abs(dists - pos)/rad, 0); % value of weighting function 
    val = sum(vals .* w) ./ (2 * sum(w));
 end

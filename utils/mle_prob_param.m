@@ -65,7 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    fun = @(u) vertical(sum(log(distr_fun_safe(samples, pmin + u .* span))));
 
    dfun = @(u) vertical(1./distr_fun_safe(samples, pmin + u(:) .* span))' * ...
-               distr_fun_grad(vertical(samples), pmin + u(:) .* span);
+               vertical(distr_fun_grad(vertical(samples), pmin + u(:) .* span));
    obj = @(u) deal(fun(u), (dfun(u)' .* span));
 
    start = (init_p(:) - pmin) ./ span;
