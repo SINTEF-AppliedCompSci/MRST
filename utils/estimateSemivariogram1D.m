@@ -30,13 +30,13 @@ function [curve, sill, range] = ...
 %                 This extent may be shortened within the algorithm if a definite
 %                 sill is encountered at a shorted distance.
 %   rel_radius  - Width of averaging window used when computing each point on
-%                 the semivariogram curve.  The with is given in units of bin
+%                 the semivariogram curve.  The width is given in units of bin
 %                 width (where each bin has the width of the max length of
 %                 the semivariogram curve, divided by number of curvepoints
 %                 (num_curvepts). 
 %
 % RETURNS:
-%   curve - Variogram curve presented as a vector of regularly sampeld values
+%   curve - Variogram curve presented as a vector of regularly sampled values
 %   sill  - maximum value encountered (where curve flattens)
 %   range - the distance from origin to the distance value where the sill is
 %           encountered 
@@ -115,6 +115,6 @@ end
 
 % ----------------------------------------------------------------------------
 function val = estimate_variogram_value(dists, vals, pos, rad)
-   w = max(1 - (dists - pos)/rad, 0); % value of weighting function
+   w = max(1 - abs(dists - pos)/rad, 0); % value of weighting function
    val = sum(vals .* w) ./ (2 * sum(w));
 end
