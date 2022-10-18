@@ -109,8 +109,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % sill, but curve is very slowly rising
    tmp = find(curve >= fac * sill, 1, 'first');
    range = (tmp / numel(curve)) * vg_max;
-   %curve = [0; curve(1:tmp)];
-   curve = [0; curve]; % @@
+   curve = [0; curve(1:tmp)];
+
 end
 
 % ----------------------------------------------------------------------------
