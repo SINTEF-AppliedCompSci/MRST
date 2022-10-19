@@ -598,7 +598,7 @@ classdef WellboreModel < WrapperModel
             rnames = model.getSurfaceRateNames();
             qsw      = cell(1, nph);
             [qsw{:}] = model.getProps(state, rnames{:});
-            is_surface_rate = false(model.numWells() + model.numGroups(), 1);
+            is_surface_rate = false(nw + ng, 1);
             wrates = model.AutoDiffBackend.convertToAD(zeros(nw + ng, 1), bhp);
             % Sum up rate targets
             for ph = 1:nph
