@@ -783,6 +783,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 state.flux = zeros(model.G.faces.num, nph);
                 state.flux(model.operators.internalConn, :) = [f{:}];
 
+                [heatFluxAdv, heatFluxCond] = model.getProps(state, ...
+                    'AdvectiveHeatFlux', 'ConductiveHeatFlux');
+                state.heatFluxAdv  = zeros(model.G.faces.num, nph);
+                state.heatFluxCond = zeros(model.G.faces.num, 1);
+                state.heatFluxAdv(model.operators.internalConn,:) = horzcat(heatFluxAdv{:});
+                state.heatFluxCond(model.operators.internalConn)  = heatFluxCond;
+                
                 if ~isempty(drivingForces.bc)
                     [p, s, mob, r, b] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'ShrinkageFactors');
                     sat = expandMatrixToCell(s);
@@ -794,12 +801,24 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     fWOG(idx) = fRes;
 
                     state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
+                    
+                    if ~model.thermal, return; end
+                    drivingForces.bc = getBCProperties(drivingForces.bc, model, state);
+                    src = struct();
+                    phaseMass = cellfun(@(rho, q) rho.*q, drivingForces.bc.propsRes.rho, fRes, 'UniformOutput', false);
+                    src.bc.phaseMass = phaseMass;
+                    src.bc.sourceCells = sum(model.G.faces.neighbors(drivingForces.bc.face,:), 2);
+                    src = getHeatFluxBoundary(model, src, drivingForces);
+                    
+                    faces = drivingForces.bc.face;
+                    sgn = 1 - 2*(model.G.faces.neighbors(faces, 2) == 0);
+                    for ph = 1:model.getNumberOfPhases()
+                        state.heatFluxAdv(faces, ph) = src.bc.advHeatFlux(:,ph).*sgn;
+                    end
+                    state.heatFluxCond(faces) = src.bc.condHeatFlux.*sgn;
+                    
                 end
-                [heatFluxAdv, heatFluxCond] = model.getProps(state, 'AdvectiveHeatFlux', 'ConductiveHeatFlux');
-                state.heatFluxAdv  = zeros(model.G.faces.num, nph);
-                state.heatFluxCond = zeros(model.G.faces.num, 1);
-                state.heatFluxAdv(model.operators.internalConn,:) = horzcat(heatFluxAdv{:});
-                state.heatFluxCond(model.operators.internalConn)  = heatFluxCond;
+                
             end
             
         end
