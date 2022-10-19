@@ -11,6 +11,8 @@ function src = getHeatFluxBoundary(model, src, drivingForces)
     propsBC  = bc.propsBC;
     qAdv  = computeAdvectiveHeatFlux(model, propsRes, propsBC, src);
     qCond = computeConductiveHeatFlux(propsRes, propsBC, bc);
+    src.bc.advHeatFlux = qAdv;
+    src.bc.condHeatFlux = qCond;
     src.bc.heatFlux = qAdv + qCond;
     
 end
