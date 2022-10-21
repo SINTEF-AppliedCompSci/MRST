@@ -14,13 +14,40 @@ test    = TestCase('fivespot_geothermal', 'cartDims', [5, 5, 2]);
 test.model.FacilityModel = [];
 groups = [];
 groups = addFacilityGroup(groups, {'Hot'}, 'name', 'HotGroup');
-groups = addFacilityGroup(groups, {'Cold-1-1', 'Cold-2-1'}, 'name', 'ColdGroup');
-% groups = addFacilityGroup(groups, {'Cold-1-1', 'Cold-2-1', 'Cold-2-2', 'Cold-1-2'}, 'name', 'ColdGroup');
+% groups = addFacilityGroup(groups, {'Cold-1-1'}, 'name', 'ColdGroup');
+% groups = addFacilityGroup(groups, {'Cold-1-1', 'Cold-2-1'}, 'name', 'ColdGroup');
+groups = addFacilityGroup(groups, {'Cold-1-1', 'Cold-2-1', 'Cold-2-2', 'Cold-1-2'}, 'name', 'ColdGroup');
 test = convertToWBMultiModel(test, 'groups', groups);
-testRef = TestCase('fivespot_geothermal', 'cartDims', [31, 31, 32]);
+
+% ctrl = test.schedule.control(1).Wellbore;
+% [ctrl.W.type] = deal('group');
+% ctrl.groups = groups;
+% ctrl.groups(1).type = 'rate';
+% ctrl.groups(2).type = 'bhp';
+% val = vertcat(ctrl.W(5).val);
+% ctrl.groups(1).val = val;
+% ctrl.groups(2).val = ctrl.W(1).val;
+% ctrl.groups(1).T = ctrl.W(5).T;
+% ctrl.groups(2).T = ctrl.W(1).T;
+% test.schedule.control(1).Wellbore = ctrl;
+% 
+% ctrl = test.schedule.control(2).Wellbore;
+% [ctrl.W.type] = deal('group');
+% ctrl.groups = groups;
+% ctrl.groups(1).type = 'bhp';
+% ctrl.groups(2).type = 'rate';
+% val = vertcat(ctrl.W(1:4).val);
+% ctrl.groups(1).val = ctrl.W(5).val;
+% ctrl.groups(2).val = sum(val);
+% ctrl.groups(1).T = ctrl.W(5).T;
+% ctrl.groups(2).T = ctrl.W(1).T;
+% test.schedule.control(2).Wellbore = ctrl;
+
+testRef = TestCase('fivespot_geothermal', 'cartDims', [5, 5, 2]);
 
 %%
 lsol = MultiPhysicsLinearSolver(test.model);
+lsol = BackslashSolverAD();
 % lsol = BackslashSolverAD();
 % lsol.solveSubproblems = true;
 nls = NonLinearSolver();
