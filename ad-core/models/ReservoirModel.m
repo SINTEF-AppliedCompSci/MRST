@@ -463,8 +463,11 @@ methods
             % Use strict tolerances on the residual without any
             % fingerspitzengefuhlen by calling the parent class
             [values, tolerances, names] = getConvergenceValues@PhysicalModel(model, problem, varargin{:});
-            [v_wells, tol_wells, names_wells, is_well] = ...
-                model.FacilityModel.getFacilityConvergenceValues(problem);
+            is_well = false;
+            if ~isempty(model.FacilityModel)
+                [v_wells, tol_wells, names_wells, is_well] = ...
+                    model.FacilityModel.getFacilityConvergenceValues(problem);
+            end
             if any(is_well)
                 tolerances(is_well) = tol_wells;
                 values(is_well) = v_wells;
@@ -601,7 +604,10 @@ methods
         %              belong to the wells.
         %   satVars  - Names of the saturation variables present in `vars`.
         %   wellVars - Names of the well variables present in `vars`
-        wellvars = model.FacilityModel.getPrimaryVariableNames();
+        wellvars = [];
+        if ~isempty(model.FacilityModel)
+            wellvars = model.FacilityModel.getPrimaryVariableNames();
+        end
         isSat   = cellfun(@(x) any(strcmpi(model.getSaturationVarNames, x)), vars);
         isWells = cellfun(@(x) any(strcmpi(wellvars, x)), vars);
 
