@@ -1,4 +1,4 @@
- function varargout = mrstOutputDirectory(varargin)
+function varargout = mrstOutputDirectory(varargin)
 %Set or retrieve the current canonical data directory for MRST
 %
 % SYNOPSIS:
@@ -30,7 +30,7 @@
 %   `mrstModule`, `mrstDataDirectory`, `mrstPath`
 
 %{
-Copyright 2009-2018 SINTEF Digital, Applied Mathematics.
+Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -61,4 +61,3 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         varargout{1} = mrstSettings('get', 'outputDirectory');
     end
 end
-

@@ -1,4 +1,4 @@
- function varargout = mrstDataDirectory(varargin)
+function varargout = mrstDataDirectory(varargin)
 %Set or retrieve the current canonical data directory for MRST
 %
 % SYNOPSIS:
