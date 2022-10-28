@@ -3,7 +3,9 @@ classdef WellboreModel < WrapperModel
     properties
         
         wells
+        trajectories
         groups
+        allowCtrlSwitching
         water, oil, gas
         thermal = false
         
@@ -22,14 +24,13 @@ classdef WellboreModel < WrapperModel
             if (iscell(trajectories) && isnumeric(trajectories{1})) ...
                     || isstruct(trajectories)
                 % Well trajectories given as 
-                [W, G] = processWellboreTrajectories( ...
+                [wells, G] = processWellboreTrajectories( ...
                             rmodel.G, rmodel.rock, trajectories, ...
                             'names', opt.names, varargin{:});
             elseif iscell(trajectories) && isfield(trajectories{1}, 'cells')
                 % Well trajectories given as grids
                 error('Not supported yet')
             end
-            
             % Get subset of rock
             rock = extractSubrock(rmodel.rock, G.cells.global);
             % Update reservoir model operators
@@ -45,11 +46,13 @@ classdef WellboreModel < WrapperModel
             
             % Construct WrapperModel
             model = model@WrapperModel(rmodel);
-            model.wells = W;
+            model.wells = model.processWells(wells);
+            model.trajectories = vertcat(wells.trajectory);
             % Process groups
             if ~isempty(opt.groups)
                 model.groups = model.processGroups(opt.groups);
             end
+            model.allowCtrlSwitching = true(model.numWells() + model.numGroups(),1);
 
             % Set trajectories, default refDepths and names
             refDepth = zeros(model.numWells(), 1);
@@ -80,15 +83,33 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
 
         %-----------------------------------------------------------------%
+        function wells = processWells(model, wells)
+        % Process wells to see that they are consistently defined
+           
+            nw = numel(wells);
+            for w = 1:nw
+                well = wells(w);
+                well = model.setMissingLimits(well);
+                wells(w) = well;
+            end
+        
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
         function groups = processGroups(model, groups)
+        % Process groups to see that they are consistently defined
             
             ng = numel(groups);
             wnames = {model.wells.name};
             memberIx = cell(model.numGroups, 1);
-            for i = 1:ng
-                group = groups(i);
+            for g = 1:ng
+                group = groups(g);
+                group = model.setMissingLimits(group);
+                groups(g) = group;
                 mix = find(ismember(wnames, group.members));
-                memberIx{i} = reshape(mix, [], 1);
+                memberIx{g} = reshape(mix, [], 1);
+                
             end
             [groups.memberIx] = deal(memberIx{:});
             
@@ -391,6 +412,23 @@ classdef WellboreModel < WrapperModel
         end
         %-----------------------------------------------------------------%
 
+        % ----------------------------------------------------------------%
+        function [model, state] = updateForChangedControls(model, state, forces)
+        % Update model and state when controls/drivingForces has changed
+        
+            model.wells  = forces.W;
+            if ~isempty(model.wells)
+                model.wells = model.processWells(model.wells);
+            end
+            
+            model.groups = forces.groups;
+            if ~isempty(model.groups)
+                model.groups = model.processGroups(model.groups);
+            end
+            
+        end
+        % ----------------------------------------------------------------%
+        
         %-----------------------------------------------------------------%
         function state = initStateAD(model, state, vars, names, origin)
 
@@ -415,10 +453,11 @@ classdef WellboreModel < WrapperModel
             % Get parent model equations
             [eqs, names, types, state] ...
                 = model.parentModel.getModelEquations(state0, state, dt, drivingForces);
-            % Set controls
-            [eqs, state] = model.setControls(state, eqs, drivingForces);
             % Mass fluxes
             [fluxEqs, fluxNames, fluxTypes, state] = model.getMassFluxEquations(state);
+            % Set controls
+            [eqs, fluxEqs, state] = model.setControls(state, eqs, fluxEqs, drivingForces);
+            % Assemble
             eqs   = [eqs  , fluxEqs  ];
             names = [names, fluxNames];
             types = [types, fluxTypes];
@@ -457,57 +496,48 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function [eqs, state] = setControls(model, state, eqs, drivingForces)
+        function [eqs, fluxEqs, state] = setControls(model, state, eqs, fluxEqs, drivingForces)
         % Equations imposing well control for each well
         
-            % Get driving forces and check that it's non-empty
-            [wCtrl, gCtrl] = deal([]);
-            hasWellCtrl  = isfield(drivingForces, 'W');
-            hasGroupCtrl = isfield(drivingForces, 'groups');
-            if hasWellCtrl , wCtrl = drivingForces.W;      end
-            if hasGroupCtrl, gCtrl = drivingForces.groups; end
-            if isempty(wCtrl) && isempty(gCtrl), return; end
+            % Get control types, targets, and mask for open wells
+            [type, target, targetTemp, is_open] = model.getControls(drivingForces);
             
+            % Convenient well and group indices
             nw = model.numWells();
             ng = model.numGroups();
-            [iic, iif] = model.getInletSegments(); ic = find(iic);
-            
-            ctrl0 = struct('type', 'none', 'val', nan, 'T', nan);
-            if ~hasWellCtrl , wCtrl = repmat(ctrl0, nw, 1) ; end
-            if ~hasGroupCtrl, gCtrl = repmat(ctrl0, ng, 1); end
+            [iic, iif] = model.getInletSegments();
+            icno = find(iic); ifno = find(iif);
         
-            ctrlTarget = [vertcat(wCtrl.val); vertcat(gCtrl.val)];
-            ctrlType   = vertcat({wCtrl.type}', {gCtrl.type}');
-            
+            % Make mask types
             % No control - well is controlled by group or group is not
             % actively controlling wells
-            is_none  = strcmpi(ctrlType, 'none');
+            is_none = strcmpi(type, 'none') & is_open;
             % Well is controlled by its group
-            is_group = strcmpi(ctrlType, 'group');
+            is_group = strcmpi(type, 'group') & is_open;
             % Treat wells controlled by a group as "no control"
             is_none = is_none | is_group;
             % Bottom-hole pressure control
-            is_bhp  = strcmpi(ctrlType, 'bhp');
+            is_bhp  = strcmpi(type, 'bhp') & is_open;
             % Surface total rates
-            is_rate = strcmp(ctrlType, 'rate') | strcmpi(ctrlType, 'vrat');
+            is_rate = (strcmp(type, 'rate') | strcmpi(type, 'vrat')) & is_open;
             % Surface oil rates
-            is_orat = strcmp(ctrlType, 'orat');
+            is_orat = strcmp(type, 'orat') & is_open;
             % Surface water rates
-            is_wrat = strcmp(ctrlType, 'wrat');
+            is_wrat = strcmp(type, 'wrat') & is_open;
             % Surface gas rates
-            is_grat = strcmp(ctrlType, 'grat');
+            is_grat = strcmp(type, 'grat') & is_open;
             % Surface liquid rates (water + oil)
-            is_lrat = strcmp(ctrlType, 'lrat');
+            is_lrat = strcmp(type, 'lrat') & is_open;
             % Reservoir rates (at averaged conditions from previous step)
-            is_resv = strcmp(ctrlType, 'resv');
+            is_resv = strcmp(type, 'resv') & is_open;
             % Reservoir rates (at current conditions for each perf.)
-            is_volume = strcmp(ctrlType, 'volume');
+            is_volume = strcmp(type, 'volume') & is_open;
             % Check for unsupported well controls
             assert(~any(is_resv | is_volume), 'Not implemented yet');
             
-            bhp = model.getProps(state, 'BottomholePressure');
             % Set BHP control equations
-            eqs{1}(ic(is_bhp)) = ctrlTarget(is_bhp) - bhp(is_bhp);
+            bhp = model.getProps(state, 'BottomholePressure');
+            eqs{1}(icno(is_bhp)) = target(is_bhp) - bhp(is_bhp);
 
             % Set rate control equations
             nph    = model.parentModel.getNumberOfPhases();
@@ -525,71 +555,203 @@ classdef WellboreModel < WrapperModel
                 end
                 is_surface_rate(act) = true;
             end
-            
             % Convert surface volume rates to mass rates
             rhoS = model.getProps(state, 'SurfaceDensity');
             rhoS = rhoS{1}(iic);
-            Q = ctrlTarget(is_surface_rate).*rhoS(is_surface_rate);
+            Q = target(is_surface_rate).*rhoS(is_surface_rate);
             % Add in as source in corresponding well cells
-            eqs{1}(ic(is_surface_rate)) = eqs{1}(ic(is_surface_rate)) - Q;
-   
-            if model.thermal
-                
-                % Get properties
-                [bht, p, T, hr, qh, qr, rho] = model.getProps(state, ...
-                    'BottomholeTemperature', 'pressure', 'T', ...
-                    'enthalpy', 'HeatFlux', 'massFlux', 'Density');
-                % Compute total well rates
-                qt = model.parentModel.operators.fluxSum(qr(iif));
-                qt = sum(value(qt), 2);
-                % Identify injection wells/groups
-                is_inj  = qt > 0 | (is_surface_rate & ctrlTarget > 0);
-                is_inj  = is_inj & ~is_none;
-                % Compute temperature in production well cells based on
-                % conservation of energy
-                qh = model.parentModel.operators.Div(qh);
-                qr = model.parentModel.operators.Div(qr);
-                is_zero = abs(qr) < 10*eps;
-                h = abs(qh./qr);
-                h(is_zero) = hr(is_zero);
-                Cp = model.parentModel.fluid.CpW(p, T);
-                T = (h - p./rho{1})./Cp;
-                T = T(iic);
-                % Set well temperature targets
-                ctrlT = [vertcat(wCtrl.T); vertcat(gCtrl.T)];
-                assert(~any(isnan(value(ctrlT(is_inj)))), ...
-                    'Temperature in active well/group not set!');
-                ctrlT(isnan(ctrlT)) = mean(ctrlT(~isnan(ctrlT)));
-                Tw = ctrlT.*is_inj + T.*~is_inj;
-                % Set equations
-                cells = ~is_none & ~is_zero(iic);
-                eqs{2}(ic(cells)) = (Tw(cells) - bht(cells));
-                
-            end
+            eqs{1}(icno(is_surface_rate)) = eqs{1}(icno(is_surface_rate)) - Q;
+
+            % Ensure wells with status set to false are closed
+            assert(all(is_open(nw+1:end)), 'Closed groups not supported yet!');
+            qr = model.getProps(state, 'massFlux');
+            fluxEqs{1}(ifno(~is_open)) = qr(ifno(~is_open));
+            
+            if ~model.thermal, return; end
+            
+            % Get thermal properties
+            [bht, p, T, hr, qh, qr, rho] = model.getProps(state, ...
+                'BottomholeTemperature', 'pressure', 'T', ...
+                'enthalpy', 'HeatFlux', 'massFlux', 'Density');
+            % Compute total well rates
+            qt = model.parentModel.operators.fluxSum(qr(iif));
+            qt = sum(value(qt), 2);
+            % Identify injection wells/groups
+            is_inj  = qt > 0 | (is_surface_rate & target > 0);
+            is_inj  = is_inj & ~is_none;
+            % Compute temperature in production well cells based on
+            % conservation of energy
+            qh = model.parentModel.operators.Div(qh);
+            qr = model.parentModel.operators.Div(qr);
+            is_zero = abs(qr) < 10*eps;
+            h = abs(qh./qr);
+            h(is_zero) = hr(is_zero);
+            Cp = model.parentModel.fluid.CpW(p, T);
+            T = (h - p./rho{1})./Cp;
+            T = T(iic);
+            % Set well temperature targets
+            assert(~any(isnan(value(targetTemp(is_inj)))), ...
+                'Temperature in active well/group not set!');
+            targetTemp(isnan(targetTemp)) = mean(targetTemp(~isnan(targetTemp)));
+            Tw = targetTemp.*is_inj + T.*~is_inj;
+            % Set equations
+            cells = ~is_none & ~is_zero(iic);
+            eqs{2}(icno(cells)) = (Tw(cells) - bht(cells));
             
         end
         %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function [type, target, targetTemp, is_open] = getControls(model, drivingForces)
+            
+            % Get driving forces and check that it's non-empty
+            [wCtrl, gCtrl] = deal([]);
+            hasWellCtrl  = isfield(drivingForces, 'W');
+            hasGroupCtrl = isfield(drivingForces, 'groups');
+            if hasWellCtrl , wCtrl = model.wells;  end
+            if hasGroupCtrl, gCtrl = model.groups; end
+            if isempty(wCtrl) && isempty(gCtrl), return; end
+        
+            nw = model.numWells();
+            ng = model.numGroups();
+            
+            ctrl0 = struct('type', 'none', 'val', nan, 'T', nan, 'status', true);
+            if ~hasWellCtrl , wCtrl = repmat(ctrl0, nw, 1) ; end
+            if ~hasGroupCtrl, gCtrl = repmat(ctrl0, ng, 1); end
+        
+            target = [vertcat(wCtrl.val); vertcat(gCtrl.val)];
+            type   = vertcat({wCtrl.type}', {gCtrl.type}');
+            
+            targetTemp = [vertcat(wCtrl.T); vertcat(gCtrl.T)];
+            
+            % Wells that are open to flow
+            is_open = vertcat(wCtrl.status, gCtrl.status);
+            
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function model = applyLimits(model, state)
+        % Update solution variables and wellSol based on the well limits.
+        % If limits have been reached, this function will attempt to
+        % re-initialize the values and change the controls so that the next
+        % step keeps within the prescribed ranges.
+        
+            withinLimits = true;
+            is_open      = model.getActiveWells();
+            % Check if we can change controls, and return if not
+            if ~any(model.allowCtrlSwitching), return; end
+            % Check if any wells are open, and return if not
+            if ~any(is_open), return; end
+            
+            limits = model.getLimits();
+            
+            [bhp, qs] = model.getProps(state, 'BottomholePressure', 'SurfaceRate');
+            qsTot = sum(cell2mat(qs), 2);
+            is_inj = qsTot > 0;
+            
+            
+            % Injectors have three possible limits:
+            % bhp:  Upper limit on pressure.
+            % rate: Upper limit on total surface rate.
+            % vrat: Lower limit on total surface rate.
+            flags_inj = [bhp   > limits.bhp, ...
+                         qsTot > limits.rate, ...
+                         qsTot < limits.vrat];
+                  
+            % Producers have several possible limits:
+            % bhp:  Lower limit on pressure.
+            % orat: Lower limit on surface oil rate
+            % lrat: Lower limit on surface liquid (water + oil) rate
+            % grat: Lower limit on surface gas rate
+            % wrat: Lower limit on surface water rate
+            % vrat: Upper limit on total volumetric surface rate
+            qsm  = zeros(model.numWells() + model.numGroups(), 3);
+            qsm(:, model.getActivePhases()) = cell2mat(qs);
+            flags_prod = [bhp               < limits.bhp , ...
+                          qsm(:,2)          < limits.orat, ...
+                          sum(qsm(:,1:2),2) < limits.lrat, ...
+                          qsm(:,3)          < limits.grat, ...
+                          qsm(:,1)          < limits.wrat, ...
+                          sum(qsm, 2)       > limits.vrat];
+                
+            % limits we need to check (all others than w.type):
+            types = [{model.wells.type}, {model.groups.type}]';
+            modes = fieldnames(limits)';
+            chkInx = cellfun(@(t) strcmpi(t,modes), types, 'UniformOutput', false);
+            vltInx = find(flags(chkInx), 1);
+            if ~isempty(vltInx)
+                withinLimits = false;
+                modes  = modes(chkInx);
+                switchMode = modes{vltInx};
+                fprintf('Well %s: Control mode changed from %s to %s.\n', wellSol.name, wellSol.type, switchMode);
+                wellSol.type = switchMode;
+                wellSol.val  = limits.(switchMode);
+            end
+
+            if ~withinLimits
+                v  = wellSol.val;
+                switch wellSol.type
+                    case 'bhp'
+                        wellSol.bhp = bhp;
+                    case 'rate'
+                        for ix = 1:numel(phases)
+                            wellSol.(['q', phases(ix), 's']) = v*well.W.compi(ix);
+                        end
+                    case 'orat'
+                        wellSol.qOs = v;
+                    case 'wrat'
+                        wellSol.qWs = v;
+                    case 'grat'
+                        wellSol.qGs = v;
+                end % No good guess for qOs, etc...
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function facility = setMissingLimits(model, facility)
+            
+            limits = facility.lims;
+            if isempty(limits), limits = struct(); end
+            type = setdiff(facility.type, {'group', 'none'});
+            if ~isempty(type) && ~isfield(limits, type)
+                limits.(type{:}) = facility.val;
+            end
+            
+            modes = {'bhp', 'rate', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
+            modes = setdiff(modes, facility.type);
+            missing = modes(~isfield(limits, modes));
+            
+            sgn = sign(facility.sign);
+            if sgn == 0, sgn = 1; end
+            val = sgn.*inf;
+            for f = missing
+                v = val; if strcmpi(f, 'vrat'), v = -v; end
+                limits = setfield(limits, f{:}, v);
+            end
+            facility.lims = limits;
+
+        end
         
         %-----------------------------------------------------------------%
         function [state, report] = updateState(model, state, problem, dx, forces)
 
             parent = strcmpi(problem.types, 'cell');
 
+            % Update parent model variables
             p = problem; p.primaryVariables = p.primaryVariables(parent);
             [state, report] = updateState@WrapperModel(model, state, p, dx, forces);
 
             for i = (nnz(parent) + 1):numel(problem.primaryVariables)
                  p = problem.primaryVariables{i};
-                 % Update the state
+                 % Update wellbore model variables
                  state = model.updateStateFromIncrement(state, dx, problem, p);
             end
-
-        end
-        %-----------------------------------------------------------------%
-
-        %-----------------------------------------------------------------%        
-        function [model, state] = prepareReportstep(model, state, state0, dt, drivingForces) %#ok
             
+            model = model.applyLimits(state);
+
         end
         %-----------------------------------------------------------------%
         
@@ -769,8 +931,8 @@ classdef WellboreModel < WrapperModel
             if nargin < 2, G = model.G; end
              
             % Get wellbore rougness (currently assumes one value per well)
-            r0 = arrayfun(@(W) sum(W.trajectory.roughness, 2), ...
-                    model.wells, 'UniformOutput', false);
+            r0 = arrayfun(@(trajectory) sum(trajectory.roughness, 2), ...
+                    model.trajectories, 'UniformOutput', false);
             rc = cell2mat(r0);
             assert(numel(rc) == model.numWells, ['WellboreModel ', ...
                 'currently only supports one roughness value per well']);
@@ -792,6 +954,32 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
+        function active = getActiveWells(model)
+            
+            active = vertcat(model.wells.status);
+            
+        end            
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function limits = getLimits(model)
+            
+            limits = vertcat(model.wells.lims);
+            if ~isempty(model.groups)
+                limits = [limits; vertcat(model.groups.lims)];
+            end
+            names  = fieldnames(limits);
+            values = num2cell(cell2mat(struct2cell(limits))', 1);
+            limits = cell2struct(values, names, 2);
+            
+        end            
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        % Conveient parent model calls
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
         function names = getComponentNames(model)
         % Get names of components in parent model
             
@@ -805,6 +993,15 @@ classdef WellboreModel < WrapperModel
         % Get number of components in parent model
             
             ncomp = model.parentModel.getNumberOfComponents();
+            
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function names = getPhaseNames(model)
+        % Get names of phases in parent model
+            
+            names = model.parentModel.getPhaseNames();
             
         end
         %-----------------------------------------------------------------%
@@ -836,7 +1033,12 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
+        % Visualization
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
         function plotWellNetwork(model)
+            
             nnc = model.G.nnc.cells(model.numWells + 1:end, :);
             nnc = max(nnc(:)) - nnc + 1;
             names = [{model.wells.name}, {model.groups.name}];
@@ -845,12 +1047,6 @@ classdef WellboreModel < WrapperModel
             
             plot(network, 'layout', 'layered', 'LineWidth', 2, 'MarkerSize', 8);
             
-%             cc = network.conncomp;
-%             hold on;
-%             for i = 1:max(cc)
-%                 wix = cc == cc(i);
-%                 plot(network.subgraph(wix), 'layout', 'layered', 'LineWidth', 2);
-%             end
         end
         %-----------------------------------------------------------------%
 
