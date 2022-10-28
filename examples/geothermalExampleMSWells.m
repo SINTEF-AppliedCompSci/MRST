@@ -10,7 +10,7 @@ mrstVerbose on
 
 %%
 close all
-test    = TestCase('fivespot_geothermal', 'cartDims', [5, 5, 2]);
+test    = TestCase('fivespot_geothermal', 'cartDims', [11, 11, 12], 'dfm', true);
 test.model.FacilityModel = [];
 groups = [];
 groups = addFacilityGroup(groups, {'Hot'}, 'name', 'HotGroup');
@@ -19,35 +19,39 @@ groups = addFacilityGroup(groups, {'Hot'}, 'name', 'HotGroup');
 groups = addFacilityGroup(groups, {'Cold-1-1', 'Cold-2-1', 'Cold-2-2', 'Cold-1-2'}, 'name', 'ColdGroup');
 test = convertToWBMultiModel(test, 'groups', groups);
 
-% ctrl = test.schedule.control(1).Wellbore;
-% [ctrl.W.type] = deal('group');
-% ctrl.groups = groups;
-% ctrl.groups(1).type = 'rate';
-% ctrl.groups(2).type = 'bhp';
-% val = vertcat(ctrl.W(5).val);
-% ctrl.groups(1).val = val;
-% ctrl.groups(2).val = ctrl.W(1).val;
-% ctrl.groups(1).T = ctrl.W(5).T;
-% ctrl.groups(2).T = ctrl.W(1).T;
-% test.schedule.control(1).Wellbore = ctrl;
-% 
-% ctrl = test.schedule.control(2).Wellbore;
-% [ctrl.W.type] = deal('group');
-% ctrl.groups = groups;
-% ctrl.groups(1).type = 'bhp';
-% ctrl.groups(2).type = 'rate';
-% val = vertcat(ctrl.W(1:4).val);
-% ctrl.groups(1).val = ctrl.W(5).val;
-% ctrl.groups(2).val = sum(val);
-% ctrl.groups(1).T = ctrl.W(5).T;
-% ctrl.groups(2).T = ctrl.W(1).T;
-% test.schedule.control(2).Wellbore = ctrl;
+ctrl = test.schedule.control(1).Wellbore;
+[ctrl.W.type] = deal('group');
+ctrl.W(1).status = false;
+ctrl.W(3).status = false;
+ctrl.groups = groups;
+ctrl.groups(1).type = 'rate';
+ctrl.groups(1).lims = struct('bhp', 1.001*atm);
+ctrl.groups(2).type = 'bhp';
 
-testRef = TestCase('fivespot_geothermal', 'cartDims', [5, 5, 2]);
+val = vertcat(ctrl.W(5).val);
+ctrl.groups(1).val = val;
+ctrl.groups(2).val = ctrl.W(1).val;
+ctrl.groups(1).T = ctrl.W(5).T;
+ctrl.groups(2).T = ctrl.W(1).T;
+test.schedule.control(1).Wellbore = ctrl;
+
+ctrl = test.schedule.control(2).Wellbore;
+[ctrl.W.type] = deal('group');
+ctrl.groups = groups;
+ctrl.groups(1).type = 'bhp';
+ctrl.groups(2).type = 'rate';
+val = vertcat(ctrl.W(1:4).val);
+ctrl.groups(1).val = ctrl.W(5).val;
+ctrl.groups(2).val = sum(val);
+ctrl.groups(1).T = ctrl.W(5).T;
+ctrl.groups(2).T = ctrl.W(1).T;
+test.schedule.control(2).Wellbore = ctrl;
+
+testRef = TestCase('fivespot_geothermal', 'cartDims', [11, 11, 12], 'dfm', true);
 
 %%
 lsol = MultiPhysicsLinearSolver(test.model);
-lsol = BackslashSolverAD();
+% lsol = BackslashSolverAD();
 % lsol = BackslashSolverAD();
 % lsol.solveSubproblems = true;
 nls = NonLinearSolver();
@@ -68,7 +72,7 @@ wellSols = getWellSolsFromWBState(test.model, states);
 [wellSolsRef, statesRef, reportsRef] = getPackedSimulatorOutput(problemRef);
 
 test.plot(states);
-test.plot(statesRef);
+testRef.plot(statesRef);
 dstates = cellfun(@(st1, st2) compareStructs(st1.Reservoir, st2, 'includeStructs', false, 'relative', true), states, statesRef, 'UniformOutput', true);
 % dstates = cellfun(@(st1, st2) compareStructs(st1.Reservoir, st2, 'includeStructs', false, 'relative', false, 'fun', @(x) x), states, statesRef, 'UniformOutput', true);
 test.plot(dstates);
@@ -76,6 +80,7 @@ plotWellSols({wellSols, wellSolsRef});
 plotWellSols({wellSols, wellSolsRef}, test.schedule.step.val);
 
 plotWellSols({wellSols});
+plotWellSols({wellSols}, test.schedule.step.val);
 
 %%
 traj = linspace(0,max(test.model.G.nodes.coords(:,3)), 100)';
