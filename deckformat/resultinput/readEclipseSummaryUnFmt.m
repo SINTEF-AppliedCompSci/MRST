@@ -121,9 +121,10 @@ if isfield(smspec, 'WGNAMES')
 elseif isfield(smspec, 'NAMES')
    nameList = smspec.NAMES.values;
 else
+   flds = sort(fieldnames(smspec));
    error('SmryNames:Unknown', ...
         ['No known summary vector name list in SMSPEC fields\n\t', ...
-         '{ %s}'], sprintf('%s ', sort(fieldnames(smspec))));
+         '{ %s}'], sprintf('%s ', flds{:}));
 end
 kwrdList = smspec.KEYWORDS.values;
 
