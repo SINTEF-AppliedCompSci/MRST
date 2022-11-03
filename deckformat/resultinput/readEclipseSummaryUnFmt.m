@@ -13,6 +13,10 @@ function [smry, smspec] = readEclipseSummaryUnFmt(prefix, keyWords)
 %              function knows about both unified (*.UNSMRY) and separate
 %              (*.S000n) summary result files.
 %
+%              On recent versions of MATLAB, R2016b or later, you can also
+%              pass the prefix as a built-in string type.  This string will
+%              be converted to a character vector internally before use.
+%
 %   keywords - List, represented as a cell-array of character vectors, of
 %              summary vector names to load from the result set.  OPTIONAL.
 %              Load all summary results if not present.
@@ -114,6 +118,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+prefix = normalise_prefix(prefix);
 smspec = readEclipseOutputFileUnFmt([prefix, '.SMSPEC']);
 
 if isfield(smspec, 'WGNAMES')
@@ -212,7 +217,6 @@ dispif(mrstVerbose, '\b\b\b\b%3d%%', 100);
 dispif(mrstVerbose, ['\nActual number of ministeps: ', num2str(curStep), '\n']);
 end
 
-
 %--------------------------------------------------------------------------
 
 function smry = addSmryFuncs(smry)
@@ -223,17 +227,23 @@ smry.getKws = @(nm)getKeywords(smry, nm);
 smry.getUnit= @(nm,kw)getUnit(smry, nm, kw);
 end
 
+%--------------------------------------------------------------------------
+
 function nms = getNames(smry,kw)
 rInx   = getRowInx(smry, [], kw);
 nmPos  = unique(smry.nInx(rInx));
 nms    = smry.WGNAMES(nmPos);
 end
 
+%--------------------------------------------------------------------------
+
 function kws = getKeywords(smry,nm)
 rInx   = getRowInx(smry, nm, []);
 kwPos  = unique(smry.kInx(rInx));
 kws    = smry.KEYWORDS(kwPos);
 end
+
+%--------------------------------------------------------------------------
 
 function s = getData(smry, nm, kw, ms)
 [rInx, order] = getRowInx(smry, nm, kw);
@@ -244,11 +254,16 @@ s = smry.data(rInx, ms);
 s = s(order,:);
 end
 
+%--------------------------------------------------------------------------
+
 function [rInx, order] = getRowInx(smry, nm, kw)
-nm_multi = iscellstr(nm) && (numel(nm) > 1);
-kw_multi = iscellstr(kw) && (numel(kw) > 1);
+nm = normalise_string(nm);
+kw = normalise_string(kw);
+nm_multi = iscellstr(nm) && (numel(nm) > 1);                  %#ok<ISCLSTR>
+kw_multi = iscellstr(kw) && (numel(kw) > 1);                  %#ok<ISCLSTR>
 assert (~ (nm_multi && kw_multi), ...
-       ['At most one of Keyword or Entity may be a cell array ', ...
+       ['At most one of Keyword or Entity may be a ', ...
+        'multi-element string array or a cell array ', ...
         'of character vectors']);
 nlist = numel(smry.kInx);
 if ~isempty(nm)
@@ -275,6 +290,8 @@ else
 end
 end
 
+%--------------------------------------------------------------------------
+
 function u = getUnit(smry, nm, kw)
 rInx = getRowInx(smry, nm, kw);
 u = smry.UNITS{rInx};
@@ -292,4 +309,30 @@ pick = any(match, 2);
 [~, reverse] = sort(list_order(row));
 result_order = zeros(size(reverse));
 result_order(reverse) = 1 : numel(reverse);
+end
+
+%--------------------------------------------------------------------------
+
+function prefix = normalise_prefix(prefix)
+prefix = normalise_string(prefix);
+if iscellstr(prefix)                                          %#ok<ISCLSTR>
+   if numel(prefix) > 1
+      warning('Prefix:MultiElement', ...
+             ['Case prefix must be single element only\n', ...
+              'Using first element ''%s''.'], prefix{1});
+   end
+   prefix = prefix{1};
+end
+end
+
+%--------------------------------------------------------------------------
+
+function s = normalise_string(s)
+if exist('isstring', 'builtin') && isstring(s)
+   if exist('convertStringsToChars', 'builtin')
+      s = convertStringsToChars(s);
+   else
+      s = cellstr(s);
+   end
+end
 end
