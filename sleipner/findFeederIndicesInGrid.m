@@ -100,10 +100,11 @@ for k = 1:numel(fIx)
         gi = gi(ijIx);
         gj = gj(ijIx);
         catch
-            warning('Cannot add feeders 2 and 3. Probably using a coarsened mesh')
+            warning('Cannot add feeders 2 and 3. Probably using a coarsened mesh.')
             break
         end
     end
+
     
     for j = 1:numel(layers)
         
@@ -128,6 +129,8 @@ for k = 1:numel(fIx)
     feederCellsMap(feederCellsTemp) = k+1;    
     feederFaces = [feederFaces; gridCellFaces(G, feederCellsTemp)];
 end
-
+    if isempty(feederCells)
+        warning('No feeders have been added. Probably using a coarsened mesh.')
+    end
 end
 
