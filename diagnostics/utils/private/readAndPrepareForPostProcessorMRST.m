@@ -82,8 +82,12 @@ else
 end
 init.PORV.values = G.cells.PORV;
 
+if isfield(G, 'cartDims') && isfield(G.cells, 'indexMap') 
+    [I,J,K] = gridLogicalIndices(G);
+    [init.I.values, init.J.values, init.K.values] = deal(I,J,K);
+end
 % more fields from init might be interesting
-data = setStatic([], init, {'PORO', 'PERMX', 'PERMY', 'PERMZ', 'DEPTH', 'PORV'});
+data = setStatic([], init, {'PORO', 'PERMX', 'PERMY', 'PERMZ', 'DEPTH', 'PORV', 'I', 'J', 'K'});
 
 % time in days (start and end of restart step)
 startday = datenum(info.date(1, [3 2 1]));
