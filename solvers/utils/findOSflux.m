@@ -103,7 +103,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
     end
 
-    fprintf('done in %1.2f s\n', toc(timer));
+    dispif(mrstVerbose, 'done in %1.2f s\n', toc(timer));
 end
 
 function [a, faceA, faceB] = findAB(G, interpFace, c, Kn)
