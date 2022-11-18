@@ -192,28 +192,36 @@ methods(Static)
       
       % establish basis function values for order=1
       nint = numel(knots) - 1; % number of formal intervals (may be 0)
-      bvals = accumarray([(1:numel(s_ix))', s_ix], 1, [numel(par), nint]);
+      %bvals = accumarray([(1:numel(s_ix))', s_ix], 1, [numel(par), nint]); % covers k=1
+      bvals = sparse((1:numel(s_ix))', s_ix, 1, numel(par), nint); % covers k=1
       
-      % iteratively compute basis values up to final order
       for k = 2:order
-         % compute weights
-         denoms = knots(k:end) - knots(1:end-k+1); % span [t_i, t_{i+k-1}]
+         p = k - 1; % polynomial degree
          
-         w1 = max(par - knots(1:end-k), 0);
-         w1(w1>denoms(1:end-1)) = 0;
+         denoms = knots(1+p:end) - knots(1:end-p); % span [t_i, t_{i+k-1}]
+
+         ix_end = s_ix;
+         ix_start = s_ix - p + 1;
          
-         w2 = max(knots(k+1:end) - par, 0); 
-         w2(w2>denoms(2:end)) = 0;
+         elems = arrayfun(@(i) par(i) - knots(ix_start(i):ix_end(i)), 1:length(par), 'uniformoutput', false);
+         elems = horzcat(elems{:})';
+         
+         col = mcolon(ix_start, ix_end)';
+         row = rldecode((1:length(ix_start))', ix_end-ix_start+1);
+
+         w1 = sparse(row, col, elems(:), length(ix_start), length(knots)-p-1);
+         
+         elems = arrayfun(@(i) knots(ix_start(i)+p:ix_end(i)+p) - par(i), 1:length(par), 'uniformoutput', false);
+         elems = horzcat(elems{:})';
+         w2 = sparse(row, col-1, elems(:), length(ix_start), length(knots)-p-1);
          
          denoms(denoms==0) = 1;
          
          w1 = w1 ./ denoms(1:end-1);
          w2 = w2 ./ denoms(2:end);
-
-         bvals = bsxfun(@times, w1, bvals(:,1:end-1)) + ...
-                 bsxfun(@times, w2, bvals(:,2:end));
+         
+         bvals = w1 .* bvals(:,1:end-1) + w2 .* bvals(:,2:end);
       end
-      
    end
    
    % ----------------------------------------------------------------------------

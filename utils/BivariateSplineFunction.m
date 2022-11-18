@@ -90,13 +90,14 @@ methods (Access=public)
       bv = UnivariateSplineFunction.evaluateBfuns(self.orders(2), ...
                                                   self.knots_v, ...
                                                   params(:,2), deriv2);
-      
+
       % @@ check if the following loop can be optimized
       vals = zeros(size(params, 1), 1);
+      bv = bv';
+      bu = bu';
       for i = 1:size(params, 1)
-         vals(i) = kron(bv(i,:), bu(i,:)) * self.coefs(:);
+          vals(i) = kron(bv(:,i), bu(:,i))' * self.coefs(:);
       end
-      
    end
    
    % --------------------------------------------------------------------%
