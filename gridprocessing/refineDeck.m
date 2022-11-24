@@ -75,7 +75,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       
    % Expanding cell-based fields
    deck = expand_field(deck, dim, 'SOLUTION', {'EQLNUM', 'PRESSURE', 'SWAT', ...
-                                               'SOIL', 'SGAS'});
+                                               'SOIL', 'SGAS','RS','RV'});
 
    deck = expand_field(deck, dim, 'REGIONS', {'SATNUM','FIPNUM','PVTNUM', ...
                                               'ROCKNUM', 'IMBNUM', 'EQLNUM'});
