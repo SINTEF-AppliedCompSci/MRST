@@ -75,6 +75,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pause()
         end
         [ws, states] = readJutulOutput(jpth, 'error', true);
+        if opt.pause()
+            disp('Read simulated case.')
+        end
     end
     % Not parsed at the moment.
     reports = struct();

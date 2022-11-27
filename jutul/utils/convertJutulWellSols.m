@@ -35,7 +35,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     n = numel(T);
     nw = numel(names);
     ws = cell(n, 1);
-    
+    if nw == 0
+        return
+    end
     first = names{1};
     has_water = isfield(wells.(first), 'wrat');
     has_oil = isfield(wells.(first), 'orat');

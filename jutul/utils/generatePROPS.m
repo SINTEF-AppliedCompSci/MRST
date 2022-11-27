@@ -79,7 +79,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             PROPS.PVDG = {[p, 1./bg, mug]};
         end
         % Saturation table
-        if ~isfield(PROPS, 'SGOF')
+        if ~isfield(PROPS, 'SGOF') && ~isfield(PROPS, 'SOF2') && ~isfield(PROPS, 'SOF3')
             krg = f.krG(s);
             if isfield(f, 'krOG')
                 krog = f.krOG(1-s);
@@ -106,7 +106,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             muo = f.muO(p);
             PROPS.PVDO = {[p, 1./bo, muo]};
         end
-        if ~isfield(PROPS, 'SWOF')
+        if ~isfield(PROPS, 'SWOF') && ~isfield(PROPS, 'SWFN')
             % Saturation table
             krw = f.krW(s);
             if isfield(f, 'krO')
@@ -122,11 +122,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             PROPS.SWOF = {[s, krw, krow, pc]};
         end
     end
-    % TODO: pvMultR...
-    if isfield(f, 'pvMultR')
-        warning('pvMultR not supported... Ignored.');
-    end
     if ~isfield(PROPS, 'ROCK')
+        % TODO: pvMultR...
+        if isfield(f, 'pvMultR')
+            warning('pvMultR not supported... Ignored.');
+        end
         PROPS.ROCK = [1*atm, 0, NaN, NaN, NaN, NaN];
     end
 end
