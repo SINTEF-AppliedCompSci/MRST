@@ -1,22 +1,26 @@
 function plotTrappingDistribution(ax, report, varargin)
-% Generate a trapping inventory plot from a simulation result.  
+%Generate Trapping Inventory Plot From Simulation Result
 % 
-% The simulation result (set of states) first needs to be repackaged using the
-% 'makeReports' function.
+% The simulation results, i.e., the set of states, must be repackaged using
+% function `makeReports` prior to calling `plotTrappingDistribution`.
 %
 % SYNOPSIS:
-%   function plotTrappingDistribution(ax, report, varargin)
-%
-% DESCRIPTION:
+%   plotTrappingDistribution(report)
+%   plotTrappingDistribution(report, 'pn1', pv1, ...)
+%   plotTrappingDistribution(ax, report, 'pn1', pv1, ...)
 %
 % PARAMETERS:
-%   ax       - handle to figure into which to draw the plot
-%   report   - simulation results, repackaged using the 'makeReports' function
-%   varargin - optional argument pairs allowing to specify the location and
-%              orientation of the legend. 
+%   ax      - Optional AXES handle into which to draw the plot.  This
+%             function will plot into the current axes of a new figure if
+%             'ax' is not provided or if 'ax' is not a valid AXES handle.
+%
+%   report  - Simulation results, repackaged using function `makeReports`.
+%
+%   'pn'/pv - Optional argument pairs allowing to specify the location and
+%             orientation of the legend.
 %
 % SEE ALSO:
-%   `makeReports`.
+%   `makeReports`, axes.
 
 %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
@@ -36,6 +40,27 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+
+    if mod(nargin, 2) ~= 0
+       % (report, ...).  Form canonical parameters.
+       assert (((numel(ax) ~= 1) || ~is_valid_axes_handle(ax)) && ...
+               isstruct(ax) && ...
+               all(isfield(ax, {'t', 'W', 'sol', 'masses'})), ...
+              ['When not supplying an AXES, the first parameter must ', ...
+               'be a simulation report structure created by function ', ...
+               '''makeReports''.']);
+
+       if nargin > 1
+          assert (is_string(report), ...
+                 ['When not supplying an AXES, the second parameter ', ...
+                  'must be string type suitable for key/value pairs']);
+
+          varargin = [ {report}, varargin ];
+       end
+
+       report = ax;
+       ax = -1; % Not a valid AXES handle.  Fixed in get_valid_axes_handle.
+    end
 
     opt.legend_location = 'eastoutside';
     opt.legend_orientation = 'vertical';
@@ -65,6 +90,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if skip_dissolution
         names(1) = [];
     end
+
+    ax = get_valid_axes_handle(ax);
 
     % Plotting trapping history
     area(ax, ...
@@ -103,4 +130,37 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     legend(names, ...
            'location', opt.legend_location, ...
            'orientation', opt.legend_orientation);
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_string(a)
+   if exist('isstring', 'builtin')
+      tf = isstring(a) || ischar(a);
+   else
+      tf = ischar(a);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function ax = get_valid_axes_handle(ax)
+   if ~ is_valid_axes_handle(ax)
+      ax = axes(figure());
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function tf = is_valid_axes_handle(ax)
+   if isempty(ax)
+      tf = false;
+      return;
+   end
+
+   if exist('isgraphics', 'builtin')
+      tf = isgraphics(ax, 'axes');
+   else
+      tf = ishghandle(ax) && ismember(ax, findobj('type', 'axes'));
+   end
 end
