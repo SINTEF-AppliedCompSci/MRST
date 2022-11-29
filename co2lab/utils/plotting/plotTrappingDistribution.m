@@ -40,19 +40,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt.legend_location = 'eastoutside';
     opt.legend_orientation = 'vertical';
     opt = merge_options(opt, varargin{:});
-    
+
     % legend names
     names = {'Dissolved'           , 'Structural residual' , ...
              'Residual'            , 'Residual in plume'  , ...
              'Structural subscale' , 'Structural plume'   , ...
              'Free plume'          , 'Exited'};
-    
-        
+
     % Loading and extracting trapping history
     t_hist = [report.t]';
     mass_hist = reshape([report.masses]',8, [])';
-    
-    
+
     % Permuting volumes to comply with the ordering we want for reporting
     P = [1 2 3 4 6 5 7 8];
     mass_hist = mass_hist(:,P);
@@ -67,14 +65,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if skip_dissolution
         names(1) = [];
     end
-    
+
     % Plotting trapping history
     area(ax, ...
          convertTo(t_hist, year), ...
          convertTo([mass_hist(:, 1:7), mass_hist(:,8)], mega*kilo));
          % convertTo([mass_hist(:, 1:7), mass_hist(:,8)-sum(mass_hist(:,1:7),2)], ...
          %           mega*kilo));
-    
+
     % Setting consistent colors
     col = getInventoryColors([7 6 5 5 4 3 2 1]);
     col(4,:) = 1/2 * (col(3,:) + col(5,:));
@@ -86,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % use Type=hggroup.
         if strcmpi(obj.Type, 'hggroup') || strcmpi(obj.Type, 'area')
             set(chld(i), 'FaceColor', col(cur_col, :));
-            
+
             if (cur_col == 4) && skip_subscale
                 set(get(get(chld(i), 'Annotation'), 'LegendInformation'), ...
                     'IconDisplayStyle', 'off');
@@ -97,7 +95,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             cur_col = cur_col + 1;
         end
     end
-        
+
     % Other formatting issues
     axis tight
     xlabel('Years since simulation start');
