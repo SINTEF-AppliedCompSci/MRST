@@ -60,7 +60,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         name = 'unknown';
     end
-    opt = struct('path', [], 'printcmd', true, 'extra', {{}});
+    opt = struct('path', [], 'printcmd', true, 'extra', {{}}, 'reduce', true);
     if isempty(opt.path)
         opt.path = fullfile(mrstOutputDirectory(), 'jutul');
         if ~exist(opt.path, 'dir')
@@ -69,13 +69,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     [opt, other] = merge_options(opt, varargin{:});
     assert(isfolder(opt.path))
-    pth = writeToJutul(opt.path, name, state0, model, schedule, opt.extra, other);
+    pth = writeToJutul(opt.path, name, state0, model, schedule, opt.extra, other, opt.reduce);
     if opt.printcmd
         fprintf('Case written. To simulate, call:\n\n\tusing JutulDarcy\n\tsimulate_mrst_case("%s", write_mrst = true);\n\n', pth)
     end
 end
 
-function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, other)
+function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, other, reduce)
     G = model.G;
     rock = model.rock;
     rock.poro = model.operators.pv./G.cells.volumes;
@@ -118,6 +118,12 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
     dispif(mrstVerbose(), 'Starting write of case %s...', name)
     pth = fullfile(folder_path, [name, '.mat']);
     jutul = struct();
+    if reduce
+        keys = {'GRID', 'REGIONS', 'SOLUTION', 'SUMMARY', 'SCHEDULE', 'UnhandledKeywords'};
+        for i = 1:numel(keys)
+            deck = stripIfPresent(deck, keys{i});
+        end
+    end
     jutul.T = model.operators.T;
     jutul.N = model.operators.N;
     jutul.phases = model.getActivePhases();
@@ -136,9 +142,15 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
     if isa(model, 'ThreePhaseCompositionalModel')
         [jutul.eos, jutul.mixture] = getCompositionalOutputs(model);
     end
-    save(pth, '-struct', 'jutul');
+    save(pth, '-struct', 'jutul', '-v7.3');
     dispif(mrstVerbose(), ' ok.\n')
     pth(strfind(pth,'\'))='/';
+end
+
+function x = stripIfPresent(x, name)
+    if isfield(x, name)
+        x = rmfield(x, name);
+    end
 end
 
 function w = prepWell(w, grav)

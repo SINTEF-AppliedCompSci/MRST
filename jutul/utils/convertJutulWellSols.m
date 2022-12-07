@@ -54,7 +54,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         for j = 1:nw
             name = names{j};
             W = wells.(name);
-            w(j).name = name;
+            if isfield(W, 'name')
+                w(j).name = W.name;
+            else
+                w(j).name = name;
+            end
             w(j).bhp = W.bhp(i);
             if has_water
                w(j).qWs = W.wrat(i);

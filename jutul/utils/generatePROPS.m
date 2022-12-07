@@ -34,19 +34,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     f = model.fluid;
     p = linspace(opt.pMin, opt.pMax, opt.np)';
     s = linspace(0, 1, opt.ns)';
+    if numel(f.rhoWS) > 1
+        warning('Jutul does not support multiple PVT regions. Taking first value.')
+    end
     if model.water
-        density(2) = f.rhoWS;
+        density(2) = f.rhoWS(1);
     end
     if model.oil
-        density(1) = f.rhoOS;
+        density(1) = f.rhoOS(1);
     end
     if model.gas
-        density(3) = f.rhoGS;
+        density(3) = f.rhoGS(1);
     end
     PROPS = opt.props;
-    if ~isfield(PROPS, 'DENSITY')
-        PROPS.DENSITY = density;
-    end
+    PROPS.DENSITY = density;
 
     if model.water && ~(isfield(PROPS, 'PVTW') || isfield(PROPS, 'PVTW_EXTENDED'))
         % PVT table
