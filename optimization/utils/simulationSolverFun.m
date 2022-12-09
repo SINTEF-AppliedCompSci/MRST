@@ -45,7 +45,11 @@ if isfield(problem, 'OutputHandlers')
     report = problem.OutputHandlers.reports;
     nStates = states.numelData;
 else
-    [~, states, report]  = simulateScheduleAD(setup.state0, setup.model, setup.schedule);
+    arg = {};
+    if isfield(setup, 'ExtraArguments')
+        arg = setup.ExtraArguments;
+    end
+    [~, states, report]  = simulateScheduleAD(setup.state0, setup.model, setup.schedule, arg{:});
     nStates = numel(states);
 end
 hasMinisteps = isfield(setup, 'OutputMinisteps') && setup.OutputMinisteps;
