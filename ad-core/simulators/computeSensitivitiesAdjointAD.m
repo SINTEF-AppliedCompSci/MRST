@@ -64,8 +64,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 assert(isa(setup.model,'GenericReservoirModel'),... 
        'The model must be derived from GenericReservoirModel.')
-assert(isa(param{1}, 'ModelParameter'), ...
-        'Parameters must be initialized using ''ModelParameter''.')
+%assert(isa(param{1}, 'ModelParameter'), ...
+%        'Parameters must be initialized using ''ModelParameter''.')
 
 opt = struct('LinearSolver',          [], ...
              'isScalar',            true, ...
@@ -114,7 +114,7 @@ getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
 
 if ~isempty(opt.accumulateResiduals) || ~opt.isScalar
     % allocate correct size of Lagrange multiplier matrix
-    [colIx, nrow, ncol] = getColumnIndex(opt.accumulateResiduals, opt.matchMap, setup);
+    [colIx, nrow, ncol] = getColumnIndex(opt.accumulateResiduals, opt.matchMap, setup, states{end});
     lambda = zeros(nrow, ncol);
 else
     colIx = repmat({nan}, [nstep, 1]);
@@ -317,7 +317,7 @@ end
 end
 
 %--------------------------------------------------------------------------
-function [colIx, nrow, ncol] = getColumnIndex(accum, matchMap, setup)
+function [colIx, nrow, ncol] = getColumnIndex(accum, matchMap, setup, state)
 if ~isempty(accum) && ~isempty(matchMap)
     warning('Accumulation of residuals will be ignored (not compatible with ''matchMap''-option)');
 end
@@ -328,7 +328,8 @@ if isprop(setup.model, 'thermal') && setup.model.thermal
     nt = nt +1;
 end
 % we need a lambda corresponding to the last step
-nwo  = nnz(vertcat(setup.schedule.control(end).W.status));
+%nwo = nnz(vertcat(setup.schedule.control(end).W.status));
+nwo = nnz(vertcat(state.wellSol.status));
 nrow = (nt-1)*setup.model.G.cells.num + nt*nwo; % shaky
 if isempty(matchMap)
     if isempty(accum) || isempty(accum.wells)
