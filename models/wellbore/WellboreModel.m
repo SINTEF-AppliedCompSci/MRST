@@ -330,7 +330,7 @@ classdef WellboreModel < WrapperModel
             
             % Make rock structure to represent wellbore
             rock = model.parentModel.rock;
-            % Euivalent permeability from laminar pipe flow assumption.
+            % Equivalent permeability from laminar pipe flow assumption.
             % This is now obsoloete due to dofs for the segment mass fluxes
             % + wellbore friction loss, but still kept here for reference.
             rock.perm = GW.cells.radius.^2/8;
@@ -486,6 +486,16 @@ classdef WellboreModel < WrapperModel
             mu{1} = model.parentModel.operators.faceUpstr(flag{1}, mu{1});
             dp = wellBoreFriction(v{1}, rho{1}, mu{1}, d, l, roughness, 'massRate');
 
+            if isa(dp, 'ADI')
+                d = diag(dp.jac{end});
+                bad = abs(d) == 0;
+                if any(bad)
+                    n = numel(value(dp));
+                    rval = eps;
+                    dp.jac{end} = dp.jac{end} + sparse(1:n, 1:n, bad.*rval, n, n);
+                end
+            end
+            
             bhp = model.getProp(state, 'bhp');
             eqs   = (pot{1} - dp)./max(max(value(bhp)), 1);
             eqs   = {eqs};
@@ -750,7 +760,7 @@ classdef WellboreModel < WrapperModel
                  state = model.updateStateFromIncrement(state, dx, problem, p);
             end
             
-            model = model.applyLimits(state);
+%             model = model.applyLimits(state);
 
         end
         %-----------------------------------------------------------------%
