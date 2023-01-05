@@ -26,11 +26,14 @@
 % exploring static and dynamic properties attached to a grid.  We enable
 % this functionality by activating the |mrst-gui| module that is provided
 % in the MRST distribution.  Function <matlab:help('mrstModule')
-% |mrstModule|> is the gateway to MRST's module system.  Modules are add-on
-% features that can be enabled and disabled on demand.
-% We also activate the |deckformat| module,
-% which contains functionality for reading and parsing data files given in
-% the industry-standard ECLIPSE format.
+% |mrstModule|> is the gateway to MRST's module system.  Modules, in turn,
+% are packaged add-on features that can be enabled and disabled on demand.
+% We also activate the |deckformat| module which contains functionality for
+% reading and parsing data files given in the industry-standard ECLIPSE
+% format and the |ad-core| module which in addition to fundamental support
+% for solvers and simulators based on automatic differentiation also
+% provides a higher-level encapsulation of the construction of MRST objects
+% from ECLIPSE input data.
 
 mrstModule add mrst-gui deckformat ad-core
 
