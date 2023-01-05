@@ -27,11 +27,8 @@
 % this functionality by activating the |mrst-gui| module that is provided
 % in the MRST distribution.  Function <matlab:help('mrstModule')
 % |mrstModule|> is the gateway to MRST's module system.  Modules are add-on
-% features that can be enabled and disabled on demand.  For now we will not
-% discuss this feature any further, but interested readers can find out
-% more about it in the
-% <http://www.sintef.no/projectweb/mrst/downloadable-resources/release-notes-for-mrst-2014a/#ModSysTutorial
-% Release Notes for MRST 2014a>. We also activate the |deckformat| module,
+% features that can be enabled and disabled on demand.
+% We also activate the |deckformat| module,
 % which contains functionality for reading and parsing data files given in
 % the industry-standard ECLIPSE format.
 
