@@ -1,5 +1,5 @@
-function [stress,strain]=calculateStressVEM(G,uu, op,varargin)
-%Undocumented Utility Function
+function [stress, strain] = calculateStressVEM(G, uu, op, varargin)
+% Undocumented Utility Function
 
 %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
@@ -20,29 +20,34 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opt.do_patch=false;
-opt=merge_options(opt,varargin{:});
+% The stresses and strains are ordered as [xx yy zz xy xz yz] in 3D
+% and [xx yy xy] in 2D
 
-if(G.griddim==2)
-    lindim=3;
-else
-    lindim=6;
-end
-stress=reshape(op.D*op.WC'*op.assemb'*reshape(uu',[],1),lindim,[])';
-if(opt.do_patch)
-  stress=patchRecovery(G,stress);
-end
-if(G.griddim==3)
- stress=bsxfun(@rdivide,stress(:,[1:3,5,6,4]),[ones(1,3),2*ones(1,3)]);
- stress(:,[4,6]) = stress(:,[6,4]);
-else
-    assert(G.griddim==2)
-  stress=bsxfun(@rdivide,stress,[ones(1,2),2]);  
-end
+    opt.do_patch = false;
+    opt = merge_options(opt, varargin{:});
 
-if(nargout==2)
-    error('Need to be checked')
-    strain=reshape(op.WC'*op.assemb'*reshape(uu',[],1),lindim,[])';
-end
+    if(G.griddim == 2)
+        lindim = 3;
+    else
+        lindim = 6;
+    end
+    stress = reshape(op.D*op.WC'*op.assemb'*reshape(uu', [], 1), lindim, [])';
+    if(opt.do_patch)
+        stress = patchRecovery(G, stress);
+    end
+    if(G.griddim == 3)
+        stress = bsxfun(@rdivide, stress(:, [1:3, 5, 6, 4]), [ones(1, 3), 2*ones(1, 3)]);
+        stress(:, [4, 6]) = stress(:, [6, 4]);
+    else
+        assert(G.griddim == 2)
+        stress = bsxfun(@rdivide, stress, [ones(1, 2), 2]);
+    end
+
+    if(nargout == 2)
+        strain = reshape(op.WC'*op.assemb'*reshape(uu', [], 1), lindim, [])';
+        if(G.griddim == 3)
+            strain(:, [5, 6]) = strain(:, [6, 5]);
+        end
+    end
 
 end
