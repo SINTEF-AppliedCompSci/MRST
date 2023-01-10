@@ -5,7 +5,7 @@ classdef WellborePhaseUpwindFlag < StateFunction
         function cf = WellborePhaseUpwindFlag(model)
 
             cf@StateFunction(model);
-            cf = cf.dependsOn('ComponentPhaseFlux');
+%             cf = cf.dependsOn('ComponentPhaseFlux');
 
         end
         %-----------------------------------------------------------------%
@@ -13,9 +13,14 @@ classdef WellborePhaseUpwindFlag < StateFunction
         %-----------------------------------------------------------------%
         function flag = evaluateOnDomain(prop, model, state)
             
-            v = prop.getEvaluatedDependencies(state,...
-                        'ComponentPhaseFlux');
-            flag = cellfun(@(v) value(v) >= 0, v, 'UniformOutput', false);
+%             v = prop.getEvaluatedDependencies(state,...
+%                         'ComponentPhaseFlux');
+            % @@TODO: Implement explicit Brennier & Jaffré upwinding
+            vt   = value(state.massFlux);
+            nc   = model.getNumberOfComponents();
+            nph  = model.getNumberOfPhases();
+            flag = repmat({vt >= 0}, 1, nph);
+%             flag = cellfun(@(v) value(v) >= 0, v, 'UniformOutput', false);
             
         end
         %-----------------------------------------------------------------%
