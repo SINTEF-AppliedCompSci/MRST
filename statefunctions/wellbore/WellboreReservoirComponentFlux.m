@@ -39,7 +39,7 @@ classdef WellboreReservoirComponentFlux < CouplingTerm
             mob(~cellfun(@isempty, mob)) = applyFunction(@(x) x(cells), mob(~cellfun(@isempty, mob)));
             % Get well pressure
             mobw = model.submodels.(well).parentModel.getProp(state.(well), 'ComponentMobility');
-            mobw = applyFunction(@(mob) mob(isPerf), mobw);
+            mobw(~cellfun(@isempty, mobw)) = applyFunction(@(mob) mob(isPerf), mobw(~cellfun(@isempty, mobw)));
             
             % Compute component fluxes in to/out of wellbore out of/in to
             % reservoir (ComponentMobility is multiplied by density)
