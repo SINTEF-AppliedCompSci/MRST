@@ -222,6 +222,10 @@ classdef WellboreModel < WrapperModel
                 bhp       = model.getProp(state, 'pressure');
                 state.bhp = bhp(iic);
             end
+             % Add bhp if not already set
+            if ~isfield(state, 'qt')
+                state.qt = zeros(model.numWells() + model.numGroups(), 1);
+            end
             % Add surface rates if not already set
             rnames = model.getSurfaceRateNames();
             for rname = rnames
@@ -277,21 +281,21 @@ classdef WellboreModel < WrapperModel
                 case {'qt'}
                     fn = 'qt';
                     index = ':';
-%                 case {'qws'}
-%                     fn = 'qWs';
-%                     index = ':';
-%                 case {'qos'}
-%                     fn = 'qOs';
-%                     index = ':';
-%                 case {'qgs'}
-%                     fn = 'qGs';
-%                     index = ':';
-%                 case {'bht'}
-%                     fn = 'bht';
-%                     index = ':';
-%                 case {'effect'}
-%                     fn = 'effect';
-%                     index = ':';
+                case {'qws'}
+                    fn = 'qWs';
+                    index = ':';
+                case {'qos'}
+                    fn = 'qOs';
+                    index = ':';
+                case {'qgs'}
+                    fn = 'qGs';
+                    index = ':';
+                case {'bht'}
+                    fn = 'bht';
+                    index = ':';
+                case {'effect'}
+                    fn = 'effect';
+                    index = ':';
                 otherwise
                     % Pass on to WrapperModel
                     [fn, index] = getVariableField@WrapperModel(model, name, varargin{:});
@@ -414,10 +418,10 @@ classdef WellboreModel < WrapperModel
             % Get primary variable set of parent model
             [vars, names, origin] = model.parentModel.getPrimaryVariables(state);
             % Add mass flux
-            vm = model.getProps(state, 'massFlux');
-            vars = [vars, {vm}];
-            names  = [names, 'massFlux'];
-            origin = [origin, class(model)];
+            [vm, qt] = model.getProps(state, 'massFlux', 'qt');
+            vars = [vars, {vm, qt}];
+            names  = [names, {'massFlux', 'qt'}];
+            origin = [origin, class(model), class(model)];
 
         end
         %-----------------------------------------------------------------%
@@ -466,11 +470,11 @@ classdef WellboreModel < WrapperModel
             % Mass fluxes
             [fluxEqs, fluxNames, fluxTypes, state] = model.getMassFluxEquations(state);
             % Set controls
-            [eqs, fluxEqs, state] = model.setControls(state, eqs, fluxEqs, drivingForces);
+            [ctrlEqs, ctrlNames, ctrlTypes, state, eqs] = model.setControls(state, eqs, drivingForces);
             % Assemble
-            eqs   = [eqs  , fluxEqs  ];
-            names = [names, fluxNames];
-            types = [types, fluxTypes];
+            eqs   = [eqs  , fluxEqs  , ctrlEqs  ];
+            names = [names, fluxNames, ctrlNames];
+            types = [types, fluxTypes, ctrlTypes];
             
         end
         %-----------------------------------------------------------------%
@@ -511,13 +515,15 @@ classdef WellboreModel < WrapperModel
 
             dp = wellBoreFriction(v, rhoMix, muMix, d, l, roughness, 'massRate');
 
-            if isa(dp, 'ADI')
-                d = diag(dp.jac{end});
+            %@@
+            if isa(dp, 'ADI') && 0
+                ix = 3;
+                d = diag(dp.jac{ix});
                 bad = abs(d) == 0;
                 if any(bad)
                     n = numel(value(dp));
                     rval = eps;
-                    dp.jac{end} = dp.jac{end} + sparse(1:n, 1:n, bad.*rval, n, n);
+                    dp.jac{ix} = dp.jac{ix} + sparse(1:n, 1:n, bad.*rval, n, n);
                 end
             end
             
@@ -536,7 +542,7 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function [eqs, fluxEqs, state] = setControls(model, state, eqs, fluxEqs, drivingForces)
+        function  [eqs, names, types, state, consEqs] = setControls(model, state, consEqs, drivingForces)
         % Equations imposing well control for each well
         
             % Get control types, targets, and mask for open wells
@@ -578,15 +584,9 @@ classdef WellboreModel < WrapperModel
             % Set BHP control equations
             nph = model.parentModel.getNumberOfPhases();
             bhp = model.getProps(state, 'BottomholePressure');
-            q = model.parentModel.getProp(state, 'ComponentTotalFlux');
             
-            bhpw = 1;%max(max(value(bhp)),1);
-            
-            eqs{nph}(icno(is_bhp)) = (target(is_bhp) - bhp(is_bhp))./bhpw;
-            for ph = 1:nph-1
-                qph = model.operators.Div(q{ph});
-                eqs{ph}(icno(is_bhp)) = eqs{ph}(icno(is_bhp)) - qph(icno(is_bhp));
-            end
+            ctrlEqs = model.AutoDiffBackend.convertToAD(zeros(nw + ng, 1), bhp);
+            ctrlEqs(is_bhp) = bhp(is_bhp) - target(is_bhp);
 
             % Set rate control equations
             phases = model.parentModel.getPhaseNames();
@@ -605,15 +605,50 @@ classdef WellboreModel < WrapperModel
             end
             %@@ TODO: support multiphase flow
             % Convert surface volume rates to mass rates
-            rhoS = model.getProp(state, 'SurfaceDensity');
-            rhoS = applyFunction(@(rho) rho(iic), rhoS);
+            [rhoS, Qt] = model.getProps(state, 'SurfaceDensity', 'qt');
+            qs = Qt./rhoS{1}(iic);
             
             % Add in as source in corresponding well cells
-            q = target(is_surface_rate);
-            for ph = 1:model.getNumberOfPhases
-                Q = compi(is_surface_rate, ph).*q.*rhoS{ph}(is_surface_rate);
-                eqs{ph}(icno(is_surface_rate)) = eqs{ph}(icno(is_surface_rate)) - Q;
-            end
+            ctrlEqs(is_surface_rate) = target(is_surface_rate) - qs(is_surface_rate);
+            
+            ctrlEqs(is_none) = Qt(is_none);
+            
+%             massEqs = Q(iic) - qt;
+            
+%             eqs   = {eqsCtrl, massEqs};
+%             names = {'Control', 'WellMassFlux'};
+%             types = {'control', 'well'};
+            
+            eqs   = {ctrlEqs};
+            names = {'control'};
+            types = {'control'};
+            
+            if ~model.thermal, return; end
+            
+            [Qh, h] = model.getProps(state, 'HeatFlux', 'enthalpy');
+            is_inj  = value(Qt) > 0;
+            
+            hInj = model.parentModel.fluid.hW(bhp, targetTemp);
+            h(iic) = is_inj.*hInj + ~is_inj.*h(iic);
+            
+%             Qh = model.operators.Div(Qh);
+%             heatEqs = Qh(iic) - qt.*h(iic);
+%             
+%             eqs   = [eqs  , {heatEqs}     ];
+%             names = [names, 'WellHeatFlux'];
+%             types = [types, 'well'        ];
+
+            consEqs{1}(iic) = consEqs{1}(iic) - Qt;
+            consEqs{2}(iic) = consEqs{2}(iic) - Qt.*h(iic);
+            
+            return;
+
+%             for ph = 1:model.getNumberOfPhases
+%                 Q = compi(is_surface_rate, ph).*q.*rhoS{ph}(is_surface_rate);
+%                 eqsCtrl{ph}(icno(is_surface_rate)) = eqsCtrl{ph}(icno(is_surface_rate)) - Q;
+%             end
+            
+            
 
             % Ensure wells with status set to false are closed
             assert(all(is_open(nw+1:end)), 'Closed groups not supported yet!');
@@ -629,10 +664,10 @@ classdef WellboreModel < WrapperModel
                 'BottomholeTemperature', 'pressure', 'T', ...
                 'enthalpy', 'HeatFlux', 'massFlux', 'Density');
             % Compute total well rates
-            qt = model.parentModel.operators.fluxSum(qr(iif));
-            qt = sum(value(qt), 2);
+            Qt = model.parentModel.operators.fluxSum(qr(iif));
+            Qt = sum(value(Qt), 2);
             % Identify injection wells/groups
-            is_inj  = qt > 0 | (is_surface_rate & target > 0);
+            is_inj  = Qt > 0 | (is_surface_rate & target > 0);
             is_inj  = is_surface_rate & target > 0;
             is_inj  = is_inj & ~is_none;
             % Compute temperature in production well cells based on
@@ -653,7 +688,7 @@ classdef WellboreModel < WrapperModel
             % Set equations
             cells = ~is_none & ~is_zero(iic);
             bhtw = 1;%convertFromCelcius(0);
-            eqs{2}(icno(cells)) = (Tw(cells) - bht(cells))./bhtw;
+            ctrlEqs{2}(icno(cells)) = (Tw(cells) - bht(cells))./bhtw;
             state.is_bht = icno(cells);
             
         end
@@ -664,8 +699,8 @@ classdef WellboreModel < WrapperModel
             
             % Get driving forces and check that it's non-empty
             [wCtrl, gCtrl] = deal([]);
-            hasWellCtrl  = isfield(drivingForces, 'W');
-            hasGroupCtrl = isfield(drivingForces, 'groups');
+            hasWellCtrl  = isfield(drivingForces, 'W') && ~isempty(drivingForces.W);
+            hasGroupCtrl = isfield(drivingForces, 'groups') && ~isempty(drivingForces.groups);
             if hasWellCtrl , wCtrl = model.wells;  end
             if hasGroupCtrl, gCtrl = model.groups; end
             if isempty(wCtrl) && isempty(gCtrl), return; end
@@ -823,10 +858,10 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function [convergence, values, names] = checkConvergence(model, problem, varargin)
             
-            [values, tolerances, names] = model.getConvergenceValues(problem, varargin{:});
-            convergence = values < tolerances;
+%             [values, tolerances, names] = model.getConvergenceValues(problem, varargin{:});
+%             convergence = values < tolerances;
             
-%             [convergence, values, names] = checkConvergence@WrapperModel(model, problem, varargin{:});
+            [convergence, values, names] = checkConvergence@WrapperModel(model, problem, varargin{:});
             
 %             dt = problem.dt;
 %             Q  = abs(value(problem.state.inletFlux{1}));
@@ -850,19 +885,19 @@ classdef WellboreModel < WrapperModel
         end
         %-----------------------------------------------------------------%
         
-        %-----------------------------------------------------------------%
-        function [v_eqs, tolerances, names] = getConvergenceValues(model, problem, varargin)
-        % Get values for convergence check
-        
-            [v_eqs, tolerances, names] = model.parentModel.getConvergenceValues(problem, varargin{:});
-            if model.parentModel.applyResidualScaling, return; end
-            scale = model.parentModel.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
-            scale{1}(problem.state.is_bhp) = 1;
-            scale{2}(problem.state.is_bht) = 1;
-            ix    = ~cellfun(@isempty, scale);
-            v_eqs(ix) = cellfun(@(scale, x) norm(scale.*value(x), inf), scale(ix), problem.equations(ix));
-            
-        end
+%         %-----------------------------------------------------------------%
+%         function [v_eqs, tolerances, names] = getConvergenceValues(model, problem, varargin)
+%         % Get values for convergence check
+%         
+%             [v_eqs, tolerances, names] = model.parentModel.getConvergenceValues(problem, varargin{:});
+%             if model.parentModel.applyResidualScaling, return; end
+%             scale = model.parentModel.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
+%             scale{1}(problem.state.is_bhp) = 1;
+%             scale{2}(problem.state.is_bht) = 1;
+%             ix    = ~cellfun(@isempty, scale);
+%             v_eqs(ix) = cellfun(@(scale, x) norm(scale.*value(x), inf), scale(ix), problem.equations(ix));
+%             
+%         end
         
         %-----------------------------------------------------------------%
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
@@ -894,8 +929,8 @@ classdef WellboreModel < WrapperModel
             if ~model.thermal, return; end
             
             [wCtrl, gCtrl] = deal([]);
-            hasWellCtrl  = isfield(drivingForces, 'W');
-            hasGroupCtrl = isfield(drivingForces, 'groups');
+            hasWellCtrl  = isfield(drivingForces, 'W') && ~isempty(drivingForces.W);
+            hasGroupCtrl = isfield(drivingForces, 'groups') && ~isempty(drivingForces.groups);
             if hasWellCtrl , wCtrl = drivingForces.W;      end
             if hasGroupCtrl, gCtrl = drivingForces.groups; end
             
