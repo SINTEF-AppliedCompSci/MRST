@@ -359,6 +359,7 @@ classdef TestCase
                         end
                     end
                     hold off
+                    varargout = {hw, htext};
                 end
             end
             
@@ -566,7 +567,7 @@ classdef TestCase
                              'model. Reason: %s \n'                 , ...
                              'Proceeding with BackslashSolverAD'   ], ...
                              ex.message                             );
-                    opt.linearSolver = BackslashSolverAD();
+                    opt.LinearSolver = BackslashSolverAD();
                 end
             end
             if ~has_nls
