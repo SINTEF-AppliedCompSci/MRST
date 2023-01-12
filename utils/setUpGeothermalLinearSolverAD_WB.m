@@ -8,12 +8,11 @@ function solver = setUpGeothermalLinearSolverSolverAD_WB(model, varargin)
         solver.setPreconditioner('relaxation');
         solver.setRelaxation('ilu0');
         solver.setSolver('gmres');
-        solver.maxIterations = 200;
     else
         solver = AMGCL_CPRSolverAD();
         solver.decoupling = 'none';
-        solver.maxIterations = 100;
     end
+    solver.maxIterations = 200;
     solver.tolerance = 1e-4;
     
     % Set block size
