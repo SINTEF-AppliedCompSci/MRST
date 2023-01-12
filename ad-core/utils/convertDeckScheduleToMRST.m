@@ -103,9 +103,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     for i = 1:nc
         % Parse well
-        W = processWells(model.G, model.rock, scheduleDeck.control(i), 'OutputDefaulted', true, ...
+        ctrl = scheduleDeck.control(i);
+        W = processWells(model.G, model.rock, ctrl, 'OutputDefaulted', true, ...
             'DepthReorder', opt.DepthReorder, wellArg{:}, 'cellDims', cellDims);
-        
+        if isfield(ctrl, 'COMPSEGS') && isfield(ctrl, 'WELSEGS')
+            W = convertMultiSegmentWellsDeck(W, model.G, ctrl);
+        end
         for j = 1:numel(W)
             c = [W(j).compi, 0];
             if isfield(W(j), 'solventFrac')
@@ -155,7 +158,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     W = scheduleMRST.control(ctrl).W;
                     [W, WI_raw, WI_prev] = apply_wpimult(W, IJK, wpi, WI_raw, WI_prev);
                     scheduleMRST.control(ctrl).W = W;
-                    % [WI_raw{3}, WI_prev{3}, scheduleMRST.control(ctrl).W(3).WI]
                 end
             end
         end
