@@ -1,4 +1,4 @@
-function solver = setUpGeothermalLinearSolverSolverAD_WB(model, varargin)
+function solver = setUpGeothermalLinearSolverAD_WB(model, varargin)
 
     opt = struct('useCPR', true);
     opt = merge_options(opt, varargin{:});
