@@ -30,8 +30,11 @@ function solver = setUpGeothermalLinearSolverAD_WB(model, varargin)
     order = [rorder; worder];
     [solver.equationOrdering, solver.variableOrdering] = deal(order);
     % Set cells to keep in Schur complement
-    ncw = nnz(model.submodels.Wellbore.G.cells.type == 0 ...
-        & model.submodels.Wellbore.G.cells.hybrid == 0);
+    cells = model.submodels.Wellbore.G.cells.type == 0;
+    if isfield(model.submodels.Wellbore.G.cells, 'hybrid')
+        cells = cells & model.submodels.Wellbore.G.cells.hybrid == 0;
+    end
+    ncw = nnz(cells);
     solver.keepNumber = bz*(ncr + ncw);
     solver.amgcl_setup.cell_size = ncr + ncw;
     solver.reduceToCell = false;
