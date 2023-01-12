@@ -435,6 +435,7 @@ classdef WellboreModel < WrapperModel
                 model.wells = model.processWells(model.wells);
             end
             
+            if ~isfield(forces, 'groups'), return; end
             model.groups = forces.groups;
             if ~isempty(model.groups)
                 model.groups = model.processGroups(model.groups);
