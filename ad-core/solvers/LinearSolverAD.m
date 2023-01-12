@@ -296,12 +296,12 @@ classdef LinearSolverAD < handle
             % Get linearized system
             [A, b] = problem.getLinearSystem();
             x0     = vertcat(initialGuess{:});
+            % Reorder linear system
+            [A, b, ordering, x0] = solver.reorderLinearSystem(A, b, [], x0);
             % Reduce system (if not already done)
             if isempty(lsys)
                 [A, b, lsys, x0] = solver.reduceLinearSystem(A, b, false, x0);
             end
-            % Reorder linear system
-            [A, b, ordering, x0] = solver.reorderLinearSystem(A, b, [], x0);
             % Apply scaling
             [A, b, scaling, x0] = solver.applyScaling(A, b, x0);
 
@@ -311,10 +311,10 @@ classdef LinearSolverAD < handle
             t_solve = toc(timer) - t_prepare;
             % Undo scaling
             result = solver.undoScaling(result, scaling);
-            % Permute system back
-            result = solver.deorderLinearSystem(result, ordering);
             % Recover eliminated variables on linear level
             result = solver.recoverLinearSystem(result, lsys);
+            % Permute system back
+            result = solver.deorderLinearSystem(result, ordering);
             
             [result, report] = problem.processResultAfterSolve(result, report);
             report.SolverTime = toc(timer);
