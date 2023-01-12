@@ -498,9 +498,6 @@ classdef WellboreModel < WrapperModel
                                         'PhasePotentialDifference', ...
                                         'PhaseUpwindFlag'         );
             
-            % Compute volume fractions
-            
-            
             nph = model.getNumberOfPhases();
             
             [rhoMix, muMix] = deal(0);
@@ -533,7 +530,7 @@ classdef WellboreModel < WrapperModel
             
             pot   = dpw - rhoMix.*g.*dz;
             bhp   = model.getProp(state, 'bhp');
-            eqs   = (pot - dp)./max(max(value(bhp)), 1);
+            eqs   = (pot - dp)./(1*atm);
             eqs   = {eqs};
             names = {'flux'};
             types = {'face'};
@@ -610,14 +607,7 @@ classdef WellboreModel < WrapperModel
             
             % Add in as source in corresponding well cells
             ctrlEqs(is_surface_rate) = target(is_surface_rate) - qs(is_surface_rate);
-            
             ctrlEqs(is_none) = Qt(is_none);
-            
-%             massEqs = Q(iic) - qt;
-            
-%             eqs   = {eqsCtrl, massEqs};
-%             names = {'Control', 'WellMassFlux'};
-%             types = {'control', 'well'};
             
             eqs   = {ctrlEqs};
             names = {'control'};
@@ -625,71 +615,14 @@ classdef WellboreModel < WrapperModel
             
             if ~model.thermal, return; end
             
-            [Qh, h] = model.getProps(state, 'HeatFlux', 'enthalpy');
+            h = model.getProps(state, 'enthalpy');
             is_inj  = value(Qt) > 0;
             
             hInj = model.parentModel.fluid.hW(bhp, targetTemp);
             h(iic) = is_inj.*hInj + ~is_inj.*h(iic);
-            
-%             Qh = model.operators.Div(Qh);
-%             heatEqs = Qh(iic) - qt.*h(iic);
-%             
-%             eqs   = [eqs  , {heatEqs}     ];
-%             names = [names, 'WellHeatFlux'];
-%             types = [types, 'well'        ];
 
             consEqs{1}(iic) = consEqs{1}(iic) - Qt;
             consEqs{2}(iic) = consEqs{2}(iic) - Qt.*h(iic);
-            
-            return;
-
-%             for ph = 1:model.getNumberOfPhases
-%                 Q = compi(is_surface_rate, ph).*q.*rhoS{ph}(is_surface_rate);
-%                 eqsCtrl{ph}(icno(is_surface_rate)) = eqsCtrl{ph}(icno(is_surface_rate)) - Q;
-%             end
-            
-            
-
-            % Ensure wells with status set to false are closed
-            assert(all(is_open(nw+1:end)), 'Closed groups not supported yet!');
-            qr = model.getProps(state, 'massFlux');
-            fluxEqs{1}(ifno(~is_open)) = qr(ifno(~is_open));
-            
-            state.is_bhp = icno(is_bhp);
-            
-            if ~model.thermal, return; end
-            
-            % Get thermal properties
-            [bht, p, T, hr, qh, qr, rho] = model.getProps(state, ...
-                'BottomholeTemperature', 'pressure', 'T', ...
-                'enthalpy', 'HeatFlux', 'massFlux', 'Density');
-            % Compute total well rates
-            Qt = model.parentModel.operators.fluxSum(qr(iif));
-            Qt = sum(value(Qt), 2);
-            % Identify injection wells/groups
-            is_inj  = Qt > 0 | (is_surface_rate & target > 0);
-            is_inj  = is_surface_rate & target > 0;
-            is_inj  = is_inj & ~is_none;
-            % Compute temperature in production well cells based on
-            % conservation of energy
-            qh = model.parentModel.operators.Div(qh);
-            qr = model.parentModel.operators.Div(qr);
-            is_zero = abs(qr) < 10*eps;
-            h = qh./qr;
-            h(is_zero) = hr(is_zero);
-            Cp = model.parentModel.fluid.CpW(p, T);
-            T = (h - p./rho{1})./Cp;
-            T = T(iic);
-            % Set well temperature targets
-            assert(~any(isnan(value(targetTemp(is_inj)))), ...
-                'Temperature in active well/group not set!');
-            targetTemp(isnan(targetTemp)) = mean(targetTemp(~isnan(targetTemp)));
-            Tw = targetTemp.*is_inj + T.*~is_inj;
-            % Set equations
-            cells = ~is_none & ~is_zero(iic);
-            bhtw = 1;%convertFromCelcius(0);
-            ctrlEqs{2}(icno(cells)) = (Tw(cells) - bht(cells))./bhtw;
-            state.is_bht = icno(cells);
             
         end
         %-----------------------------------------------------------------%
@@ -835,6 +768,7 @@ classdef WellboreModel < WrapperModel
 
         end
         %-----------------------------------------------------------------%
+        
         %-----------------------------------------------------------------%
         function [state, report] = updateState(model, state, problem, dx, forces)
 
@@ -856,54 +790,9 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function [convergence, values, names] = checkConvergence(model, problem, varargin)
-            
-%             [values, tolerances, names] = model.getConvergenceValues(problem, varargin{:});
-%             convergence = values < tolerances;
-            
-            [convergence, values, names] = checkConvergence@WrapperModel(model, problem, varargin{:});
-            
-%             dt = problem.dt;
-%             Q  = abs(value(problem.state.inletFlux{1}));
-% %             Q = max(Q);
-%             Q = Q(model.G.cells.wellNo);
-%             Qh = abs(value(problem.state.inletHeatFlux));
-% %             Qh = max(Qh);
-%             Qh = Qh(model.G.cells.wellNo);
-%             [mass, energy] = model.parentModel.getProps(problem.state, 'ComponentTotalMass', 'TotalThermalEnergy');
-%             
-%             pad = zeros(model.numWells() + model.numGroups() ,1);
-%             
-%             scaleMass = max(value(mass{1})./dt, [Q; pad]);
-%             scaleEnergy = max(value(energy)./dt, [Qh; pad]);
-%             
-%             values(1) = norm(value(problem.equations{1}./scaleMass), inf);
-%             values(2) = norm(value(problem.equations{2}./scaleEnergy), inf);
-%             convergence(1:2) = values(1:2) < model.parentModel.nonlinearTolerance;
-%             convergence(1:2) = values(1:2) < 1e-2;
-            
-        end
-        %-----------------------------------------------------------------%
-        
-%         %-----------------------------------------------------------------%
-%         function [v_eqs, tolerances, names] = getConvergenceValues(model, problem, varargin)
-%         % Get values for convergence check
-%         
-%             [v_eqs, tolerances, names] = model.parentModel.getConvergenceValues(problem, varargin{:});
-%             if model.parentModel.applyResidualScaling, return; end
-%             scale = model.parentModel.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
-%             scale{1}(problem.state.is_bhp) = 1;
-%             scale{2}(problem.state.is_bht) = 1;
-%             ix    = ~cellfun(@isempty, scale);
-%             v_eqs(ix) = cellfun(@(scale, x) norm(scale.*value(x), inf), scale(ix), problem.equations(ix));
-%             
-%         end
-        
-        %-----------------------------------------------------------------%
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
             
             [state, report] = model.parentModel.updateAfterConvergence(state0, state, dt, drivingForces);
-%             return
             [state.bhp, qr] = model.getProps(state, ...
                 'BottomholePressure', 'massFlux');
 
