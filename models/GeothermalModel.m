@@ -531,12 +531,11 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             for i = 1:ncomp
                 mass = mass + cmass{i};
             end
-            scaleMass = dt./max(mass, 1);
+            
+            scaleMass = dt./mass;
             for n = cnames
                ix = strcmpi(n{1}, names);
-               if ~any(ix)
-                   continue
-               end
+               if ~any(ix), continue; end
                scale{ix} = scaleMass;
             end
             ix = strcmpi(names, 'energy');
