@@ -34,7 +34,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case {'EQLNUM', 'FIPNUM' , 'IMBNUM' , ...
                'PVTNUM', 'SATNUM' , 'SURFNUM', ...
-               'ENDNUM', 'ROCKNUM', 'FIPFAC' }
+               'ENDNUM', 'ROCKNUM', 'FIPFAC' , ...
+               'EOSNUM'}
 
             nc = prod(deck.RUNSPEC.cartDims);
             if deck.RUNSPEC.DUALPORO
