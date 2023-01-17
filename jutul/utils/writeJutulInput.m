@@ -112,8 +112,8 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
     end
     schedule.control = applyFunction(@(x) x, schedule.control);
     if isprop(model, 'disgas') && model.disgas
-        mass = value(model.getProp(state0, 'ComponentTotalMass')');
-        state0.zg = mass(:, 3)./sum(mass(:, 2:end), 2);
+        % mass = value(model.getProp(state0, 'ComponentTotalMass')');
+        % state0.zg = mass(:, 3)./sum(mass(:, 2:end), 2);
     end
     dispif(mrstVerbose(), 'Starting write of case %s...', name)
     pth = fullfile(folder_path, [name, '.mat']);
