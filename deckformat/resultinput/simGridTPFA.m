@@ -23,7 +23,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opt = struct('neighbors', [], 'porv', [], 'depth', [], 'actnum', [], 'trans', []);
+opt = struct('neighbors', [], 'porv', [], 'depth', [], 'actnum', [], 'trans', [], 'face_centroids', []);
 opt = merge_options(opt, varargin{:});
 
 Gs.type     = 'tpfaGrid';
@@ -90,6 +90,16 @@ end
 if ~isempty(opt.depth)
     Gs.cells.centroids(:,3) = opt.depth;
 end
+
+if isempty(opt.face_centroids)
+    % Set face centroids to average between cell centers
+    % This can be fairly wrong but better than nothing.
+    l = N(:, 1);
+    r = N(:, 2);
+    cell_cent = Gs.cells.centroids;
+    opt.face_centroids = (cell_cent(l, :) + cell_cent(r, :))./2;
+end
+Gs.faces.centroids = opt.face_centroids;
 
 % finally include face areas for some reason ...
 Gs.faces.areas = nan(G.faces.num, 1);
