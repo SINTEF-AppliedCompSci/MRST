@@ -18,6 +18,7 @@ function W = convertMultiSegmentWellsDeck(W, G, deck_control, varargin)
     W(1).isMS = false;
     W(1).topo = [];
     W(1).nodes = [];
+    W(1).segments = [];
     W(1).perf_map = [];
     W(1).cells_to_nodes = [];
     nms = numel(msnames);
@@ -55,6 +56,8 @@ function w = convert(w, G, compsegs, welsegs, opt)
         active = branch == i;
         volumes = [];
         tube_depths = [];
+        roughness = [];
+        diameters = [];
         z_depths = [];
         number = [];
         lengths = [];
@@ -97,6 +100,9 @@ function w = convert(w, G, compsegs, welsegs, opt)
             zd = cumsum([current_tube_z + delta_z; repmat(delta_z, n-1)]);
             z_depths = [z_depths; zd]; %#ok
             lengths = [lengths; repmat(delta_tube, n)]; %#ok
+            diameters = [diameters; repmat(diameter, n)]; %#ok
+            roughness = [roughness; repmat(rough, n)]; %#ok
+
             current_tube_depth = current_tube_depth + delta_tube*n;
             current_tube_z = current_tube_z + delta_z*n;
         end
@@ -104,6 +110,8 @@ function w = convert(w, G, compsegs, welsegs, opt)
                              'volumes', volumes, ...
                              'parent', parent, ...
                              'tube_depths', tube_depths, ...
+                             'roughness', roughness, ...
+                             'diameters', diameters, ...
                              'z_depths', z_depths, ...
                              'lengths', lengths);
     end
@@ -125,9 +133,8 @@ function w = convert(w, G, compsegs, welsegs, opt)
         cells_i = cells(active);
         n = numel(cells_i);
         start_depth = vertcat(compsegs_i{:, 5});
-        stop_depth = vertcat(compsegs_i{:, 6});
-        
         if false
+            stop_depth = vertcat(compsegs_i{:, 6});
             midpoints = (start_depth + stop_depth)/2;
             midpoints_seg = B.tube_depths + B.lengths/2;
         else
@@ -158,7 +165,7 @@ function w = convert(w, G, compsegs, welsegs, opt)
     if opt.compact
         % Make into simple table:
         % Nodes (with volumes, depths)
-        % Segments (roughness)
+        % Segments (roughness, diameters)
         
         % Topology (nodes to nodes connected via segments).
         N = [];
@@ -191,6 +198,7 @@ function w = convert(w, G, compsegs, welsegs, opt)
         w.topo = N;
         % Data for each node
         w.nodes = struct('depth', depths, 'vol', volumes, 'branch_id', branch);
+        w.segments = struct('roughness', roughness, 'diameter', diameters, 'length', lengths);
         w.cells = perf_map(:, 1);
     else
         w.branches = branches;
