@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 so = so - model.getProp(state, 'sg');
             end
             if any(so < 0)
-                warning('SWAT resulted in %d negative saturations', sum(so < 0));
+                warning('SWATINIT resulted in %d negative oil saturations. Setting to zero...', sum(so < 0));
             end
             so = max(so, 0);
             state = model.setProp(state, 'so', so);
@@ -53,13 +53,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             pcow = -pc{wix};
             if isempty(pcow)
                 warning('Oil-Water capillary pressure must be present for scaling of pc-curve with SWATINIT.')
+            else
+                p(:, oix) = state.pressure; % May be wrong in regions where oil is immobile
+                dp = p(:, oix) - p(:, wix);
+                bad = dp <= 0;
+                scale = dp./pcow;
+                scale(bad) = 1;
+                state.pcowScale = scale;
             end
-            p(:, oix) = state.pressure; % May be wrong in regions where oil is immobile
-            dp = p(:, oix) - p(:, wix);
-            bad = dp <= 0;
-            scale = dp./pcow;
-            scale(bad) = 1;
-            state.pcowScale = scale;
         end
     elseif any(isfield(deck.SOLUTION, {'PRESSURE', 'PRVD'})) && ...
             any(isfield(deck.SOLUTION, {'SGAS', 'SOIL', 'SWAT'}))
