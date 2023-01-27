@@ -70,7 +70,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     sO  = 1 - sW;
     sO0 = 1 - sW0;
 
-    [krW, krO] = model.evaluateRelPerm({sW, sO});
+    satstate = state;
+    satstate.s = {sW, sO};
+    relperm = model.getProps(satstate, 'RelativePermeability');
+    [krW, krO] = deal(relperm{:});
 
     % Multipliers for properties
     [pvMult, transMult, mobMult, pvMult0] = getMultipliers(model.fluid, p, p0);
