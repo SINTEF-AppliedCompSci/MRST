@@ -31,7 +31,7 @@ function [G,ft_hybrid] = computeHybridTrans(G,T)
 Th(loc(ind)) = T(ind);
 
 % number of hybrid connections
-nh = length(G.hybridNeighbors.facePos) - 1;
+nh = max(length(G.hybridNeighbors.facePos) - 1, 0);
 
 % mapping of the hybrid connections
 hc = rldecode((1:nh)',diff(G.hybridNeighbors.facePos));
