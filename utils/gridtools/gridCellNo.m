@@ -51,7 +51,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    mrstNargInCheck(1, 2, nargin);
 
-   if nargin == 1,
+   if nargin == 1
 
       % Simple case.  Create 'cellno' for all cells.
       cellno = rldecode(1 : G.cells.num, diff(G.cells.facePos), 2) .';
