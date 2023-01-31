@@ -219,7 +219,7 @@ sol(1)  = struct('time', 0, 'pressure', value(p_ad), ...
 
 %% Main loop
 t = 0; step = 0;
-while t < totTime,
+while t < totTime
    t = t + dt;
    step = step + 1;
    fprintf('\nTime step %d: Time %.2f -> %.2f days\n', ...
@@ -229,7 +229,7 @@ while t < totTime,
    converged = false;
    p0  = value(p_ad); % Previous step pressure
    nit = 0;
-   while ~converged && (nit < maxits),
+   while ~converged && (nit < maxits)
       % Add source terms to homogeneous pressure equation:
       eq1     = presEq(p_ad, p0, dt);
       eq1(wc) = eq1(wc) - q_conn(p_ad, bhp_ad);
@@ -257,7 +257,7 @@ while t < totTime,
       fprintf('  Iteration %3d:  Res = %.4e\n', nit, residual);
    end
 
-   if ~ converged,
+   if ~ converged
       error('Newton solves did not converge')
    else % store solution
       sol(step+1)  = struct('time', t, 'pressure', value(p_ad), ...
@@ -286,7 +286,7 @@ ylabel(ha(2), 'avg pressure [bar]');
 %% Plot pressure evolution
 clf
 steps = [2, 5, 10, 20];
-for i = 1 : numel(steps),
+for i = 1 : numel(steps)
    subplot(2,2,i)
    plotCellData(G, convertTo(sol(steps(i)).pressure, barsa), ...
                 show, 'EdgeColor', repmat(0.5, [1, 3]))
