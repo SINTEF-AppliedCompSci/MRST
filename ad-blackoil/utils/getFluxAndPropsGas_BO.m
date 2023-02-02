@@ -74,10 +74,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     fluid = model.fluid;
     s = model.operators;
+    fp = model.FlowPropertyFunctions;
+    if isempty(fp)
+        if isfield(model.rock, 'regions') && isfield(model.rock.regions, 'saturations')
+            satnum = model.rock.regions.saturation;
+        else
+            satnum = [];
+        end
+        fp_sat = StateFunction(model, 'regions', satnum);
+    else
+        fp_sat = fp.RelativePermeability;
+    end
+    satfun = @(varargin) fp_sat.evaluateFunctionOnDomainWithArguments(varargin{:});
+
     % Check for capillary pressure (p_cow)
     pcOG = 0;
     if isfield(fluid, 'pcOG') && ~isempty(sG)
-        pcOG  = fluid.pcOG(sG);
+        pcOG  = satfun(fluid.pcOG, sG);
     end
     pG = pO + pcOG;
     

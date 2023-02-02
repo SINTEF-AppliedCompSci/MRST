@@ -68,8 +68,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fp = model.FlowPropertyFunctions;
     pp = model.PVTPropertyFunctions;
     if isempty(fp)
-        fp_sat = StateFunction(model);
-        fp_pvt = fp_sat;
+        if isfield(model.rock, 'regions') && isfield(model.rock.regions, 'saturations')
+            satnum = model.rock.regions.saturation;
+        else
+            satnum = [];
+        end
+        fp_sat = StateFunction(model, 'regions', satnum);
+        fp_pvt = StateFunction(model);
     else
         fp_pvt = pp.Density;
         fp_sat = fp.RelativePermeability;
