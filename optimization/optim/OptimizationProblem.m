@@ -684,8 +684,8 @@ u = mat2cell(u, nparam, 1);
 % Create new setup, and set parameter values
 setup = problem.SimulatorSetup;
 % make sure to recreate discretizations
-setup.model.FlowDiscretization = [];
-setup.model.FlowPropertyFunctions = [];
+setup.model = setup.model.removeStateFunctionGroupings();
+
 for k = 1:numel(params)
     tmp   = params{k}.unscale(u{k});
     setup = params{k}.setParameter(setup, tmp);
