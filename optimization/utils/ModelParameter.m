@@ -149,10 +149,12 @@ classdef ModelParameter
             if nargin < 3
                 doCollapse = true;
             end
-            if strcmp(p.location{2}, 'W') 
+            loc = p.location;
+            wlocIx = strcmp('W', loc);
+            if any(wlocIx)
+                wlocIx = find(wlocIx);
                 % well-parameter subset applies to well numbers 
-                loc = p.location(3:end);
-                v = applyFunction(@(x)p.getfun(x, loc{:}), control.W(p.subset));
+                v = applyFunction(@(x)p.getfun(x, loc{wlocIx+1:end}), getfield(control, loc{2:wlocIx}, {p.subset}));
                 if ~isempty(p.wellSubsets)
                     v = applyFunction(@(x,y)x(y), v, p.wellSubsets);
                 end
@@ -169,30 +171,34 @@ classdef ModelParameter
         end
         %------------------------------------------------------------------
         function control = setControlParameterValue(p, control, v)
-            if strcmp(p.location{2}, 'W')
+            loc = p.location;
+            wlocIx = strcmp('W', loc);
+            if any(wlocIx)
+                wlocIx = find(wlocIx);
                 % well-parameter special treatment
                 sub = p.subset;
+                W = getfield(control, loc{2:wlocIx});%#ok
                 if ~isnumeric(sub)
-                    sub = (1:numel(control.W))';
+                    sub = (1:numel(W))';
                 end
                 % scalar param per well or connection
                 if numelValue(v) == numel(sub)
                     np = ones(size(sub));
                 else
-                    np = arrayfun(@(w)numel(w.cells), control.W(sub));
+                    np = arrayfun(@(w)numel(w.cells), W(sub));
                 end
                 [i1, i2] = deal(cumsum([1;np(1:end-1)]), cumsum(np));
                 v  = applyFunction(@(i1,i2)v(i1:i2), i1, i2);
-                loc = p.location(3:end);
                 if ~isempty(p.wellSubsets)
                     for k = 1:numel(sub)
-                        tmp  = p.getfun(control.W(sub(k)), loc{:});
+                        tmp  = p.getfun(W(sub(k)), loc{wlocIx+1:end});
                         v{k} = setSubset(tmp, v{k}, p.wellSubset{k});
                     end
                 end
-                for k = 1:numel(sub)   
-                    control.W(sub(k)) = p.setfun(control.W(sub(k)), loc{:}, v{k});
+                for k = 1:numel(sub)
+                    W(sub(k)) = p.setfun(W(sub(k)), loc{wlocIx+1:end}, v{k});
                 end
+                control = setfield(control, loc{2:wlocIx}, W);%#ok
             else
                 % other parameter (set subset of parameter)
                 loc = p.location(2:end);
