@@ -32,7 +32,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     ng     = numel(groups);
     % Loop through groups and update well controls
     for g = 1:ng
-        group = groups{g};
+        group = groups(g);
         switch group.type
             case 'none'
                 % Group does not have a control - nothing to do

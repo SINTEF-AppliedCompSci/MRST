@@ -2,12 +2,12 @@ function groups = processGroups(model, groups, state, pot)
 
     ng         = numel(groups);
     groups0    = groups;
-    groupNames = cellfun(@(group) group.name, groups0, 'UniformOutput', false);
+    groupNames = {groups.name};
     isChild = false(1, ng);
     for i = 1:ng
         if isChild(i), continue; end
-        group = groups0{i};
-        groups{i} = {group};
+        group = groups0(i);
+        groups(i) = group;
         if ~isfield(group, 'children'), continue; end
         if strcmpi(group.type, 'none'), continue; end
         children = group.children;
@@ -50,19 +50,19 @@ function groups = processGroups(model, groups, state, pot)
     end
     
     groups = groups(~isChild);
-    groups = horzcat(groups{:});
+%     groups = horzcat(groups{:});
 
     ng = numel(groups);
     for i = 1:ng
-        group = groups{i};
+        group = groups(i);
         if strcmpi(group.type, 'none'), continue; end
         if ischar(group.val)
             gix = strcmpi(group.val, groupNames);
-            if isfield(groups0{gix}, 'children')
-                group.val = groups0{gix}.children;
+            if isfield(groups0(gix), 'children')
+                group.val = groups0(gix).children;
             end
         end
-        groups{i} = group;
+        groups(i) = group;
     end
     
 end

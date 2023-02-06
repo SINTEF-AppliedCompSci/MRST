@@ -38,6 +38,7 @@ function props  = getReservoirProperties(model, state, bc)
     
     if model.dynamicFlowTrans
         prop = model.FlowDiscretization.getStateFunction('Transmissibility');
+        state = model.FlowDiscretization.evaluateDependencies(model, state, prop.dependencies);
         Tf = prop.evaluateOnDomain(model, state, true);
         Tf = Tf(faces);
     else
@@ -45,6 +46,7 @@ function props  = getReservoirProperties(model, state, bc)
     end
     if model.dynamicHeatTransFluid
         prop = model.FlowDiscretization.getStateFunction('FluidHeatTransmissibility');
+        state = model.FlowDiscretization.evaluateDependencies(model, state, prop.dependencies);
         Thf = prop.evaluateOnDomain(model, state, true);
         Thf = Thf(faces);
     else
@@ -52,6 +54,7 @@ function props  = getReservoirProperties(model, state, bc)
     end
     if model.dynamicHeatTransRock
         prop = model.FlowDiscretization.getStateFunction('RockHeatTransmissibility');
+        state = model.FlowDiscretization.evaluateDependencies(model, state, prop.dependencies);
         Thr = prop.evaluateOnDomain(model, state, true);
         Thr = Thr(faces);
     else   

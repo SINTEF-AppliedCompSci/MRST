@@ -49,7 +49,7 @@ function groupSol = aggregateGroupData(groups, wellSol)
                     numel(wsg(1).(fname{1})) ~= 1
                     groupSol(i).(fname{1}) = wsg(1).(fname{1});
                 continue
-            elseif any(strcmpi(fname{1}, rateNames))
+            elseif any(strcmpi(fname{1}, [rateNames, 'effect']))
                 get = @(v) sum(v);
             elseif strcmpi(fname{1}, 'status')
                 get = @(v) nnz(v)./numel(v);

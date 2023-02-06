@@ -9,23 +9,27 @@ function src = getHeatFluxBoundary(model, src, drivingForces)
     bc = drivingForces.bc;
     propsRes = bc.propsRes;
     propsBC  = bc.propsBC;
-    qAdv  = computeAdvectiveHeatFlux(model, propsRes, propsBC, src);
+    [qAdv, q] = computeAdvectiveHeatFlux(model, propsRes, propsBC, src);
     qCond = computeConductiveHeatFlux(propsRes, propsBC, bc);
+    src.bc.advHeatFlux = q;
+    src.bc.condHeatFlux = qCond;
     src.bc.heatFlux = qAdv + qCond;
     
 end
 
 %-------------------------------------------------------------------------%
-function q = computeAdvectiveHeatFlux(model, propsRes, propsBC, src)
+function [q, qph] = computeAdvectiveHeatFlux(model, propsRes, propsBC, src)
 
     nph = model.getNumberOfPhases();
     q   = 0;
+    qph = cell(1,nph);
     hbc = model.getProps(propsBC , 'PhaseEnthalpy');
     hr  = model.getProps(propsRes, 'PhaseEnthalpy');    
     for i = 1:nph
         inflow = src.bc.phaseMass{i} > 0;
         h      = inflow.*hbc{i} + ~inflow.*hr{i};
-        q      = q + src.bc.phaseMass{i}.*h;
+        qph{i} = src.bc.phaseMass{i}.*h;
+        q      = q + qph{i};
     end
     
 end

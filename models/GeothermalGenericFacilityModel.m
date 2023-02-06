@@ -108,7 +108,9 @@ classdef GeothermalGenericFacilityModel < GenericFacilityModel
         
             % If wells are under group control, we must update
             % state.wellSol so that we use correct values in the equations
-            state = setWellValuesFromGroupControls(model, state0, state, dt, drivingForces);
+            if isfield(drivingForces, 'groups')
+                state = setWellValuesFromGroupControls(model, state0, state, dt, drivingForces);
+            end
             % Call parent model to get mass conservation and control eqs
             [eqs, names, types, state] = getModelEquations@GenericFacilityModel(model, state0, state, dt, drivingForces);
             isTemp = strcmpi(state.FacilityState.names, 'well_temperature');

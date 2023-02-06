@@ -67,8 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rock.perm(fracture_cells) = 1e4*milli*darcy; % Fracture permeability
     rock.poro(fracture_cells) = 0.8;             % Fracture porosity
     % Add thermal properties
-    Watt = joule/second;
-    rock = addThermalRockProps(rock, 'lambdaR', 2*Watt/(meter*Kelvin)       , ...
+    rock = addThermalRockProps(rock, 'lambdaR', 2*watt/(meter*Kelvin)       , ...
                                      'rhoR'   , 2700*kilogram/meter^3       , ...
                                      'CpR'    , 1000*joule/(kilogram*Kelvin));
     K0   = 273.15*Kelvin;
@@ -82,7 +81,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Add thermal properties
     fluid = addThermalFluidProps(fluid            , ...
                 'Cp'     , 4.2*joule/(gram*Kelvin), ... % Heat capacity
-                'lambdaF', 0.6*Watt/(meter*Kelvin), ... % Thermal cond
+                'lambdaF', 0.6*watt/(meter*Kelvin), ... % Thermal cond
                 'cT'     , 207e-6/Kelvin          , ... % Thermal expansion
                 'TRef'   , K0 + 10*Kelvin         );    % Reference temp
     % Make model
