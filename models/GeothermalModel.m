@@ -802,7 +802,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
                     
                     if ~model.thermal, return; end
-                    drivingForces.bc = getBCProperties(drivingForces.bc, model, state);
+                    drivingForces.bc = getBCProperties(drivingForces.bc, model, state_flow);
                     src = struct();
                     phaseMass = cellfun(@(rho, q) rho.*q, drivingForces.bc.propsRes.rho, fRes, 'UniformOutput', false);
                     src.bc.phaseMass = phaseMass;
