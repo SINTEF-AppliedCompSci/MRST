@@ -804,7 +804,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     if ~model.thermal, return; end
                     drivingForces.bc = getBCProperties(drivingForces.bc, model, state_flow);
                     src = struct();
-                    phaseMass = cellfun(@(rho, q) rho.*q, drivingForces.bc.propsRes.rho, fRes, 'UniformOutput', false);
+                    phaseMass = cellfun(@(rho, q) rho.*q, drivingForces.bc.propsRes.rho, fRes', 'UniformOutput', false);
                     src.bc.phaseMass = phaseMass;
                     src.bc.sourceCells = sum(model.G.faces.neighbors(drivingForces.bc.face,:), 2);
                     src = getHeatFluxBoundary(model, src, drivingForces);
@@ -812,7 +812,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     faces = drivingForces.bc.face;
                     sgn = 1 - 2*(model.G.faces.neighbors(faces, 2) == 0);
                     for ph = 1:model.getNumberOfPhases()
-                        state.heatFluxAdv(faces, ph) = src.bc.advHeatFlux(:,ph).*sgn;
+                        state.heatFluxAdv(faces, ph) = src.bc.advHeatFlux{ph}.*sgn;
                     end
                     state.heatFluxCond(faces) = src.bc.condHeatFlux.*sgn;
                     
