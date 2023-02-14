@@ -86,8 +86,6 @@ classdef SummarySelectorExtended < UIItem
                 propSearch.Callback   = @s.searchCallback;
                 typeSelect.Callback   = @s.typeCallback;
                 clearButton.Callback  = @s.clearCallback;
-                %[leftButton.Callback, rightButton.Callback] = deal(@s.buttonCallback);
-                %regionSwitch.Callback = @s.regionCallback;
                 
                 s.nameSelector = nameSelector;
                 s.propSelector = propSelector;
@@ -95,9 +93,6 @@ classdef SummarySelectorExtended < UIItem
                 s.propSearch   = propSearch;
                 s.typeSelect   = typeSelect;
                 s.clearButton  = clearButton;
-                %s.leftButton   = leftButton;
-                %s.rightButton  = rightButton;
-                %s.regionSwitch = regionSwitch;
             end
             
             % set visible
@@ -157,15 +152,6 @@ classdef SummarySelectorExtended < UIItem
         end        
            
         function nameCallback(s, src, event)
-%             pvals = s.propSelector.Value;
-%             psel  = s.propSelector.String(pvals);
-%             s.propSelector.String = s.props(any(s.name2prop(s.nameSubsetIx(s.nameIx),:), 1));
-%             % relocate prop selectioins
-%             pvalIx = false(numel(s.propSelector.String), 1);
-%             for k = 1:numel(psel)
-%                 pvalIx = pvalIx | matches(s.propSelector.String, psel{k});
-%             end
-%             s.propSelector.Value = find(pvalIx);
             s.nameMap.ix(s.nameMap.ix == 2) = 1;
             s.nameMap.ix(s.nameMap.sub(s.nameSelector.Value)) = 2;
             if isempty(s.propSearch.String) && ~isempty(s.nameSelector.Value)
@@ -257,9 +243,6 @@ classdef SummarySelectorExtended < UIItem
         end
         
         function s = setPropListSubset(s, gix)
-            %if ~any(gix) && isempty(s.propSelector.Value)
-            %    gix = ones(size(gix));
-            %end
             globSel = s.propMap.ix == 2;
             gix = double(gix);
             gix(globSel) = 2;
@@ -271,9 +254,6 @@ classdef SummarySelectorExtended < UIItem
        
         
         function s = setNameListSubset(s, gix)
-            %if ~any(gix) && isempty(s.nameSelector.Value)
-            %    gix = ones(size(gix));
-            %end
             globSel = s.nameMap.ix == 2;
             gix = double(gix);
             gix(globSel) = 2;
@@ -343,60 +323,7 @@ classdef SummarySelectorExtended < UIItem
                 s.nameSelector.String = s.names(s.nameSubsetIx);
             end
         end
-        
-%         function setWellSubset(s, nms)
-%             [s.nameSelector.Value, s.propSelector.Value]  = deal([]);
-%             ix = false(numel(s.names), 1);
-%             for k = 1:numel(nms)
-%                 nm = nms{k};
-%                 ix = ix | strncmp(nm, s.names, 8);
-%             end
-%             s.nameSubsetIx = find(ix);
-%             s.nameSelector.String = s.names(s.nameSubsetIx);
-%         end
     end
-end
-% 
-% function [names, props, n2p, t] = processSummary(smry)
-% n = numel(smry);
-% [names, props, n2p, t] = deal(cell(1,n));
-% for k  = 1:n
-%     specFld = smry.getNms('TIME');
-%     tmp  = datenum(smry{k}.STARTDAT) + smry{k}.get(specFld, 'TIME', ':');
-%     t{k} = datetime(tmp, 'ConvertFrom', 'datenum');
-%     names{k} = smry{k}.WGNAMES;
-%     props{k} = smry{k}.KEYWORDS;
-%     n2p{k} = unique([smry{k}.nInx, smry{k}.kInx], 'rows');
-% end
-% end
-
-
-
-function [names, props, time, name2prop] = processSummaryMRST(smry)
-
- % Use this for field name because any name could be used to get time and
- % timestep data but this is unlikely to be the name of an actual field in 
- % an MRST wellSol.
-specFld = ':+:+:+:+';
-time  = datenum(smry.STARTDAT) + smry.get(specFld, 'TIME', ':');
-names = smry.WGNAMES;
-props = smry.KEYWORDS(1:end-2);
-numwells = numel(smry.WGNAMES);
-numkws = numel(props);
-name2prop = ones(numwells,numkws);
-end
-
-
-function [names, props, time, name2prop] = processSummaryECLIPSE(smry)
-specFld = smry.getNms('TIME');%':+:+:+:+';
-time  = datenum(smry.STARTDAT) + smry.get(specFld, 'TIME', ':');
-%nmIx  = ~strcmp(specFld, smry.WGNAMES);
-names = smry.WGNAMES;%(nmIx);
-props = smry.KEYWORDS;
-% name/prop compatibility matrix
-M = sparse(smry.nInx, smry.kInx, 1);
-%M(~nmIx, :) = [];
-name2prop = logical(M);
 end
 
 function [names, props, time, name2prop] = processSummary(smry)
