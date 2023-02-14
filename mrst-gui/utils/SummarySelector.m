@@ -209,7 +209,7 @@ end
 
 
 function [names, props, time, name2prop] = processSummaryECLIPSE(smry)
-specFld = ':+:+:+:+';
+specFld = smry.getNms('TIME');
 time  = datenum(smry.STARTDAT) + smry.get(specFld, 'TIME', ':');
 nmIx  = ~strcmp(specFld, smry.WGNAMES);
 names = smry.WGNAMES(nmIx);
