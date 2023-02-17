@@ -75,7 +75,7 @@ classdef SummaryViewer < handle
             d.Figure.SizeChangedFcn = @d.updateLayout;
             d.Figure.CloseRequestFcn = @d.closeFigure;
             d.selector.Callback = @d.update;
-            d.optionSelector.Callback = @d.updateOptions; 
+            d.optionSelector.Callback = @d.update; 
             d.updateLayout();
             box(d.Axes, 'on')
             grid(d.Axes, 'on')
@@ -182,7 +182,7 @@ classdef SummaryViewer < handle
             end
             count   = 0;
             caseCnt = 1;
-            [data, info, propIx] = deal(cell(100, 1));
+            [data, info, propIx] = deal(cell(nnz(d.caseSelection)*numel(nms)*numel(prps), 1));
             for kc = 1:numel(d.smry)
                 if d.caseSelection(kc)
                     nameCnt = 1;
@@ -240,6 +240,7 @@ classdef SummaryViewer < handle
             if count > 0
                 info = info(1:count);
                 caseNo = cellfun(@(s)s.caseNo, info);
+                h = cell(numel(d.smry), 1);
                 for kc = 1:numel(d.smry)
                     ii = caseNo == kc;
                     if any(ii)
@@ -248,7 +249,7 @@ classdef SummaryViewer < handle
                         else
                             xdata = d.smry{kc}.ministep;
                         end
-                        h{kc} = line(ax, xdata, vertcat(data{ii}), 'LineWidth', d.LineWidth, 'MarkerSize', d.MarkerSize); %#ok
+                        h{kc} = line(ax, xdata, vertcat(data{ii}), 'LineWidth', d.LineWidth, 'MarkerSize', d.MarkerSize);
                     end
                 end
                 h = vertcat(h{:});
@@ -266,7 +267,7 @@ classdef SummaryViewer < handle
         end
         
         %------------------------------------------------------------------
-        function updateLayout(d, src, event)
+        function updateLayout(d, varargin)
             fpos = d.Figure.Position;
             mw = d.layout.menuWidth;
             if d.optionSelector.collapse
@@ -281,17 +282,17 @@ classdef SummaryViewer < handle
         end
         
         %------------------------------------------------------------------        
-        function updateOptions(d, varargin)
-            d.caseNames      = d.optionSelector.caseNames;
-            d.caseSelection  = d.optionSelector.caseSelection;
-            d.selectSubItems = d.optionSelector.doSelectSubItems;
-            d.scaleValues    = d.optionSelector.doScale;
-            [d.orderCasesBy, d.orderNamesBy, d.orderPropsBy] = ...
-                deal(d.optionSelector.lineProperties{:});
-            if nargin > 1
-                d.update(varargin{:});
-            end
-        end
+%         function updateOptions(d, varargin)
+%             d.caseNames      = d.optionSelector.caseNames;
+%             d.caseSelection  = d.optionSelector.caseSelection;
+%             d.selectSubItems = d.optionSelector.doSelectSubItems;
+%             d.scaleValues    = d.optionSelector.doScale;
+%             [d.orderCasesBy, d.orderNamesBy, d.orderPropsBy] = ...
+%                 deal(d.optionSelector.lineProperties{:});
+%             if nargin > 1
+%                 d.update(varargin{:});
+%             end
+%         end
         
         %------------------------------------------------------------------        
         function updateSubItems(d, src, event, nm, prp, info)
@@ -375,7 +376,7 @@ classdef SummaryViewer < handle
             d.clearSubItemSelectors();
             delete(d.SubItemFigure);
             d.optionSelector.doSelectSubItems = false;
-            d.updateOptions(src, event);
+            d.update(src, event);
         end
         
         %------------------------------------------------------------------
