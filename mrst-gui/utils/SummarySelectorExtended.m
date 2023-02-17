@@ -1,7 +1,6 @@
 classdef SummarySelectorExtended < UIItem
     properties
         Callback
-        regCallback
         nameSelector
         propSelector
         nameSearch
@@ -30,7 +29,6 @@ classdef SummarySelectorExtended < UIItem
         function s = SummarySelectorExtended(smry, varargin)
             opt = struct('Parent',          [], ...
                          'Callback',        @(src, event)disp('Callback unset'), ...
-                         'regCallback',     @(src, event)disp('Region callback unset'), ...
                          'Position',        [10 10 200 200], ...
                          'Visible',         'on', ...
                          'Title',           'Simulation output', ...
@@ -42,7 +40,7 @@ classdef SummarySelectorExtended < UIItem
             else
                 error('');
             end
-            popupStr = {'all', 'FIELD', 'GROUP', 'WELL', 'MISC', 'BLOCK', 'REGION'};
+            popupStr = {'all', 'WELL', 'GROUP', 'FIELD',  'REGION', 'AQUIFER', 'BLOCK', 'MISC'};
             
             typeSelect = uicontrol('Parent', [], 'Style', 'popupmenu',  'Max', 1, 'Min', 0, ...
                                    'Value', 1, 'String', popupStr, 'Visible', 'off');
@@ -58,7 +56,7 @@ classdef SummarySelectorExtended < UIItem
             propSelector = uicontrol('Parent', [], 'Style', 'listbox',  'Max', 2, 'Min', 0, ...
                                      'Value', [], 'String', props, 'Visible', 'off');                     
                                
-            controls      = {{typeSelect, clearButton}, {nameSearch, propSearch}, {nameSelector, propSelector}};%, {leftButton, rightButton}, {regionSwitch}};
+            controls      = {{typeSelect, clearButton}, {nameSearch, propSearch}, {nameSelector, propSelector}};
             controlLayout = {[.5, .5], [.5, .5], [.5, .5]}; 
             
             
@@ -71,14 +69,13 @@ classdef SummarySelectorExtended < UIItem
             [nnm, nprp] = deal(numel(names), numel(props));
             s.nameMap = struct('sub',(1:nnm)' ,  'ix', ones(nnm,1));
             s.propMap = struct('sub',(1:nprp)', 'ix',  ones(nprp,1));
-            s.singlePropIx = cellfun(@any, regexp(s.props, '^[^ABCGLRSW]'));
+            s.singlePropIx = cellfun(@any, regexp(s.props, '^[^ACGLRSW]|^STEP'));
             
             s.fixedHeight = true;
             s.nameSubsetIx = (1:numel(s.names))';
             % main callback
             if ~isempty(smry)
                 s.Callback    = opt.Callback;
-                s.regCallback = opt.regCallback;
                 % item callbacks
                 nameSelector.Callback = @s.nameCallback;
                 propSelector.Callback = @s.propCallback;
@@ -279,18 +276,20 @@ classdef SummarySelectorExtended < UIItem
             tp = s.typeSelect.String{s.typeSelect.Value};
             str = '';
             switch tp
-                case 'FIELD'
-                    str = '^F';
-                case 'GROUP'
-                    str = '^G';
                 case 'WELL'
                     str = '^[WCS]';
-                case 'MISC'
-                    str = '^[^ABCFGLRSW]';
-                case 'BLOCK'
-                    str = '^B';
+                case 'GROUP'
+                    str = '^G';
+                case 'FIELD'
+                    str = '^F';
                 case 'REGION'
                     str = '^R';
+                case 'AQUIFER'
+                    str = '^A';                
+                case 'MISC'
+                    str = '^[^ABCFGLRSW]|^STEP';
+                case 'BLOCK'
+                    str = '^B';                  
             end
             s.propSearch.String = str;
             s.searchCallback(src, event);
