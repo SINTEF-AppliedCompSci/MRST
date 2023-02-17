@@ -204,12 +204,14 @@ smry.WGNAMES   = names;
 smry.KEYWORDS  = kwrds;
 smry.UNITS     = smspec.UNITS.values;
 smry.STARTDAT  = smspec.STARTDAT.values([3 2 1])';
+smry.NUMS      = smspec.NUMS.values;
 smry.nInx      = nInx;
 smry.nInxOrder = nInxOrder;
 smry.kInx      = kInx;
 smry.kInxOrder = kInxOrder;
 smry.data      = data(:, 1:curStep);
 smry.ministep  = ministeps(1:curStep);
+smry.cartDims  = reshape(smspec.DIMENS.values(2:4),  1, []);
 
 smry = addSmryFuncs(smry);
 
@@ -220,7 +222,7 @@ end
 %--------------------------------------------------------------------------
 
 function smry = addSmryFuncs(smry)
-smry.get    = @(nm,kw,ms)getData(smry, nm, kw, ms);
+smry.get    = @(varargin)getData(smry, varargin{:});
 smry.getInx = @(nm,kw)getRowInx(smry,nm,kw);
 smry.getNms = @(kw)getNames(smry,kw);
 smry.getKws = @(nm)getKeywords(smry, nm);
@@ -245,13 +247,25 @@ end
 
 %--------------------------------------------------------------------------
 
-function s = getData(smry, nm, kw, ms)
+function [s, unit, spec] = getData(smry, nm, kw, ms, trimData)
+if nargin < 5
+    trimData = false;
+end
 [rInx, order] = getRowInx(smry, nm, kw);
 if isempty(ms) || (ischar(ms) && strcmp(ms, ':'))
    ms = 1 : size(smry.data, 2);
 end
 s = smry.data(rInx, ms);
 s = s(order,:);
+if nargout >= 2
+    unit = getUnit(smry, nm, kw);
+end
+if nargout >= 3 || trimData
+     [spec, isValid] = getSpec(smry, nm, kw);
+end
+if trimData
+    [s, spec] = deal(s(isValid,:), spec(isValid,:));
+end
 end
 
 %--------------------------------------------------------------------------
@@ -294,7 +308,38 @@ end
 
 function u = getUnit(smry, nm, kw)
 rInx = getRowInx(smry, nm, kw);
-u = smry.UNITS{rInx};
+u = smry.UNITS(rInx);
+% Same unit for all entries (in case of multiple records)
+u = strtrim( u{1} );
+end
+
+%--------------------------------------------------------------------------
+
+function [spec, isValid] = getSpec(smry, nm, kw)
+rInx = getRowInx(smry, nm, kw);
+nums = smry.NUMS(rInx);
+spec    = nums;
+exceptions = {'STEPTYPE'};
+if ~any(strcmp(kw, exceptions))
+    isValid = nums > 0;
+    switch kw(1)
+        case {'B', 'C'}
+            [i,j,k] = ind2sub(smry.cartDims, nums);
+            spec = [i, j, k];
+        case 'R'
+            d =  32768;
+            if all(nums > d)
+                spec = [mod(nums,d), floor(nums/d)-10];
+            end
+        case {'A', 'S'}
+            % do nothing
+        otherwise
+            % no apparent way of knowing if data is valid
+            isValid = true(size(nums));
+    end
+else
+    isValid = true(size(nums));
+end
 end
 
 %--------------------------------------------------------------------------
