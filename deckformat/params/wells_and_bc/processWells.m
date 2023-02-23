@@ -115,7 +115,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    post = struct('WPOLYMER', @process_wpolymer, ...
                  'WSURFACT', @process_wsurfact, ...
                  'WSOLVENT', @process_wsolvent, ...
-                 'WTEMP'   , @process_wtemp);
+                 'WTEMP'   , @process_wtemp   , ...
+                 'WINJGAS' , @process_winjgas);
 
    % ----------------------------------------------------------------------
    % Well processing stages
@@ -416,6 +417,30 @@ end
 
 %--------------------------------------------------------------------------
 
+function W = process_winjgas(W, control, varargin)
+    ngas = size(control.WINJGAS, 1);
+    
+    if ngas == 0, return, end
+    
+    if ~isempty(W)
+      Wn = { W.name };
+
+      for i = 1 : ngas
+         j = find(strcmp(Wn, control.WINJGAS{i,1}));
+         if ~isempty(j)
+             assert(strcmpi(control.WINJGAS{i,2}, 'stream'));
+             sname = control.WINJGAS{i,3};
+             k = strcmpi(sname, control.WELLSTRE(:,1));
+             composition = cell2mat(control.WELLSTRE(k,2:end));
+             W(j).components = composition;
+         end
+      end
+   end
+    
+end
+
+%--------------------------------------------------------------------------
+
 function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
    for i = 1 : size(control.WCONHIST, 1)
       nm = control.WCONHIST{i,1};
@@ -594,6 +619,7 @@ function control = insertDefaults(control, id, nlayers)
    control.COMPDAT  = insertDefaultCOMPDAT (control, id, nlayers);
    control.WCONINJE = insertDefaultWCONINJE(control);
    control.WCONPROD = insertDefaultWCONPROD(control);
+   control.WELLSTRE = insertDefaultWELLSTRE(control);
 end
 
 %--------------------------------------------------------------------------
@@ -740,6 +766,17 @@ function wconprod = insertDefaultWCONPROD(control)
       i = isnan(vertcat(wconprod{:,9}));
       wconprod(i,9) = { 1 * atm };
    end
+end
+
+%--------------------------------------------------------------------------
+
+function wellstre = insertDefaultWELLSTRE(control)
+    wellstre = control.WELLSTRE;
+
+%    if numel(wellstre) > 0
+%       i = isnan(vertcat(wellstre{:,9}));
+%       wellstre(i,9) = { 1 * atm };
+%    end
 end
 
 %--------------------------------------------------------------------------
