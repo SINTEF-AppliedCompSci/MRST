@@ -79,7 +79,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Count completely filled cells in each column.
    % n==0 if first cell is partially filled.
    %
-   n = accumarray(f(:,2), f(:,1) < 0, size(h));
+   n = accumarray(f(:,2), f(:,1) <= 0, size(h));
    t = zeros(size(n));
 
    % Compute position/row index into look-up table (f) of each column's

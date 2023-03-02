@@ -70,7 +70,7 @@ prop = @(  varargin) properties(opt, varargin{:});
 kr   = @(state) relperm(state,g_top,opt,varargin{:});
 pc   = @(state) cap_press(state,g_top,opt, varargin{:});
 pc_inv=@(pc) cap_press_inv(pc,g_top,opt,varargin{:});
-sat2height =@(state)   saturation2Height(state,g_top,opt);
+sat2height =@(state)   saturation2Height_wrapper(state,g_top,opt);
 fluid = struct('properties', prop             , ...
                'saturation', @(x,varargin) x.s, ...%not used
                'relperm'   , @(s,state) kr(state),  ...
@@ -94,9 +94,9 @@ function s = cap_press_inv(pc, g_top, opt, varargin)
    % this trasformation has to be done twice as long as
    % pc and relperm are separate functions
    %if nargout<2
-   %  [h,h_max] = saturation2Height(state,g_top,opt);
+   %  [h,h_max] = saturation2Height_wrapper(state,g_top,opt);
    %else
-   %  [h,h_max,dh] = saturation2Height(state,g_top,opt);
+   %  [h,h_max,dh] = saturation2Height_wrapper(state,g_top,opt);
    %end
    
    ngrav=norm(gravity);
@@ -115,9 +115,9 @@ function varargout = cap_press(state, g_top, opt, varargin)
    % this trasformation has to be done twice as long as
    % pc and relperm are separate functions
    if nargout<2
-     [h,h_max] = saturation2Height(state,g_top,opt);
+     [h,h_max] = saturation2Height_wrapper(state,g_top,opt);
    else
-     [h,h_max,dh] = saturation2Height(state,g_top,opt);
+     [h,h_max,dh] = saturation2Height_wrapper(state,g_top,opt);
    end
    
    ngrav=norm(gravity);
@@ -137,9 +137,9 @@ end
 %---------------------------------------------------------------------
 function varargout = relperm(state, g_top, opt, varargin)
    if nargout<2
-     [h,h_max] = saturation2Height(state,g_top,opt);
+     [h,h_max] = saturation2Height_wrapper(state,g_top,opt);
    else
-     [h,h_max,dh] = saturation2Height(state,g_top,opt);
+     [h,h_max,dh] = saturation2Height_wrapper(state,g_top,opt);
    end
    
    %varargout{1} = bsxfun(@rdivide,[h*opt.kwm(1),(h_max-h)*opt.kwm(2)+(g_top.H-h_max)],g_top.H);
@@ -152,34 +152,20 @@ function varargout = relperm(state, g_top, opt, varargin)
      varargout =zeros(numel(g_top.H),2);
    end
 end
-function varargout = saturation2Height(state,g_top,opt)
-   s_max = state.extSat(:,2);
-   s     = state.s;
-   assert(size(s,1)==numel(g_top.H));
-   h_max = bsxfun(@rdivide, s_max.*g_top.H, (1-opt.sr(2)) );
-   h     = s.*g_top.H - bsxfun(@times,h_max,opt.sr(1));
-   h     = bsxfun(@rdivide, h, (1-opt.sr(2)-opt.sr(1)) );   
-   %if nargout<3
-%    assert(all(h>=0 | abs(h) < sqrt(eps)))
-%    assert(all(h_max>=0))
-%    assert(all(h<=g_top.H))
-%    assert(all(h_max<=g_top.H))
-   varargout{1}=h;
-   varargout{2}=h_max;
-   %end
-   if nargout==3
-     if(h<h_max)
-       dh=bsxfun(@rdivide,g_top.H,1-opt.sr(2)-opt.sr(1));
-     else
-       % this is not completely correct, it depends on sign ds
-       % could be fixed by using sign of residual
-       dh=bsxfun(@rdivide,g_top.H,1-opt.sr(2));
-     end
-     varargout{3}=dh;
-   end
-   if nargout>3
-     error('wrong number of output')
-   end
-   % s*H=h*(1-sr(2))+(h_max -h)*sr(1)
-   % s_max*H = h_max*(1-sr(2))
+
+function varargout = saturation2Height_wrapper(state, g_top, opt)
+    sg = state.s;
+    sgmax = state.extSat(:,2);
+    
+    % saturation2Height expect a grid, but as long as we do not do vertical
+    % integration of heterogeneous pore volumes, we only need the grid
+    % heights.  We create a mock grid object that only contains the cell
+    % heights.
+    Gt.cells.H = g_top.H;
+    rg = opt.sr(1);
+    rw = opt.sr(2);
+    [h, hmax, dh] = saturation2Height(sg, sgmax, Gt, rg, rw);
+    varargout = {h, hmax, dh};
 end
+
+
