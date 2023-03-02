@@ -10,7 +10,7 @@ function solver = setUpGeothermalLinearSolverAD_WB(model, varargin)
         solver.setSolver('gmres');
     else
         solver = AMGCL_CPRSolverAD();
-        solver.decoupling = 'none';
+        solver.decoupling = 'quasiimpes';
     end
     solver.maxIterations = 200;
     solver.tolerance = 1e-4;
