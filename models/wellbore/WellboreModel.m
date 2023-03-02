@@ -550,7 +550,6 @@ classdef WellboreModel < WrapperModel
             nw = model.numWells();
             ng = model.numGroups();
             [iic, iif] = model.getInletSegments();
-            icno = find(iic); ifno = find(iif);
         
             % Make mask types
             % No control - well is controlled by group or group is not
@@ -608,7 +607,7 @@ classdef WellboreModel < WrapperModel
             
             % Add in as source in corresponding well cells
             ctrlEqs(is_surface_rate) = target(is_surface_rate) - qs(is_surface_rate);
-            ctrlEqs(is_none) = Qt(is_none);
+            ctrlEqs(is_none | ~is_open) = Qt(is_none | ~is_open);
             
             eqs   = {ctrlEqs};
             names = {'control'};
