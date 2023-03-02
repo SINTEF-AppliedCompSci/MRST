@@ -193,7 +193,7 @@ function traj = addHybridCells(G, W, traj)
     
     assert(nnz(~hybrid) == nnz(~G.cells.hybrid(W.cells)))
     traj.cell = W.cells;
-    traj.vec = interp1(find(~hybrid), traj.vec, (1:nc)');
+    traj.vec = interp1(find(~hybrid), traj.vec, (1:nc)', 'linear', 'extrap');
     traj.vec(hybrid,3) = G.cells.aperture(W.cells(hybrid));
     w0 = traj.weight;
     traj.weight = zeros(nc,1);
