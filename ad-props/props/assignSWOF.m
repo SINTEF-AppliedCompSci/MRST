@@ -54,7 +54,7 @@ function [pts, pts_o] = getPoints(swof)
     % Get OW-scaling
     pts_o = zeros(1, 4);
     pts_o(3) = 1;
-    ii = find(swof(:,3) == 0, 1, 'first');
+    ii = find(swof(:,3) <= eps, 1, 'first');
     pts_o(2) = 1 - swof(ii,1);
     % Maximum oil relperm
     pts_o(4) = swof(1,3);
