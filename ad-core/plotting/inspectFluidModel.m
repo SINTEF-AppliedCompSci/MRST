@@ -219,12 +219,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     if strcmpi(phLetter, 'o') && disgas
                         % Account for solution gas
                         rhoO = rho;
-                        rhoG = f.rhoGS;
+                        rhoG = f.rhoGS(1);
                         data = b.*(r.*rhoG + rhoO);
                     elseif strcmpi(phLetter, 'g') && vapoil
                         % Account for vaporized oil
                         rhoG = rho;
-                        rhoO = f.rhoOS;
+                        rhoO = f.rhoOS(1);
                         data = b.*(r.*rhoO + rhoG);
                     else
                         data = b*rho;
@@ -290,24 +290,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     function plotRelperm(model, name)
-        krnames = {};
-        if model.water
-            krnames = [krnames, 'krW'];
+        krnames = {'krW', 'krO', 'krOG', 'krOW', 'krG'};
+        kr_active = false(numel(krnames), 1);
+        for i = 1:numel(kr_active)
+            kr_active(i) = isfield(model.fluid, krnames{i});
         end
-        if model.oil
-            if model.water && model.gas
-                krnames = [krnames, 'krOW', 'krOG'];
-            else
-                if isfield(model.fluid, 'krO')
-                    krnames = [krnames, 'krO'];
-                else
-                    krnames = [krnames, 'krOW'];
-                end
-            end
-        end
-        if model.gas
-            krnames = [krnames, 'krG'];
-        end
+        krnames = krnames(kr_active);
         plot2D_property(model, krnames);
         title(name);
     end
