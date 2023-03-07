@@ -30,7 +30,7 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
             if JfuncActiveOG || JfuncActiveOW
                 ratio = prop.getJFunctionStaticRatio(model);
             end
-
+            has_pc = false;
             if model.water && model.oil && isfield(f, 'pcOW')
                 sW = model.getProp(state, 'sw');
                 if prop.scalingActive
@@ -51,6 +51,7 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
                 end
                 % Note sign! Water is always first
                 pc{phInd == 1} = -pcow;
+                has_pc = true;
             end
             
             if model.gas && model.oil && isfield(f, 'pcOG')
@@ -62,11 +63,20 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
                     pcog = sog.*ratio.*pcog;
                 end
                 pc{phInd == 3} = pcog;
+                has_pc = true;
             end
             if ~model.oil && isfield(f, 'pcWG')
                 % Water-gas capillary pressure
                 sG = model.getProp(state, 'sg');
                 pc{phInd == 3} = prop.evaluateFluid(model, 'pcWG', sG);
+                has_pc = true;
+            end
+            if has_pc
+                for i = 1:nph
+                    if isempty(pc{i})
+                        pc{i} = zeros(model.G.cells.num, 1);
+                    end
+                end
             end
         end
         
