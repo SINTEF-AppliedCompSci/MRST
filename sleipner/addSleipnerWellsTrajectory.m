@@ -36,7 +36,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 %%
-opt = struct('Name', '15/9_A16');
+opt = struct('Name', '15/9_A16',...
+    'coarseDimXY',[]);
 opt = merge_options(opt,varargin{:});
 
 %%
@@ -61,14 +62,20 @@ pnts = wdata(:,[1 2 7]);
 pnts(:,3) = pnts(:,3).*-1;
 
 perfDepth = [1010.5,1013.3];
-traj = interp1(pnts(:,3),pnts,(0:.01:1).*(perfDepth(2)-perfDepth(1)) + perfDepth(1));
 
+if ~isempty(opt.coarseDimXY)
+    % A hack to make it work with coarsened grids
+    fac = max(max(opt.coarseDimXY));
+    traj = interp1(pnts(:,3),pnts,(0:.01:1).*(perfDepth(2)-perfDepth(1))*fac + (perfDepth(1)-(perfDepth(2)-perfDepth(1))/fac));
+else
+    traj = interp1(pnts(:,3),pnts,(0:.01:1).*(perfDepth(2)-perfDepth(1)) + perfDepth(1));
+end
 
 % Compute intersections between grid and trajectory. Returned struct
 % contains cell indiices of traversed cells, vector representing part of 
 % segment (exit point minus entry point) and a weight which which is typically 
 % one except in cases where a segment is shared between multiple cells   
-T = computeTraversedCells(G, traj);  %#ok
+% T = computeTraversedCells(G, traj);  %No longer needed
 
 %% Add wells from trajectory
 % Wells can be added directly from trajectory similarly to the addWell-function. 
