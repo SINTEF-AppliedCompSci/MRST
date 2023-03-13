@@ -72,9 +72,10 @@ classdef BlackOilCapillaryPressure < StateFunction & SaturationProperty
                 has_pc = true;
             end
             if has_pc
+                n = max(cellfun(@numelValue, pc));
                 for i = 1:nph
                     if isempty(pc{i})
-                        pc{i} = zeros(model.G.cells.num, 1);
+                        pc{i} = zeros(n, 1);
                     end
                 end
             end
