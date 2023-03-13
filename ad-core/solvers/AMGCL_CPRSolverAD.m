@@ -144,7 +144,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                ndof = solver.keepNumber;
            end
 
-           if isempty(solver.variableOrdering) || numel(solver.variableOrdering) ~= ndof
+           if isempty(solver.variableOrdering)
                if solver.useSYMRCMOrdering
                    sym_ordering = getGridSYMRCMOrdering(model.G);
                else
@@ -152,7 +152,7 @@ classdef AMGCL_CPRSolverAD < AMGCLSolverAD
                end
                ordering = getCellMajorReordering(n, m, 'ndof', ndof, 'cell_ordering', sym_ordering);
                solver.variableOrdering = ordering;
-               if isempty(solver.equationOrdering) || numel(solver.equationOrdering) ~= ndof
+               if isempty(solver.equationOrdering)
                    solver.equationOrdering = ordering;
                end
            end
