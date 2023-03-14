@@ -21,7 +21,7 @@ function [rstrt, rsspec] = readEclipseRestartUnFmt_fallback(prefix, varargin)
 %             are stored in separate columns of the corresponding cell
 %             array.
 %
-%   rsspec  - Restart specifiction obtained from the '.RSSPEC' file.
+%   rsspec  - Restart specifiction obtained from the '.RSSPEC' file (if it exists)
 %
 % SEE ALSO:
 %   `readEclipseSummaryUnFmt`, `readEclipseRestartFmt`.
@@ -45,7 +45,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   opt = struct('RestartFields', {{}});
+   opt = struct('RestartFields', {{}}, ...
+                'nSteps',        inf);
    opt = merge_options(opt, varargin{:});
 
    is_open_pre = fopen('all');
@@ -54,7 +55,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    if isempty(dname)
       dname = '.';
    end
-
+   
    rstReader = @readEclipseOutputFileUnFmt;
 
    if exist([prefix, '.RSSPEC'], 'file')
@@ -68,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        rstrt = readEclipseRestart(rstfiles, rstReader, opt);
    else
        rstfile = fullfile(dname, [fp, '.UNRST']);
-       rstrt   = readEclipseOutputFileUnFmt(rstfile, 'cellOutput', true);
+       rstrt   = readEclipseOutputFileUnFmt(rstfile, 'cellOutput', true, 'maxCellSize', opt.nSteps);
    end
 
    is_open_post = fopen('all');
