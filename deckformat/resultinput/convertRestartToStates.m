@@ -64,56 +64,8 @@ if strcmp(ext, '.UNRST')
     fn = fullfile(dd, nm);
 end
 
-% check if we have rsspec-file available
-hasInfo = true;
-if isempty(opt.restartInfo)
-    if exist([fn, '.RSSPEC'], 'file')
-        opt.restartInfo = processEclipseRestartSpec(fn);
-    else
-        hasInfo = false;
-    end
-end
+rstrt = readEclipseRestartUnFmt(fn, opt.restartInfo, opt.steps);
 
-if hasInfo
-    rstrt = readEclipseRestartUnFmt(fn, opt.restartInfo, opt.steps);
-else
-    dispif(mrstVerbose, ...
-        'Restart specification missing, this may potentially increase processing time\n');
-    isUnified = exist([fn,'.UNRST'], 'file');
-    if isUnified
-        tmp = readEclipseOutputFileUnFmt([fn,'.UNRST']);
-        ns  = numel(tmp.SEQNUM.values);
-    else
-       % assume the file is for a single restart step  
-       tmp = readEclipseOutputFileUnFmt(fn);
-       ns  = 1;
-    end
-    fnames = fieldnames(tmp);
-    rstrt  = [];
-    for i = 1 : numel(fnames)
-        if ~strcmp(tmp.(fnames{i}).type, 'MESS')
-            V = tmp.(fnames{i}).values;
-            if  mod(numel(V), ns) ~= 0
-                if mrstVerbose()
-                    fprintf('Skipping entry %s\n', fnames{i});
-                end
-                continue
-            end
-            V = reshape(V,[],ns);
-            if isempty(opt.steps)
-                opt.steps=1:ns;
-            end
-            nsout = numel(opt.steps);
-            V = V(:,opt.steps);
-            V = mat2cell(V, size(V,1), ones([1, nsout]));
-            rstrt.(fnames{i}) = reshape(V,[],1);
-        end
-    end
-    % for old opm (???)
-    if isfield(rstrt,'XCON') && size(rstrt.XCON{1}, 1) == 1
-        rstrt.XCON = applyFunction(@transpose, rstrt.XCON);
-    end
-end
 
 [opt, phn, unit, tr, na, isECLIPSE] = checkAndProcessInput(fn, rstrt, opt);
 
