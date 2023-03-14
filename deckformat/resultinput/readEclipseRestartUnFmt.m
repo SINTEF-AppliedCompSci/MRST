@@ -41,97 +41,105 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-if nargin < 2 || isempty(spec)
-    try
-        spec = processEclipseRestartSpec(prefix);
-    catch
-        warning('No restart spesification found, attempting to use potentially inefficient fallback routine')
-        output = readEclipseRestartUnFmt_fallback(prefix);
-        fn = fieldnames(output);
-        if nargin < 3 || isempty(steps)
-            steps = ':';
+if nargin < 2
+    spec = [];
+end
+
+if isempty(spec) && exist([prefix, '.RSSPEC'], 'file')
+    spec = processEclipseRestartSpec(prefix);
+end
+
+if isempty(spec) % no RSSPEC (read everything)
+    if mrstVerbose
+        fprintf('No restart specification found, using potentially inefficient routine\n');
+    end
+    if nargin < 3 || isempty(steps)
+        steps = ':';
+        nSteps = inf;
+    else
+        nSteps = max(steps);
+    end
+    output = readEclipseRestartUnFmt_fallback(prefix, 'nSteps', nSteps);
+    fn = fieldnames(output);
+    for k = 1:numel(fn)
+        if isfield(output.(fn{k}), 'values')
+            output.(fn{k}) = output.(fn{k}).values(steps);
+        else
+            output.(fn{k}) = output.(fn{k})(steps);
         end
-        for k = 1:numel(fn)
-            if isfield(output.(fn{k}), 'values')
-                output.(fn{k}) = output.(fn{k}).values(steps);
-            else
-                output.(fn{k}) = output.(fn{k})(steps);
+    end
+else % use RSSPEC    
+    if nargin < 3 || isempty(steps)
+        steps = 1:numel(spec.time);
+    end
+
+    % Check compatibility of steps
+    isOK = and(steps >= 1, steps <= numel(spec.time));
+    if any(~isOK)
+        warning('Ignoring out-of-range entries of input-vector ''steps''.')
+        steps = steps(isOK);
+        if isempty(steps)
+            output = [];
+            return;
+        end
+    end
+    
+    % Preallocate
+    [maxnum, ix] = max(cellfun(@numel, spec.keywords(steps)));
+    nms = cellfun(@fixVarName, spec.keywords{steps(ix)}, 'UniformOutput', false);
+    v   = repmat({cell(1, numel(steps))}, maxnum, 1);
+    output = cell2struct(v, nms);
+    
+    % Read
+    if strcmp(spec.type, 'unified')
+        fname = [prefix, '.UNRST'];
+        [fid, msg] = fopen(fname, 'rb', 'ieee-be');
+        if fid < 0
+            error('Open:Failure', ...
+                'Failed to open Restart File ''%s'': %s', fname, msg);
+        end
+    end
+    dispif(mrstVerbose, 'Reading restart:     ')
+    
+    for ks = 1:numel(steps)
+        dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*ks/numel(steps)));
+        step = steps(ks);
+        if strcmp(spec.type, 'multiple')
+            [fid, msg] = fopen(spec.fnames{step}, 'rb',  'ieee-be');
+            if fid < 0
+                error('Open:Failure', ...
+                    'Failed to open Restart File ''%s'': %s', ...
+                    spec.fnames{step}, msg);
             end
         end
-        return;
+        nms  = cellfun(@fixVarName, spec.keywords{step}, 'UniformOutput', false);
+        p    = spec.pointers{step};
+        n    = spec.num{step};
+        prec = spec.prec{step};
+        for kf = 1:numel(nms)
+            curp = ftell(fid);
+            fseek(fid, p(kf)+28-curp, 0);
+            if n(kf)>0
+                if ~strcmp(prec{kf}, '840*uchar=>char')
+                    output.(nms{kf}){ks} = fread(fid, n(kf), prec{kf}, 8);
+                else
+                    v = fread(fid, 8*n(kf), prec{kf}, 8);
+                    output.(nms{kf}){ks} = cellstr(reshape(v , 8, n(kf))');
+                end
+            end
+        end
+        if strcmp(spec.type, 'multiple')
+            fid = fclose(fid);
+        end
     end
-end
-
-if nargin < 3 || isempty(steps)
-    steps = 1:numel(spec.time);
-end
-
-% Check compatibility of steps
-isOK = and(steps >= 1, steps <= numel(spec.time));
-if any(~isOK)
-    warning('Ignoring out-of-range entries of input-vector ''steps''.')
-    steps = steps(isOK);
-    if isempty(steps)
-        output = [];
-        return;
-    end
-end
     
-% Preallocate
-[maxnum, ix] = max(cellfun(@numel, spec.keywords(steps)));   
-nms = cellfun(@fixVarName, spec.keywords{steps(ix)}, 'UniformOutput', false);  
-v   = repmat({cell(1, numel(steps))}, maxnum, 1);
-output = cell2struct(v, nms);
-
-% Read
-if strcmp(spec.type, 'unified')
-    fname = [prefix, '.UNRST'];
-    [fid, msg] = fopen(fname, 'rb', 'ieee-be');
-    if fid < 0
-       error('Open:Failure', ...
-             'Failed to open Restart File ''%s'': %s', fname, msg);
+    if strcmp(spec.type, 'unified')
+        fclose(fid);
     end
+    dispif(mrstVerbose, ',  done\n')
 end
-dispif(mrstVerbose, 'Reading restart:     ')
-
-for ks = 1:numel(steps)
-    dispif(mrstVerbose, '\b\b\b\b%3d%%', round(100*ks/numel(steps)));
-    step = steps(ks);
-    if strcmp(spec.type, 'multiple')
-        [fid, msg] = fopen(spec.fnames{step}, 'rb',  'ieee-be');
-        if fid < 0,
-           error('Open:Failure', ...
-                 'Failed to open Restart File ''%s'': %s', ...
-                 spec.fnames{step}, msg);
-        end
-    end
-    nms  = cellfun(@fixVarName, spec.keywords{step}, 'UniformOutput', false);
-    p    = spec.pointers{step};
-    n    = spec.num{step};
-    prec = spec.prec{step};
-    for kf = 1:numel(nms)
-        curp = ftell(fid);
-        fseek(fid, p(kf)+28-curp, 0);
-        if n(kf)>0
-        if ~strcmp(prec{kf}, '840*uchar=>char')
-            output.(nms{kf}){ks} = fread(fid, n(kf), prec{kf}, 8);
-        else
-            v = fread(fid, 8*n(kf), prec{kf}, 8);
-            output.(nms{kf}){ks} = cellstr(reshape(v , 8, n(kf))');
-        end
-        end
-    end
-    if strcmp(spec.type, 'multiple')
-        fid = fclose(fid);
-    end
 end
 
-if strcmp(spec.type, 'unified')
-    fclose(fid);
-end
-dispif(mrstVerbose, ',  done\n')
-end
-        
 %--------------------------------------------------------------------------
 
 function name = fixVarName(name)
