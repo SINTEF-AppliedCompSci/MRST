@@ -119,58 +119,72 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                      'have fields transHr and transHf (rock/fluid heat trans)']);
             end
             
-            drock = rock;
-            if model.dynamicFlowTrans()
-                % Assign dummy transmissibilities to appease
-                % model.setupOperators
+            if ~isFractured(model.G)
                 drock = rock;
-                drock.perm = rock.perm(1*barsa, 273.15 + 20*Kelvin);
-            end
-            % Let reservoir model set up operators
-            model = setupOperators@ReservoirModel(model, G, drock, varargin{:});
-            model.rock = rock;
-            
-            pv  = model.operators.pv;
-            vol = opt.vol;
-            if isempty(vol), vol = G.cells.volumes; end
-            model.operators.vol = vol;
-            % Compute heat transmissibilities if we are not using dynamic
-            if ~model.dynamicHeatTransRock()
-                % Compute static heat transmissibility
-                Thr = opt.transHr;
-                if isempty(Thr)
-                    lambdaR = rock.lambdaR.*(vol - pv)./vol;
-                    r       = struct('perm', lambdaR);
-                    Thr     = getFaceTransmissibility(model.G, r);
-                    if hasNNC, Thr = [Thr; G.nnc.transHr]; end
+                if model.dynamicFlowTrans()
+                    % Assign dummy transmissibilities to appease
+                    % model.setupOperators
+                    drock = rock;
+                    drock.perm = rock.perm(1*barsa, 273.15 + 20*Kelvin);
                 end
-                % Assign to model.operators
-                if numel(Thr) < model.G.faces.num
-                    Thr_all = zeros(model.G.faces.num, 1);
-                    Thr_all(model.operators.internalConn) = Thr;
-                    Thr = Thr_all;
+                % Let reservoir model set up operators
+                model = setupOperators@ReservoirModel(model, G, drock, varargin{:});
+                model.rock = rock;
+
+                pv  = model.operators.pv;
+                vol = opt.vol;
+                if isempty(vol), vol = G.cells.volumes; end
+                model.operators.vol = vol;
+                % Compute heat transmissibilities if we are not using dynamic
+                if ~model.dynamicHeatTransRock()
+                    % Compute static heat transmissibility
+                    Thr = opt.transHr;
+                    if isempty(Thr)
+                        lambdaR = rock.lambdaR.*(vol - pv)./vol;
+                        r       = struct('perm', lambdaR);
+                        Thr     = getFaceTransmissibility(model.G, r);
+                        if hasNNC, Thr = [Thr; G.nnc.transHr]; end
+                    end
+                    % Assign to model.operators
+                    if numel(Thr) < model.G.faces.num
+                        Thr_all = zeros(model.G.faces.num, 1);
+                        Thr_all(model.operators.internalConn) = Thr;
+                        Thr = Thr_all;
+                    end
+                    model.operators.Thr     = Thr(model.operators.internalConn);
+                    model.operators.Thr_all = Thr;
                 end
-                model.operators.Thr     = Thr(model.operators.internalConn);
-                model.operators.Thr_all = Thr;
-            end
-            
-            if ~model.dynamicHeatTransFluid()
-                % Compute static heat transmissibility
-                Thf = opt.transHf;
-                if isempty(Thf)
-                    lambdaF = repmat(model.fluid.lambdaF, model.G.cells.num, 1).*pv./vol;
-                    r       = struct('perm', lambdaF);
-                    Thf     = getFaceTransmissibility(model.G, r);
-                    if hasNNC, Thf = [Thf; G.nnc.transHr]; end
+
+                if ~model.dynamicHeatTransFluid()
+                    % Compute static heat transmissibility
+                    Thf = opt.transHf;
+                    if isempty(Thf)
+                        lambdaF = repmat(model.fluid.lambdaF, model.G.cells.num, 1).*pv./vol;
+                        r       = struct('perm', lambdaF);
+                        Thf     = getFaceTransmissibility(model.G, r);
+                        if hasNNC, Thf = [Thf; G.nnc.transHr]; end
+                    end
+                    % Assign to model.operators
+                     if numel(Thf) < model.G.faces.num
+                        Thf_all = zeros(model.G.faces.num, 1);
+                        Thf_all(model.operators.internalConn) = Thf;
+                        Thf = Thf_all;
+                    end
+                    model.operators.Thf     = Thf(model.operators.internalConn);
+                    model.operators.Thf_all = Thf;
                 end
-                % Assign to model.operators
-                 if numel(Thf) < model.G.faces.num
-                    Thf_all = zeros(model.G.faces.num, 1);
-                    Thf_all(model.operators.internalConn) = Thf;
-                    Thf = Thf_all;
-                end
-                model.operators.Thf     = Thf(model.operators.internalConn);
-                model.operators.Thf_all = Thf;
+            else
+                % Require DFM module
+                require dfm
+                % Assert that we do not have dynamic transmissibilities
+                assert(~(model.dynamicFlowTrans()      || ...
+                         model.dynamicHeatTransRock()  || ...
+                         model.dynamicHeatTransFluid()), ...
+                        ['Dynamic transmissibility not supported in ', ...
+                        'fractured models'] ...
+                );
+                % Set up operators
+                model = fractureOperatorModifications(model, G, rock);
             end
             
             % Compute hash
@@ -874,6 +888,64 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
     end
     
 end
+
+% Helpers for fractures models with DFM
+
+%-------------------------------------------------------------------------%
+function res = isFractured(G)
+
+   res = isfield(G, 'hybridNeighbors');
+   
+end
+%-------------------------------------------------------------------------%
+
+%-------------------------------------------------------------------------%
+function model = fractureOperatorModifications(model, G, rock)
+    
+    [operators, G] = computeOperatorsDFM(G, rock);
+    model.operators = operators;
+    
+    pv  = model.operators.pv;
+    vol = G.cells.volumes;
+    % Compute static heat transmissibility in rock
+    lambdaR   = model.rock.lambdaR.*(vol - pv)./vol;
+    rock.perm = lambdaR;
+    op = computeOperatorsDFM(G, rock);
+    model.operators.Thr     = op.T;
+    model.operators.Thr_all = op.T_all;
+    % Compute static heat transmissibility in fluid
+    lambdaF   = model.fluid.lambdaF.*pv./vol;
+    rock.perm = lambdaF;
+    op = computeOperatorsDFM(G, rock);
+    model.operators.Thf     = op.T;
+    model.operators.Thf_all = op.T_all;
+    % Update model with the modified grid
+    model.G = G;
+   
+end
+%-------------------------------------------------------------------------%
+
+%-------------------------------------------------------------------------%
+function [operators, G] = computeOperatorsDFM(G, rock)
+
+    % Compute matrix-matrix and matrix-fracture half-face transmissibilities
+    Tmhf = computeTrans_DFM(G, rock, 'hybrid', true);
+    % Compute fracture-fracture transmissibilities
+    [G, Tf] = computeHybridTrans(G, Tmhf); % will add field 'neighbors' to G.cells
+    % Convert half-transmissibilities to full transmissibilities
+    Tm = 1./accumarray(G.cells.faces(:,1), 1./Tmhf, [G.faces.num, 1]);
+    % Assign transmissibility (temporarily add cells.neighbors to
+    % face.neighbors list, to permit creation of the corresponding
+    % operators)
+    if ~isempty(G.cells.neighbors)
+        G.nnc.cells = G.cells.neighbors;
+        G.nnc.trans = Tf;
+    end
+    operators = setupOperatorsTPFA(G, rock, 'trans', Tm);
+    operators.vol = G.cells.volumes;
+    
+end
+%-------------------------------------------------------------------------%
 
 %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
