@@ -68,7 +68,7 @@ classdef WellboreFrictionLoss < StateFunction
             
             % Explicitly calculate laminar flow friction loss to ensure
             % correct derivatives at zero rate
-            dpLam   = -32*mu.*(L./(Do - Di).^2).*v;
+            dpLam   = -32*muMix.*(L./(Do - Di).^2).*v;
             dp(lam) = dpLam(lam);
            
         end
