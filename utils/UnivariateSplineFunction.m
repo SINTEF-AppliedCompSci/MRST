@@ -195,6 +195,11 @@ methods(Static)
       %bvals = accumarray([(1:numel(s_ix))', s_ix], 1, [numel(par), nint]); % covers k=1
       bvals = sparse((1:numel(s_ix))', s_ix, 1, numel(par), nint); % covers k=1
       
+      % in order to simplify indexing for special cases at the end of
+      % parameter interval, we make a knot vector with "ghost" elements (that
+      % should never be used)
+      knots_buffered = [zeros(1, order), knots, zeros(1, order)]; % to
+                                                                  % simplify ind
       for k = 2:order
          p = k - 1; % polynomial degree
          
@@ -203,17 +208,21 @@ methods(Static)
          ix_end = s_ix;
          ix_start = s_ix - p + 1;
          
-         elems = arrayfun(@(i) par(i) - knots(ix_start(i):ix_end(i)), 1:length(par), 'uniformoutput', false);
+         elems = arrayfun(@(i) par(i) - knots_buffered([ix_start(i):ix_end(i)] + order), ...
+                          1:length(par), 'uniformoutput', false);
          elems = horzcat(elems{:})';
          
          col = mcolon(ix_start, ix_end)';
          row = rldecode((1:length(ix_start))', ix_end-ix_start+1);
 
-         w1 = sparse(row, col, elems(:), length(ix_start), length(knots)-p-1);
+         oob = (col < 1); % identify elements out of bounds
+         w1 = sparse(row(~oob), col(~oob), elems(~oob), length(ix_start), length(knots)-p-1);
          
-         elems = arrayfun(@(i) knots(ix_start(i)+p:ix_end(i)+p) - par(i), 1:length(par), 'uniformoutput', false);
+         elems = arrayfun(@(i) knots_buffered([ix_start(i)+p:ix_end(i)+p] + order) - par(i), 1:length(par), 'uniformoutput', false);
          elems = horzcat(elems{:})';
-         w2 = sparse(row, col-1, elems(:), length(ix_start), length(knots)-p-1);
+         
+         oob = (col-1 < 1); % identify elements out of bounds
+         w2 = sparse(row(~oob), col(~oob)-1, elems(~oob), length(ix_start), length(knots)-p-1);
          
          denoms(denoms==0) = 1;
          

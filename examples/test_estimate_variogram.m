@@ -37,7 +37,7 @@ measurements = GaussianProcess1D(num_measurements, corr_fun);
 % 'sill' here refers to the height of the semivariogram where it levels off,
 % or in other words the variance between points 'infinitely' far apart.
 
-curvepts = 500;  % we evaluate the empirical semivariogram at this many points
+curvepts = 200;  % we evaluate the empirical semivariogram at this many points
 max_reldist = 15 * sigma / D; % how far to evaluate the semivariogram
 rel_radius = 3; % width of the averaging window used when estimating the semivariogram
 [curve, sill, range] = estimateSemivariogram1D({xvals}, {measurements}, curvepts, ...
@@ -50,7 +50,7 @@ subplot(2,1,1);
 plot(xvals, measurements); 
 xlabel('x-position'); ylabel('measurement value'); title("measurements");
 subplot(2,1,2);
-plot(linspace(0, D * max_reldist, curvepts+1), 2 * curve); 
+plot(linspace(0, D * max_reldist, curvepts)', curve); 
 xlabel('distance'); ylabel('mean squared difference'); title('estimated variogram');
 
 %% Copyright Notice

@@ -94,10 +94,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    aver_rad = rel_radius * vg_max/num_curvepts; % width of averaging window
    
    curve = nan(num_curvepts, 1);
-   for i = 1:num_curvepts
+   curve(1) = 0;
+   for i = 2:num_curvepts
       curve(i) = estimate_variogram_value(d_all(:), ...
                                           c_all(:), ...
-                                          (i/num_curvepts) * vg_max, ...
+                                          ((i-1)/num_curvepts) * vg_max, ...
                                           aver_rad);
    end
    
@@ -107,9 +108,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % identify range
    fac = 1; % to limit the extent where we have basically reached the
             % sill, but curve is very slowly rising
-   tmp = find(curve >= fac * sill, 1, 'first');
+   tmp1 = find(curve >= fac * sill, 1, 'first');
+   tmp2 = find(diff(curve) < 0, 1, 'first'); % should be monotonously increasing
+   tmp = min(tmp1, tmp2);
    range = (tmp / numel(curve)) * vg_max;
-   curve = [0; curve(1:tmp)];
+   curve(tmp+1:end) = curve(tmp);
+   %curve = [0; curve(1:tmp)];
 end
 
 % ----------------------------------------------------------------------------
