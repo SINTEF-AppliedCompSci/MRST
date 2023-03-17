@@ -2,7 +2,7 @@ mrstModule add test-suite
 mrstModule add ad-core ad-props
 mrstModule add geothermal compositional dfm
 mrstModule add ruden-geothermal
-mrstModule add multiphysics-model wellpaths upr
+mrstModule add composite-model wellpaths upr
 mrstModule add mrst-gui
 mrstModule add ecmor-2022-geothermal
 mrstModule add linearsolvers
@@ -13,10 +13,10 @@ close all
 test    = TestCase('fivespot_geothermal', 'cartDims', [11, 11, 12], 'dfm', true);
 test.model.FacilityModel = [];
 groups = [];
-groups = addFacilityGroup(groups, {'Hot'}, 'name', 'HotGroup');
-% groups = addFacilityGroup(groups, {'Cold-1-1'}, 'name', 'ColdGroup');
-% groups = addFacilityGroup(groups, {'Cold-1-1', 'Cold-2-1'}, 'name', 'ColdGroup');
-groups = addFacilityGroup(groups, {'Cold-1-1', 'Cold-2-1', 'Cold-2-2', 'Cold-1-2'}, 'name', 'ColdGroup');
+hot  = {'Hot'};
+cold = {'Cold-1-1', 'Cold-2-1', 'Cold-2-2', 'Cold-1-2'};
+groups = addFacilityGroup(groups, hot , 'name', 'HotGroup');
+groups = addFacilityGroup(groups, cold, 'name', 'ColdGroup');
 test = convertToWBMultiModel(test, 'groups', groups);
 
 ctrl = test.schedule.control(1).Wellbore;
