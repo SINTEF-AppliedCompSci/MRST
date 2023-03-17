@@ -1,4 +1,5 @@
 function test = convertToWBMultiModel(test, varargin)
+% Convert a setup to 
 
     opt = struct('name', []);
     [opt, varargin] = merge_options(opt, varargin{:});
@@ -7,7 +8,7 @@ function test = convertToWBMultiModel(test, varargin)
     fluidModel    = test.model;
     W = test.schedule.control(1).W;
     wellboreModel = WellboreModel(fluidModel, W, varargin{:});
-    model = MultiPhysicsModel({fluidModel, wellboreModel}, ...
+    model = CompositeModel({fluidModel, wellboreModel}, ...
                               'names', {'Reservoir', 'Wellbore'});
                           
                           
