@@ -2,8 +2,8 @@ function [output, outputLGR] = readEclipseOutputStreamCellOutput(fid, readField,
 %Read single ECLIPSE output/result stream
 %
 % SYNOPSIS:
-%   output = readEclipseOutputStream(fid, readField)
-%   output = readEclipseOutputStream(fid, readField, 'pn1', pv1, ...)
+%   output = readEclipseOutputStreamCellOutput(fid, readField)
+%   output = readEclipseOutputStreamCellOutput(fid, readField, 'pn1', pv1, ...)
 %
 % PARAMETERS:
 %   fid      - Valid file identifier, as obtained from 'fopen', pointing to
@@ -51,79 +51,84 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+opt = struct('maxCellSize', inf);
+[opt, varargin]= merge_options(opt, varargin{:});
 
-   
-   [output, outputLGR] = deal(struct());
+[output, outputLGR] = deal(struct());
 
-   processLGRData = nargout > 1;
-   lgrInfo        = updateLGRInfo;
-    
-   while ~feof(fid),
-      [name, field] = readField(fid, varargin{:});
-
-      if ~isempty(field),
-         % '+' -> p, '-' -> 'n', and other non-word characters to '_'.
-         %
-         if ~isvarname(name)
-             name = regexprep(name, {'+', '-'}, {'p', 'n'});
-             name = genvarname(regexprep(name, '\W', '_'));
-         end
-         
-         % keep track of lgr-fields
-         if strcmp(name, 'LGR') 
-             lgrInfo = updateLGRInfo(lgrInfo, field); 
-         end
-         
-         % need to check if nnchead is for lgs
-         if strcmp(name, 'NNCHEAD') 
-             gridno = field.values(2);
-             if gridno > 0
-                 lgrInfo = updateLGRInfo(lgrInfo, gridno);
-             end
-         end
-         
-         if any(strcmp(name, {'ENDLGR', 'LGRSGONE'})) 
-             lgrInfo.inLGRSection = false; 
-         end
-         
-         if ~lgrInfo.inLGRSection
-             if ~isfield(output, name)
-                   output.(name) = empty_data; 
-             end
-             output.(name) = append_data(output.(name), field);
-         elseif processLGRData
-             if ~isfield(outputLGR, name)
-                 outputLGR.(name) = empty_data; 
-             end
-             outputLGR.(name) = ...
-                 append_data(outputLGR.(name), field, lgrInfo.curLGRNum);
-         end
-         
-      end
-   end
+processLGRData = nargout > 1;
+lgrInfo        = updateLGRInfo;
+stepCount = 0;
+while ~feof(fid)
+    [name, field] = readField(fid, varargin{:});
+    % keep track of cell-size by counting occurence of first field-name
+     if stepCount == 0
+         firstNm = name;
+     end
+     if strcmp(name, firstNm)
+         stepCount = stepCount +1;
+         if stepCount > opt.maxCellSize
+             return;
+        end
+    end
+    if ~isempty(field)
+        % '+' -> p, '-' -> 'n', and other non-word characters to '_'.
+        %
+        if ~isvarname(name)
+            name = regexprep(name, {'+', '-'}, {'p', 'n'});
+            name = genvarname(regexprep(name, '\W', '_'));
+        end
+        
+        % keep track of lgr-fields
+        if strcmp(name, 'LGR')
+            lgrInfo = updateLGRInfo(lgrInfo, field);
+        end
+        
+        % need to check if nnchead is for lgs
+        if strcmp(name, 'NNCHEAD')
+            gridno = field.values(2);
+            if gridno > 0
+                lgrInfo = updateLGRInfo(lgrInfo, gridno);
+            end
+        end
+        
+        if any(strcmp(name, {'ENDLGR', 'LGRSGONE'}))
+            lgrInfo.inLGRSection = false;
+        end
+        
+        if ~lgrInfo.inLGRSection
+            output = append_data(output, name, field, stepCount);
+        elseif processLGRData
+            outputLGR = append_data(outputLGR, name, field, stepCount, lgrInfo.curLGRNum);
+        end
+        
+    end
+end
 end
 
 %--------------------------------------------------------------------------
 
-function e = empty_data
-   e = struct('type', [], 'values', {{}});
+function out = append_data(out, nm, fld, curIx, lgrNum)
+if ~isfield(out, nm)
+    out.(nm).type   = fld.type;
+    out.(nm).values = {};
+end
+nPrev = numel(out.(nm).values);
+if curIx -1 > nPrev
+    % pad empty sets
+    [out.(nm).values{end+1:curIx-1}] = deal([]);
+    nPrev = numel(out.(nm).values);
 end
 
-%--------------------------------------------------------------------------
+assert (strcmp(out.(nm).type, fld.type), ...
+    'Data type of new field data does not match existing.');
 
-function q = append_data(q, d, n)
-   if isempty(q.type), q.type = d.type; end
-
-   assert (strcmp(q.type, d.type), ...
-           'Data type of new field data does not match existing.');
-       
-   if nargin < 3
-       nv = numel(q.values);
-       q.values{nv+1} = reshape(d.values, [], 1);
-   else
-       if numel(q.values) < n, q.values{n} = []; end
-       q.values{n} = [q.values{n}; reshape(d.values, [], 1)];
-   end
+if nargin < 5
+    out.(nm).values{nPrev+1} = reshape(fld.values, [], 1);
+else
+    if nPrev < lgrNum, out.(nm).values{lgrNum} = []; end
+    out.(nm).values{lgrNum} = [out.(nm).values{lgrNum}; reshape(fld.values, [], 1)];
+end
 end
 
 %--------------------------------------------------------------------------
@@ -131,8 +136,8 @@ end
 function lgrInfo = updateLGRInfo(lgrInfo, input)
 if nargin == 0
     lgrInfo = struct('curLGRNum',         0, ...
-                     'inLGRSection',  false, ...
-                     'names',          {{}});
+        'inLGRSection',  false, ...
+        'names',          {{}});
 elseif isstruct(input) % input is lgr-field
     curname  = input.values{1};
     curnum   = find(strcmp(curname, lgrInfo.names), 1);
@@ -147,7 +152,7 @@ elseif isnumeric(input) % nnc-info for local grid
     lgrInfo.inLGRSection = true;
 end
 end
-    
+
 
 
 
