@@ -231,7 +231,7 @@ classdef LinearSolverAD < handle
             reorderFirst = ~(solver.reduceToCell && isempty(solver.keepNumber));
             if ~reorderFirst
                 % Legacy behavior: Reorder linear system before reduction
-                [problem, eliminated, lsys, initialGuess] ...
+                [problem, eliminated, keep, lsys, initialGuess] ...
                     = eliminateLocal(solver, problem, initialGuess);
             end
             problem = problem.assembleSystem();
@@ -631,7 +631,7 @@ end
 
 % Helper for legacy variable elimination
 %-------------------------------------------------------------------------%
-function [problem, eliminated, lsys, initialGuess] = eliminateLocal(solver, problem, initialGuess)
+function [problem, eliminated, keep, lsys, initialGuess] = eliminateLocal(solver, problem, initialGuess)
 
     % Eliminate non-cell variables (well equations etc)
     s = getSampleAD(problem.equations{:});
