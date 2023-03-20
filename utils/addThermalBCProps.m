@@ -2,7 +2,7 @@ function bc = addThermalBCProps(bc, varargin)
 %Add thermal boundary conditions to existing bc struct.
 %
 % SYNOPSIS:
-%  fluid = addThermalFluidProps(bc, 'pn1', pv1, ...);
+%  fluid = addThermalBCProps(bc, 'pn1', pv1, ...);
 %
 % PARAMETERS:
 %   bc   - Boundary condition structure created with e.g., addBC
