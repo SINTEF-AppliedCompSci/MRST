@@ -140,7 +140,12 @@ classdef RegressionTest
             if ~exist(directory, 'dir'); return; end
             dirNames = ls(directory);
             if isempty(dirNames), existing = []; return; end
-
+            if size(dirNames, 1) > 1
+                % Windows behavior. Pad with a space at the end and reshape
+                % into a single long string.
+                pad = repmat(' ', size(dirNames, 1), 1);
+                dirNames = reshape([dirNames, pad]', 1, []);
+            end
             fmt = rt.dateTimeFormat();
 
             dirNames = regexp(char(dirNames), '\s+', 'split');
