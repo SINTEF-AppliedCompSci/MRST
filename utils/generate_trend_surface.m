@@ -21,7 +21,7 @@ function [x, y, zgrid, surf] = generate_trend_surface(points, num_coefs, ...
 %   surf  - spline surface approximating the scattered points
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
