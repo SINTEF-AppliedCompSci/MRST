@@ -5,7 +5,7 @@ function updata = LayeredExactUpscaling(K, krW, krO, Rk, varargin)
 % layers are of rock type 1, while the middle layer is of rock type 2.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

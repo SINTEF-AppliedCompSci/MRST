@@ -2,7 +2,7 @@ function [p, cells] = addLayerNearFaces(G, p, faces, additive)
     % Add extra partitions near certain fine faces
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -45,7 +45,7 @@ function [conn, ind, cpos, fconn] = coarseConnections(G, p, varargin)
 %   `generateCoarseGrid`, `rlencode`, `sortrows`.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

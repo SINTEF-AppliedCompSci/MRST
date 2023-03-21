@@ -2,7 +2,7 @@ function [cellcenters, facecenters] = mapCenters(CG, blockCenters, faceCenters)
 % Map fine cells as centers of coarse cells and faces.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

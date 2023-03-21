@@ -51,7 +51,7 @@ function p = mexPartitionMETIS(G, n, varargin)
 %   `partitionMetis`, `compressPartition`, `processPartition`.
 
 %{
-Copyright 2020-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2020-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
