@@ -2,7 +2,7 @@ function [info, present] = dataset_blackoilpolymer2d()
 % Info function for the dataset of a 2D black-oil polymer example. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{
-Copyright 2015-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2015-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

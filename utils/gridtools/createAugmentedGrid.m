@@ -23,7 +23,7 @@ function G = createAugmentedGrid(G)
 %   which the edges are guaranted to be sorted.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

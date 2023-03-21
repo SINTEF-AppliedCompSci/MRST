@@ -2,7 +2,7 @@ function [info, present] = dataset_eor_book_ii()
 % Info function for a set of water-EOR cases from the second MRST book
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

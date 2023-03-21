@@ -44,7 +44,7 @@ function varargout = blockDiagIndex(m, n)
 %   `rldecode`, `mcolon`, `sub2ind`.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

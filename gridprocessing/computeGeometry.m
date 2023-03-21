@@ -97,7 +97,7 @@ function G = computeGeometry(G, varargin)
 %   `grid_structure`, `processGRDECL`.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
