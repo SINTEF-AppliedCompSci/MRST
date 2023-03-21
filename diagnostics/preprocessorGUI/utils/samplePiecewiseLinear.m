@@ -30,7 +30,7 @@ function [p, s] = samplePiecewiseLinear(f, sInit, tolAbs)
 %   plot(p(:,1), p(:,2), 'o-')
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

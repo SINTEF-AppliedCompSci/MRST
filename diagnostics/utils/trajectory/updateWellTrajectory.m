@@ -2,7 +2,7 @@ function [w_o, ws] = updateWellTrajectory(model, w, ws, traj)
 % Undocumented utility function used for trajectory optimization 
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

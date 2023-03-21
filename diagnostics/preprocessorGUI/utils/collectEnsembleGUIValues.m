@@ -29,7 +29,7 @@ function [t, v] = collectEnsembleGUIValues(g, name, varargin)
 %  v   - value-matrix. One column per member.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
