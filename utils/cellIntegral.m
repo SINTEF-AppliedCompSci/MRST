@@ -3,7 +3,7 @@ function int_u = cellIntegral(u, cubature, cells)
     % int_u(i) = (int_{cell(i)} u dv)/|cell(i)|
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
