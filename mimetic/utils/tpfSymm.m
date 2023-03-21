@@ -68,7 +68,7 @@ function varargout = tpfSymm(B, C, D, f, g, h, Do, varargin)
 %   `mixedSymm`, `schurComplementSymm`, `solveIncompFlow`, `solveIncompFlowMS`.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
