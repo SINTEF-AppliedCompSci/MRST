@@ -2,7 +2,7 @@ function setup = qfs_geothermal(varargin)
 %Test case describing geothermal heat storage in quarter five-spot pattern
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
