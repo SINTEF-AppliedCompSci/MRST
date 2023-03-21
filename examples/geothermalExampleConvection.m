@@ -1,5 +1,5 @@
-%% Geothermal conduction
-% This example shows how you can simulate geothermal conduction using
+%% Geothermal convection
+% This example shows how you can simulate geothermal convection using
 % sources and boundary conditions
 
 %% Add modules
