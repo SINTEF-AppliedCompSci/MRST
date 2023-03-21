@@ -96,9 +96,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Plotting trapping history
     area(ax, ...
          convertTo(t_hist, year), ...
-         convertTo([mass_hist(:, 1:7), mass_hist(:,8)], mega*kilo));
+         convertTo([mass_hist(:, 1:7), mass_hist(:,8)], mega*tonne));
          % convertTo([mass_hist(:, 1:7), mass_hist(:,8)-sum(mass_hist(:,1:7),2)], ...
-         %           mega*kilo));
+         %           mega*tonne));
 
     % Setting consistent colors
     col = getInventoryColors([7 6 5 5 4 3 2 1]);
