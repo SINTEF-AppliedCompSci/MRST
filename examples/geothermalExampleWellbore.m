@@ -6,7 +6,7 @@
 mrstModule add test-suite
 mrstModule add ad-core ad-props
 mrstModule add geothermal compositional dfm
-mrstModule add composite-model wellpaths upr
+mrstModule add wellpaths upr
 mrstModule add mrst-gui
 mrstModule add linearsolvers
 mrstVerbose on
