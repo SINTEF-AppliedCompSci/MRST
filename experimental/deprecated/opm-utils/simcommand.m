@@ -17,7 +17,7 @@ function command = simcommand(dir, sim)
 %   A string with the full path to the requested simulator program.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

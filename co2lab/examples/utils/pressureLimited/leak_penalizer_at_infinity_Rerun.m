@@ -9,7 +9,7 @@ function [obj, Mi_tot, Ma] = leak_penalizer_at_infinity_Rerun(model, wellSols, s
 % Pressure is assumed to be hydrostatic at time infinity.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
