@@ -2,7 +2,7 @@ function schedule = scheduleFromSummary(schedule, summary)
     % There are n-1 control steps for n summary steps
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

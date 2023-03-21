@@ -2,7 +2,7 @@ function [results, models, info] = benchmarkAutoDiffBackends(model, backends, va
 %Benchmark routine that compares the execution speed and correctness of AD backends
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -5,7 +5,7 @@ function [state, meta] = stepBlackOilTemp(state0, state, meta, dt, G, W, system,
 % explanation of how the ad-fi solvers are implemented.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

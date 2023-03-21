@@ -4,7 +4,7 @@ function phi = basisOW(states, varargin)%, efrac_p, efrac_s, n_p, n_s)
     % n_(s/p) upper bound for the number of eigenvectors to be included
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

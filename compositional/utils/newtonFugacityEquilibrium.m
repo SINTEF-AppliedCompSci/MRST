@@ -21,7 +21,7 @@ function [x, y, K, Z_L, Z_V, L, values] = newtonFugacityEquilibrium(model, P, T,
 %   `EquationOfStateModel`
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -122,7 +122,7 @@ function w = getRelax(x, dx, cap)
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

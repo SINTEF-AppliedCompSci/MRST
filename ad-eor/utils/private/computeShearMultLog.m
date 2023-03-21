@@ -3,7 +3,7 @@ function zSh = computeShearMultLog(fluid, vW, muWMultf)
     % It needs to be improved for better performance.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

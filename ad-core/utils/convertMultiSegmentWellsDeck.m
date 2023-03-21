@@ -2,6 +2,11 @@ function W = convertMultiSegmentWellsDeck(W, G, deck_control, varargin)
 % Convert existing parsed well to multisegment well spec from deck input.
 % These wells are generally not supported in MRST's solvers but the
 % information may still be useful.
+
+%{
+#COPYRIGHT#
+%}
+
     opt = struct('compact', true);
     opt = merge_options(opt, varargin{:});
     assert(isfield(deck_control, 'COMPSEGS'));

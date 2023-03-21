@@ -3,7 +3,7 @@ function f = assignEHYSTR(f, ehystr, reg)
 % for hysteresis model according to ECLIPSE EHYSTR keyword.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
