@@ -6,7 +6,7 @@ function G = computeGeometryCalc(G, varargin)
 %% Setup
 
 %{ 
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 %}
 
 assert(size(G.faces.nodes, 2) == 1);

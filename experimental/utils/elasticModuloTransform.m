@@ -3,7 +3,7 @@ function [a,b] = elasticModuloTransform(c,d,from,to)
 %http://en.wikipedia.org/wiki/Lam%C3%A9_parameters
 
 %{ 
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 %}
 
 if(strcmp(from,'E_nu') && strcmp(to,'lam_mu'))
