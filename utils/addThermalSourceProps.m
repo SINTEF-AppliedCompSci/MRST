@@ -1,4 +1,4 @@
-function addThermalSourceProps(src, varargin)
+function src = addThermalSourceProps(src, varargin)
 %Add thermal source conditions to existing source struct.
 %
 % SYNOPSIS:
@@ -63,11 +63,11 @@ end
 %-------------------------------------------------------------------------%
 function opt = checkInput(src, opt, name)
 
-    nf = numel(src.face);
+    nc = numel(src.cell);
     if numel(opt.(name)) == 1
-        opt.(name) = repmat(opt.(name), nf, 1);
+        opt.(name) = repmat(opt.(name), nc, 1);
     end
-    assert(numel(opt.(name)) == nf, ...
+    assert(numel(opt.(name)) == nc, ...
                   [name, ' must be a scalar, or one per face in bc.face']);
 
 end

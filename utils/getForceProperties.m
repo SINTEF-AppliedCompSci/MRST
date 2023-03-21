@@ -1,21 +1,23 @@
-function bc = getBCProperties(bc, model, state)
+function force = getForceProperties(force, model, state)
 %Compute properties at the boundary
 
-    propsRes = getReservoirProperties(model, state, bc);
-    propsBC  = getBoundaryProperties(model, propsRes, bc);
-    bc.propsRes = propsRes;
-    bc.propsBC  = propsBC;
-    bc.sat = value(bc.propsBC.s);
+    is_bc = isfield(force, 'face');
+    propsRes         = getPropertiesReservoirSide(model, state, force, is_bc);
+    propsForce       = getPropertiesForceSide(model, propsRes, force, is_bc);
+    force.propsRes   = propsRes;
+    force.propsForce = propsForce;
+    force.sat = value(force.propsForce.s);
     % Hack to get correct relperm dimensions when nph = 1
-    model.G.cells.num = numel(bc.face);
-    [mob, rho] = model.getProps(propsBC, 'Mobility', 'Density');
-    bc.mob = value(mob);
-    bc.rho = value(rho);
+    if is_bc, nc = numel(force.face); else, nc = numel(force.cell); end
+    model.G.cells.num = nc;
+    [mob, rho] = model.getProps(propsForce, 'Mobility', 'Density');
+    force.mob = value(mob);
+    force.rho = value(rho);
     
 end
 
 %-------------------------------------------------------------------------%
-function props  = getReservoirProperties(model, state, bc)
+function props  = getPropertiesReservoirSide(model, state, force, is_bc)
     [h, p, T, s, rho, mob] = model.getProps(state, 'enthalpy'                 , ...
                                                    'pressure'                 , ...
                                                    'Temperature'              , ...
@@ -24,8 +26,19 @@ function props  = getReservoirProperties(model, state, bc)
                                                    'Mobility'                 , ...
                                                    'FluidHeatTransmissibility', ...
                                                    'RockHeatTransmissibility' );
-    faces = bc.face;
-    cells = sum(model.G.faces.neighbors(faces,:),2);
+                                               
+    if is_bc
+        faces = force.face;
+        cells = sum(model.G.faces.neighbors(faces,:),2);
+    else
+        cells = force.cell;
+        fpos  = mcolon(model.G.cells.facePos(cells), model.G.cells.facePos(cells+1)-1);
+        faces = model.G.cells.faces(fpos);
+        nf    = diff(model.G.cells.facePos); nf = nf(cells);
+        [ii, jj] = blockDiagIndex(ones(numel(nf),1), nf);
+        S        = sparse(ii, jj, 1);
+        map      = @(x) (S*x)./nf;
+    end
     % Extract BC cell values
     getBCVal = @(v) cellfun(@(v) v(cells), v, 'UniformOutput', false);
     p   = p(cells);
@@ -37,29 +50,30 @@ function props  = getReservoirProperties(model, state, bc)
     % Extract BC face values
     
     if model.dynamicFlowTrans
-        prop = model.FlowDiscretization.getStateFunction('Transmissibility');
-        state = model.FlowDiscretization.evaluateDependencies(model, state, prop.dependencies);
-        Tf = prop.evaluateOnDomain(model, state, true);
+        force = model.FlowDiscretization.getStateFunction('Transmissibility');
+        state = model.FlowDiscretization.evaluateDependencies(model, state, force.dependencies);
+        Tf = force.evaluateOnDomain(model, state, true);
         Tf = Tf(faces);
     else
         Tf = model.operators.T_all(faces);
     end
     if model.dynamicHeatTransFluid
-        prop = model.FlowDiscretization.getStateFunction('FluidHeatTransmissibility');
-        state = model.FlowDiscretization.evaluateDependencies(model, state, prop.dependencies);
-        Thf = prop.evaluateOnDomain(model, state, true);
+        force = model.FlowDiscretization.getStateFunction('FluidHeatTransmissibility');
+        state = model.FlowDiscretization.evaluateDependencies(model, state, force.dependencies);
+        Thf = force.evaluateOnDomain(model, state, true);
         Thf = Thf(faces);
     else
         Thf = model.operators.Thf_all(faces);
     end
     if model.dynamicHeatTransRock
-        prop = model.FlowDiscretization.getStateFunction('RockHeatTransmissibility');
-        state = model.FlowDiscretization.evaluateDependencies(model, state, prop.dependencies);
-        Thr = prop.evaluateOnDomain(model, state, true);
+        force = model.FlowDiscretization.getStateFunction('RockHeatTransmissibility');
+        state = model.FlowDiscretization.evaluateDependencies(model, state, force.dependencies);
+        Thr = force.evaluateOnDomain(model, state, true);
         Thr = Thr(faces);
     else   
         Thr = model.operators.Thr_all(faces);
     end
+    if ~is_bc, [Tf, Thf, Thr] = deal(map(Tf), map(Thf), map(Thr)); end
     if iscell(s)
         s = getBCVal(s);
         s = {s};
@@ -79,16 +93,16 @@ function props  = getReservoirProperties(model, state, bc)
 end
 
 %-------------------------------------------------------------------------%
-function props = getBoundaryProperties(model, propsRes, bc) 
-    p = getBoundaryPressure(model, propsRes, bc);
-    T = getBoundaryTemperature(model, propsRes, bc);
-    X = getBoundaryMassFraction(model, bc);
-    s = zeros(numel(bc.face), model.getNumberOfPhases());
+function props = getPropertiesForceSide(model, propsRes, force, is_bc) 
+    p = getBoundaryPressure(model, propsRes, force, is_bc);
+    T = getBoundaryTemperature(model, propsRes, force);
+    X = getBoundaryMassFraction(model, force);
+    s = force.sat;
     props = struct('pressure', p, ...
                    'X'       , X, ...
                    'T'       , T, ...
                    's'       , s);
-    props.components = bc.components;
+    props.components = force.components;
     % Set enthalpy from temperature
     if model.getNumberOfPhases() == 2
         h = model.fluid.h(p,T);
@@ -102,28 +116,40 @@ function props = getBoundaryProperties(model, propsRes, bc)
 end
 
 %-------------------------------------------------------------------------%
-function p = getBoundaryPressure(model, propsRes, bc)
+function p = getBoundaryPressure(model, propsRes, force, is_bc)
 %     p = model.AutoDiffBackend.convertToAD(zeros(numel(bc.face), 1), propsRes.pressure);
     p = propsRes.pressure;
-    is_pressure = reshape(strcmpi(bc.type, 'pressure'), [], 1);
-    is_flux     = reshape(strcmpi(bc.type, 'flux'), [], 1);
+    if is_bc
+        is_pressure = reshape(strcmpi(force.type, 'pressure'), [], 1);
+        is_flux     = reshape(strcmpi(force.type, 'flux'), [], 1);
+        cells       = sum(model.G.faces.neighbors(force.face,:), 2);
+        value       = force.value;
+    else
+        is_pressure = false;
+        is_flux     = true(numel(force.cell), 1);
+        cells       = force.cell;
+        value       = force.rate;
+    end
     % Get pressure at boundaries open to flow
     if any(is_pressure)
-        p(is_pressure) = bc.value(is_pressure);
+        p(is_pressure) = force.value(is_pressure);
     end
-    cells = sum(model.G.faces.neighbors(bc.face,:), 2);
+    
     if any(is_flux)
         % Flux BCs requires reconstruction. Assuming simple
         G = model.G;
-        q = -bc.value(is_flux);
-        if any(strcmpi(G.type,'topSurfaceGrid'))
-            dzbc = model.gravity(3)*(G.cells.z(cells) - G.faces.z(bc.face));
-        else
-            g    = model.getGravityVector();
-            dz   = G.faces.centroids(bc.face,:) - G.cells.centroids(cells,:);
-            dzbc = -dz*g';
+        q = -value(is_flux);
+        dzbc = 0;
+        if is_bc
+            if any(strcmpi(G.type,'topSurfaceGrid'))
+                dzbc = model.gravity(3)*(G.cells.z(cells) - G.faces.z(force.face));
+            else
+                g    = model.getGravityVector();
+                dz   = G.faces.centroids(force.face,:) - G.cells.centroids(cells,:);
+                dzbc = -dz*g';
+            end
+            dzbc = dzbc(is_flux);
         end
-        dzbc = dzbc(is_flux);
         [totMob, rhoMob] = deal(0);
         nph = model.getNumberOfPhases();
         for i = 1:nph
@@ -139,14 +165,14 @@ function p = getBoundaryPressure(model, propsRes, bc)
 end
 
 %-------------------------------------------------------------------------%
-function Tbc = getBoundaryTemperature(model, propsRes, bc)
-    Tbc = model.AutoDiffBackend.convertToAD(bc.T, propsRes.pressure);
-    is_Hflux = ~isnan(bc.Hflux);
+function Tbc = getBoundaryTemperature(model, propsRes, force)
+    Tbc = model.AutoDiffBackend.convertToAD(force.T, propsRes.pressure);
+    is_Hflux = ~isnan(force.Hflux);
     if any(is_Hflux)
         ThR = propsRes.Thr;
         ThF = propsRes.Thf;
         T = propsRes.T;
-        dT            = bc.Hflux(is_Hflux)./(ThR(is_Hflux) + ThF(is_Hflux));
+        dT            = force.Hflux(is_Hflux)./(ThR(is_Hflux) + ThF(is_Hflux));
         Tbc(is_Hflux) = T(is_Hflux) + dT;
     end
 end

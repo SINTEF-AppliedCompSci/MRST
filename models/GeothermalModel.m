@@ -230,7 +230,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                         && numel(ctrl.bc.T) == numel(ctrl.bc.face)) || ...
                     (isfield(ctrl.bc, 'Hflux') ...
                         && numel(ctrl.bc.Hflux) == numel(ctrl.bc.face)),  ...
-                    'bc must have a given temperature (T) or heat flux (Hflux)');
+                    'BC must have a given temperature (T) or heat flux (Hflux)');
                 % Check that bcs have component field
                 if ~isfield(ctrl.bc, 'components')
                     assert(numel(model.compFluid.names) == 1, ...
@@ -239,6 +239,24 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     ctrl.bc.components = ones(numel(ctrl.bc.face),1);
                 end
             end
+            
+            if isfield(ctrl, 'src') && ~isempty(ctrl.src)
+                % Check that bcs have thermal fields
+                assert( ...
+                    (isfield(ctrl.src, 'T') ...
+                        && numel(ctrl.src.T) == numel(ctrl.src.cell)) || ...
+                    (isfield(ctrl.src, 'Hflux') ...
+                        && numel(ctrl.src.Hflux) == numel(ctrl.src.face)),  ...
+                    'Source must have a given temperature (T) or heat flux (Hflux)');
+                % Check that bcs have component field
+                if ~isfield(ctrl.src, 'components')
+                    assert(numel(model.compFluid.names) == 1, ...
+                        ['Model has more than one component - please ', ...
+                         'provide component field to src (src.cmomponents)']);
+                    ctrl.src.components = ones(numel(ctrl.src.cell),1);
+                end
+            end
+            
             if isfield(ctrl, 'W') && ~isempty(ctrl.W)
                 % Check that wells have a prescribed temperature
                 assert(all(arrayfun(@(w) isfield(w, 'T'), ctrl.W))  , ...
@@ -732,7 +750,10 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             end
             
             if isfield(forces, 'bc') && ~isempty(forces.bc)
-                forces.bc = getBCProperties(forces.bc, model, state);
+                forces.bc = getForceProperties(forces.bc, model, state);
+            end
+            if isfield(forces, 'src') && ~isempty(forces.src)
+                forces.src = getForceProperties(forces.src, model, state);
             end
             [eqs, state, src] = addBoundaryConditionsAndSources@ReservoirModel(model, eqs, names, types, state, ...
                                                                       pressures, sat, mob, rho, {}, comps, forces);
@@ -740,10 +761,15 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 return
             end
             eix = strcmpi(names, 'energy');
-            if ~isempty(src.bc.sourceCells)
-                src = getHeatFluxBoundary(model, src, forces);
-                q = src.bc.mapping*src.bc.heatFlux;
-                eqs{eix}(src.bc.sourceCells) = eqs{eix}(src.bc.sourceCells) - q;
+            if ~isempty(src.bc.sourceCells) || ~isempty(src.src.sourceCells)
+                % Compute heat flux
+                src = getHeatFluxFromSources(model, src, forces);
+                % Add in heat flux from BCs
+                qBC = src.bc.mapping*src.bc.heatFlux;
+                eqs{eix}(src.bc.sourceCells) = eqs{eix}(src.bc.sourceCells) - qBC;
+                % Add in heat flux from srouces
+                qSrc = src.src.mapping*src.src.heatFlux;
+                eqs{eix}(src.src.sourceCells) = eqs{eix}(src.src.sourceCells) - qSrc;
             end
             
         end
@@ -816,12 +842,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
                     
                     if ~model.thermal, return; end
-                    drivingForces.bc = getBCProperties(drivingForces.bc, model, state_flow);
+                    drivingForces.bc = getForceProperties(drivingForces.bc, model, state_flow);
                     src = struct();
                     phaseMass = cellfun(@(rho, q) rho.*q, drivingForces.bc.propsRes.rho, fRes', 'UniformOutput', false);
                     src.bc.phaseMass = phaseMass;
                     src.bc.sourceCells = sum(model.G.faces.neighbors(drivingForces.bc.face,:), 2);
-                    src = getHeatFluxBoundary(model, src, drivingForces);
+                    src.src.sourceCells = [];
+                    src = getHeatFluxFromSources(model, src, drivingForces);
                     
                     faces = drivingForces.bc.face;
                     sgn = 1 - 2*(model.G.faces.neighbors(faces, 2) == 0);
