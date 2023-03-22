@@ -161,7 +161,7 @@ function G = construct_3d(msh)
 
     % Cells are either tets, hexes, prisms or pyramids (the latter is
     % not implemented, because it has not yet been enountered)
-    cell_types = {'TETS', 'HEXAS', 'PRISMS', 'TRIANGLES'};
+    cell_types = {'TETS', 'HEXAS', 'PRISMS'};
 
     % Faces are either triangles or quads
     face_types = {'TRIANGLES', 'QUADS'};
@@ -170,8 +170,7 @@ function G = construct_3d(msh)
     cells_faces_nodes = {
         { {[0, 1, 3], [0, 2, 1], [0, 3, 2], [1, 2, 3]}, {} },...
         { {}, {[0, 4, 7, 3], [1, 2, 6, 5], [0, 1, 5, 4], [2, 3, 7, 6], [0, 3, 2, 1], [4, 5, 6, 7]} },...
-        { {[0, 2, 1], [3, 4, 5]}, {[0, 1, 4, 3], [0, 3, 5, 2], [1, 2, 5, 4]}}, ...
-        { {[0, 2, 1]}, {} }, ...
+        { {[0, 2, 1], [3, 4, 5]}, {[0, 1, 4, 3], [0, 3, 5, 2], [1, 2, 5, 4]}}
                         };
 
     num_cell_faces = zeros(1, numel(cell_types));
@@ -184,7 +183,7 @@ function G = construct_3d(msh)
             end
         end
     end
-    assert(all(num_cell_faces == [4, 6, 5, 1]));
+    assert(all(num_cell_faces == [4, 6, 5]));
     assert(all(num_face_nodes == [3, 4]));
 
     % Create numbering of the triangle and quad faces
