@@ -11,8 +11,12 @@ mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui linearsolvers
 gravity reset on
 mrstVerbose on
 useMex = true;
-opm = mrstPath('opm-tests');
-[deck, output] = getDeckOPMData('norne', 'NORNE_ATW2013');
+
+pth = getDatasetPath('norne_field_model');
+opm = fullfile(pth,'opm-data');
+opm_tests = fullfile(pth,'opm-tests');
+
+[deck, output] = getNorneFieldDeckOPMData();
 %% Build model from EGRID/INIT files
 egrid = readEclipseOutputFileUnFmt([output.opm.location, '.EGRID']);
 init = readEclipseOutputFileUnFmt([output.opm.location, '.INIT']);
@@ -112,7 +116,7 @@ names = {'MRST (No hysteresis)', fname};
 
 try
     % Flow output - may not be present
-    pp = fullfile(mrstPath('opm-tests'), 'norne', 'NORNE_ATW2013');
+    pp = fullfile(opm_tests, 'norne', 'NORNE_ATW2013');
     states_newopm = convertRestartToStates(pp, model.G);
     [ws_opm, T_opm_new] = convertSummaryToWellSols(pp);
     fname = 'Flow (Hysteresis)';
@@ -124,18 +128,14 @@ catch
     % Output not found
 end
 
-ecl = fullfile(mrstPath('opm-tests'), 'norne', 'ECL.2014.2', 'NORNE_ATW2013');
+ecl = fullfile(opm_tests, 'norne', 'ECL.2014.2', 'NORNE_ATW2013');
 [ws_ecl, T_ecl] = convertSummaryToWellSols(ecl, 'metric');
 wellSols{end+1} = ws_ecl;
 time{end+1} = T_ecl;
 names{end+1} = 'Eclipse (Hysteresis)';
-fn = fullfile(mrstDataDirectory(), 'opm_smry_nohyst.mat');
+fn = fullfile(pth, 'opm_smry_nohyst.mat');
 
-if ~exist(fn, 'file')
-    url = 'https://www.sintef.no/contentassets/124f261f170947a6bc51dd76aea66129/opm_smry_nohyst.mat';
-    dfcn = mrstWebSave();
-    dfcn(fn, url);
-end
+
 smry = load(fn);
 smry = smry.smry;
 [ws_nohyst, T_nohyst] = convertSummaryToWellSols(smry, 'metric');
