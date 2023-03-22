@@ -8,7 +8,6 @@
 % development, and will likely change significantly between releases.
 
 %% Load modules
-mrstModule add composite-model
 mrstModule add test-suite spe10
 mrstModule add ad-blackoil ad-core ad-props
 mrstModule add mrst-gui
