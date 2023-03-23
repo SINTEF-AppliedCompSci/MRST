@@ -1,0 +1,49 @@
+#+TITLE: Short descriptions of the examples
+#+OPTIONS: toc:nil
+
+* Convergence Tests
+  - The directory [[file:convergencetests][~convergencetests~]] contains scripts for convergence tests.
+   
+* MPSA - Mechanics
+** [[file:assemblyBiotExample.m][~assemblyMpsaExample.m~]]
+   - Example using bare assembly functionalities.  
+   - We use directly the assembly output matrices to set up and solve the system.
+** [[file:tiltedExample.m][~tiltedExample.m~]]
+   - Example using sliding condition in a non-Cartesian direction.
+** [[file:mpsaExample.m][~mpsaExample.m~]]
+   - We use [[file:../models/MechModel.m][~MechModel~]] AD model to set up the equations.
+   - We use predefined mechanical test cases ('2d-linear', '2d-refinement', etc.).
+
+* MPFA - Flow
+** [[file:assemblyMpfaExample.m][~assemblyMpfaExample.m~]]
+   - Example using bare assembly functionalities.
+   - With this example, we verify on a skewed grid that a linear pressure field is computed exactly by MPFA.
+** [[file:assembleMpfaExample2.m][~assembleMpfaExample2.m~]]
+   - Example using bare assembly functionalities
+   - We use the grids from predefined mechanical test cases ('2d-linear', '2d-refinement', etc), as in ~mpsaExample~
+** [[file:mpfaBlackoilExample.m][~mpfaBlackoilExample.m~]]
+   - Example that demonstrates grid effects for TPFA and how MPFA remove those.
+   - We consider an oil-water system and inject water in a oil reservoir. The setup is such that the analytical solution is
+     symmetric. The symmetry of the solution is clearly broken by TPFA.
+   - We use [[file:../models/MpfaBlackOilModel.m][~MpfaBlackOilModel~]] AD model.
+     
+* Biot MPSA-MPFA - Poroelasticity
+** [[file:assemblyBiotExample.m][~assemblyBiotExample.m~]]
+   - Example using bare assembly functionnalities.
+   - We use the same mechanical test cases ('2d-linear', '2d-refinement', etc) as in ~mpsaExample~. 
+** [[file:mandel.m][~mandel.m~]]
+   - Mandel test case.
+   - We use a the AD model [[file:~/Matlab/Projects/project-mpsaw/models/MandelModel.m][~MandelModel~]] which has been
+     specifically implemented to deal with the special boundary conditions of the Mandel test case.
+** [[file:topforceExample.m][~topforceExample.m~]]
+   - Test case where a controlled force is applied at the top.
+   - The intensity of the force, which varies in time, is provided through a standard MRST schedule.
+   - We use [[file:../models/BiotModel.m][~BiotModel~]] AD model.
+** [[file:biotBlackoilExample.m][~biotBlackoilExample.m~]]
+   - Example where MPSA-MPFA/TPFA is coupled with the object-oriented automatic-differentiation (OO-AD) framework of MRST.
+   - Same setup as example ~mpfaBlackoilExample~ showing how the methods cope with grid effects.
+   - We use [[file:../models/BiotBlackOilModel.m][~BiotBlackOilModel~]] and [[file:../models/BiotTpfaBlackOilModel.m][~BiotTpfaBlackOilModel~]] AD model.
+** [[file:biotCompositionalExample.m][~biotCompositionalExample.m~]]
+   - A compositional simulation (two components: CO2 and n-decane, two phases: gas and liquid, cubic equation of state) which
+     also couples MPSA-MPFA with the ~compositional~ module of MRST
+   - We use [[file:../models/BiotCompositionalModel.m][~BiotCompositionalOilModel~]] and [[file:../models/BiotTpfaCompositionalModel.m][~BiotTpfaCompositionalOilModel~]] AD model.

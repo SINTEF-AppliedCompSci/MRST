@@ -1,0 +1,17 @@
+(defun python-to-matlab-syntax (beg end)
+  (interactive "r")
+  (save-excursion
+    (goto-char beg)
+    (let ((beg (point-marker))
+          (end (save-excursion (goto-char end)
+                               (point-marker))))
+      (goto-char beg)
+      (while (search-forward "**" end t)
+        (replace-match ".^"))
+      (goto-char beg)
+      (while (search-forward "*" end t)
+        (replace-match ".*"))
+      )
+    )
+  )
+

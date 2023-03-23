@@ -1,0 +1,33 @@
+* Do not compute twice facets and g
+* Uniformize interface of computeFacetNormals and computeNodeFaceCentroids
+* The option bcetazero is not used in the computation of the coupling terms 
+* Check bcetazero in runBiotSim
+* rho is not volumetric
+* In bc for mpsa, rename bc with bcdir?
+* Switch to neumann also in flow part in runBiot convergence test
+* Changed name from runBiotSim to runBiotConvSim (for consistency)
+* Comment on fact that Neumann Biot is special
+* Check bcetazero for biot.
+  What do we use? is it consistent between mpsa and mpfa?
+* Switch to getDispatchInd in blockAssembleMPSA
+* Use computeConsistentGradient in blockAssemblyMPSA
+* Add switch for setupStandardTbls (mpfa or mpsa alone)
+* Document divoperator and computenodedisp in utils
+* Implement divergence operator for blockMPSA
+* In Tensor Assembly, add check when a matrix in matlab format only is multiplied with a matrix in SparseTensor format only.
+  - seems to go wrong (get zero matrix)
+* In AD code, include setting of continuity point
+  - parameter eta
+  - also bcetazero
+* In AD code, include nonisotropic perm in mpfa
+* in AD code for fluid, recover directly pv (without calling tpfa)
+* In setupMpfaOperators, call useVirtual
+* Add normalization of D for mpfa also in blockMPSAAssembly
+* Assemble stress operator once for all (not each time it is called)
+* R1 and R2 not used any more in assembleMPSA?
+* Comment that computing facenodedisp to get div (for example) is not efficient
+* Change in property functions assignment through setupStateFunctionGroupings requires validateModel
+* Remove setupfacebc from assembly
+* clean-up useVirtual and doptimize logic
+* improve calls including nnodesperface/cell
+
