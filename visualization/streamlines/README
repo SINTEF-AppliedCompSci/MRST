@@ -1,0 +1,1 @@
+This module implements Pollock's method for streamline-tracing on structured grids. Streamlines are very useful for visualizing flow patterns and understanding connectivity in a reservoir. Note that this model does not presently implement a streamline solver for the transport problem.

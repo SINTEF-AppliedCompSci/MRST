@@ -1,0 +1,3 @@
+Graphical interfaces for visualization of reservoir states and petrophysical data. The main gateway to this functionality is the plotToolbar function, which allows for easy visualization of simulation output with value thresholding, dynamic slicing/subset functionality and different transforms (logarithm, absolute value, nonzero values etc).
+
+The module also includes utility routines for building interactive tools with MRST, making it easy to build tailored visualization suites for specific applications.
