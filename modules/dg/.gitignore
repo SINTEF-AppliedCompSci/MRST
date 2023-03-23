@@ -1,0 +1,15 @@
+
+*.nb
+*.txt
+*.eps
+*.png
+*.jpg
+*.pdf
+*.avi
+*.gif
+*.mp4
+*.m~
+*.cpp~
+*.mexa64
+*.mat
+*.svg
