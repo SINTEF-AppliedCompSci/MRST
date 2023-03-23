@@ -1,0 +1,3 @@
+Functionality for upscaling relative permeabilities based on a steady-state assumption. This includes general steady state, as well as capillary and viscous-dominated limits. The functionality is demonstrated through a few tutorial examples.
+
+See the 'upscaling' module for functionality for single-phase upscaling.

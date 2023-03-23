@@ -1,0 +1,1 @@
+Implementation of the Multiscale Restricted-Smoothing Basis (MsRSB) method. MsRSB is a very robust and versatile multiscale method that can either be used as an approximate coarse-scale solver having mass-conservative subscale resolution, or as an iterative fine-scale solver that will provide mass-conservative solutions for any given tolerance.

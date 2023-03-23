@@ -1,0 +1,3 @@
+
+New implementation of grid coarsening by amalgamation.
+

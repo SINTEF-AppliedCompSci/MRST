@@ -1,0 +1,4 @@
+Functionality for partitioning grids and generating coarse grids. All coarse grids are assumed to be described by a partition vector that associates each cell to a unique coarse block. Blocks need to be connected. The coarse grids work well with most of the solvers and simulators in MRST and can also be visualized using the standard plotting routines.
+
+
+The 'agglom' module contains more advanced partitioning algorithms generating coarse grids that adapt to geology and flow fields.

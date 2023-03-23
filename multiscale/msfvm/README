@@ -1,0 +1,3 @@
+Implementation of the Multiscale Finite Volume (MsFV) solver for structured and unstructured grids.
+
+The MsFV solver requires a dual-primal coarse partition and relies on the solution of reduced flow problems along dual edges/faces for localization. Hence, the method may not work well for grids with complex grids and/or cases with very strong media contrasts. See the msrsb module for a more robust and versatile method.
