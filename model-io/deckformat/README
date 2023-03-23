@@ -1,0 +1,21 @@
+Functionality for reading, writing, and processing ECLIPSE input files. The core module offers simple functionality for reading a selection of keywords that mostly describe grids and cell-based properties. The deckreader module reads a larger portion of complete input files, which generally contain the following sections:
+
+- RUNSPEC: specification of the run, including grid size, phases, table size, etc
+
+- GRID: grid geometry and topology and petrophysics (porosity, permeability, net-to-gross)
+
+- EDIT: user-defined changes to the grid data after they have been processes
+
+- PROPS: fluid and rock properties (relative permeability, PVT, etc)
+
+- REGIONS: user-defined regions with different relative permeability and capillary curves, etc
+
+- SOLUTION: description of how to initialize the model
+
+- SUMMARY: defines what kind of data to output
+
+- SCHEDULE: definition of wells and description of operating schedule
+
+Along with the input reading, the module offers several functions to construct fundamental MRST objects (e.g., grids, fluids, rock-properties or wells) from the descriptions of a particular simulation deck.
+
+This module also supports reading and processing ECLIPSE output files (such as grid, init, summary and restart vectors). This enables visualising an ECLIPSE simulation case with associate dynamic data in MRST as well as using existing ECLIPSE runs to initialise an MRST simulation case.

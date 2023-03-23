@@ -1,0 +1,1 @@
+Functionality for defining wells following curvilinear trajectories. By defining each well trajectory as a series of points, this module can combine multiple trajectories and determine which cells are penetrated by the well path. The trajectories can be interpolated using any of Matlab's built-in routines (splines, piecewise linear functions, etc).

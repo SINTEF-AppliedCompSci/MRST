@@ -1,0 +1,6 @@
+*~
+*.mexa64
+*.mexw64
+spe10/spe*.mat
+spe10/spe_*.dat
+*.asv

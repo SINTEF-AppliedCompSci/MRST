@@ -1,0 +1,3 @@
+The deckformat module is used by many of the other examples in MRST, for instance
+the SPE1 example in the ad-blackoil module found at <MRSTROOT>/modules/ad-blackoil/examples/spe1.
+

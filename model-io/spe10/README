@@ -1,0 +1,1 @@
+Functions and utilities for creating and manipulating test cases based on the 10th SPE Comparative Solution Project (SPE10). Both the model 1 and the model 2 subproblems are available for download, with routines for setting up and working the grid and petrophysical properties.
