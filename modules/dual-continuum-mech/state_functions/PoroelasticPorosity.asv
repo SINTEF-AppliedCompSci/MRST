@@ -1,0 +1,24 @@
+classdef PoroelasticPorosity < StateFunction
+    % Effective poroelastic porosity after poroelastic porosity multiplier
+    properties
+    end
+    
+    methods
+        function gp = PoroelasticPorosity(model, varargin)
+            gp@StateFunction(model, varargin{:});
+            gp = gp.dependsOn({'pressure', 'xd'}, 'state');
+        end
+        function poro = evaluateOnDomain(prop, model, state)
+            % Get effective stress due to poroelastic effects, for now 
+            % we assume that the reference pressure (p_ref) and  
+            % displacements (xd_ref) are 0.
+            assert(isfield(model.rock, 'invN'), ['PoroelasticPorosity requires the '...
+            'inverse Biot modulus [(rock.alpha - rock.poro)/K_s]']); 
+            ref_poro = model.rock.poro;
+            p = model.getProp(state, 'pressure');
+            xd = model.getProp(state, 'xd');
+            [mechTerm, ~] = model.computeCouplingTerms(p, xd);
+            poro = ref_poro + (mechTerm.new + model.rock.invN.*p); % mechTerm = b*E
+        end
+    end
+end
