@@ -1,0 +1,61 @@
+This file briefly describes the content of the the ad-micp module. Inside
+the root folder, you will find the following folders:
+
+* examples,
+* publications,
+* models, and
+* utility.
+
+In addition, this file (Contents.txt), a copy of the license (LICENSE.txt),
+and the README (README.md).
+
+The example folder contains two commented scripts to demonstrate how to
+set up different flow system simulations using this module:
+
+* runMICP1DCase.m and
+* runMICP3DCase.m.
+
+The publications folder contains two folders for reproducing the numerical
+results in the manuscripts:
+
+* paper_A and
+* paper_B.
+
+The paper_A folder contains the following folder and scripts:
+
+* co2_assessment,
+* micp_1Dfhs.m,
+* micp_2Dfhcs.m,
+* micp_2Dfhrs.m,
+* micp_2Dfls.m,
+* micp_2Dfvrs.m, and
+* micp_3Dfls.m.
+
+The co2_assessment folder contains the following scripts:
+
+* CO2Model.m
+* equationsCO2.m,
+* getFluxAndPropsCO2.m, and
+* getFluxAndPropsWater.m.
+
+The paper_B folder contains the following scripts and folder:
+
+* micp_mrst_opm.m and
+* micp_opm_vtk.
+
+The micp_opm_vtk folder contains the data obtained from the OPM simulations
+to be used for plotting.
+
+The models folder contains the parent class for declaring the MICP model:
+
+* MICPModel.m.
+
+Finally, in the utility folder, you will find the following functions:
+
+* checkCloggingMICP.m,
+* equationsMICP.m,
+* getDispersionAnddpWMICP.m,
+* getFluxAndPropsMICP.m,
+* getPlotAfterStepCO2.m,
+* getPlotAfterStepMICP.m, and
+* mrsttovtk.m.
