@@ -1,0 +1,21 @@
+This is the Discrete Fracture Matrix module developed as an extension of MRST.
+
+The module is devopled at the University of Bergen, and licenced under
+the GNU General Public License v3.0.
+
+The module is mainly developed by Tor Harald Sandve (at IRIS from Jan
+2013), minor modifications are introduced by Eirik Keilegavlen (UoB).
+Some utility files are partly written at Uni Research.
+
+An overview of the files can be found in Content.m
+
+To get started, see the examples subdirectory.
+
+The performance of the hybrid discretization is described in:
+Sandve, T. H., I. Berre, J. M. Nordbotten (2012), An efficient
+Multi-Point Flux Approximation based approach for Discrete Fracture
+Matrix simulation, Journal of Computational Physics, 231(9), 3784-3800,
+doi:10.1016/j.jcp.2012.01.023.
+
+Some thoughts on the implementation, and more general on discretization
+on fractured media can be found in Implementation_Notes.pdf

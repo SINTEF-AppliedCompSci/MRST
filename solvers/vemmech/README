@@ -1,0 +1,5 @@
+Geomechanics with the Virtual Element Method
+
+The virtual element method (VEM) is a generalization of the finite element method to very general pologonal and polyhedral grids. The method takes inspiration from mimetic methods (see the 'mimetic' module) and is designed to fulfill the patch test, i.e., reproduce exact solutions for displacements that vary linearly in space (strain solutions).
+
+The module contains a preliminary implementation of VEM for linear elasticity and poro eleasticity, and includes several examples with grids combining tetrahedal, hexahedral, and general polygonal elements. The tutorial examples do not offer much explaination or discussion of results, and the computational routines are not yet fully documented. Despite this, we have decided to publish the module ahead of time after several people have asked us to do so.

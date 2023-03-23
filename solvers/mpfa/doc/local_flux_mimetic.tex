@@ -1,0 +1,190 @@
+\documentclass[11pt,fleqn]{amsart}
+\usepackage{graphicx,amsmath,amssymb,a4wide}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[hang]{subfigure}
+
+\renewcommand{\div}{\ensuremath{\operatorname{div}}}
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\mat}[1]{\boldsymbol{#1}}
+\newcommand{\tens}[1]{\boldsymbol{\mathsf{#1}}}
+\newcommand{\transp}[1]{{#1}^{\ensuremath{\mathsf{T}}}}
+
+\newtheorem{remark}{Remark}
+
+\begin{document}
+
+\title[Local flux mimetic in Matlab]{Implementation of local flux mimetic in Matlab}%
+\author[J.~R.~Natvig]{Jostein R. Natvig}%
+\address{SINTEF ICT, Applied Mathematics, P.O.~Box 124 Blindern, N--0314 Oslo, Norway}
+\email[]{\{Jostein.R.Natvig\}@sintef.no}
+
+
+%\begin{abstract}
+%\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+The implementation of the local flux mimetic method in MRST
+\citep{MRST} is straightforward.  The most computationally demanding
+step is the inversion of the mixed mass matrix which has much higer
+diimension than the regular mixed or hybrid mass matrix.  From an
+implementation poit of view, the construction of a numbering of the
+sub-faces with corresponding mappings to nodes, faces and cells is the
+most complex.  Furthermore, the choosing to use this scheme as either
+a mimetic method or a multi-point flux scheme puts certain limitations
+on its use. In the former case, the scheme is quite coumputationally
+demanding to assemble, store and handle, while in the latter case, the
+inclusion of gravity and forcings (bc, wells, src) is not solved
+(yet).
+
+\section{Reducing mixed hybrid system to cell pressure system}
+Consider the elliptic equation for pressure, 
+\begin{align}
+  \label{eq:pressure}
+  \vect{v} + \mat{K}\nabla p  &=  0,\\
+  \nabla\cdot\vect{v}        &= q,
+\end{align}
+where $\mat{K}$ is the permeability tensor, $p$ is the fluid pressure
+and $\vect{v}$ is the fluid velocity.  To discretise
+\eqref{eq:pressure} using a local-flux mimetic method, we start by
+decribing the mass matrix $\mat{B}$.  If $\mat{B}$ is exact for linear
+pressures, we can expect to get a consistent discretisation of
+\eqref{eq:pressure}.  Thus, for any linear pressure $p = p_o +
+\vect{c}\cdot\vect{x}$, we get the relation
+\begin{equation}
+  \label{ep:exactlinear}
+  \mat{N}\vect{c} = -\mat{K}\transp{\mat{R}}\vect{c},
+\end{equation}
+where $\mat{N}$ is the $n\times d$ matrix of face normals and
+$\mat{R}$ is the corresponding matrix of vectors from the cell centre,
+where the cell pressure is computed, to the face centres, where the
+face pressures are computed.  To get a local expression for the face
+flux, we make the following choices: We split each $k$-gonal face into
+$k$ sub-faces, each with one corner belonging to the face.  For each
+sub-face of face $i$ , we use $\mat{N}_i$ and $\mat{R}_i$ as normal
+and distance. Then, we require that $\mat{B}$ be block-diagonal with
+one block for each corner in the cell.  For a regular grid, each such
+corner will be the intersection of $d$ sub-faces, and the
+corresponding block in \eqref{eq:exactlinear} will be unique.  Note
+that this matrix is not symmetric, and $\langle\vect{F},\vect{G}\rangle =
+\transp{\vect{F}}\mat{B}\vect{G}$ is not an inner-product but a
+bilinear form on sub-face-fluxes.
+
+To derive a cell-centered scheme from the definition of $\mat{B}$, we
+start with the usual mimetic mixed hybrid formulation
+\begin{equation}
+  \label{eq:hybLinSys}
+   \begin{bmatrix}
+     \mat{B} & \mat{C} & \mat{D}\\
+     \transp{\mat{C}}  & \mat{0} & \mat{0}\\
+     \transp{\mat{D}} &  \mat{0} & \mat{0}
+   \end{bmatrix}
+   \begin{bmatrix}
+     \vect{v_H}\\ -\vect{p}\\ \vect{\pi}
+   \end{bmatrix}
+   =
+   \begin{bmatrix}
+     \vect{0} \\ \vect{q}\\ \vect{0}
+   \end{bmatrix}
+\end{equation}
+where $\mat{C}$ is block-diagonal with blocks $\vect{e} = (1,1,\ldots,
+1)$, that adds up sub-faces, and $\mat{D}$ maps from cell-wise
+ordering to global ordering of sub-faces. We introduce $\mat{D_o}$
+that maps hybrid velocities to mixed velocities
+\begin{equation}
+\label {eq:hybrid2mixed}
+\vect{v_h} = \mat{D_o}\vect{v_m}.
+\end{equation}
+Left-multiplying the first equation in \eqref{eq:hybLinSys} by
+$\transp{\mat{D_o}}$, substituting \eqref{eq:hybrid2mixed}, we get
+\begin{align*}
+  &\transp{\mat{D_o}}\mat{B}\mat{D_o}\vect{v_m} -
+  \transp{\mat{D_o}}\mat{C}\vect{p} + 
+  \transp {\mat{D_o}}\vect{\pi}=\vect{0}\\
+  &\mat{C}\mat{D_o}\vect{v_m} = \vect{q}.
+\end{align*}
+If we can invert $\transp{\mat{D_m}}\mat{B}\mat{D_m}$, the resulting
+linear system for cell pressures is 
+%\begin{equation*}
+%  \transp{\mat{C}}\mat{D_m}[\transp{\mat{D_m}}\mat{B}\mat{D_m}]^{-1}
+%         [\transp{\mat{D_m}}\mat{C}\vect{p}-\transp{\mat{D_m}}\mat{D}\vect{\pi}] = q,
+%\end{equation*}
+%that reduce to 
+\begin{equation}
+  \transp{\mat{C}}\mat{D_o}[\transp{\mat{D_o}}\mat{B}\mat{D_o}]^{-1}
+         [\transp{\mat{D_o}}\mat{C}\vect{p}-\vect{\pi_b}] = q
+\end{equation}
+where the boundary pressures $\vect{\pi_b}$ are the only nonzero
+entries of $\transp{\mat{D_o}}\mat{D}\vect{\pi}$.  To get an
+expression for the flux interms of cell-pressures, we introduce
+$\mat{C} = \mat{C_2}\mat{C_1}$, where $\mat{C_1}$ is block-diagonal
+with as many rows as faces in the grid, and as many columns as
+sub-faces in the grid.  $\mat{C}_1\vect{v_H}$ adds the sub-face-fluxes
+of each face.  The other matrix $\mat{C}_2$ is the standard mimetic
+$\mat{C}$-matrix.  We can then write 
+\begin{equation*}
+  \vect{v} = \transp{\mat{C}_1}\mat{D_o}[\transp{\mat{D_o}}\mat{B}\mat{D_o}]^{-1}
+             [\transp{\mat{D_o}}\mat{C}\vect{p}-\vect{\pi_b}] 
+\end{equation*}
+and 
+\begin{equation*}
+  \mat{T} = \transp{\mat{C}_1}\mat{D_o}[\transp{\mat{D_o}}\mat{B}\mat{D_o}]^{-1}
+             \begin{bmatrix}\transp{\mat{D_o}}\mat{C}\\-\mat{I}_b\end{bmatrix}
+\end{equation*}
+
+\section{Local flux mimetic}
+The crucial point in the previous section is the inversion of the
+mixed mass matrix $\transp{\mat{D_m}}\mat{B}\mat{D_m}$.  The
+construction of the local flux mimetic is based on two ideas that
+allow a cheap inversion of this matrix.  First, the number of degrees
+of freedom in the face pressures $\vect{\pi}$ and half-face velocities
+$\vect{v_h}$ is increased to one pressure and velocity per face per
+node. Thus, for a face with $n$ corners, there are $n$ facet pressures
+and velocities , one for each facet containing exactly one face
+corner.
+
+Second, the mass matrix $\mat{B}$ defining the innerproduct between
+discrete facet fluxes chosen to be block-diagonal with one $d$ x $d$
+block per node in the cell.  This inner product is uniqly defined if
+$d$ facets with linearly independent normals meet in each cell-node.
+
+Inversion of the mixed mass matrix
+$\transp{\mat{D_m}}\mat{B}\mat{D_m}$ amounts to inverting the diagonal
+blocks corresponding to each node in the grid.  Note that this
+corresponds exactly to the simplest multi-point flux approximation
+called the O-method [].  However, this derivation yields a simpler
+starting point for implementation on general grids.
+
+To get a multi-point flux transmissibility $\mat{T}$, the
+contributions from each facet must be added for each face in the grid.
+
+
+
+
+
+{\bf How much does it matter if facet centriods are inaccurate?}
+
+\bibliographystyle{abbrvnat}
+\bibliography{misc}
+
+\end{document}
+
+%{
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
