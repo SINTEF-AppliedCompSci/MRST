@@ -1,0 +1,8 @@
+*~
+*mexa64
+*.mexw64
+startup_user.m
+examples/data/*
+output/*
+settings.mat
+settings_octave.mat
