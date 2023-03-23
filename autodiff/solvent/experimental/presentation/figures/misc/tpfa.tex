@@ -1,0 +1,75 @@
+\documentclass{beamer}
+
+\usepackage{xcolor}
+\usepackage[latin1]{inputenc}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,calc,positioning,shadows}
+
+%%%<
+\usepackage{verbatim}
+\usepackage[active,tightpage]{preview}
+
+
+\PreviewEnvironment{tikzpicture}
+\setlength\PreviewBorder{5pt}%
+%%%>
+
+\usepackage[outline]{contour}
+\contourlength{0pt}
+
+
+
+
+\begin{document}
+\pagestyle{empty}
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+\begin{tikzpicture}[scale=1] 
+
+\fill[fill=gray!30, draw=black, very thin]
+   ( 1.32,  0.37) node(11) {} 
+-- ( 1.66,  2.49) node(21) {} 
+-- (-0.81,  4.06) node(31) {} 
+-- (-1.31,  3.62) node(41) {} 
+-- (-1.65,  1.33) node(51) {} 
+-- ( 0.00,  0.00) node(61) {} 
+-- ( 1.32,  0.37);
+
+\fill[fill=gray!30, draw=black, very thin]
+   ( 4.14,  2.77) node(12) {}
+-- ( 2.85,  3.77) node(22) {}
+-- ( 1.66,  2.49) node(32) {}
+-- ( 1.32,  0.37) node(42) {}
+-- ( 3.66, -0.78) node(52) {}
+-- ( 5.04,  1.86) node(62) {}
+-- ( 4.14,  2.77);
+
+\draw[fill = black]
+( 1.49,  1.43) circle(2pt) coordinate(xij) {}
+(-0.04,  1.93) circle(2pt) coordinate(xi) {} 
+( 3.07,  1.46) circle(2pt) coordinate(xj) {};
+
+\draw [line width = 2pt, -latex] (xi) -- (xij)
+node[pos=0.5, above]{\huge $\vec{c}_{i,j}$};
+
+\draw [line width = 2pt, -latex] (xij) -- ( 2.48,  1.28)
+node[pos=0.5, above]{\huge $\vec{n}_{i,j}$};
+
+\draw ([shift = {(-.5,1)}]xi) node {\huge $C_i$};
+\draw ([shift = {(0, 1)}]xj) node {\huge $C_j$};
+\draw ([shift = {(.2, -0.8)}]xij) node {\huge $F_{ij}$};
+
+%\draw ([shift = {(0.3,0)}]xij) node[below, align=right] {$\pi_{i,j}$};
+\draw (xi) node[below] {\huge$p_i$};
+\draw (xj) node[below] {\huge $p_j$};
+
+\end{tikzpicture}
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

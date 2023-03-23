@@ -1,0 +1,1 @@
+Functionality related to property calculations for the ad-core framework. Specifically, the module implements a variety of test fluids and functions that are used to create fluids from external datasets.

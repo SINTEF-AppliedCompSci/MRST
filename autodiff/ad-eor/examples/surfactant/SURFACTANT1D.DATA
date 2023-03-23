@@ -1,0 +1,250 @@
+RUNSPEC
+
+TITLE
+   SIMPLE 1D OIL-WATER-SURFACTANT PROBLEM
+
+METRIC
+
+DIMENS
+   100   1    1  /
+
+OIL
+WATER
+SURFACT
+
+EQLDIMS
+    1  100   10    1    1 /
+
+TABDIMS
+-- NTSFUN  NTPVT   NSSFUN   NPPVT   NTFIP   NRPVT
+      2      1       16       12      1       12 /
+
+WELLDIMS
+--    MAX     CONN              WELLS IN
+--   WELLS   PR WELL   GROUPS     GROUP
+       2        1        1          2  /
+
+START
+  1 'JAN' 2000  /
+
+UNIFIN
+
+-- Linear solver stack size
+NSTACK
+25 / -- Increased from 10 due to convergence problems
+
+
+GRID    ================================================================
+
+INIT
+--     ARRAY  VALUE     ------- BOX ------
+EQUALS
+      'DX'       1      /
+      'DY'       5      /
+      'DZ'       5      /
+      'PORO'     0.3    /
+      'PERMX'  100      /
+      'PERMY'  100      /
+      'PERMZ'   20      /
+      'TOPS'  1000      /
+/
+
+
+PROPS    ===============================================================
+
+SWOF
+--  Saturation      Relperm         Relperm     Capillary
+--                  Water           Oil         pressure
+-- Table 1 - Immiscible curves - SATNUM
+    0.2000	    0.000           0.5000	1.76
+    0.2429	    0.0002	    0.4003	1.02
+    0.2857	    0.0017	    0.3149      0.56
+    0.3286	    0.0059	    0.2425      0.30
+    0.3714	    0.0140	    0.1822      0.17
+    0.4143	    0.0273	    0.1328      0.11
+    0.4571	    0.0472	    0.0933      0.10
+    0.5000	    0.0750	    0.0625      0.10
+    0.5429	    0.1120	    0.0394      0.10
+    0.5857	    0.1594	    0.0228      0.10
+    0.6286	    0.2187	    0.0117      0.10
+    0.6714	    0.2910	    0.0049      0.10
+    0.7143	    0.3778	    0.0015      0.09
+    0.7571	    0.4804	    0.0002      0.09
+    0.8000	    0.6000	    0           0.08
+/
+-- Table 2 - Miscible curves - SURFNUM
+    0.0500	    0.0000    	    1.0000	0.00
+    0.1143	    0.0191	    0.8948	0.00
+    0.1786	    0.0540	    0.7936	0.00
+    0.2429	    0.0992	    0.6965	0.00
+    0.3071	    0.1527	    0.6037	0.00
+    0.3714	    0.2134	    0.5154      0.00
+    0.4357	    0.2806	    0.4320      0.00
+    0.5000	    0.3536	    0.3536      0.00
+    0.5643	    0.4320	    0.2806	0.00
+    0.6286	    0.5154	    0.2134      0.00
+    0.6929	    0.6037	    0.1527      0.00
+    0.7571	    0.6965	    0.0992      0.00
+    0.8214	    0.7936	    0.0540      0.00
+    0.8857	    0.8948	    0.0191      0.00
+    0.9500	    1.0000	    0.0000	0.00
+/
+
+
+DENSITY
+--   O       W     G
+    800    1080   0.82   /
+
+
+PVTW
+-- REF.PRES.  REF. FVF  COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
+     300        1.012       4.28e-5        0.61       0. /
+
+PVCDO
+-- REF.PRES.   FVF      COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
+     300        1.065       6.65e-5         5.0        1.9e-3 /
+
+ROCK
+-- REF.PRES   COMPRESSIBILITY
+     300        3.0e-5       /
+
+INCLUDE
+  'surfact.inc'  /
+
+
+REGIONS ===============================================================
+
+SATNUM
+100*1 /
+
+SURFNUM
+100*2 /
+
+
+SOLUTION ===============================================================
+
+
+-- Initial pressure for each grid cell
+PRESSURE
+100*300 /
+-- Initial water saturation for each grid cell
+SWAT
+100*0.2
+/
+
+-- Initial pressure for each cell
+PRESSURE
+100*280
+/
+
+-- Create initial restart file
+RPTSOL
+  RESTART=4 /
+
+
+SUMMARY  ===============================================================
+
+-- This section specifies data to be written to the summary files and which
+-- may later be used with the Eclipse graphics package
+
+
+
+SCHEDULE ===============================================================
+
+-- The schedule section defines the operations to be simulated
+
+-- Controls on output to the RESTART file
+-- BASIC=3: restart files are created every FREQ report time
+-- BASIC=5: restart is written every FREQ month
+-- BASIC=6: a restart file is written at every time step
+RPTRST
+  BASIC=5  FREQ=1  /
+
+
+
+WELSPECS
+--     WELL   GROUP   LOCATION   BHP    PI
+--     NAME   NAME    I    J     DEPTH  DEFN
+    'PROD'    'G'     100  1     1000   'OIL'  /
+    'INJ'     'G'     1    1     1000   'WAT'  /
+/
+
+COMPDAT
+-- WELL  -LOCATION-      OPEN/   SAT  CONN  WELL
+-- NAME  I    J  K1  K2  SHUT    TAB  FACT  DIAM
+'PROD'   100  1  1   1   'OPEN'  2*         0.3/
+'INJ'    1    1  1   1   'OPEN'  2*         0.3/
+/
+
+
+---------------------------------------------------------------------------
+
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+       'PROD'   'OPEN'  'BHP'   5*                            280/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
+--      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
+       'INJ'  'WATER'  'OPEN'  'BHP'     2*           320 /
+/
+
+WSURFACT
+  'INJ'  0.0  /
+/
+
+TSTEP
+40*3
+/
+
+---------------------------------------------------------------------------
+
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+       'PROD'   'OPEN'  'BHP'   5*                            280/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
+--      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
+       'INJ' 'WATER' 'OPEN' 'BHP'     2*            320 /
+/
+
+WSURFACT
+  'INJ'  50.0  /
+/
+
+TSTEP
+80*3
+/
+
+
+---------------------------------------------------------------------------
+
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+       'PROD'   'OPEN'  'BHP'   5*                            280/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW   RESV   BHP
+--      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
+       'INJ'  'WATER'  'OPEN'  'BHP'     2*           320 /
+/
+
+WSURFACT
+  'INJ'  0.0  /
+/
+
+TSTEP
+40*3
+/
+
+END     ================================================================

@@ -1,0 +1,450 @@
+-- SLIGHTLY EDITED SPE3-CASE. MINUMUM BHP FOR PRODUCER INCREASED TO PREVENT
+-- NEGATIVE REGATIVE RV
+--
+RUNSPEC
+TITLE
+   GAS CONDENSATE TEST
+
+DIMENS
+   9   9    4  /
+
+NONNC
+
+OIL
+
+WATER
+
+GAS
+
+VAPOIL
+
+FIELD
+
+--EQLDIMS
+--1  100   10    1    1 /
+
+TABDIMS
+    1    1   25   25    1   15 /
+
+WELLDIMS
+    18    2    2    10 /
+
+NUPCOL
+    4 /
+
+VFPPDIMS
+    7    3    4    2    0    1 /
+
+VFPIDIMS
+    6    3    1 /
+
+
+START
+  1 'NOV' 2004  /
+
+NSTACK
+   25 /
+
+UNIFOUT
+
+UNIFIN
+
+
+
+--Grid Properties ======================================================
+-------- IN THIS SECTION , THE GEOMETRY OF THE  SIMULATION GRID AND THE
+-------- ROCK PERMEABILITIES AND POROSITIES ARE DEFINED.
+------------------------------------------------------------------------
+--  THE X AND Y DIRECTION CELL SIZES ( DX, DY ) AND THE POROSITIES ARE
+--  CONSTANT THROUGHOUT THE GRID. THESE ARE SET IN THE FIRST 3 LINES
+--  AFTER THE EQUALS KEYWORD. THE CELL THICKNESSES ( DZ ) AND
+--  PERMEABILITES ARE THEN SET FOR EACH  LAYER. THE CELL TOP DEPTHS
+--  ( TOPS ) ARE NEEDED ONLY IN THE TOP LAYER ( THOUGH THEY COULD BE.
+--  SET THROUGHOUT THE GRID ). THE SPECIFIED MULTZ VALUES ACT AS
+--  MULTIPLIERS ON THE TRANSMISSIBILITIES BETWEEN THE CURRENT LAYER
+--  AND THE LAYER BELOW.
+GRID
+INIT
+--     ARRAY  VALUE     ------- BOX ------
+-- EQUALS
+-- 'DX' 293.3 /
+-- 'DY' 293.3 /
+-- 'PORO' 0.13 /
+
+--    DZ      Depth    Nxmin   Nxmax   Nymin   Nymax   DZmin  DZmax
+--   'DZ'     30	1	9 	1	9	1	2  /
+--   'DZ'     50	1	9 	1	9	3	4  /
+     
+--   'PERMX'  130       1	9 	1	9	1	1  /
+--   'PERMX'  40        1	9 	1	9	2	2  /
+--   'PERMX'  20        1	9 	1	9	3	3  /
+--   'PERMX'  150       1	9 	1	9	4	4  /
+
+--   'PERMZ'  13        1	9 	1	9	1	1  /
+--   'PERMZ'  4         1	9 	1	9	2	2  /
+--   'PERMZ'  2         1	9 	1	9	3	3  /
+--   'PERMZ'  15        1	9 	1	9	4	4  /
+
+--   'TOPS'   7315      1	9	1	9	1	1  /
+-- /
+-- COPY 
+--  'PERMX' 'PERMY' /      
+-- /
+INCLUDE
+'./SPE3.GRDECL'
+/
+
+PORO
+324*0.13
+/
+
+PERMX
+81*130.0
+81*40.0
+81*20.0
+81*150.0
+/
+
+PERMY
+81*130.0
+81*40.0
+81*20.0
+81*150.0
+/
+
+PERMZ
+81*13.0
+81*4.0
+81*2.0
+81*15.0
+/
+
+
+-- OUTPUT OF DX, DY, DZ, PERMX, PERMY, PERMZ, MULTZ, PORO AND TOPS DATA
+-- IS REQUESTED, AND OF THE CALCULATED PORE VOLUMES AND X, Y AND Z
+-- TRANSMISSIBILITIES
+--RPTGRID
+--1  1  1  1  1  1  0  0  1  1  0  1  1  0  1  1  1 /
+   
+-------- THE PROPS SECTION DEFINES THE REL. PERMEABILITIES, CAPILLARY
+-------- PRESSURES, AND THE PVT PROPERTIES OF THE RESERVOIR FLUIDS
+----------------------------------------------------------------------
+-- WATER RELATIVE PERMEABILITY AND CAPILLARY PRESSURE ARE TABULATED AS
+-- A FUNCTION OF WATER SATURATION.
+--
+PROPS 
+
+--water saturation function
+--Sw   Kro  Pcg-w
+SWFN
+ 0.16  0.000  50.0
+ 0.20  0.002  32.0
+ 0.24  0.010  21.0
+ 0.28  0.020  15.5
+ 0.32  0.033  12.0
+ 0.36  0.049   9.2
+ 0.40  0.066   7.0
+ 0.44  0.090   5.3
+ 0.48  0.119   4.2
+ 0.52  0.150   3.4
+ 0.56  0.186   2.7
+ 0.60  0.227   2.1
+ 0.68  0.330   1.3
+ 0.72  0.390   1.0
+ 0.76  0.462   0.7
+ 0.80  0.540   0.5
+ 0.88  0.710   0.3
+ 0.96  0.900   0.1   
+ 1.00  1.000   0.0 /
+
+--Gas Saturation Function Data
+--Sg   Krg     Pcog
+SGFN
+ 0.00  0.000   0
+ 0.04  0.005   0
+ 0.08  0.013   0
+ 0.12  0.026   0
+ 0.16  0.040   0
+ 0.20  0.058   0
+ 0.24  0.078   0
+ 0.28  0.100   0
+ 0.32  0.126   0
+ 0.40  0.187   0
+ 0.44  0.222   0
+ 0.52  0.300   0
+ 0.56  0.348   0
+ 0.60  0.400   0  
+ 0.68  0.505   0
+ 0.72  0.562   0
+ 0.76  0.620   0
+ 0.84  0.740   0 / 
+
+--Using Kro values given in the paper as both Krow & Krog
+--Three Phase Oil Saturation Function
+--S   Krow   Krog
+SOF3
+ 0.24  0.000  0.000
+ 0.28  0.005  0.005
+ 0.32  0.012  0.012
+ 0.36  0.024  0.024
+ 0.40  0.040  0.040
+ 0.44  0.060  0.060
+ 0.48  0.082  0.082
+ 0.52  0.112  0.112
+ 0.56  0.150  0.150
+ 0.60  0.196  0.196 
+ 0.64  0.250  0.250
+ 0.68  0.315  0.315
+ 0.72  0.400  0.400
+ 0.76  0.513  0.513
+ 0.80  0.650  0.650 
+ 0.84  0.800  0.800 /
+
+-- PVT PROPERTIES OF WATER
+--
+--    REF. PRES. REF. FVF  COMPRESSIBILITY  REF VISCOSITY  VISCOSIBILITY
+PVTW
+       3550     1.0         3.0E-6           0.70            0 /
+
+-- ROCK COMPRESSIBILITY
+--
+--    REF. PRES   COMPRESSIBILITY
+ROCK
+       3550          4.0E-6          /
+
+-- SURFACE DENSITIES OF RESERVOIR FLUIDS
+--
+--        OIL     WATER     GAS
+DENSITY
+         48.8308  62.4280  0.0725  /
+
+-- PVT PROPERTIES OF DRY GAS (NO VAPOURISED OIL)
+-- WE WOULD USE PVTG TO SPECIFY THE PROPERTIES OF WET GAS
+--
+--     'Pressure'   'Oil FVF'   'Oil Visc'
+PVDO
+       1214.7000      1.0632      0.3668
+       1814.7000      1.0518      0.4241
+       2414.7000      1.0418      0.5018
+       3014.7000      1.0332      0.6068
+       3214.7000      1.0308      0.6461
+       3364.7000      1.0291      0.6753
+       3414.7000      1.0285      0.6852
+       3443.8831      1.0282      0.6912
+/
+--PVTi--End of PVTi generated section--
+-- Wet Gas PVT Properties (Vapourised Oil)
+-- Column Properties are:
+-- 'Gas Pressure'  'Gas OGR'   'Gas FVF'    'Gas Visc'
+-- Units: psia     stb /Mscf     rb /Mscf     cp
+PVTG
+       1214.7000   0.0013130      2.2799     0.0149
+                           0      2.2815     0.01488/
+       1814.7000     0.00353      1.4401     0.01791
+                    0.001313      1.4429     0.01782
+                           0      1.4445    0.01735 /
+       2414.7000     0.01102      1.0438     0.02328
+                     0.00353      1.0495     0.02267
+                    0.001313      1.0512      0.0225
+                           0      1.0522     0.02240 /
+       3014.7000      0.0331      0.8456     0.0318
+                     0.01102      0.8489     0.02924
+                     0.00353      0.8500     0.02844
+                    0.001313      0.8503     0.02820
+                           0      0.8505     0.02807 /
+       3214.7000      0.0454      0.8082     0.03539
+                      0.0331      0.8080     0.03371
+                     0.01102      0.8075     0.03113
+                     0.00353      0.8073     0.03029
+                    0.001313      0.8073     0.03004
+                           0      0.8073     0.02989 /
+       3364.7000     0.05670      0.7875     0.0384
+                     0.04540      0.7860     0.03667
+                     0.03310      0.7843     0.03515
+                     0.01102      0.7814     0.03429
+                     0.00353      0.7804     0.03162
+                    0.001313      0.7801     0.03136
+                           0      0.7799     0.03121 /
+       3416.7575      0.0612      0.7816     0.03955
+                      0.0567      0.7809     0.0386
+                      0.0454      0.7789     0.03717
+                      0.0331      0.7768     0.03564
+                     0.01102      0.7731     0.03296
+                     0.00353      0.7718     0.03207
+                    0.001313      0.7714     0.03181
+                           0      0.7712     0.03166 /
+       3449.3322      0.0642      0.7783     0.0403
+                      0.0612      0.7777     0.0395
+                      0.0567      0.7769     0.03892
+                      0.0454      0.7747     0.03748
+                      0.0331      0.7723     0.03594
+                     0.01102      0.7681     0.03325
+                     0.00353      0.7666     0.03236
+                    0.001313      0.7662     0.0321
+                           0      0.7660     0.03194 /
+/
+-- OUTPUT CONTROLS FOR PROPS DATA
+-- ACTIVATED FOR SOF3, SWFN, SGFN, PVTW, PVDG, DENSITY AND ROCK KEYWORDS
+--RPTPROPS
+--1  1  1  0  1  1  1  1  /
+
+SOLUTION ===============================================================
+-------- THE SOLUTION SECTION DEFINES THE INITIAL STATE OF THE SOLUTION
+-------- VARIABLES (PHASE PRESSURES, SATURATIONS AND GAS-OIL RATIOS)
+------------------------------------------------------------------------
+RPTRST
+  BASIC=6 /
+
+RPTSOL
+  FIP=3 /
+
+PRESSURE
+81*3524.8
+81*3529.2
+81*3535.1
+81*3542.6
+/
+
+SWAT
+81*0.1644
+81*0.1825
+81*0.2135
+81*0.3025
+/
+
+SGAS
+81*0.8356
+81*0.8175
+81*0.7865
+81*0.6975
+/
+
+RV
+81*0.0711
+81*0.0716
+81*0.0721
+81*0.0728
+/
+
+-- DATA FOR INITIALISING FLUIDS TO POTENTIAL EQUILIBRIUM
+--
+--    DATUM  DATUM  CONTACT CONT   GWC    GOC    
+--    DEPTH  PRESS  DEPTH   PC    DEPTH   PCOG  
+-- EQUIL
+--        7500   3550   7500    0     7500    0      /
+
+-- OUTPUT CONTROLS (SWITCH ON OUTPUT OF INITIAL GRID BLOCK PRESSURES)
+--RPTSOL
+--1  11*0  /
+
+-- SUMMARY SECTION FILES ===============================================
+-------- THIS SECTION SPECIFIES DATA TO BE WRITTEN TO THE SUMMARY FILES
+-------- AND WHICH MAY LATER BE USED WITH THE ECLIPSE GRAPHICS PACKAGE
+------------------------------------------------------------------------
+
+--REQUEST PRINTED OUTPUT OF SUMMARY FILE DATA
+SUMMARY
+RUNSUM
+EXCEL
+SEPARATE
+
+ALL
+FWIR
+FOPR
+FOPT
+FWPT
+FGOR
+FPR
+FOE
+FWPR
+FWIT
+FGIR
+FGPR
+FGSAT
+WBHP
+/
+--producer block data
+BSOIL
+7 7 4 /
+/
+BSOIL
+7 7 3 /
+/
+BSOIL
+7 7 2 /
+/
+BSOIL
+7 7 1 /
+/
+BPRES
+7 7 4 /
+/
+--SCHEDULE ===============================================================
+-------- THE SCHEDULE SECTION DEFINES THE OPERATIONS TO BE SIMULATED
+------------------------------------------------------------------------
+-- CONTROLS ON OUTPUT AT EACH REPORT TIME
+SCHEDULE
+--RPTSCHED
+--   1   0   1   1   0   0   4   2   2   0   0   2   0   0   0
+--   0   0   0   0   0   0   0   0   0   0   0   0   0   0   0
+--   0   0   0   0   0   0   0   0   1   0   0   0   0   0   0/
+--/
+--
+-- STEPS TO 1400 DAYS
+--
+
+WELSPECS
+    'PRODUCER' 'G'    7  7 7500 'GAS'     /
+    'INJECTOR' 'G'    1  1 7500 'GAS'     /
+/
+COMPDAT
+    'PRODUCER' 7 7 3 4 'OPEN' 0 -1 2 10000  /
+    'INJECTOR' 1 1 1 2 'OPEN' 0 -1 2 10000  /
+/
+-- PRODUCTION WELL CONTROLS
+--
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+WCONPROD
+     'PRODUCER' 'OPEN'  'GRAT' 2* 6200 2*  1050  /
+/
+WCONINJE
+     'INJECTOR' 'GAS' 'OPEN' 'RATE' 4700 1* 4000 1* 1* /
+/
+--first 3 months---------------------------------------------- 
+TUNING 
+1.00 365.00 0.1 0.15 20 /
+120.0 0.01 1.0E-6 2* 0.1 1.0E-5 /
+/
+TSTEP 
+1.0 20.0 70.25
+/
+--second 3 months--------------------------------------------------
+--TUNING 
+1.00 365.00 0.1 0.15 20 /
+120.0 0.01 1.0E-6 2* 0.1 1.0E-5 /
+12 1 40  1 1* 1* /
+/
+TSTEP
+ 91.25 
+/
+--Third 3 months------------------------------------------------------
+TSTEP
+91.25 
+/
+--FORTH 3 MONTHES-----------------------------------------------------
+TSTEP
+91.25 
+/
+-------------------------------------------------------
+TSTEP
+ 9*365 
+/
+-------------------------------------------------------
+WCONINJE
+     'INJECTOR' 'GAS' 'OPEN' 'RATE' 0 1* 4000 1* 1* /
+/
+TSTEP
+ 10*365 
+/
+END 

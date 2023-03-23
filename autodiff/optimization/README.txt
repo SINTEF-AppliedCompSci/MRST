@@ -1,0 +1,1 @@
+The optimization module contains routines for solving optimal control problems with (forward and adjoint) solvers based on the automatic differentiation framework found in ad-core and ad-blackoil. The module contains a quasi-Newton optimization routine using BFGS-updated Hessians, but can easily be set up to use any (non-MRST) optimization code.

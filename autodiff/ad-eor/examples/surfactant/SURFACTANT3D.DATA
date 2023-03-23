@@ -1,0 +1,252 @@
+RUNSPEC
+
+TITLE
+   SIMPLE 2D OIL-WATER-SURFACTANT PROBLEM
+
+METRIC
+
+DIMENS
+   31   31    3  /
+
+OIL
+WATER
+SURFACT
+
+EQLDIMS
+    1  100   10    1    1 /
+
+TABDIMS
+-- NTSFUN  NTPVT   NSSFUN   NPPVT   NTFIP   NRPVT
+      2      1       16       12      1       12 /
+
+WELLDIMS
+--    MAX     CONN              WELLS IN
+--   WELLS   PR WELL   GROUPS     GROUP
+       3        1        1          3   /
+
+START
+  1 'JAN' 2000  /
+
+UNIFIN
+
+-- Linear solver stack size
+NSTACK
+25 / -- Increased from 10 due to convergence problems
+
+
+GRID    ================================================================
+
+INIT
+--     ARRAY  VALUE     ------- BOX ------
+EQUALS
+      'DX'      20      /
+      'DY'      20      /
+      'DZ'       4      /
+      'PORO'     0.3    /
+      'PERMX'  100      /
+      'TOPS'  1000      1  31   1  31   1   1  /
+/
+
+COPY
+      'PERMX'    'PERMY'   /
+      'PERMX'    'PERMZ'   /
+/
+
+
+PROPS    ===============================================================
+
+SWOF
+    0.1500       0.0    1.0000         0.0
+    0.2000    0.0059    0.8521         0.0
+    0.2500    0.0237    0.7160         0.0
+    0.3000    0.0533    0.5917         0.0
+    0.3500    0.0947    0.4793         0.0
+    0.4000    0.1479    0.3787         0.0
+    0.4500    0.2130    0.2899         0.0
+    0.5000    0.2899    0.2130         0.0
+    0.5500    0.3787    0.1479         0.0
+    0.6000    0.4793    0.0947         0.0
+    0.6500    0.5917    0.0533         0.0
+    0.7000    0.7160    0.0237         0.0
+    0.7500    0.8521    0.0059         0.0
+    0.8000    1.0000       0.0         0.0
+/
+    0.1500       0.0    1.0000         0.0
+    0.2000    0.0059    0.8521         0.0
+    0.2500    0.0237    0.7160         0.0
+    0.3000    0.0533    0.5917         0.0
+    0.3500    0.0947    0.4793         0.0
+    0.4000    0.1479    0.3787         0.0
+    0.4500    0.2130    0.2899         0.0
+    0.5000    0.2899    0.2130         0.0
+    0.5500    0.3787    0.1479         0.0
+    0.6000    0.4793    0.0947         0.0
+    0.6500    0.5917    0.0533         0.0
+    0.7000    0.7160    0.0237         0.0
+    0.7500    0.8521    0.0059         0.0
+    0.8000    1.0000       0.0         0.0
+/
+
+
+DENSITY
+--   O       W     G
+    962    1080   0.82   /
+
+
+PVTW
+-- REF.PRES.  REF. FVF  COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
+     234        1.012       4.28e-5        0.48       0.00E+00 /
+
+PVCDO
+-- REF.PRES.   FVF      COMPRESSIBILITY  REF.VISC.  VISCOSIBILITY
+     234        1.065       6.65e-5         5.0        1.9e-3   /
+
+ROCK
+-- REF.PRES   COMPRESSIBILITY
+     234        3.0e-5       /
+
+INCLUDE
+  'surfact.inc'  /
+
+
+REGIONS ===============================================================
+
+SATNUM
+2883*1 /
+
+SURFNUM
+2883*2 /
+
+
+SOLUTION ===============================================================
+
+--EQUIL
+--depth  pressure(atm) woc
+--   1000      234       1200   /
+
+-- Initial water saturation for each grid cell
+SWAT
+  961*0.1
+  961*0.2
+  961*0.9
+/
+
+-- Initial pressure for each cell
+PRESSURE
+  2883*300
+/
+
+-- Create initial restart file
+RPTSOL
+  RESTART=4 /
+
+
+SUMMARY  ===============================================================
+
+
+SCHEDULE ===============================================================
+
+-- The schedule section defines the operations to be simulated
+
+-- Controls on output to the RESTART file
+-- BASIC=3: restart files are created every FREQ report time
+-- BASIC=5: restart is written every FREQ month
+-- BASIC=6: a restart file is written at every time step
+RPTRST
+  BASIC=5  FREQ=1  /
+
+
+
+WELSPECS
+--     WELL   GROUP LOCATION  BHP   PI
+--     NAME   NAME    I  J    DEPTH DEFN
+    'PROD'     'G'    16 16   1000 'OIL'  /
+    'INJE1'    'G'    1  1    1000 'WAT'  /
+    'INJE2'    'G'    31 31   1000 'WAT'  /
+/
+
+COMPDAT
+--     WELL     -LOCATION- OPEN/ SAT CONN  WELL
+--     NAME     I   J K1 K2 SHUT  TAB FACT  DIAM
+    'PROD'     16  16  1  1 'OPEN' 2*       0.3/
+    'INJE1'     1   1  1  1 'OPEN' 2*       0.3/
+    'INJE2'    31  31  1  1 'OPEN' 2*       0.3/
+/
+
+
+---------------------------------------------------------------------------
+
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+       'PROD'   'OPEN'  'BHP'   5*                            150/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW   RESV    BHP
+--      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
+       'INJE1' 'WATER' 'OPEN' 'RATE'   100     1*     2000 /
+       'INJE2' 'WATER' 'OPEN' 'RATE'   100     1*     2000 /
+/
+
+
+WSURFACT
+  'INJE1'  0.0  /
+  'INJE2'  0.0  /
+/
+
+TSTEP
+  20*1.0 30*5
+/
+
+---------------------------------------------------------------------------
+
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+        'PROD' 'OPEN'  'BHP'   5*                            150/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW   RESV    BHP
+--      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
+       'INJE1' 'WATER' 'OPEN' 'RATE'   200     1*      2000 /
+       'INJE2' 'WATER' 'OPEN' 'RATE'   200     1*      2000 /
+/
+
+WSURFACT
+  'INJE1'  4.0  /
+  'INJE2'  1.0  /
+/
+
+TSTEP
+  20*1.0 30*5.0
+/
+
+---------------------------------------------------------------------------
+
+WCONPROD
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+       'PROD'   'OPEN'  'BHP'   5*                            110/
+/
+
+WCONINJE
+--      WELL     INJ   OPEN/   CNTL    FLOW   RESV    BHP
+--      NAME    TYPE   SHUT    MODE    RATE   RATE   LIMIT
+       'INJE1' 'WATER' 'OPEN' 'RATE'   100     1*      2000 /
+       'INJE2' 'WATER' 'OPEN' 'RATE'   100     1*      2000 /
+/
+
+WSURFACT
+  'INJE1'  0.0  /
+  'INJE2'  0.0  /
+/
+
+TSTEP
+  20*1.0 30*5.0
+/
+
+END     ================================================================

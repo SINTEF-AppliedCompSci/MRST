@@ -1,0 +1,230 @@
+\documentclass[11pt]{amsart}
+\usepackage[abbreviate=false,sorting=none,doi=false]{biblatex}
+\addbibresource{refs.bib}
+
+\usepackage{xspace}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{bm}
+\usepackage{siunitx}
+
+% 
+% =======================================================================
+% Formatting tools
+% =======================================================================
+% Gentle spacing after macros
+% Reference: The LaTeX Companion, p.50
+\newcommand{\Real}{\mathbb R}
+\newcommand{\eg}{e.g.,\xspace}
+\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\etc}{etc.\@\xspace}
+\newcommand{\etal}{et~al.\@\xspace}
+% 
+% 
+% =======================================================================
+% Common Mathematics
+% =======================================================================
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\mat}[1]{\boldsymbol{#1}}
+\newcommand{\transp}[1]{{#1}^{\ensuremath{\mathsf{T}}}}
+% 
+% =======================================================================
+% Math Operators
+% =======================================================================
+\DeclareMathOperator{\erfc}{erfc}
+\DeclareMathOperator{\spanop}{span}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Grad}{Grad}
+\DeclareMathOperator{\Dive}{Div}
+% 
+\DeclareMathOperator{\GRAD}{\scshape Grad}
+\DeclareMathOperator{\DIVE}{\scshape Div}
+% 
+\newcommand{\grad}{\nabla}
+\newcommand{\dive}{\nabla\cdot}
+\newcommand{\curl}{\nabla\times}
+
+
+\newcommand{\cads}{c^a}
+\newcommand{\chatads}{\hat{c}^a}
+\newcommand{\eff}{\mathrm{eff}}
+\newcommand{\cmax}{c_{\max}}
+\newcommand{\Sb}{{\bm{S}}}
+\newcommand{\cb}{{\bm{c}}}
+\newcommand{\Kb}{{\bm{K}}}
+\newcommand{\kb}{{\bm{k}}}
+\newcommand{\nb}{{\bm{n}}}
+\newcommand{\ub}{{\bm{u}}}
+\newcommand{\ubmax}{\ub_{\max}}
+\newcommand{\abs}[1]{\left| #1\right|}
+\newcommand{\norm}[1]{\left\| #1\right\|}
+
+\newcommand{\Sdpv}{\ensuremath{S_\text{dpv}} }
+\newcommand{\fracpar}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\pref}{p_\text{ref}}
+\newcommand{\surf}{\text{surf}}
+\newcommand{\nosurf}{\text{nosurf}}
+
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{5mm}
+
+\begin{document}
+
+\title[surfactant model]{The surfactant model in MRST}
+
+\maketitle
+
+\begin{abstract}
+  In this document, we describe briefly the surfactant model which is implemented in MRST. 
+\end{abstract}
+
+
+Our starting point is the mass conservation equations for oil, water, and surfactant, which are given by
+\begin{equation}
+  \label{eq:conservation_laws1}
+  \frac{\partial}{\partial t} (\rho_{\alpha}\phi S_\alpha) +
+  \nabla\cdot(\rho_{\alpha}\vec{v}_\alpha)  = 0, \qquad \alpha\in\{w,o\}, 
+\end{equation}
+and
+\begin{equation}
+  \label{eq:conservation_laws2_withads}
+  \frac{\partial}{\partial t} (\rho_{w}\phi S_w c)+
+  \fracpar{}{t}\left(\rho_{r, \text{ref}}(1-\phi_\text{ref})\cads\right)+\nabla\cdot(c
+  \rho_{w} \vec{v}_{wp})  = 0.
+\end{equation}
+
+Let us describe the terms involved in \eqref{eq:conservation_laws1} and
+\eqref{eq:conservation_laws2_withads}. The values $\rho_{\alpha}$, $\vec{v}_\alpha$, and $S_\alpha$
+denote density, velocity, and saturation of the phase $\alpha$. The porosity is denoted by $\phi$
+and is assumed to be a function $\phi(p)$ of pressure only, $c$ is the surfactant concentration, and
+$\vec{v}_{wp}$ the velocity of water containing diluted polymer. The quantity $c^a$ denotes the mass
+of surfactant which is adsorbed to a unit mass of rock. Sources and sinks may be included in a
+manner equivalent to boundary conditions, and are left out of the above equations.
+
+Let us describe how these quantities are determined. The fluxes $\vec{v}_\alpha$ are given by
+\begin{equation*}
+  \vec{v}_\alpha = \frac{k_{\alpha}(s_\alpha, c)}{\mu_{\alpha}(p, c)}\grad p_\alpha,
+\end{equation*}
+where the relative permeabilities $k_{\alpha}$ depends on the saturations and the surfactant
+concentrations and the viscosities depend on the surfactant concentration. The phase pressures are
+given by the relation
+\begin{equation}
+  p_o = p_w + p_c(s_w, c) 
+\end{equation}
+where the capillary pressure function $p_c$ depends on the water saturation and
+surfactant concentration. The model for relative permeability and viscosity
+follow Eclipse's implementation, see \cite{eclipse, jorgensen}. First, we
+introduce the interfacial tension $\sigma$. At the pore level, the effect of
+surfactant is to modify the interfacial tension so that $\sigma$ is a function
+of the surfactant concentration, $\sigma(c)$. At the upscaled level, the change in
+relative permeability depends on the capillary number $N_c$ which measures
+the ratio between the viscous and capillary forces and is defined as
+\begin{equation}
+  \label{eq:defNc}
+  N_c = \frac{\abs{K\grad p}}{\sigma}.
+\end{equation}
+Thus, the relative permeability is given as $k_{\alpha}(s_\alpha, N_c)$. The values of
+$k_{\alpha}(s_\alpha, N_c)$ are computed by interpolating the relative permeability curves for
+minimal and maximal $N_c$, in the following way. Let $N_c^{\nosurf}$ and $N_c^{\surf}$denote the
+minimal and maximal values of the capillary numbers for which the relative permeability curves are
+given as
+\begin{equation*}
+  k_{\alpha}^{\nosurf}(s_\alpha)\quad\text{and}\quad k_{\alpha}^{\surf}(s_\alpha).
+\end{equation*}
+We denote the residual saturation values, for each phase, as $s_{\alpha. res}^{\nosurf}$ and
+$s_{\alpha. res}^{\surf}$. We use a logarithmic interpolation and we define the interpolation factor
+$m$ as
+\begin{equation} 
+  \label{eq:defm}
+  m(N_c) = \frac{\log_{10}(N_c) - \log_{10}(N_c^{\nosurf})}{\log_{10}(N_c^{\surf}) - \log_{10}(N_c^{\nosurf})},
+\end{equation}
+which belongs to $[0,1]$. The residual saturation values for the relative permeabilities
+$k_{\alpha}(s_\alpha, N_c)$ is obtained by interpolation
+\begin{equation}
+  \label{eq:srhat}
+  s_{\alpha,res}^{N_c} = m(N_c)\,s_{\alpha,res}^{\surf} + (1 - m(N_c))\,s_{\alpha,res}^{\nosurf}.
+\end{equation}
+The relative permeabilities $k_{r,\alpha}^{\surf}$ and $k_{r,\alpha}^{\nosurf}$
+are rescaled to match these endpoints. We detail the construction only for
+$k_{r,\alpha}^{\surf}$ as the construction for $k_{r,\alpha}^{\nosurf}$ is
+completely similar. We define the function $k_{r,\alpha}^{\surf}$ as
+\begin{equation}
+\label{eq:rescaledkr}
+k_{r,\alpha}^{\surf}(s_\alpha, N_c) = k_\alpha^{\surf}(s_\alpha^{\surf}(N_c)),
+\end{equation}
+where $k_\alpha^{\surf}$ is a given function (see above) and
+$s_\alpha^{\surf}(N_c)$ is defined through the relation
+\begin{equation}
+  \label{eq:defsnc}
+  \frac{s_\alpha^{\surf}(N_c) - s_{\alpha,res}^{\surf}}{1 - s_{\alpha,res}^{\surf} - s_{\alpha',res}^{\surf}} =   \frac{s_\alpha - s_{\alpha,res}^{N_c}}{1 - s_{\alpha,res}^{N_c} - s_{\alpha',res}^{N_c}}.
+\end{equation}
+In \eqref{eq:defsnc}, $\alpha'$ denotes the phase which is not the phase
+$\alpha$. Similarly we define $k_{\alpha}^{\nosurf}$. Finally, we define the
+relative permeability $k_{\alpha}$ by interpolation using the coefficient
+$m(N_c)$, that is,
+\begin{equation}
+  \label{eq:defkralpha}
+  k_{\alpha}(s, N_c) = m(N_c)\,k_{\alpha}^{\surf}(s_\alpha, N_c) + (1 - m(N_c))\,k_{\alpha}^{\nosurf}(s_\alpha, N_c).
+\end{equation}
+
+The change in viscosity is only modeled for the water phase by introducing a
+multiplier, which is a function of the surfactant concentration. We have
+\begin{equation}
+  \label{eq:defmuw}
+  \mu_w(p, c) = \frac{\mu_w^0(p)}{\mu_w^0(\pref)}\mu_{s}(c),
+\end{equation}
+where $\mu_w^0$ denotes the viscosity without surfactant and $\mu_s(c)$ denotes
+the viscosity as a function of surfactant concentration for the pressure
+$\pref$. For the adsorption term, we use an approach based on Langmuir isotherm
+so that the adsorbed concentration is a function of the surfactant
+concentration, that is of the from $\cads(s)$. We consider the reversible case
+and the case without desorption where the term $\cads$ is replaced by
+$\hat\cads$ which denotes the maximum value that the adsorption concentration
+has reached. More precisely, if we define
+\begin{equation}
+  \label{eq:chatadsmax}
+  \chatads_{\max}(t,x) = \max_{t'<t}(\chatads(t',x)),
+\end{equation}
+then we have
+defined as
+\begin{equation}
+  \label{eq:defchatads}
+  \chatads(t, x) = \max(\cads(c(t,x)), \chatads_{\max}(t,x)).
+\end{equation}
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}[t]{|l|l|}
+    \hline
+    Keyword&Description\\
+    \hline
+    SURFACT& Model initialization\\
+    \hline
+    SURFST& IFT data\\
+    \hline
+    SURFVISC& Viscosity modifier\\
+    \hline
+    SURFCAPD& Capillary de-saturation\\
+    \hline
+    SURFADS& Surfactant adsorption\\
+    \hline
+    SURFROCK& Rock properties\\
+    \hline
+    SURFNUM& Grid region specification\\
+    \hline
+    WSURFACT& Injected concentration\\
+    \hline
+  \end{tabular}
+  \caption{List of Eclipse keyword that have been implemented.}
+  \label{tab:eclipsekeyword}
+\end{table}
+
+\printbibliography
+
+\end{document}
+
+%  LocalWords:  surfactant

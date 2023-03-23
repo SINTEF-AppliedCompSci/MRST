@@ -1,0 +1,424 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc} % Required for inputting international
+                            % characters
+\usepackage[T1]{fontenc}    % Output font encoding for international
+                            % characters
+
+\usepackage[osf,sc]{mathpazo}
+\usepackage[scaled=0.90]{helvet}
+\usepackage[scaled=0.85]{beramono}
+
+\usepackage{natbib}
+\bibliographystyle{unsrtnat}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\tikzset{every picture/.style={remember picture}}
+
+\usepackage{xcolor} % NTNU blue
+\definecolor{ntnuBlue}{cmyk}{1.0, 0.75, 0.0, 0.05}
+
+\usepackage{titlesec} % Coloring titles
+
+\titleformat{\section}%
+{\color{ntnuBlue}\normalfont\Large\bf}%
+{\color{ntnuBlue}\thesection}%
+{1em}%
+{}%
+
+\titleformat{\subsection}%
+{\color{ntnuBlue}\normalfont\bf\itshape}%
+{}%
+{}%
+{}%
+
+
+\usepackage{etoolbox}
+\usepackage[font=scriptsize]{subfig}
+
+\makeatletter
+\patchcmd{\ttlh@hang}{\parindent\z@}{\parindent\z@\leavevmode}{}{}
+\patchcmd{\ttlh@hang}{\noindent}{}{}{}
+\makeatother
+
+% \usepackage{soul}
+% \newcommand{\com}[1]{\textcolor{red}{#1}}
+% \setul{0}{1mm}
+% \setstcolor{red}
+
+\usepackage{hyperref} % Required for customising links and the PDF
+\hypersetup{pdfpagemode={UseOutlines}, bookmarksopen=true,
+  bookmarksopenlevel=0, hypertexnames=false,
+  colorlinks=true, % Set to false to disable coloring links
+  citecolor=ntnuBlue, % The color of citations
+  linkcolor=ntnuBlue, % The color of references to document elements
+                      % (sections, figures, etc)
+  urlcolor=ntnuBlue, % The color of hyperlinks (URLs)
+  pdfstartview={FitV}, unicode, breaklinks=true, }
+
+\usepackage{amsmath}
+\usepackage{amsfonts, amssymb, amsthm}
+
+\DeclareMathOperator\real{{\mathbb{R}}}
+\DeclareMathOperator{\dd}{d}
+\DeclareMathOperator{\supp}{supp}
+\DeclareMathOperator{\eff}{eff}
+\renewcommand{\vec}[1]{\boldsymbol{#1}}
+
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+
+\usepackage{enumitem}
+
+
+\title{\bfseries \textcolor{ntnuBlue}{PG8600 \\ \vspace{5pt} \Huge{Implementation of a Solvent Model Using MRST}}}
+\author{Øystein Strengehagen Klemetsdal
+  \thanks{oystein.klemetsdal@ntnu.no}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+\section{Introduction}
+
+Miscible flooding is a proven, economically viable process that significantly
+increases the oil recovery factor for a wide range of reservoir types. The main
+purpose of miscible gas injection is to recover as as much as possible of the
+trapped residual oil after a waterflood. In addition, solvent may also displace
+oil in the upper regions of the reservoir poorly swept by the water due to
+gravity.
+
+There are three main solvent-injection strategies:
+\begin{enumerate}[label=\emph{(\roman*)}]
+\item Slug injection: Usually 0.2-0.4 hydrocarbon pore-volumes (HCPV) of solvent
+  that, in turn, is displaced by water or dry solvent.
+\item Water-alternating-gas (WAG): Alternating injection of small volumes
+  (0.01-0.04 HCPV) of water and solvent. The total amount usually ranges from
+  0.2 to 0.6 HCPV. The final drive fluid is usually water. The small water slugs
+  decreases solvent mobility and leads to increased solvent sweep efficiency
+\item Gravity-stable injection: For some pinnacle reefs and stepply dipping
+  reservoirs with high vertical communication, it is advantageous to inject
+  less-dense solvent at the top of the reservoir in a gravity-stable
+  displacement process.
+\end{enumerate}
+
+\paragraph{Solvent mechanisms}
+
+There are several mechanisms involved in solvent displacement process. The most
+obvious is the direct miscible displacement of oil by solvent along
+high-permeability paths. Additionally, part of the oil initially bypassed by
+solvent may later be recovered by oil swelling, which occurs as the solvent
+dissolves the oil, or by extraction of oil into solvent. This takes place as the
+solvent continues to flow past the previously bypassed oil. On a field scale,
+the single most important factor affecting the performance of a miscible flood
+is usually the sweep efficiency.
+
+\paragraph{Determining miscibility}
+
+In a true miscible displacement, injected and displaced phases mix in all
+proportions, without forming interfaces. This implies that injected solvent
+would eventually displace all residual oil form the pores it invades. However,
+most solvents does not fulfill this single-phase definition, and form two
+distinct phases over a broad range of mixtures and pressures when combined with
+reservoir oil. 
+
+
+
+An injected fluid sets up a miscible displacement if there is no phase boundary
+or interface between the injected fluid and the reservoir oil. The advantage of
+this is a much higher recovery factor than for a conventional immiscible
+displacement such water flooding; an area swept by a miscible fluid typically
+leaves very little residual oil.
+
+In a miscible gas injection process, we typically have a high adverse mobility
+ratio. This results in an unstable flow, which eventually leads to viscous
+fingers. In addition, gravitational fingering may occur if the density
+differences are large. This means that the total displacement of the oil in the
+swept regions may not lead to a high overall efficiency. On the other hand,
+mixing of miscible fluids exerts a considerable damping effect on the growth of
+viscous and gravity fingers. Thus, a good solvent simulation model must thus
+account both these effects.
+
+The first simulation attempts of incompressible miscible displacement was based
+on a direct solution of the convection-diffusion equations for the local
+concentration of each miscible component. However, unless the grid is
+sufficiently fine, such models fails to capture the fine-scale structure of the
+fingers, resulting in overly optimistic recovery forecasts. Moreover, the
+numerical diffusion of finite-difference models will mask the true mixing of
+miscible components in a coarse grid. Altogether, this imposes an unacceptably
+high grid resolution.
+
+The ECLIPSE implementation we will attempt to match in this work uses
+intermediate configurations of a four-component system (water, oil, reservoir
+
+gas and injected solvent), or a three-component system (water, oil and solvent
+gas) or a two-component system (oil and solvent). The following miscibility
+assumptions are made:
+
+\begin{enumerate}[label=\emph{(\roman*)}]
+\item In the regions containing only solvent and reservoir oil (possibly containing dissolved gas),
+  the solvent and reservoir oil components are assumed to be miscible in all proportions, so that
+  only one hydrocarbon phase exists in the reservoir. We use the same relative permeabilites as for
+  a two-phase water/hydrocarbon system.
+\item In regions containing only reservoir oil and gas, the gas and oil components be immiscible,
+  and behave in a traditional black-oil manner. In regions containing both dry gas and solvent, an
+  intermediate behavior is assumed to occur.
+\end{enumerate}
+
+\subsection*{The Todd-Langstaff model}
+
+The mixing of two miscible fluids can be described by the Todd-Langstaff model
+\cite{todd1972development}. This is an empirical treatment of the effects of physical dispersion
+between the miscible components in the hydrocarbon phase. The model uses an empirical parameter
+$\omega$, with a value between $0$ and $1$ to represent the size of the dispersed zone between the
+gas and oil components in each grid cell. This effectively controls the degree of mixing: A value of
+$1$ corresponds to the case where the size of the dispersed zone is much grater than a typical grid
+cell, while a value of $0$ corresponds to the effect of a negligibly thin dispersed zone. This means
+that for $\omega = 1$, the hydrocarbon components can be considered to be fully mixed in each cell,
+while for $\omega = 0$, the hydrocarbons will have the density and values of the pure components.
+
+\section{Model formulation}
+
+\subsection*{Relative permeabilities}
+
+In regions of small solvent saturation, the displacement is immiscible. In the usual black-oil
+model, the relative permeabilities for water, oil and gas phases are
+\begin{equation*}
+  k_{rw} = k_{rw}(S_w), \quad k_{rg} = k_{rg}(S_g), \quad k_{ro} = k_{ro}(S_w, S_g).
+\end{equation*}
+When two gas phases are present, we assume that the total relative permeability of the gas phase is
+a function of the total gas saturation,
+\begin{equation*}
+  k_{rgt} = k_{rg}(S_g + S_s),
+\end{equation*}
+where $S_s$ is the solvent saturation. Then, the relative permeability of each gas component is
+taken as a function of the fraction of each gas component within the gas phase:
+\begin{equation}
+  \label{eq:relperm_gas_solvent}
+  k_{rs} = k_{rgt}k_{rfs}(F_s), \quad k_{rg} = k_{rgt}k_{rfg}(F_g), \quad \text{where}
+  \quad F_\alpha = \frac{S_\alpha}{S_g + S_s}.
+\end{equation}
+Typically, $k_{rfs}$ and $k_{rfg}$ are linear functions, with $k_{rf\alpha}(0) = 0$ and $k_{rf\alpha}(1) = 1$.
+
+In regions where solvent is displacing oil, the hydrocarbon displacement is
+miscible. However, the two-phase character of the water/hydrocarbon displacement
+needs to be taken into account. The relative permeabilities are the
+\begin{equation}
+  \label{eq:miscible_relperms}
+  k_{ro} = \frac{S_o}{S_n}k_{rn}(S_n), \quad k_{rgt} = \frac{S_s + S_g}{S_n}k_{rn}(S_n),
+\end{equation}
+where $S_n = S_g + S_s + S_o$ is the total hydrocarbon saturation, $k_{rgt}$ is the total relative
+permeability of the gas and solvent, and $k_{rn}(S_n)$ is the relative permeability of hydrocarbon
+to water. The gas and solvent relative permeabilites are then found from
+\eqref{eq:relperm_gas_solvent} using this $k_{rgt}$. It is also possible to modify the linear
+miscible relperms using multipliers:
+\begin{equation*}
+  k_{ro} = M_{kro}\left(\frac{S_o}{S_n}\right)k_{rn}(S_n), \quad k_{rgt} = M_{krsg}\left(\frac{S_s + S_g}{S_n}\right)k_{rn}(S_n),
+\end{equation*}
+
+\subsection*{Transition between miscible and immiscible phases}
+
+The transition between the miscible and immiscible case is handled by a
+miscibility function $M$, which is a function of the solvent fraction in the gas
+phase. The function is tabulated between $0$ and $1$, where $M = 0$ and $M = 1$
+implies immiscible and miscible displacement, respectively. The transition
+algorithm can be described as follows:
+\begin{enumerate}[label=\emph{(\roman*)}]
+\item Scale the relperm endpoints using $M$:
+  \begin{equation*}
+    S_{or} = S_{orm}M + S_{ori}(1-M), \quad S_{sgr} = S_{sgrm}M + S_{sgri}(1-M),
+  \end{equation*}
+  where $S_{orm}$ and $S_{ori}$ are the miscible and immiscible residual oil saturations,
+  respectively, and $S_{sgrm}$ and $S_{sgri}$ are the miscible and immiscible residual solvent + gas
+  saturations.
+\item Calculate the miscible and immiscible relperms at the scaled saturations using the new end
+  points. The relperm is again an interpolation:
+  \begin{equation*}
+    k_r = k_{rm}M + k_{ri}(1-M),
+  \end{equation*}
+  where $k_{rm}$ and $k_{ri}$ are the scaled miscible and immiscible relperms.
+\end{enumerate}
+The equations \eqref{eq:miscible_relperms} are then modified to take into account these new
+saturation end points:
+\begin{equation*}
+  k_{ro} = \frac{S_o - S_{or}}{S_n - S_{gc} - S_{or}}k_{rn}(S_n), \quad k_{rgt} = \frac{S_s + S_g - S_{gc}}{S_n - S_{gc} - S_{or}}k_{rn}(S_n),
+\end{equation*}
+where $S_{gc}$ is the critical oil-to-gas saturation.
+
+\subsection*{Effect of pressure on relative permeabilities and capillary pressure misciblity}
+
+In many miscible displacements, the solvent is only miscible with reservoir oil
+at high pressure. The solvent/oil capillary pressure typically reduce with
+increasing pressure, and the two fluids can only be considered miscible once the
+capillary pressure is zero. The pressure dependence can be modeled by
+introducing a pressure-dependent miscibility function $M_p$, used to interpolate
+between immiscible and miscible values of the PVT, relperm and capillary
+pressure data. Neglecting PVT behavior, we have that for the relperms and
+saturation end points, the effect of pressure miscibility is combined with the
+solvent saturation effects, so that the multiplier $M$ is now replaced by
+$M_T = MM_p$. The capillary pressure is interpolated as
+\begin{equation*}
+  P_{cog} = M_p P_{cog,m} + (1-M_p)P_{cog,i}, \quad \text{where} \quad P_{cog,m} = P_{cog}(S_g), \quad P_{cog,i} = P_{cog}(S_g + S_s).
+\end{equation*}
+
+\subsection*{Effect of water saturation}
+
+A feature of miscible gas injection that may be modeled is the screening effect
+of high water saturation, which reduces the contact between the miscible gas and
+the in-place oil. The effective residual oil saturation to a miscible gas drive
+is found to increase with increasing water saturation. This process is modeled
+by introducing an effective residual oil saturation $S_{or}(S_w)$, which depends
+on the water saturation. A mobile oil saturation is then found by
+\begin{equation*}
+  S_o^* = \max\{S_o - S_{or}, 0\}.
+\end{equation*}
+For completeness, we also introduce a critical gas saturation $S_{gc}(S_w)$, and define the mobile
+gas saturation
+\begin{equation*}
+  S_g^* = \max\{S_g - S_{gc}, 0\}.
+\end{equation*}
+The mobile oil and gas saturations are used to determine the miscible component relperms and
+effective viscosities and densities in each grid cell.
+
+\subsection*{Viscosity model}
+
+The full three hydrocarbon components mixing calculation can be thought of as
+two separate miscible displacements: Gas/solvent and solvent/oil. The effective
+viscosities of the hydrocarbon components follow by the Todd-Longstaff model:
+\begin{equation*}
+  \mu_{o, \eff} = \mu_o^{1-\omega}\mu_{mos}^\omega, \quad
+  \mu_{s, \eff} = \mu_s^{1-\omega}\mu_{m}^\omega, \quad
+  \mu_{g, \eff} = \mu_g^{1-\omega}\mu_{msg}^\omega,
+\end{equation*}
+where $\mu_\alpha$ is the component viscosity of component $\alpha$, and $\omega$ is the mixing
+parameter. Further, $\mu_{mos}$ is the fully mixed viscosity of oil + solvent, $\mu_{msg}$ is the
+fully mixed viscosity of solvent + gas, $\mu_m$ is the fully-mixed viscosity of oil + solvent + gas,
+and are defined using the $1/4$th-power fluid mixing rule:
+\begin{align*}
+  \mu_{mos} & = \frac{\mu_o \mu_s}{\left(\frac{S_o'}{S_{os}'}\mu_s^{1/4} + \frac{S_s'}{S_{os}'}\mu_o^{1/4}\right)^4} \\
+  \mu_{msg} & = \frac{\mu_s \mu_g}{\left(\frac{S_s'}{S_{sg}'}\mu_g^{1/4} + \frac{S_g'}{S_{sg}'}\mu_s^{1/4}\right)^4} \\
+  \mu_{m} & = \frac{\mu_o \mu_s \mu_g}{\left(\frac{S_o'}{S_{n}'}\mu_s^{1/4}\mu_g^{1/4}
+            + \frac{S_s'}{S_{n}'}\mu_o^{1/4}\mu_g^{1/4}
+            + \frac{S_g'}{S_{n}'}\mu_o^{1/4}\mu_s^{1/4}\right)^4},
+\end{align*}
+where the mobile saturations are defined by
+\begin{align*}
+  S_o' & = S_o - S_{or}, \quad S_g' = S_o - S_{gc}, \quad S_s' = S_s - S_{gc}, \\
+  S_n' & = S_o' + S_g' + S_s', \quad S_{os}' = S_o' + S_s', \quad S_{sg}' = S_s' + S_g'.
+\end{align*}
+
+\subsection*{Density model}
+
+The effective component viscosities are used to find effective saturation fractions:
+\begin{subequations}
+  \begin{align}
+    \label{eq:sat_frac_oe}
+    \left[\frac{S_o}{S_n}\right]_{oe} &= \frac{\mu_o^{1/4}\left(\mu_{o,\eff}^{1/4} - \mu_s^{1/4}\right)}{\mu_{o,\eff}^{1/4}\left(\mu_o^{1/4} - \mu_s^{1/4}\right)} \\
+    \label{eq:sat_frac_ge}
+  \left[\frac{S_o}{S_n}\right]_{ge} &= \frac{\mu_s^{1/4}\left(\mu_{g,\eff}^{1/4} - \mu_g^{1/4}\right)}{\mu_{g,\eff}^{1/4}\left(\mu_s^{1/4} - \mu_g^{1/4}\right)} \\
+  \left[\frac{S_s}{S_n}\right]_{se} &= \frac{\mu_s^{1/4}\left(S_{gf}\mu_o^{1/4} - S_{of}\mu_g^{1/4}\right)
+                                      - \mu_o^{1/4}\mu_g^{1/4}\frac{\mu_s^{1/4}}{\mu_{s,\eff}^{1/4}}}{\mu_s^{1/4}\left(S_{gf}\mu_o^{1/4} - S_{of}\mu_g^{1/4}\right) - \mu_o^{1/4}\mu_g^{1/4}},
+\end{align}
+\end{subequations}
+where
+\begin{equation*}
+  S_{of} = S_o'/S_{og}, \quad S_{gf} = S_g'/S_{og}', \quad S_{og} = S_o'/S_g'.
+\end{equation*}
+The effective densities are then found by
+\begin{align*}
+  \rho_{o,\eff} & = \rho_o\left[\frac{S_o}{S_n}\right]_{oe} + \rho_s\left(1 - \left[\frac{S_o}{S_n}\right]_{oe}\right), \\
+  \rho_{g,\eff} & = \rho_s\left[\frac{S_o}{S_n}\right]_{ge} + \rho_g\left(1 - \left[\frac{S_o}{S_n}\right]_{ge}\right), \\
+  \rho_{s,\eff} & = \rho_s\left[\frac{S_s}{S_n}\right]_{se} + (\rho_gS_{gf} + \rho_oS_{of})\left(1 - \left[\frac{S_s}{S_n}\right]_{se}\right),
+\end{align*}
+Note that \eqref{eq:sat_frac_oe} is singular for unit mobility ratio $\mu_o = \mu_s$, and that
+\eqref{eq:sat_frac_ge} is singular for $\mu_s = \mu_g$. In this case, the effective densities are
+computed as follows: First, we define the mixture density
+\begin{equation*}
+  \rho_m = \rho_o \frac{S_o}{S_n} + \rho_g \frac{S_g}{S_n} + \rho_s \frac{S_s}{S_n},
+\end{equation*}
+and use this to define the effective densities
+\begin{equation*}
+  \rho_{\alpha,\eff} = (1-\omega) \rho_\alpha + \omega \rho_m.
+\end{equation*}
+
+\subsection*{Pressure effect on viscosity and density miscibility}
+
+The pressure dependence of the transition between miscible and immiscible flow can be modeled for
+PVT data by
+\begin{equation*}
+  b_\alpha = b_{\alpha,m} M_p + b_{\alpha,i}(1-M_p) \quad  \text{ and } \quad
+  \frac{b_\alpha}{\mu_\alpha} = \frac{b_{\alpha,m}}{\mu_{\alpha,m}} M_p + \frac{b_{\alpha,i}}{\mu_{\alpha,i}}(1-M_p),
+\end{equation*}
+where $b_{\alpha,m}$ and $b_{\alpha,i}$ are the miscible and immiscible formation volume factors,
+respectively. 
+
+
+\section{Mass balance}
+
+Alternative notation:
+
+\begin{align*}
+  \left[\frac{S_o}{S_n}\right]_{oe} & = \frac{(\mu_o/\mu_s)^{1/4} - (\mu_o/\mu_{o,\eff})^{1/4}}{(\mu_o/\mu_s)^{1/4} - 1} = \xi_o \\
+  \left[\frac{S_o}{S_n}\right]_{ge} & = \frac{(\mu_s/\mu_g)^{1/4} - (\mu_s/\mu_{g,\eff})^{1/4}}{(\mu_s/\mu_g)^{1/4} - 1} = 1-\xi_g, \\
+  \left[\frac{S_s}{S_n}\right]_{se} &= \frac{(\mu_s/\mu_g)^{1/4}\frac{S_g}{S_o + S_g} + (\mu_s/\mu_o)^{1/4}\frac{S_o}{S_o + S_g} - (\mu_s/\mu_{s,\eff})^{1/4}}
+{(\mu_s/\mu_g)^{1/4}\frac{S_g}{S_o + S_g} + (\mu_s/\mu_o)^{1/4}\frac{S_o}{S_o + S_g} - 1} = \xi_s.
+\end{align*}
+In this notation, mass balance requires
+\begin{align*}
+  \rho_w S_w +& \rho_o S_o + \rho_g S_g + \rho_s S_s = \rho_{w, \eff} S_w + \rho_{o, \eff} S_o + \rho_{g, \eff} S_g + \rho_{s, \eff} S_s \\
+             = & S_w \rho_w + S_o \left(\rho_o \xi_o + (1-\xi_o)\rho_s\right)
+               + S_g \left(\rho_g \xi_g + (1-\xi_g)\rho_s\right) \\
+             & + S_s \left(\rho_s \xi_s + (1-\xi_s)\left[\rho_o \frac{S_o}{S_o + S_g} + \rho_g \frac{S_g}{S_o + S_g}\right]\right),
+\end{align*}
+which may be rewritten
+\begin{align*}
+  S_o(1-\xi_o)(\rho_o - \rho_s) + S_g(1-\xi_g)(\rho_g - \rho_s) +
+  S_s(1-\xi_s)\left(\rho_s - \rho_o \frac{S_o}{S_g + S_o} - \rho_g \frac{S_g}{S_g + S_o}\right) = 0
+\end{align*}
+ 
+
+\begin{align*}
+  \mu_{o,\eff}
+  & = \frac{\mu_o^{1-\omega}\mu_o^\omega\mu_s^\omega}{\left(\frac{S_o}{S_o + S_s}\mu_s^{1/4} + \frac{S_s}{S_o + S_s}\mu_o^{1/4}\right)^{4\omega}} \\
+  & = \frac{\mu_o\mu_s^\omega}{\left(\frac{S_o}{S_o + S_s}\mu_s^{1/4} + \frac{S_s}{S_o + S_s}\mu_o^{1/4}\right)^{4\omega}} \\
+  & = \frac{\mu_o}{\left(\frac{S_o}{S_o + S_s} + \frac{S_s}{S_o + S_s}\left(\frac{\mu_o}{\mu_s}\right)^{1/4}\right)^{4\omega}} \\
+\end{align*}
+
+\begin{align*}
+  \left(\frac{\mu_o}{\mu_{o,\eff}}\right)^{1/4} = \left(\frac{S_o}{S_o + S_s} + \frac{S_s}{S_o + S_s}\left(\frac{\mu_o}{\mu_s}\right)^{1/4}\right)^{\omega}
+\end{align*}
+
+Likewise:
+
+\begin{align*}
+  \mu_{s,\eff}
+  & = \frac{\mu_s}{\left(\frac{S_o}{S_n} \left(\frac{\mu_s}{\mu_o}\right)^{1/4}+ \frac{S_s}{S_n} + \frac{S_g}{S_n}\left(\frac{\mu_s}{\mu_g}\right)^{1/4}\right)^{4\omega}} \\
+\end{align*}
+and
+\begin{align*}
+  \left(\frac{\mu_s}{\mu_{s,\eff}}\right)^{1/4} = \left(\frac{S_o}{S_n} \left(\frac{\mu_s}{\mu_o}\right)^{1/4}+ \frac{S_s}{S_n} + \frac{S_g}{S_n}\left(\frac{\mu_s}{\mu_g}\right)^{1/4}\right)^{\omega}
+\end{align*}
+
+
+
+
+\begin{align*}
+  S_o(1-\xi_o)(\rho_o - \rho_s) + S_g\xi_g(\rho_g - \rho_s) + S_s(1-\xi_s)\left(\rho_s - \rho_o \frac{S_o}{S_g + S_o} - \rho_g \frac{S_g}{S_g + S_o}\right) = 0
+\end{align*}
+
+\begin{small}
+  \bibliography{refs}
+\end{small}
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

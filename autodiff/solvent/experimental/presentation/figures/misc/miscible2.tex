@@ -1,0 +1,101 @@
+\documentclass{beamer}
+
+\usepackage{xcolor}
+\usepackage[latin1]{inputenc}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,calc,positioning,shadows,fillbetween}
+
+%%%<
+\usepackage{verbatim}
+\usepackage[active,tightpage]{preview}
+
+
+\PreviewEnvironment{tikzpicture}
+\setlength\PreviewBorder{5pt}%
+%%%>
+
+\usepackage[outline]{contour}
+\contourlength{0pt}
+
+\begin{document}
+\pagestyle{empty}
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+\definecolor{bl}{rgb}{0, 0.4470, 0.7410}
+\definecolor{ye}{rgb}{    0.9290    0.6940    0.1250}
+\definecolor{re}{rgb}{0.8500, 0.3250, 0.0980}
+
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+  \pgfplotsset{
+    every mark/.append style={solid}
+  }
+
+% Define block styles
+\tikzstyle{water} = [rectangle, draw, fill=bl!60,minimum height=2em, inner sep = 0]
+\tikzstyle{solvent} = [rectangle, draw, fill=ye!60, minimum height=2em, inner sep = 0]
+\tikzstyle{line} = [draw, -latex', line width = 1.5pt]
+% \tikzstyle{cloud} = [draw, ellipse,fill=re!20, node distance=3cm,
+% minimum height=2em]
+% \tikzstyle{primitive} = [draw, isosceles triangle, line width = 1pt,rotate = 20]
+% \tikzstyle{fragment} = [circle, draw, minimum size = 15pt, inner sep = 0pt]
+
+\begin{tikzpicture}[node distance = 2cm, auto]
+
+  \def\yb{-1.5}
+  
+  \begin{scope}[shift = {(0,0)}]
+    \def\y{0}
+    \draw[fill = re] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,1) -- (-1,1) -- (-1,\y);
+    \draw[fill = black] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,-1) -- (-1,-1) -- (-1,\y);
+    \node[color = white] at (0,0.5) {\tiny gas};
+    \node[color = white] at (0,-0.5) {\tiny oil};
+    \node[anchor = south] at (0,\yb + 0.05) {\tiny Immiscible};
+    \node[anchor = north] at (0,\yb) {\tiny $0$};
+  \end{scope}
+  
+  \begin{scope}[shift = {(2.5,0)}]
+    \def\y{4/3-1}
+    \def\x{-4/3+1}
+    \draw[fill = re!65!ye] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,1) -- (-1,1) -- (-1,\y);
+    \draw[fill = ye] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) --
+                              ( 1,\x) to[out=180, in=-50](0,\x) to[out=130, in=0](-1,\x) -- (-1,\y);
+    \draw[fill = black!65!ye] (1,\x) to[out=180, in=-50](0,\x) to[out=130, in=0](-1,\x) -- (-1,-1) -- (1,-1) -- (1,\x);
+    
+    \node[color = white] at (0,\y + 0.3) {\tiny gas + solvent};
+    \node[color = white] at (0,0) {\tiny solvent + oil + gas};
+    \node[color = white] at (0,\x - 0.3) {\tiny oil + solvent};
+    \node[anchor = south] at (0,\yb + 0.05) {\tiny Partially miscible};
+  \end{scope}
+
+  \begin{scope}[shift = {(5,0)}]
+    \def\y{0}
+    \draw[fill = ye!50!black] (-1,-1) -- (1,-1) -- (1,1) -- (-1,1);
+    \node[color = white] at (0,0) {\tiny oil + solvent};
+    \node[anchor = south] at (0,\yb + 0.05) {\tiny Fully miscible};
+    \node[anchor = north] at (0,\yb) {\tiny $1$};
+  \end{scope}
+
+  \draw[line] (-1,\yb) -- (7,\yb);
+  \node[anchor = south] at (6.9,\yb - 0.7) {\tiny $\frac{S_s}{S_g + S_s}$};
+
+  \def\yt{1}
+  \draw [thick, decoration={brace, raise=0.2cm}, decorate] (0,\yt) -- (5,\yt) 
+  node [pos=0.5,anchor=south,yshift=0.3cm] {\tiny Intermediate region};
+  \node[anchor = south] at (0, \yt+0.3)  {\tiny Black-oil};
+  \node[anchor = south] at (5, \yt+0.3)  {\tiny One HC phase};
+
+\end{tikzpicture}
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

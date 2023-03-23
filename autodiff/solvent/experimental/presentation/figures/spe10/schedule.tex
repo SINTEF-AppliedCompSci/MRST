@@ -1,0 +1,136 @@
+\documentclass{beamer}
+
+\usepackage{xcolor}
+\usepackage[latin1]{inputenc}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,calc,positioning,shadows,fillbetween}
+
+%%%<
+\usepackage{verbatim}
+\usepackage[active,tightpage]{preview}
+
+
+\PreviewEnvironment{tikzpicture}
+\setlength\PreviewBorder{5pt}%
+%%%>
+
+\usepackage[outline]{contour}
+\contourlength{0pt}
+
+\begin{document}
+\pagestyle{empty}
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+\definecolor{bl}{rgb}{0, 0.4470, 0.7410}
+\definecolor{ye}{rgb}{    0.9290    0.6940    0.1250}
+
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+  \pgfplotsset{
+    every mark/.append style={solid}
+  }
+
+% Define block styles
+\tikzstyle{water} = [rectangle, draw, fill=bl!60,minimum height=2em, inner sep = 0]
+\tikzstyle{solvent} = [rectangle, draw, fill=ye!60, minimum height=2em, inner sep = 0]
+\tikzstyle{line} = [draw, -latex', line width = 2pt]
+% \tikzstyle{cloud} = [draw, ellipse,fill=re!20, node distance=3cm,
+% minimum height=2em]
+% \tikzstyle{primitive} = [draw, isosceles triangle, line width = 1pt,rotate = 20]
+% \tikzstyle{fragment} = [circle, draw, minimum size = 15pt, inner sep = 0pt]
+
+\begin{tikzpicture}[node distance = 2cm, auto]
+
+
+  \node [water, text width = 7em, align = center] at (3.5em,2.5em) {\huge Water};
+  \node [solvent, text width = 7em, align = center] at (10.5em,2.5em) {\huge Solvent};
+  
+  \node [water, text width = 10em] at (5em,0em) {};
+  \foreach \x in {10, ..., 29}
+  {\node [solvent, text width = 0.5em] at (\x*1em + 0.25em,0) {};
+    \node [water, text width = 0.5em] at (\x*1em + 0.75em,0) {};}
+  \node [water, text width = 10em] at (35em,0em) {};
+
+  \path [line] (0,-1.5em) --
+  node[pos = 40/44*0.25, below] {\huge 1}
+  node[pos = 40/44*0.5, below] {\huge 2}
+  node[pos = 40/44*0.75, below] {\huge 3}
+  node[pos = 40/44*1, below] {\huge 4}
+  node[pos = 1, below] {\huge PVI} (44em,-1.5em);
+
+  
+
+
+    % Place nodes
+  % \node [inout] (in) {Input};
+  % \node [block1, right = 0.8cm of in] (vertex_proc)2 {Vertex processor (programmable)};
+  % \node [block2, right = 0.8cm of vertex_proc] (rast) {Rasterizer};
+  % \node [block1, right = 0.8cm of rast] (fragment_proc) {Fragment processor (programmable)};
+  % \node [block2, right = 0.8cm of fragment_proc] (out) {Output merging};
+  % \node [inout, right = 0.8cm of out] (display) {Display};
+
+  % % Draw edges
+  % \path [line] (in) -- node[above = 1cm, text width = 8em, text centered]{Raw vertices/ primitives}(vertex_proc) {};
+  
+  % \path [line] (vertex_proc) -- node[above = 1cm, text width = 9em, text centered]{Transformed vertices/primitives}
+  % node[primitive, below = 1.1cm, text width = 5em, text centered](t1){}(rast) {};
+  
+  % \path [line] (rast) -- node[above = 1cm, text width = 8em, text centered]{Fragments}
+  % node[primitive, below = 1.1cm, text width = 5em, text centered](t2){}(fragment_proc) {};
+  
+  % \path [line] (fragment_proc) -- node[above = 1cm, text width = 8em, text centered]{Processed fragments}
+  % node[primitive, below = 1.1cm, text width = 5em, text centered](t3){}(out) {};
+  
+  % \path [line] (out) -- node[above = 1cm, text width = 8em, text centered]{Pixels}
+  % node[primitive, below = 1.1cm, color = white, text width = 5em, text centered](t4){}(display){};
+
+  % \node [fragment, fill = yellow] () at ([shift = {(-0.5,0.15)}]t3){};
+  % \node [fragment, fill = blue!40!yellow] () at ([shift = {(-0.5,-0.45)}]t3){};
+  % \node [fragment, fill = blue!60!yellow] () at ([shift = {(0.1,0.15)}]t3){};
+
+  % \node [fragment, fill = black!20] () at ([shift = {(-0.5,0.15)}]t2){};
+  % \node [fragment, fill = black!20] () at ([shift = {(-0.5,-0.45)}]t2){};
+  % \node [fragment, fill = black!20] () at ([shift = {(0.1,0.15)}]t2){};
+
+  % \node [fragment, fill = yellow] () at ([shift = {(-0.5,0.15)}]t4){};
+  % \node [fragment, fill = blue!40!yellow] () at ([shift = {(-0.5,-0.45)}]t4){};
+  % \node [fragment, fill = blue!60!yellow] () at ([shift = {(0.1,0.15)}]t4){};
+  
+  % \node [below right = 0.3cm of t1] () {3D};
+  % \node [below right = 0.3cm of t2] () {3D};
+  % \node [below right = 0.3cm of t3] () {3D};
+  % \node [below right = 0.3cm of t4] () {2D};
+  
+  % Helper coordinates
+  % \coordinate [right = 1.5cm of pres_check] (no_pres) {};
+  % \coordinate [right = 1.5cm of transp_check] (no_transp) {};
+  % \coordinate [left = 1.5cm of transp_check] (no_transp2) {};
+  % \coordinate [above right = 1.5cm of pres] (next_it) {};
+  % % Draw edges
+  % \path [line] (pres) -- (pres_check);
+  % \draw [line width = 1pt] (pres_check) -- node[below]{no}(no_pres);
+  % \path [line] (no_pres) |- (pres);
+  % \path [line] (pres_check) -- node{yes}(transp);
+  % \path [line] (transp) -- (transp_check);
+  % \draw [line width = 1pt] (transp_check) -- node[below]{no}(no_transp);
+  % \path [line] (no_transp) |- coordinate[pos=0.25](mid) (transp);
+  % \draw [dashed, line width = 1pt] (transp_check) -- (no_transp2);
+  % \path [line, dashed] (no_transp2) |- node[pos=0.25, above, rotate=90]{Optional: Recompute pressure}(pres);
+  % \path [line] (transp_check) --node{yes} (time_update);
+  % \draw [line width = 1pt] (time_update) -| (next_it);
+  % \path [line] (next_it) -| (pres);
+  % \draw (5.5,-10) node[color = re, text width = 3cm, align = center] (diff) {\textbf{Many wasted iterations}};
+  % \draw (diff) edge[bend right, -latex', color =re, line width = 1.5pt] (mid);
+\end{tikzpicture}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

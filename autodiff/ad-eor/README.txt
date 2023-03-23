@@ -1,0 +1,2 @@
+The ad-eor module extends the solvers found in ad-core and ad-blackoil with capability for simulating enhanced oil recovery (EOR). EOR is a category of recovery techniques that are characterized by the addition of different chemicals to improve the final recovery. Specifically, the module includes simulation of polymer with mixing rules, dead pore space, adsorption and velocity dependent viscosity, as well as surfactant.
+ad

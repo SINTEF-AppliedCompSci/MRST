@@ -1,0 +1,413 @@
+-- =====================================================================
+-- THIS IS THE FIRST SPE COMPARISON PROBLEM,"COMPARISON OF SOLUTIONS TO A
+-- THREE-DIMENSIONAL BLACK-OIL RESERVOIR SIMULATION PROBLEM", REPORTED
+-- BY AZIS AND ODEH AT THE SPE SYMPOSIUM ON RESERVOIR SIMULATION ,
+-- JANUARY 1981. IT IS  A NON SWELLING AND SWELLING STUDY. A REGULAR
+-- GRID WITH TWO WELLS (INJECTOR AND PRODUCER)AND A IMPES SOLUTION METHOD
+-- IS USED FOR THIS SIMULATION.THE PRODUCTION IS CONTROLLED BY FLOW RATE
+-- AND MIN. BHP. OIL RATE, GOR, PRESSURE AND GAS SATURATION ARE TO BE REPORTED.
+-- =====================================================================
+RUNSPEC
+TITLE
+   ODEH PROBLEM - IMPLICIT OPTION - 1200 DAYS
+
+DIMENS
+   10   10    3  /
+
+NONNC
+
+OIL
+
+WATER
+
+GAS
+
+DISGAS
+
+FIELD
+
+EQLDIMS
+    1  100   10    1    1 /
+
+TABDIMS
+    1    1   16   12    1   12 /
+
+WELLDIMS
+    2    1    1    2 /
+
+NUPCOL
+    4 /
+
+START
+  19 'OCT' 1982  /
+
+NSTACK
+   24 /
+
+--FMTOUT
+
+--FMTIN
+
+--UNIFOUT
+
+UNIFIN
+
+--NOSIM
+
+--IMPES
+
+GRID    ================================================================
+-------- IN THIS SECTION , THE GEOMETRY OF THE  SIMULATION GRID AND THE
+-------- ROCK PERMEABILITIES AND POROSITIES ARE DEFINED.
+------------------------------------------------------------------------
+--  THE X AND Y DIRECTION CELL SIZES ( DX, DY ) AND THE POROSITIES ARE
+--  CONSTANT THROUGHOUT THE GRID. THESE ARE SET IN THE FIRST 3 LINES
+--  AFTER THE EQUALS KEYWORD. THE CELL THICKNESSES ( DZ ) AND
+--  PERMEABILITES ARE THEN SET FOR EACH  LAYER. THE CELL TOP DEPTHS
+--  ( TOPS ) ARE NEEDED ONLY IN THE TOP LAYER ( THOUGH THEY COULD BE.
+--  SET THROUGHOUT THE GRID ). THE SPECIFIED MULTZ VALUES ACT AS
+--  MULTIPLIERS ON THE TRANSMISSIBILITIES BETWEEN THE CURRENT LAYER
+--  AND THE LAYER BELOW.
+
+INIT
+--     ARRAY  VALUE     ------- BOX ------
+EQUALS
+      'DX'    1000      /
+      'DY'    1000      /
+      'PORO'  0.3       /
+
+      'DZ'    20        1  10  1  10  1  1  /
+      'PERMX' 500       /
+      'MULTZ' 0.64      /
+      'TOPS'  8325      /
+
+      'DZ'    30        1  10  1  10  2  2  /
+      'PERMX' 50        /
+      'MULTZ' 0.265625  /
+
+      'DZ'    50        1  10  1  10  3  3  /
+      'PERMX' 200       /
+
+/       EQUALS IS TERMINATED BY A NULL RECORD
+
+-- THE Y AND Z DIRECTION PERMEABILITIES ARE COPIED FROM PERMX
+--    SOURCE  DESTINATION  ------- BOX ------
+COPY
+      'PERMX'    'PERMY'   1  10  1  10  1  3  /
+      'PERMX'    'PERMZ'   /
+/
+-- OUTPUT OF DX, DY, DZ, PERMX, PERMY, PERMZ, MULTZ, PORO AND TOPS DATA
+-- IS REQUESTED, AND OF THE CALCULATED PORE VOLUMES AND X, Y AND Z
+-- TRANSMISSIBILITIES
+RPTGRID
+  1  1  1  1  1  1  0  0  1  1  0  1  1  0  1  1  1 /
+
+PROPS    ===============================================================
+-------- THE PROPS SECTION DEFINES THE REL. PERMEABILITIES, CAPILLARY
+-------- PRESSURES, AND THE PVT PROPERTIES OF THE RESERVOIR FLUIDS
+----------------------------------------------------------------------
+-- WATER RELATIVE PERMEABILITY AND CAPILLARY PRESSURE ARE TABULATED AS
+-- A FUNCTION OF WATER SATURATION.
+--
+--  SWAT   KRW   PCOW
+SWFN
+    0.12  0       0
+    1.0   0.00001 0  /
+
+-- SIMILARLY FOR GAS
+--
+--  SGAS   KRG   PCOG
+SGFN
+    0     0       0
+    0.02  0       0
+    0.05  0.005   0
+    0.12  0.025   0
+    0.2   0.075   0
+    0.25  0.125   0
+    0.3   0.19    0
+    0.4   0.41    0
+    0.45  0.6     0
+    0.5   0.72    0
+    0.6   0.87    0
+    0.7   0.94    0
+    0.85  0.98    0
+    1.0   1.0     0
+/
+
+-- OIL RELATIVE PERMEABILITY IS TABULATED AGAINST OIL SATURATION
+-- FOR OIL-WATER AND OIL-GAS-CONNATE WATER CASES
+--
+--  SOIL     KROW     KROG
+SOF3
+    0        0        0
+    0.18     0        0
+    0.28     0.0001   0.0001
+    0.38     0.001    0.001
+    0.43     0.01     0.01
+    0.48     0.021    0.021
+    0.58     0.09     0.09
+    0.63     0.2      0.2
+    0.68     0.35     0.35
+    0.76     0.7      0.7
+    0.83     0.98     0.98
+    0.86     0.997    0.997
+    0.879    1        1
+    0.88     1        1    /
+
+-- PVT PROPERTIES OF WATER
+--
+--    REF. PRES. REF. FVF  COMPRESSIBILITY  REF VISCOSITY  VISCOSIBILITY
+PVTW
+       4014.7     1.029        3.13D-6           0.31            0 /
+
+-- ROCK COMPRESSIBILITY
+--
+--    REF. PRES   COMPRESSIBILITY
+ROCK
+        14.7          3.0D-6          /
+
+-- SURFACE DENSITIES OF RESERVOIR FLUIDS
+--
+--        OIL   WATER   GAS
+DENSITY
+         49.1   64.79  0.06054  /
+
+-- PVT PROPERTIES OF DRY GAS (NO VAPOURISED OIL)
+-- WE WOULD USE PVTG TO SPECIFY THE PROPERTIES OF WET GAS
+--
+--   PGAS   BGAS   VISGAS
+PVDG
+     14.7 166.666   0.008
+    264.7  12.093   0.0096
+    514.7   6.274   0.0112
+   1014.7   3.197   0.014
+   2014.7   1.614   0.0189
+   2514.7   1.294   0.0208
+   3014.7   1.080   0.0228
+   4014.7   0.811   0.0268
+   5014.7   0.649   0.0309
+   9014.7   0.386   0.047   /
+
+-- PVT PROPERTIES OF LIVE OIL (WITH DISSOLVED GAS)
+-- WE WOULD USE PVDO TO SPECIFY THE PROPERTIES OF DEAD OIL
+--
+-- FOR EACH VALUE OF RS THE SATURATION PRESSURE, FVF AND VISCOSITY
+-- ARE SPECIFIED. FOR RS=1.27 AND 1.618, THE FVF AND VISCOSITY OF
+-- UNDERSATURATED OIL ARE DEFINED AS A FUNCTION OF PRESSURE. DATA
+-- FOR UNDERSATURATED OIL MAY BE SUPPLIED FOR ANY RS, BUT MUST BE
+-- SUPPLIED FOR THE HIGHEST RS (1.618).
+--
+--   RS      POIL  FVFO  VISO
+PVTO
+    0.001    14.7 1.062  1.04    /
+    0.0905  264.7 1.15   0.975   /
+    0.18    514.7 1.207  0.91    /
+    0.371  1014.7 1.295  0.83    /
+    0.636  2014.7 1.435  0.695   /
+    0.775  2514.7 1.5    0.641   /
+    0.93   3014.7 1.565  0.594   /
+    1.270  4014.7 1.695  0.51
+           5014.7 1.671  0.549
+           9014.7 1.579  0.74    /
+    1.618  5014.7 1.827  0.449
+           9014.7 1.726  0.605   /
+/
+
+-- OUTPUT CONTROLS FOR PROPS DATA
+-- ACTIVATED FOR SOF3, SWFN, SGFN, PVTW, PVDG, DENSITY AND ROCK KEYWORDS
+RPTPROPS
+1  1  1  0  1  1  1  1  /
+
+SOLUTION ===============================================================
+-------- THE SOLUTION SECTION DEFINES THE INITIAL STATE OF THE SOLUTION
+-------- VARIABLES (PHASE PRESSURES, SATURATIONS AND GAS-OIL RATIOS)
+------------------------------------------------------------------------
+-- DATA FOR INITIALISING FLUIDS TO POTENTIAL EQUILIBRIUM
+--
+--    DATUM  DATUM   OWC    OWC    GOC    GOC    RSVD   RVVD   SOLN
+--    DEPTH  PRESS  DEPTH   PCOW  DEPTH   PCOG  TABLE  TABLE   METH
+EQUIL
+       8400   4800   8500    0     8200    0      1      0       0  /
+
+-- VARIATION OF INITIAL RS WITH DEPTH
+--
+--    DEPTH    RS
+RSVD
+       8200  1.270
+       8500  1.270  /
+
+-- OUTPUT CONTROLS (SWITCH ON OUTPUT OF INITIAL GRID BLOCK PRESSURES)
+RPTSOL
+   1  11*0  /
+
+SUMMARY  ===============================================================
+-------- THIS SECTION SPECIFIES DATA TO BE WRITTEN TO THE SUMMARY FILES
+-------- AND WHICH MAY LATER BE USED WITH THE ECLIPSE GRAPHICS PACKAGE
+------------------------------------------------------------------------
+
+EXCEL
+
+SEPARATE
+
+--REQUEST PRINTED OUTPUT OF SUMMARY FILE DATA
+
+RUNSUM
+
+-- FIELD OIL PRODUCTION
+FOPR
+
+-- WELL GAS-OIL RATIO FOR PRODUCER
+WGOR
+-- 'PRODUCER'
+/
+-- WELL BOTTOM-HOLE PRESSURE
+WBHP
+-- 'PRODUCER'
+/
+
+-- GAS AND OIL SATURATIONS IN INJECTION AND PRODUCTION CELL
+BGSAT
+10 10 3
+1  1  1
+/
+BOSAT
+10 10 3
+1  1  1
+/
+
+-- PRESSURE IN INJECTION AND PRODUCTION CELL
+BPR
+10 10 3
+1  1  1
+/
+
+SCHEDULE ===============================================================
+-------- THE SCHEDULE SECTION DEFINES THE OPERATIONS TO BE SIMULATED
+------------------------------------------------------------------------
+-- CONTROLS ON OUTPUT AT EACH REPORT TIME
+RPTSCHED                                         
+   1   0   1   1   0     0   4   2   2   0     0   2   0   0   0
+   0   0   0   0   0     0   0   0   0   0     0   0   0   0   0
+   0   0   0   0   0     0   0   0   1   0     0   0   0   0   0  /
+
+
+--IMPES
+-- 1.0 1.0 10000.0 /
+
+-- SET 'NO RESOLUTION' OPTION
+--DRSDT
+-- 0 /
+
+-- SET INITIAL TIME STEP TO 1 DAY AND MAXIMUM TO 6 MONTHS
+TUNING
+1  182.5  /
+1.0 0.5 1.0E-6 /
+/
+
+-- WELL SPECIFICATION DATA
+--
+--     WELL   GROUP LOCATION  BHP   PI
+--     NAME   NAME    I  J   DEPTH DEFN
+WELSPECS
+    'PRODUCER' 'G'   10 10    8400 'OIL'  /
+    'INJECTOR' 'G'    1  1    8335 'GAS'  /
+/
+
+-- COMPLETION SPECIFICATION DATA
+--
+--     WELL     -LOCATION- OPEN/ SAT CONN  WELL
+--     NAME     I  J K1 K2 SHUT  TAB FACT  DIAM
+COMPDAT
+    'PRODUCER'  10 10 3  3 'OPEN' 0   -1   0.5  /
+    'INJECTOR'   1  1 1  1 'OPEN' 1   -1   0.5  /
+  /
+
+-- PRODUCTION WELL CONTROLS
+--
+--      WELL     OPEN/  CNTL   OIL  WATER   GAS  LIQU   RES   BHP
+--      NAME     SHUT   MODE  RATE   RATE  RATE  RATE  RATE
+WCONPROD
+     'PRODUCER' 'OPEN' 'ORAT' 20000  4*                      1000 /
+  /
+
+-- INJECTION WELL CONTROLS
+--
+--      WELL     INJ   OPEN/  CNTL    FLOW
+--      NAME    TYPE   SHUT   MODE    RATE
+WCONINJE
+     'INJECTOR' 'GAS' 'OPEN' 'RATE' 100000 100000 50000/
+  /
+
+--  YEAR 1
+
+TSTEP
+--0.2343    0.1393    0.1840    0.2189    0.2235
+--1.0 4.0 2*5.0 6*5.0 10*25.0 
+1.0 14.0 13*25.0
+  /
+
+TSTEP
+   25.0
+  /
+
+-- YEAR 2
+
+TSTEP
+  13*20.0 7*13.0
+  /
+
+TSTEP
+    14.0
+  /
+
+-- YEAR 3
+
+TSTEP
+ 17*10.0
+  /
+
+TSTEP
+  12.5
+  /
+
+-- 912.50 --> 1000.0
+
+TSTEP
+  8.5 16*5.0
+  /
+
+TSTEP
+  5.0
+  /
+
+-- 1000.0  -->  1100.0
+
+TSTEP
+  19*5.0
+  /
+
+TSTEP
+  5.0
+  /
+
+-- 1100.0  -->  1200.0
+
+TSTEP
+  19*5.0
+  /
+
+TSTEP
+  5.0
+  /
+
+--IMPLICIT
+
+TUNING
+10 /
+/
+/
+
+TSTEP
+10.0 /
+
+END     ================================================================

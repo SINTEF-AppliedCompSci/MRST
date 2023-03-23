@@ -1,0 +1,205 @@
+\documentclass[11pt]{amsart}
+\usepackage[abbreviate=false,sorting=none,doi=false]{biblatex}
+\addbibresource{refs.bib}
+
+\usepackage{xspace}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{bm}
+
+% 
+% =======================================================================
+% Formatting tools
+% =======================================================================
+% Gentle spacing after macros
+% Reference: The LaTeX Companion, p.50
+\newcommand{\Real}{\mathbb R}
+\newcommand{\eg}{e.g.,\xspace}
+\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\etc}{etc.\@\xspace}
+\newcommand{\etal}{et~al.\@\xspace}
+% 
+% 
+% =======================================================================
+% Common Mathematics
+% =======================================================================
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\mat}[1]{\boldsymbol{#1}}
+\newcommand{\transp}[1]{{#1}^{\ensuremath{\mathsf{T}}}}
+% 
+% =======================================================================
+% Math Operators
+% =======================================================================
+\DeclareMathOperator{\erfc}{erfc}
+\DeclareMathOperator{\spanop}{span}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Grad}{Grad}
+\DeclareMathOperator{\Dive}{Div}
+% 
+\DeclareMathOperator{\GRAD}{\scshape Grad}
+\DeclareMathOperator{\DIVE}{\scshape Div}
+% 
+\newcommand{\grad}{\nabla}
+\newcommand{\dive}{\nabla\cdot}
+\newcommand{\curl}{\nabla\times}
+
+
+\newcommand{\cads}{c^a}
+\newcommand{\chatads}{\hat{c}^a}
+\newcommand{\eff}{\mathrm{eff}}
+\newcommand{\cmax}{c_{\max}}
+\newcommand{\Sb}{{\bm{S}}}
+\newcommand{\cb}{{\bm{c}}}
+\newcommand{\Kb}{{\bm{K}}}
+\newcommand{\kb}{{\bm{k}}}
+\newcommand{\nb}{{\bm{n}}}
+\newcommand{\ub}{{\bm{u}}}
+\newcommand{\ubmax}{\ub_{\max}}
+\newcommand{\abs}[1]{\left| #1\right|}
+\newcommand{\norm}[1]{\left\| #1\right\|}
+
+\newcommand{\fracpar}[2]{\frac{\partial #1}{\partial #2}}
+
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{5mm}
+
+\begin{document}
+
+\title[Polymer model]{The polymer model in MRST}
+
+\maketitle
+
+\begin{abstract}
+  In this document, we describe briefly the polymer model which is implemented in MRST. 
+\end{abstract}
+
+The \texttt{ad-core} module contains a solver for a black-oil system with polymer which includes
+shear-thinning effect. Here, we limit our presentation to the two-phase case and do not cover the
+shear-thinning effect.
+
+Our starting point is the mass conservation equations for oil, water, and polymer
+\begin{align}
+  \label{eq:conservation_laws1}
+  \frac{\partial}{\partial t} (\rho_{\alpha}\phi S_\alpha) +
+  \nabla\cdot(\rho_{\alpha}\vec{v}_\alpha)
+  & = 0, \qquad \alpha\in\{w,o\}, \\
+  \label{eq:conservation_laws2}
+  \frac{\partial}{\partial t} (\rho_{w}\phi S_w c)+\nabla\cdot(c \rho_{w} \vec{v}_{wp}) & = 0.
+\end{align}
+Here, $\rho_{\alpha}$, $\vec{v}_\alpha$, and $S_\alpha$ denote density, velocity, and saturation of
+the phase $\alpha$. The porosity is denoted by $\phi$ and is assumed to be a function $\phi(p)$ of
+pressure only, $c$ is the polymer concentration, and $\vec{v}_{wp}$ the velocity of water containing
+diluted polymer. Sources and sinks may be included in a manner equivalent to boundary conditions,
+and are left out of the above equations.
+
+To model the viscosity change of the mixture, we use the Todd--Longstaff model \cite{TL72:jpt}.
+This model introduces a mixing parameter $\omega\in[0, 1]$ that takes into account the degree of
+mixing of polymer into water. Assuming that the viscosity $\mu_m$ of a fully mixed polymer solution
+is a function of the concentration, the effective polymer viscosity is defined as
+\begin{equation}
+  \label{eq:defmupeff}
+  \mu_{p,\eff}=\mu_m(c)^\omega\mu_p^{1-\omega}\quad\text{ with }\quad  \mu_p=\mu_m(c_{\max}).
+\end{equation}
+The viscosity of the partially mixed water is given in a similar way by
+\begin{equation}
+  \label{eq:defmuwe}
+  \mu_{w,e}=\mu_m(c)^\omega\mu_w^{1-\omega}.
+\end{equation}
+The effective water viscosity $\mu_{w,\eff}$ is defined by interpolating linearly between
+the inverse of the effective polymer viscosity and the partially mixed water viscosity
+\begin{equation}
+  \label{eq:defmuweff}
+  \frac{1}{\mu_{w,\eff}}=\frac{1-c/\cmax}{\mu_{w,e}}+\frac{c/\cmax}{\mu_{p,\eff}}.
+\end{equation}
+To take the incomplete mixing into account, we introduce the velocity of water that contains
+polymer, which we denote $\vec{v}_{wp}$. For this part of the water phase, the relative permeability
+is assumed to be equal to $k_{rw}$ and the viscosity is equal to $\mu_{p,\eff}$.  We also consider
+the total water velocity, which we still denote $\vec{v}_{w}$ and for which the viscosity is given
+by $\mu_{w,\eff}$. Darcy's law then gives us
+\begin{align}
+  \label{eq:uwdarc}
+  \vec{v}_{w} &=-\frac{k_{rw}}{\mu_{w,\eff}R_k(\cads)}\Kb(\nabla p-\rho_w g\nabla z),\\
+  \label{eq:uwpdarc}
+  \vec{v}_{wp} &=-\frac{k_{rw}}{\mu_{p,\eff}R_k(\cads)}\Kb(\nabla p-\rho_w g\nabla z) =
+  m(c)\vec{v}_w,
+\end{align}
+as we assume that the presence of polymer does not affect the pressure and the density. The polymer
+mobility factor $m(c)$ is defined as
+\begin{equation*}
+  m(c) = \frac{\mu_{w,\eff}}{\mu_{p,\eff}} 
+\end{equation*}
+and, after some simplifications, we get
+\begin{equation}
+  \label{eq:def_m}
+  m(c) = \Bigl[\Bigl(1 -\frac{c}{\cmax}\Bigr)
+  \Bigl(\frac{\mu_p}{\mu_w}\Bigr)^{1-\omega} + \frac{c}{\cmax}\Bigr]^{-1}.  
+\end{equation}
+The function $R_k(\cads)$ denotes the actual resistance factor and is a non-decreasing function
+which models the reduction of the permeability of the rock to the water phase due to the presence of
+absorbed polymer. The concentration of absorbed polymer is denoted by $\cads$. We introduce the
+total flux as $\vec{v} = \vec{v}_w + \vec{v}_o$. We have
+\begin{equation*}
+  \vec{v} = -(\lambda_w + \lambda_o)\Kb\nabla p + g(\lambda_w\rho_w + \lambda_o\rho_o)\Kb\nabla z 
+\end{equation*}
+and, after some computation, we obtain the following expression of $\vec{v}_\alpha$ as a function of
+$\vec{v}$
+\begin{equation}
+  \label{eq:valphav}
+  \vec{v}_w = f_w \vec{v} + \vec{v_g}\quad\text{ and }\quad  \vec{v}_o = f_o \vec{v} - \vec{v_g}
+\end{equation}
+with
+\begin{equation}
+  \label{eq:gravterm}
+  \vec{v_g} = \frac{\lambda_w\lambda_{o}}{\lambda_w+\lambda_{o}}(\rho_w-\rho_{o})g\Kb\nabla z.
+\end{equation}
+Here, $\lambda_\alpha$ denotes the mobility of phase $\alpha$, i.e.,
+\begin{equation*}
+  \lambda_w = \frac{k_{rw}}{\mu_{w,\eff}R_k(\cads)}\quad\text{ and }\quad  \lambda_w = \frac{k_{ro}}{\mu_{o}},
+\end{equation*}
+and $f_\alpha$ corresponds to the fractional flow, $f_\alpha =\lambda_{\alpha}/(\lambda_{w} +
+\lambda_{o})$. The time scale of adsorption is much larger than that of mass transport and we will
+assume that adsorption takes place instantaneously so that $\cads$ is a function of $c$ only.  The
+reference rock density is $\rho_{r, \text{ref}}$ and the reference porosity $\phi_\text{ref}$.  The
+adsorption of polymer is then taken into account by replacing \eqref{eq:conservation_laws2} by
+\begin{equation}
+  \label{eq:conservation_laws2_withads}
+  \frac{\partial}{\partial t} (\rho_{w}\phi S_w c)+
+  \fracpar{}{t}\left(\rho_{r, \text{ref}}(1-\phi_\text{ref})\cads\right)+\nabla\cdot(c
+  \rho_{w} \vec{v}_{wp})  = 0.
+\end{equation}
+It is natural to assume that $\cads$ is an increasing function of $c$. Polymer
+cannot reach the smallest pores and, as a result, the effective pore volume for
+the polymer solution is smaller than the pore volume of the rock. The polymer
+mobility factor becomes
+\begin{equation}
+  \label{eq:defmdps}
+  m(c) = \frac{\mu_{w,\eff}}{\mu_{p,\eff}} = \Bigl[\Bigl(1 -\frac{c}{\cmax}\Bigr)
+  \Bigl(\frac{\mu_p}{\mu_w}\Bigr)^{1-\omega} + \frac{c}{\cmax}\Bigr]^{-1}.
+\end{equation}
+Finally the modeling equations are
+\begin{subequations}
+  \label{eq:goveq}
+  \begin{equation}
+    \label{eq:goveq1}
+    \frac{\partial}{\partial t} (\rho_{\alpha}\phi S_\alpha) +
+    \nabla\cdot(\rho_{\alpha}\vec{v}_\alpha)
+    = 0,
+  \end{equation}
+  for $\alpha\in\{w,o\}$,
+  \begin{equation}
+    \label{eq:goveq2}
+    \frac{\partial}{\partial t} (\rho_{w}\phi S_w c)+
+    \fracpar{}{t}\left(\rho_{r, \text{ref}}(1-\phi_\text{ref})\cads\right)+\nabla\cdot(c
+    \rho_{w} \vec{v}_{wp}) = 0.
+  \end{equation}
+\end{subequations}
+where $\vec{v}_\alpha$ and $\vec{v}_{wp}$ are defined in \eqref{eq:uwdarc} and \eqref{eq:uwpdarc}
+using \eqref{eq:defmupeff}, \eqref{eq:defmuwe} and \eqref{eq:newdefmuweff}.
+
+\printbibliography
+
+\end{document}

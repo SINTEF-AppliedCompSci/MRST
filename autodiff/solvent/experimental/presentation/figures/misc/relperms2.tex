@@ -1,0 +1,98 @@
+\documentclass{beamer}
+
+\usepackage{xcolor}
+\usepackage[latin1]{inputenc}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,calc,positioning,shadows,fillbetween}
+
+%%%<
+\usepackage{verbatim}
+\usepackage[active,tightpage]{preview}
+
+
+\PreviewEnvironment{tikzpicture}
+\setlength\PreviewBorder{5pt}%
+%%%>
+
+\usepackage[outline]{contour}
+\contourlength{0pt}
+
+\begin{document}
+\pagestyle{empty}
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+\definecolor{bl}{rgb}{0, 0.4470, 0.7410}
+\definecolor{re}{rgb}{0.8500, 0.3250, 0.0980}
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+  \pgfplotsset{
+    every mark/.append style={solid}
+  }
+
+\begin{tikzpicture}[scale=1]
+
+  \begin{axis}[ 
+    xmin = 0, xmax = 1.1, ymin = 0,  ymax = 1.1,
+    axis lines = middle,
+    xlabel ={$S_o$},
+    ylabel ={$k_{ro}(S_o)$},
+    xtick = {1},
+    ytick = {1},
+    mark options={solid},
+    legend style = {at={(0.03,0.7)},anchor=west, font=\small},
+    legend cell align = left,
+    ]
+
+    \newcommand\sorm{0.1}
+    \newcommand\sgrm{0.15}
+    
+    
+    \def\kri(#1){(1-\sgrm)^2*(max(min(((#1) - \sorm)/(1 - \sorm - \sgrm),1),0))^2}
+
+    \def\krm(#1){(1-\sgrm)^2*(max(min(((#1) - \sorm)/(1 - \sorm - \sgrm),1),0))}
+
+    \def\kr(#1){0.5*\kri(#1) + 0.5*\krm(#1)}
+    
+    
+    % \addplot[mark=*, fill=white, mark size = 2] coordinates {(\ipx, \ipy)};
+
+    % \addplot[mark=*, mark size = 2] coordinates {(\xsol, \ysol)}
+    % node[pos=0, below] {$S_w^*$};
+    
+    % % Without TR
+    % \addplot[dashed, color=bl, mark=square*, mark size=1.5] coordinates {
+    %   (\xa, \ya) (\xb, \ybl)
+    %   (\xb, \ybl) (\xb, \yb)
+    %   (\xc, \ycl) (\xc, \yc)
+    % };
+
+
+    % \addplot[dashed, color=re, mark=*, mark size=1] coordinates {
+    %   (\xa  , \ya   ) (\xbtr, \ybtrl)
+    %   (\xbtr, \ybtrl) (\xbtr, \ybtr)
+    %   (\xctr, \yctrl) (\xctr, \yctr)
+    %   (\xdtr, \ydtrl) (\xdtr, \ydtr)
+    %   (\xetr, \yetrl) (\xetr, \yetr)
+    % };
+        
+    % \legend{Inflection point, Solution, Without TR, With TR};
+
+    \addplot [black, domain = \sorm:(1-\sgrm), samples = 500, thick] {\kri(x)};
+    \addplot [black, domain = \sorm:(1-\sgrm), samples = 500, thick] {\krm(x)};
+    \addplot [black, domain = \sorm:(1-\sgrm), samples = 500, thick] {\kr(x)};
+    
+  \end{axis}
+\end{tikzpicture}
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

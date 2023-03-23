@@ -1,0 +1,101 @@
+\documentclass{beamer}
+
+\usepackage{xcolor}
+\usepackage[latin1]{inputenc}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,calc,positioning,shadows,fillbetween}
+
+%%%<
+\usepackage{verbatim}
+\usepackage[active,tightpage]{preview}
+
+
+\PreviewEnvironment{tikzpicture}
+\setlength\PreviewBorder{5pt}%
+%%%>
+
+\usepackage[outline]{contour}
+\contourlength{0pt}
+
+\begin{document}
+\pagestyle{empty}
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+\definecolor{bl}{rgb}{0, 0.4470, 0.7410}
+\definecolor{ye}{rgb}{    0.9290    0.6940    0.1250}
+
+
+\pgfdeclarelayer{background layer}
+\pgfsetlayers{background layer,main}
+
+  \pgfplotsset{
+    every mark/.append style={solid}
+  }
+
+% Define block styles
+\tikzstyle{water} = [rectangle, draw, fill=bl!60,minimum height=2em, inner sep = 0]
+\tikzstyle{solvent} = [rectangle, draw, fill=ye!60, minimum height=2em, inner sep = 0]
+\tikzstyle{line} = [draw, -latex', line width = 2pt]
+% \tikzstyle{cloud} = [draw, ellipse,fill=re!20, node distance=3cm,
+% minimum height=2em]
+% \tikzstyle{primitive} = [draw, isosceles triangle, line width = 1pt,rotate = 20]
+% \tikzstyle{fragment} = [circle, draw, minimum size = 15pt, inner sep = 0pt]
+
+\begin{tikzpicture}[node distance = 2cm, auto]
+
+  \begin{scope}[shift = {(0,0)}]
+    \def\y{-0.4}
+    \draw[fill = ye] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,1) -- (-1,1) -- (-1,\y);
+    \draw[fill = black] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,-1) -- (-1,-1) -- (-1,\y);
+    \node[color = white] at (0,0.3) {\tiny solvent};
+    \node[color = white] at (0,-0.75) {\tiny oil};
+    \node[rotate = 90, anchor = south] at (-1,0) {\tiny Immiscible};
+  \end{scope}
+  
+  \begin{scope}[shift = {(0,-2.5)}]
+    \def\y{0}
+    \draw[fill = ye!80!black] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,1) -- (-1,1) -- (-1,\y);
+    \draw[fill = black!80!ye] (-1,\y) to[out=0, in=130] (0,\y) to[out=-50, in=180](1,\y) -- (1,-1) -- (-1,-1) -- (-1,\y);
+    \node[color = white] at (0,0.5) {\tiny solvent + oil};
+    \node[color = white] at (0,-0.5) {\tiny oil + solvent};
+    \node[rotate = 90, anchor = south] at (-1,0) {\tiny Partially miscible};
+  \end{scope}
+
+  \begin{scope}[shift = {(0,-5)}]
+    \def\y{0}
+    \draw[fill = ye!50!black] (-1,-1) -- (1,-1) -- (1,1) -- (-1,1);
+    \node[color = white] at (0,0) {\tiny oil + solvent};
+    \node[rotate = 90, anchor = south] at (-1,0) {\tiny Fully miscible};
+  \end{scope}
+
+
+  
+  % \node [water, text width = 7em, align = center] at (3.5em,2.5em) {\huge Water};
+  % \node [solvent, text width = 7em, align = center] at (10.5em,2.5em) {\huge Solvent};
+  
+  % \node [water, text width = 10em] at (5em,0em) {};
+  % \foreach \x in {10, ..., 29}
+  % {\node [solvent, text width = 0.5em] at (\x*1em + 0.25em,0) {};
+  %   \node [water, text width = 0.5em] at (\x*1em + 0.75em,0) {};}
+  % \node [water, text width = 10em] at (35em,0em) {};
+
+  % \path [line] (0,-1.5em) --
+  % node[pos = 40/44*0.25, below] {\huge 1}
+  % node[pos = 40/44*0.5, below] {\huge 2}
+  % node[pos = 40/44*0.75, below] {\huge 3}
+  % node[pos = 40/44*1, below] {\huge 4}
+  % node[pos = 1, below] {\huge PVI} (44em,-1.5em);
+
+
+\end{tikzpicture}
+
+\end{document}
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
