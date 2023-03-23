@@ -1,0 +1,30 @@
+\documentclass{standalone}
+\usepackage{tikz}
+
+\begin{document}
+
+\begin{tikzpicture}[scale=0.3]
+  \fill[black,ultra thick] (0,0) circle(5);
+  \fill[black,ultra thick] ( 50:7.5) circle(2.95);
+  \fill[black,ultra thick] (130:7.5) circle(2.95);
+
+  \draw[black,ultra thick,fill=brown!30] (0,3.5) to[out=70,in=175] (75:4.9)
+  to[out=-20,in=70] (3,-.5) to[out=40,in=80] (-15:5.3) to [out=-100,in=10] (-65:5)
+  to[in=5,out=-95] (0,-6) to[out=175,in=-85] (-115:5) to[out=170,in=-80] (195:5.3)
+  to[out=100,in=140] (-3,-.5) to[out=110,in=200] (105:4.9) to[out=5,in=110] (0,3.5);
+
+  \draw[black,fill=white,ultra thick] ( 1.25,1.25) ellipse (.75 and 1.5);
+  \draw[black,fill=white,ultra thick] (-1.25,1.25) ellipse (.75 and 1.5);
+  \fill[black] ( 1.10,0.60) ellipse (.4 and .75);
+  \fill[black] (-1.10,0.60) ellipse (.4 and .75);
+  \fill[black] (0,-1.1) ellipse (1.25 and .5);
+
+  \draw[black,ultra thick] (-15:1.5) to[out=160,in=20] (195:1.5);
+
+  \draw[black,ultra thick] (-30:3.5) arc (-30:-150:3.5);
+
+  \draw[black,fill=white,ultra thick] (-90:3.5) to [out=0,in=25] (-60:3.5)
+  to[out=-120,in=0] (0,-5) to[out=180,in=-60] (-120:3.5) to [out=-25,in=180] (-90:3.5);
+
+\end{tikzpicture}
+\end{document}

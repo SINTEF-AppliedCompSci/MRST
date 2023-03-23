@@ -1,0 +1,5 @@
+*~
+*.mex*
+book/examples/ad-oo/sector-*.eps
+book/examples/grids/G-*.txt
+book/examples/intro/bedmodels*.png

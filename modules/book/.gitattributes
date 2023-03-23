@@ -1,0 +1,4 @@
+book/illustrations        export-ignore
+book/in2ph                export-ignore
+.gitignore                export-ignore
+.gitattributes            export-ignore
