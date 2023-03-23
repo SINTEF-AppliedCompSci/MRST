@@ -1,0 +1,32 @@
+This consists of the following files:
+
+Main functions:
+mpfa.m
+mpsa.m
+mpfa_subgrid.m
+mpsa_subgrid.m
+
+Example files:
+mpfa_ex.m
+mpsa_ex.m
+biot_ex.m
+
+Helper functions written for this package:
+classifyBoundaryFaces.m
+splitStiffnessMatrix.m
+shear_normal_stress.m
+sub2ind_loc.m
+
+Helper functions that have been modified from MRST:
+computeDistFaceCell.m
+createSubcellMapping.m
+multiplyNormalVectorStiffnessMatrix.m
+scalarDivergence.m
+vectorDivergence.m
+
+Functions that are really subroutines in MRST, but have been copied (no modifications) to separate files to allow for access from outside functions:
+blockDiagIndex.m
+blockInverter.m
+invertDiagonalBlocks.m
+invertDiagonalBlocksMex.m
+multiplyNormalVectorAndTensor.m
