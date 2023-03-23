@@ -1,0 +1,13 @@
+This package consists of the following files:
+
+Main functions (in functions folder):
+timeStepping.m : adaptive time stepping algorithm.	
+newtonSolver.m : classical newton iterative solver which uses MRST's Automatic Differentiation.
+arithmeticMPFA_hydHead.m : computes the arithmetic average of the intrinsic permeability.
+upstreamMFA_hydHead.m : computes the upstream weighted average of the intrinsic permeability.
+
+Example files (in examples folder):
+waterInfiltration1D.m : one-dimensional water infiltration.
+waterInfiltration3D.m : three-dimensional water infiltration in a heterogeneous domain.
+waterEvaporation1D.m : instantaneous water evaporation in a homogeneous three-dimensional domain.
+
