@@ -1,0 +1,22 @@
+upr is a collection of MATLAB functions for generation and
+manipulation of unstructured grids for mrst. upr is Copyright (C) 
+2015-2020 Runar Lie Berge.
+
+upr is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+upr is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with upr.  If not, see <http://www.gnu.org/licenses/>.
+
+If you use upr in any program or publication, please acknowledge
+its author by adding a reference to: Runar Lie Berge, Unstructured Pebi 
+Grids Adapting to Geological Features in Subsurface Reservoirs, June 2016,
+Master Thesis, Department of Mathematics, Norwegian University of Science
+and Technology.
