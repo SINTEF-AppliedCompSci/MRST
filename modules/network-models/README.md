@@ -1,0 +1,1 @@
+This module contains functionality for defining physics-inform models, formulated as a standard reservoir simulator applied to different types of flow networks. The resulting models can either be data-driven and calibrated to measured data, or be reduced models calibrated to simulation results from a full reservoir simulation. 
