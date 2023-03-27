@@ -60,8 +60,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        if opt.useCpGeometry &&...
           isfield(scheduleDeck, 'GRID') &&...
           isfield(scheduleDeck.GRID, 'COORD')
-           [~, ~, cellDims] = computeCpGeometry(model.G, scheduleDeck.GRID);
+          [~, ~, cellDims] = computeCpGeometry(model.G, scheduleDeck.GRID);
            cellDims = cellDims(model.G.cells.indexMap,:);
+       elseif all(isfield(model.G.cells, {'DX', 'DY', 'DZ'}))
+           cellDims = [model.G.cells.DX, model.G.cells.DY, model.G.cells.DZ];
        end
        % Support passing deck directly
        scheduleDeck = scheduleDeck.SCHEDULE;
@@ -119,7 +121,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             ci = c(map);
             W(j).compi = ci/sum(ci);
-            if isCompostional
+            if isCompostional && isempty(W(j).components)
                 W(j).components = ones(1, n_hc)/n_hc;
             end
         end
