@@ -1,0 +1,22 @@
+These instructions were valid at one time.  At present the dataset is not
+available to the public.  MRST's authors are hopeful that public access to
+the dataset will be restored in the future.
+
+*** DOWNLOAD INSTRUCTIONS ********************************************************
+
+ 1) Data are publicly available from IEAGHG. Please follow the download
+    instructions from 
+       http://www.ieaghg.org/index.php?/2009112025/modelling-network.html
+    To download the data, you must be a registered user. This may take
+    several days
+
+ 2) Unzip the data from the file 'Sleipner_L9_Benchmark_to_IEAGHG.zip'
+    and move the M9X1.grdecl and the M9X1_*.inc files to the current
+    directory. Alternatively, you can modify the include statements in the
+    SLEIPNER.DATA file to point to the correct directory where you have
+    your data files.
+
+ 3) To be able to load the petrophysical data, you may have to delete
+    the second line of the files 'M9X1_*.inc'.
+
+**********************************************************************************

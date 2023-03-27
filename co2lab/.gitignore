@@ -1,0 +1,22 @@
+data/atlas/
+*.m~
+*.org~
+\#*\#
+/data/*
+data/igems/*
+data/sleipner/*
+data/johansen/*
+/co2lab/utils/co2props/sampled_tables/*.mat
+/co2lab/examples/papers/CAGEO-75/igems-results.mat
+/co2lab/examples/papers/CAGEO-79/results/
+/co2lab/examples/papers/COMG-1/data/
+/co2lab/examples/papers/COMG-2/data/
+/co2lab/examples/ve-ad/pressureLimitedExampleResults/*.mat
+/co2lab/data/atlas
+/Link to figurer
+/co2lab/ve/VEmex/VETransportCPU.mexa64
+co2lab/ve/VEmex/build
+experimental/misc/external_code
+/states.mat
+/wellSol.mat
+figs/

@@ -1,0 +1,52 @@
+template<class Real>
+State<Real>::State(int num_cells, int num_faces, double *f, double *h,
+        double *max_h)
+{
+    numCells = num_cells;
+    numFaces = num_faces;
+
+    height      = new Real[numCells];
+    max_height  = new Real[numCells];
+    flux        = new Real[numFaces];
+
+#pragma omp parallel for
+    for(int i = 0; i < numFaces; i++) {
+        if(i < numCells) {
+            if(h) {
+                height[i] = (Real) h[i];
+            } else {
+                height[i] = (Real) 0.0;
+            }
+
+            if(max_h) {
+                max_height[i] = (Real) max_h[i];
+            } else {
+                max_height[i] = (Real) height[i];
+            }
+        }
+
+        if(f) {
+            flux[i] = (Real) f[i];
+        } else {
+            flux[i] = (Real) 0.0;
+        }
+    }
+}
+
+template<class Real>
+State<Real>::~State()
+{
+    delete[] height;
+    delete[] max_height;
+    delete[] flux;
+}
+
+template<class Real>
+void State<Real>::getHeight(double *h, double *max_h)
+{
+#pragma omp parallel for
+    for(int i = 0; i < numCells; i++) {
+        h[i] = height[i];
+        max_h[i] = max_height[i];
+    }
+}

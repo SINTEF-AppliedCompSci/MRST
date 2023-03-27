@@ -1,0 +1,44 @@
+
+* Add support for temperature gradients
+
+
+-----
+
+
+
+GRID
+====
+
+* topography
+* grid resolution
+
+OTHER
+=====
+
+* theta
+* compressible
+* initial height profile
+* well schedule
+* boundary conditions
+
+
+----- TEST ORDER ----
+================
+
+* theta
+* height profile
+* boundary conditions
+* compressible
+* topography
+
+* well schedule
+* grid resolution
+
+FEATURES
+========
+
+* Accounting: CO2 injected, present, escaped
+* pressure at top, interface and bottom
+* Graphing - including multiple curves and correct axis labeling
+
+

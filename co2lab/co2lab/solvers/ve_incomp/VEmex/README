@@ -1,0 +1,74 @@
+Introduction
+------------
+
+This library provides the MEX-version of the explicit transport solver
+implemented in C++.  The MEX function is accessible through the gateway
+function 'mtransportVE'.  You need to manually build the library and MEX
+gateway support function prior to using the 'mtransportVE' function.
+
+We note that the library build system is constructed using the CMake
+syntax.  You can download an implementation of CMake suitable for your
+computer system at
+
+    http://www.cmake.org/
+
+%=======================================================================
+
+Install
+-------
+
+To build the library on a typical Unix or Unix-like computer system,
+follow the steps below (in the directory containing this "README" file):
+Note: "$" is the shell command prompt
+
+    $ mkdir build
+    $ cd build
+    $ cmake ..
+    $ make
+
+Please review the build notes at the bottom of this file if the above
+"cmake" command fails.
+
+Now you can start MATLAB from your MRST directory and activate the
+vertical-eqilibrium module by typing the following command at the MATLAB
+command prompt:
+
+    >> mrstModule add co2lab
+
+The following examples use the C++ accelerated VE-transport solver if it
+is available on the current computer system
+
+    runIGEMS
+    runJohansenVE
+    runSleipner
+    runSlopingAquifer
+
+Please note that the C++ accelerated function does not accept all the
+options that 'explicitTransportVE' does.  For a list of valid input
+parameters, run the following command from the MATLAB command prompt
+
+    >> help mtransportVE
+
+%=======================================================================
+
+Build Notes
+-----------
+
+You might need to set a few environment variables if the 'cmake' command
+fails.  In particular, MATLAB_PATH and, possibly, MATLAB_ARCH, affect
+CMake's ability to locate necessary files during the configuration
+process.
+
+MATLAB_PATH: Path to the root MATLAB directory.
+  You should set this variable to the value returned by MATLAB's built
+  in 'matlabroot' function.
+
+MATLAB_ARCH: Architecture for which to build the library.
+  If the library will be run on the same computer as you're using to
+  build it, i.e., "natively", you can ignore this variable.
+
+  Otherwise, MATLAB_ARCH should be set to one of the elements of the
+  list obtained through the following sequence of commands
+
+     e = mexext('all');
+     strvcat({ e.arch })

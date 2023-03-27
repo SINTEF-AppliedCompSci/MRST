@@ -1,0 +1,53 @@
+/*
+ * Constructor. Converts double into Real.
+ */
+template<class Real>
+BC<Real>::BC(int num_faces, int *bc_face, double *bc_value, double *bc_height,
+        char **bc_type)
+{
+    num = num_faces;
+
+    face    = new int[num];
+    value   = new Real[num];
+    height  = new Real[num];
+    type    = new std::string[num];
+
+#pragma omp parallel for
+    for(int i = 0; i < num; i++) {
+        face[i]     = bc_face[i];
+        value[i]    = (Real) bc_value[i];
+        height[i]   = (Real) bc_height[i];
+        type[i]     = std::string(bc_type[i]);
+    }
+}
+
+/*
+ * Copy constructor. Copies a double BC into a Real BC.
+ */
+template<class Real>
+BC<Real>::BC(BC<double> *bc)
+{
+    num = bc->num;
+
+    face    = new int[num];
+    value   = new Real[num];
+    height  = new Real[num];
+    type    = new std::string[num];
+
+#pragma omp parallel for
+    for(int i = 0; i < num; i++) {
+        face[i]     = bc->face[i];
+        value[i]    = (Real) bc->value[i];
+        height[i]   = (Real) bc->height[i];
+        type[i]     = bc->type[i];
+    }
+}
+
+template<class Real>
+BC<Real>::~BC()
+{
+    delete[] face;
+    delete[] value;
+    delete[] height;
+    delete[] type;
+}

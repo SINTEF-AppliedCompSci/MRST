@@ -1,0 +1,52 @@
+template<class Real>
+Well<Real>::Well(int num, int *cell_idx, double *rate, double *h)
+{
+    numCells = num;
+
+    cells   = new int[num];
+    val     = new Real[num];
+    height  = new Real[num];
+
+#pragma omp parallel for
+    for(int i = 0; i < num; i++) {
+        cells[i]    = cell_idx[i] - 1;
+        val[i]      = (Real) rate[i];
+        height[i]   = (Real) h[i];
+    }
+}
+
+template<class Real>
+Well<Real>::Well(Well<double> *w)
+{
+    numCells = w->numCells;
+
+    cells   = new int[numCells];
+    val     = new Real[numCells];
+    height  = new Real[numCells];
+
+#pragma omp parallel for
+    for(int i = 0; i < numCells; i++) {
+        cells[i]    = w->cells[i];
+        val[i]      = (Real) w->val[i];
+        height[i]   = (Real) w->height[i];
+    }
+}
+
+template<class Real>
+Well<Real>::~Well()
+{
+    delete[] cells;
+    delete[] val;
+    delete[] height;
+}
+
+template<class Real>
+void Well<Real>::contribute_source(Real *q, const Real *H) const
+{
+#pragma omp parallel for
+    for(int i = 0; i < numCells; i++) {
+        if(val[i] > 0) {
+            q[cells[i]] += val[i]*height[i]/H[cells[i]];
+        }
+    }
+}

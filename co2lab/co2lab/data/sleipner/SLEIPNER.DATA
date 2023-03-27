@@ -1,0 +1,15 @@
+INCLUDE
+M9X1.grdecl
+/
+
+INCLUDE
+M9X1_perm_X_mD_.inc
+/
+
+INCLUDE
+M9X1_perm_Z_mD_.inc
+/
+
+INCLUDE
+M9X1_poro___.inc
+/

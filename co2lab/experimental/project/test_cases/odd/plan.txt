@@ -1,0 +1,59 @@
+* establishing fundamental data
+  * load IGEMS data surface, and create associated rock structure
+  * create top grid and 2D rock structure
+  * visualize/explain top surface
+* trapping analysis
+  * view all traps
+  * view all spill regions
+  * view trap connections
+  * statistics on trap volumes
+  * compute total resulting trapping for an arbitrary grid cell (interactive?)
+* simulation
+  * put a well the grid cell just analyzed, and inject enough to make it overflow the first encoutnered trap
+      * compare different injection rates
+-----
+# runJohansenVE
+* display header
+* input data and construct grid mode
+* set parameters
+  * time and fluid
+  * well and boundary conditions
+* prepare simulations
+  * compute inner products
+  * instantiate solution structure
+  * select transport solver
+* prepare plotting
+  * choosing options and creating plot panel
+* run main simulation loop
+  * solve flow
+  * solve transport
+  * reconstruct saturation from height
+  * stop check
+  * update plot panel
+  
+# runSleipner
+* display header
+* construct the grid
+* set parameters
+  * time and fluid
+  * well and boundary conditions
+* prepare simulations
+  * compute inner products
+  * instantiate solution structure
+  * select transport solver
+* prepare plotting
+  * choose options and creating plot panel
+* run main simulation loop
+  * solve flow
+  * solve transport
+  * reconstruct saturation from height
+  * updating plot panel
+
+# runSlopingAquifer
+* very similar to the two above
+
+
+  
+
+
+  

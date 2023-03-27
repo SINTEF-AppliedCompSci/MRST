@@ -1,0 +1,22 @@
+The MRST Numerical CO2 Laboratory combines results of more than one decade of academic research and development of mathematical models and numerical methods for CO2 storage modeling combined into a unified toolchain that is easy and intuitive to use. The software is flexible and efficient and can be used to study realistic injection scenarios, or function as a platform for rapid prototyping of new models and computational methods.
+
+Different vertical equilibrium models are included, ranging from simple incompressible immiscibile two-phase models to compressible models with CO2 dissolution. A range of interactive tools makes it easy to visualize how CO2 will migrate and behave under different conditions and for different saline aquifers.
+
+The module offers:
+
+- simplified access to public data sets from the CO2 Storage Atlas of the Norwegian Continental Shelf
+
+- identification of structural traps and computation of storage capacity estimates
+
+- vertical-equilibrium methods specifically to study long-term, large-scale migration
+
+- detailed carbon trapping inventories
+
+- a large number of tutorials and examples
+
+- optimization methods
+
+
+We have published a large number of papers based on the co2lab module. Complete simulation setups from published papers can be found here:
+
+https://bitbucket.org/mrst/mrst-paper-scripts/wiki/Home 
