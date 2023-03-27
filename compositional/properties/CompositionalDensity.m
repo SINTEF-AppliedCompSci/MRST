@@ -9,15 +9,16 @@ classdef CompositionalDensity < StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PhasePressures',...
                                'PhaseCompressibilityFactors',...
-                               'ComponentPhaseMoleFractions'});
+                               'ComponentPhaseMoleFractions', ...
+                               'SurfaceDensity'});
             gp = gp.dependsOn({'pressure', 'T'}, 'state');
             gp.label = '\rho_\alpha';
         end
 
         function rho = evaluateOnDomain(prop, model, state)
             [p, T] = model.getProps(state, 'pressure', 'temperature');
-            [p_phase, Z, mf] = prop.getEvaluatedDependencies(state, ...
-                'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions');
+            [p_phase, Z, mf, rhoS] = prop.getEvaluatedDependencies(state, ...
+                'PhasePressures', 'PhaseCompressibilityFactors', 'ComponentPhaseMoleFractions', 'SurfaceDensity');
             phases = model.getPhaseNames();
             nph = numel(phases);
             L_ix = model.getLiquidIndex();
@@ -52,8 +53,8 @@ classdef CompositionalDensity < StateFunction
                 end
                 sn = phases(i);
                 b = prop.evaluateFluid(model, ['b', sn], p_phase{i});
-                rhoS = model.fluid.(['rho', sn, 'S']);
-                rho{i} = rhoS.*b;
+%                 rhoS = model.fluid.(['rho', sn, 'S']);
+                rho{i} = rhoS{i}.*b;
             end
         end
     end

@@ -47,7 +47,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             
             model.EOSModel.verbose = false;
             model.EOSNonLinearSolver = getDefaultFlashNonLinearSolver();
-            
+             
             model.nonlinearTolerance = 1e-3;
             model.incTolPressure = 1e-3;
             model.useIncTolComposition = false;
@@ -176,7 +176,11 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             model.checkProperty(state, 'Temperature', [ncell, 1], [1, 2]);
             if ~isfield(state, 'x') || ~isfield(state, 'K')
                 state.components = ensureMinimumFraction(state.components, model.EOSModel.minimumComposition);
+                
+                time0 = 0; if isfield(state, 'time'), time0 = state0.time; end
                 state = model.computeFlash(state, inf);
+                state.time = time0;
+                
             end
             if isfield(state, 'wellSol') && ~isfield(state.wellSol, 'components')
                 for i = 1:numel(state.wellSol)
@@ -536,16 +540,17 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             model = setupStateFunctionGroupings@ReservoirModel(model, varargin{:});
             % Compositional specializations
             pvtprops = model.PVTPropertyFunctions;
-            pvtprops = pvtprops.setStateFunction('ShrinkageFactors', DensityDerivedShrinkageFactors(model));
-            pvtprops = pvtprops.setStateFunction('Density', CompositionalDensity(model));
+            pvt = pvtprops.getRegionPVT(model);
+            pvtprops = pvtprops.setStateFunction('ShrinkageFactors', DensityDerivedShrinkageFactors(model, pvt));
+            pvtprops = pvtprops.setStateFunction('Density', CompositionalDensity(model, pvt));
             
-            pvtprops = pvtprops.setStateFunction('ComponentPhaseMassFractions', ComponentPhaseMassFractionsLV(model));
-            pvtprops = pvtprops.setStateFunction('ComponentPhaseMoleFractions', ComponentPhaseMoleFractionsLV(model));
+            pvtprops = pvtprops.setStateFunction('ComponentPhaseMassFractions', ComponentPhaseMassFractionsLV(model, pvt));
+            pvtprops = pvtprops.setStateFunction('ComponentPhaseMoleFractions', ComponentPhaseMoleFractionsLV(model, pvt));
 
-            pvtprops = pvtprops.setStateFunction('PhaseMixingCoefficients', PhaseMixingCoefficientsLV(model));
-            pvtprops = pvtprops.setStateFunction('Fugacity', FugacityLV(model));
-            pvtprops = pvtprops.setStateFunction('PhaseCompressibilityFactors', PhaseCompressibilityFactorsLV(model));
-            pvtprops = pvtprops.setStateFunction('Viscosity', CompositionalViscosityLV(model));
+            pvtprops = pvtprops.setStateFunction('PhaseMixingCoefficients', PhaseMixingCoefficientsLV(model, pvt));
+            pvtprops = pvtprops.setStateFunction('Fugacity', FugacityLV(model, pvt));
+            pvtprops = pvtprops.setStateFunction('PhaseCompressibilityFactors', PhaseCompressibilityFactorsLV(model, pvt));
+            pvtprops = pvtprops.setStateFunction('Viscosity', CompositionalViscosityLV(model, pvt));
 
             model.PVTPropertyFunctions = pvtprops;
             
