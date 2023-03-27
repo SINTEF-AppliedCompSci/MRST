@@ -132,6 +132,7 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
         z_method = eql(10);
         assert(z_method == 1);
         zvd = deck.PROPS.ZMFVD{regionIx};
+        zvd(:, 2:end) = zvd(:, 2:end)./sum(zvd(:, 2:end), 2);
         z_fn = @(p, z) interpolateDepthTable(zvd(:, 1), zvd(:, 2:end), z);
         if isfield(deck.PROPS, 'RTEMP')
             T = deck.PROPS.RTEMP;
