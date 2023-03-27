@@ -1,7 +1,7 @@
 function startup()
     run_startup();
     dirs = {'autodiff', 'model-io', 'multiscale', 'modules', 'solvers', 'visualization'};
-    [base_path, fn, fn] = fileparts(mfilename()); %#ok
+    [base_path, fn, fn] = fileparts(mfilename('fullpath')); %#ok
     clear fn
     for i = 1:numel(dirs)
         mrstPath('addroot', fullfile(base_path, dirs{i}));
