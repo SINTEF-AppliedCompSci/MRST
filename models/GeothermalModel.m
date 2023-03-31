@@ -45,7 +45,8 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
         % with H2O as the only component
         compFluid 
         % Physical quantities and bounds
-        geothermalGradient = 30*Kelvin/(kilo*meter);
+        geothermalGradient        = 30*Kelvin/(kilo*meter);
+        radiogenicHeatFluxDensity = 0*micro*watt/meter^3;
         minimumTemperature = -inf;
         maximumTemperature =  inf;
         % Update limits
@@ -317,6 +318,11 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 molf  = ComponentPhaseMoleFractionsBrine(model);
                 pvt   = pvt.setStateFunction('ComponentPhaseMassFractions', massf);
                 pvt   = pvt.setStateFunction('ComponentPhaseMoleFractions', molf );
+                % Radiogenic heat production
+                if any(model.radiogenicHeatFluxDensity > 0)
+                    rh  = RadiogenicHeatSource(model);
+                    pvt = pvt.setStateFunction('RadiogenicHeatSource', rh);
+                end
                 % Replace
                 model.PVTPropertyFunctions = pvt;
             end
@@ -508,6 +514,11 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 end
                 % Assemble equations
                 eeqs{1} = model.operators.AccDiv(eeqs{1}, eflux{1});
+                % Add in radiogenic heat source
+                if any(model.radiogenicHeatFluxDensity > 0)
+                    qh = model.getProp(state, 'RadiogenicHeatSource');
+                    eeqs{1} = eeqs{1} - qh;
+                end
             else
                 [eeqs, enames, etypes] = deal([]);
             end

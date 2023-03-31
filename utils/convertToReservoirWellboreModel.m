@@ -1,4 +1,4 @@
-function setup = convertToReservoirWellbore(setup, varargin)
+function setup = convertToReservoirWellboreModel(setup, varargin)
 % Convert a setup with geothermal model to composite model with WellboreModel for wells
 %
 % SYNOPSIS:
