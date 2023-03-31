@@ -430,7 +430,7 @@ classdef WellboreModel < WrapperModel
         end
         %-----------------------------------------------------------------%
 
-        % ----------------------------------------------------------------%
+        %-----------------------------------------------------------------%
         function [model, state] = updateForChangedControls(model, state, forces)
         % Update model and state when controls/drivingForces has changed
         
@@ -446,7 +446,7 @@ classdef WellboreModel < WrapperModel
             end
             
         end
-        % ----------------------------------------------------------------%
+        %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
         function state = initStateAD(model, state, vars, names, origin)
@@ -618,8 +618,11 @@ classdef WellboreModel < WrapperModel
             if ~model.thermal, return; end
             
             % Compute injection/production enthalpy
-            h = model.getProps(state, 'enthalpy');
-            is_inj  = value(Qt) > 0;
+            [h, bht] = model.getProps(state, 'enthalpy', 'BottomHoleTemperature');
+            is_inj = value(Qt) > 0;
+            fix = isnan(value(targetTemp));
+            if ~isa(targetTemp, 'ADI'), bht = value(bht); end
+            targetTemp(fix) = bht(fix);
             hInj = model.parentModel.fluid.hW(bhp, targetTemp);
             h(iic) = is_inj.*hInj + ~is_inj.*h(iic);
 
