@@ -92,6 +92,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     
     model = GeothermalModel(G, rock, fluid);
+    model.radiogenicHeatFluxDensity = 2.79*micro*watt/meter^3;
     
     top = find(G.faces.centroids(:,3) == 0);
     bc = addBC([], top, 'pressure', 1*atm, 'sat', 1);
