@@ -22,24 +22,37 @@ classdef CouplingTerm < StateFunction
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function eqs = insertCoupling(prop, eqs, modelNames, names, q)
+        function eqs = insertCoupling(prop, model, eqs, modelNames, names, q)
         % Insert coupling terms based on couplings structs
         
             for c = 1:numel(prop.couplings)
                 % Get coupling
                 cpl = prop.couplings{c};
                 % Find model indices
-                mix = find(strcmpi(modelNames, cpl.model));
-                for m = mix
-                    % Find equation indices
-                    eqix = find(ismember(names{m}, cpl.equations));
-                    for eq = eqix
-                        % If we have a cell array of sources/sinks, we
-                        % interpret them to be per equation
-                        if iscell(q), qeq = q{eq}; else, qeq = q; end
-                        % Insert in model equation, with correct sign
-                        eqs{m}{eq}(cpl.subset) ...
-                            = eqs{m}{eq}(cpl.subset) + qeq.*cpl.sign;
+                
+                if iscell(cpl.model) && numel(cpl.model) > 1
+                    mdl    = model.submodels.(cpl.model{1});
+                    mix = find(strcmpi(modelNames, cpl.model{1}));
+                    assert(numel(mix) == 1);
+                    mnames = mdl.getModelNames();
+                    prop.couplings{c}.model = prop.couplings{c}.model(2:end);
+                    eqs{mix} = insertCoupling(prop, mdl, eqs{mix}, mnames, names{mix}, q);
+                else
+                    mix = find(strcmpi(modelNames, cpl.model));
+                    for m = mix
+                        % Find equation indices
+                        n = names{m};
+                        n(cellfun(@iscell, n)) = '';
+                        eqix = find(ismember(n, cpl.equations));
+                        for i = 1:numel(eqix)
+                            eq = eqix(i);
+                            % If we have a cell array of sources/sinks, we
+                            % interpret them to be per equation
+                            if iscell(q), qeq = q{i}; else, qeq = q; end
+                            % Insert in model equation, with correct sign
+                            eqs{m}{eq}(cpl.subset) ...
+                                = eqs{m}{eq}(cpl.subset) + qeq.*cpl.sign;
+                        end
                     end
                 end
 
