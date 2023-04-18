@@ -37,6 +37,11 @@ classdef StateFunction
             error('Base class should not be evaluated')
         end
 
+        function prop = setRegions(prop, regions)
+            prop.isSingleRegion = isempty(regions) || numel(unique(regions)) == 1;
+            prop.regions = regions;
+        end
+
         function prop = dependsOn(prop, varargin)
             % Document dependencies and external dependencies
             prop = addPropertyDependence(prop, varargin{:});
