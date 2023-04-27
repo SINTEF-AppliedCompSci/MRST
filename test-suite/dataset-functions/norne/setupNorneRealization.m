@@ -10,7 +10,8 @@ function  [G, rock, fluid, deck] = setupNorneRealization(realNo, varargin)
 %    specific Norne realization.
 %
 % PARAMETERS:
-%    realNo  - the realization required.
+%    realNo  - requested realization. Number between 1 and 50. If omitted,
+%              defaults to 1.
 %
 % KEYWORD ARGUMENTS:
 %    actnum  - override for ACTNUM. Must be a subset of the ACTNUM in the
@@ -56,23 +57,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     try
         pth = getDatasetPath('norne_ensemble');
         norne=load(fullfile(pth,'data','NorneInitEns.mat'));
-        assert(realNo<numel(norne.ensemble));
-        data = norne.ensemble(realNo);
     catch me
         if ~exist('pth', 'var')
            error('Download:Failed', ...
                  'Failed to download Norne Ensemble dataset: %s', ...
                  me.message);
         end
-
         addpath(fullfile(pth,'data'));
         generateNorneEnsemble(max(50,realNo));
         rmpath(fullfile(pth,'data'));
         
         norne = load(fullfile(pth,'data','NorneInitEns.mat'));
-        data  = norne.ensemble(realNo);
     end
-    
+    assert(realNo<=numel(norne.ensemble));
+    data = norne.ensemble(realNo);
+
     % The generated data contains 12 extra disconnected cells that need to
     % be accounted for when assigning data
     if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL())
