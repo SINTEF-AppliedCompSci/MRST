@@ -61,10 +61,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt = struct('solver'   , []                   , ... % Sepcify solver (e.g. TransportSolver)
-                 'get'      , []                   , ... % Getter. Can be user-defined function
-                 'type'     , 'nonlinearIterations', ... % Used to pick preimplemented getters (se below)
-                 'ministeps', false                );    % Ouput data per ministep instead of timestep
+    opt = struct( ...
+        'solver'     , []                   , ... % Sepcify solver (e.g. TransportSolver)
+        'get'        , []                   , ... % Getter. Can be user-defined function
+        'type'       , 'nonlinearIterations', ... % Used to pick preimplemented getters (se below)
+        'reportLevel', 'nonlinear'          , ... % Level at which the quantitiy of interest should be read
+        'ministeps'  , false                  ... % Ouput data per ministep instead of timestep
+    );
     opt = merge_options(opt, varargin{:});
     if isfield(reports, 'ControlstepReports')
         reports = reports.ControlstepReports;
@@ -205,9 +208,14 @@ function [out, time] = getStepReportData(stepreport, opt)
         out(3) = numel(reports);
     else
         % Solver field is empty - we have reached the bottom!
-        reports = stepreport.NonlinearReport;
-        for i = 1:numel(reports)
-            out = out + opt.get(reports{i});
+        switch opt.reportLevel
+            case 'nonlinear'
+                reports = stepreport.NonlinearReport;
+                for i = 1:numel(reports)
+                    out = out + opt.get(reports{i});
+                end
+            case 'step'
+                out = opt.get(stepreport);
         end
         out  = [out, out.*(~stepreport.Converged), nan(numel(out),1)];
         time = stepreport.LocalTime;
