@@ -838,8 +838,8 @@ methods
     end
 
 
-    function [gradient, result, report] = solveAdjoint(model, solver, getState,...
-                                getObj, schedule, gradient, stepNo, varargin)
+    function [lambda, lambdaVec, report] = solveAdjoint(model, solver, getState,...
+                                                        getObj, schedule, lambdaVec, stepNo, varargin)
         % Solve a single linear adjoint step to obtain the gradient
         %
         % SYNOPSIS:
@@ -932,12 +932,17 @@ methods
         else
             problem_p = [];
         end
-        [gradient, result, rep] = solver.solveAdjointProblem(problem_p,...
-                                    problem, gradient, getObj(stepNo,model,problem.state), model, ...
-                                    varargin{:});
+        
+        [lambda, lambdaVec, rep] = solver.solveAdjointProblem(problem_p,...
+                                                              problem                           , ...
+                                                              lambda                            , ...
+                                                              getObj(stepNo,model,problem.state), ...
+                                                              model                             , ...
+                                                              varargin{:});
         report = struct();
         report.Types = problem.types;
         report.LinearSolverReport = rep;
+        
     end
 
 
