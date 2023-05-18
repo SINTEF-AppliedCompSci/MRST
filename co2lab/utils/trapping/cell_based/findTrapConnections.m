@@ -57,7 +57,7 @@ function trap_con = findTrapConnections(Gnew,z_spill_loc)
 %   `topSurfaceGrid`, `trapAnalysis`, `findTrappingStructure`
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

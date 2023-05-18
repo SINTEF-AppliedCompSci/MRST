@@ -23,7 +23,7 @@ function plotTrappingDistribution(ax, report, varargin)
 %   `makeReports`, axes.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -91,14 +91,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         names(1) = [];
     end
 
-    ax = get_valid_axes_handle(ax);
-
     % Plotting trapping history
-    area(ax, ...
+    area(get_valid_axes_handle(ax), ...
          convertTo(t_hist, year), ...
-         convertTo([mass_hist(:, 1:7), mass_hist(:,8)], mega*kilo));
+         convertTo([mass_hist(:, 1:7), mass_hist(:,8)], mega*tonne));
          % convertTo([mass_hist(:, 1:7), mass_hist(:,8)-sum(mass_hist(:,1:7),2)], ...
-         %           mega*kilo));
+         %           mega*tonne));
 
     % Setting consistent colors
     col = getInventoryColors([7 6 5 5 4 3 2 1]);

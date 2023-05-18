@@ -18,7 +18,7 @@ function M = subregionConnectivityMatrix(Gt, nodes, use_diags)
 %       edges of the top surface grid Gt, or if diagonals are used, all nodes
 %       sharing a cell are considered connected.
  %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
