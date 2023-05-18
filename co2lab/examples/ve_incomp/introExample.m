@@ -97,9 +97,6 @@ G = initEclipseGrid(deck);
 G = computeGeometry(G);
 
 Gts = topSurfaceGrid(G);
-Gts.cells.H = H*ones(Gts.cells.num,1);
-Gts.columns.dz = ones(numel(Gts.columns.cells),1)*H/nz;
-Gts.columns.z = cumulativeHeight(Gts);
 
 % get permeability
 rock   = initEclipseRock(deck);
