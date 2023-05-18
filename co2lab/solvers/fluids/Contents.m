@@ -1,8 +1,6 @@
 % FLUIDS
 %
 % Files
-%   addVE3DRelperm               - 
-%   addVEBlackOilRelperm         - 
 %   addVERelperm                 - Add VE-upscaled rel.perm. (and related functions) for a two-phase fluid
 %   addVERelperm1DTables         - {
 %   addVERelperm1DTablesPressure - {

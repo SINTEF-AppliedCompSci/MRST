@@ -75,8 +75,8 @@ function S = computeMimeticIPVE(G, rock, varargin)
 %
 % RETURNS:
 %   S - Pressure linear system structure having the following fields:
-%         - BI / B : inverse of B / B in hybrid/mixed system - type   :
-%         system type (hybrid or mixed)
+%         - BI / B : inverse of B / B in hybrid/mixed system 
+%         - type   : system type (hybrid or mixed)
 %         - ip     : inner product name
 %
 % COMMENTS:

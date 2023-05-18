@@ -1,6 +1,6 @@
 function res = computeNodeTraps(Gt, closed_bnodes, closed_fnodes)
 %
-% Compute tracks and spill regions for the 2D surface grid 'Gt'.  The
+% Compute traps and spill regions for the 2D surface grid 'Gt'.  The
 % computation is node-based, not cell based.  Cell-based results can be
 % obtained by subsequently applying the function n2cTraps ("node-to-cell
 % traps"). 
