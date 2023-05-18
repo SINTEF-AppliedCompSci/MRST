@@ -382,11 +382,12 @@ end
    gravmat = gravmat*(fluid.rho(1)-fluid.rho(2));
    gravmat = gravmat*sparse(1:numel(z_diff),1:numel(z_diff),K_face.*z_diff);
 
-   h  = linspace(0, max(G_top.cells.H),  1001) .';
+   h  = linspace(0, max(G_top.cells.H),  1001)';
 
-   deriv = @(f) diff(f(fluid.mob_avg(struct('h',h), ...
-                         max(G_top.cells.H)))) ./ diff(h);
-
+   mob_avg = @(h) [fluid.kwm(1) * h(:) / fluid.mu(1), ...
+                   fluid.kwm(2) * (max(G_top.cells.H)-h(:)) / fluid.mu(2)];
+   deriv = @(f) diff(f(mob_avg(h))) ./ diff(h);
+   
    if nnz(gravmat),
       f  = @(mob) (mob(:,1).*mob(:,2)./sum(mob,2));
 

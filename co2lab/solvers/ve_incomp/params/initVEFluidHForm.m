@@ -17,12 +17,6 @@ function fluid = initVEFluidHForm(g_top, varargin)
 %               - sw  -- residual water saturation,
 %               - kwm -- phase relative permeability at 'sr' and 'sw'.
 %
-%             In addition, we support the following optional parameters:
-%               - val_z -- use a function for vertical integration given by
-%                        table [val_z, val_f]
-%               - val_f -- use a function for vertical integration given by
-%                        table [val_z, val_f]
-%
 % RETURNS:
 %   fluid - Fluid data structure representing the current state of the
 %           fluids within the reservoir model. Contains scalar fields and
@@ -35,7 +29,6 @@ function fluid = initVEFluidHForm(g_top, varargin)
 %                  - sw  -- residual water saturation for water
 %                  - sr  -- residual phase saturation for CO2
 %                  - kwm -- phase relative permeability at 'sr' and 'sw'
-%                  - fluxInterp -- true if mobility is computed from table
 %
 %             -- Function handles:
 %                  - mob -- pseudo mobility
@@ -59,8 +52,6 @@ function fluid = initVEFluidHForm(g_top, varargin)
 % fluid = initVEFluidHForm(g_top, 'mu', [0.1 0.4]*centi*poise, ...
 %                                 'rho', [600 1000].* kilogram/meter^3,...
 %                                 'sr', 0 , 's_w' 0,
-%                                 'val_z', linspace(0,H,100)', ...
-%                                 'val_f', linspace(0,H,100)',  ...
 %                                 'kwm', [   1,   1]);
 %
 % SEE ALSO:
@@ -89,8 +80,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 % $Revision: 9020 $
 
 opt = struct('mu' , [], 'rho', [], 'sr', [], ...
-             'sw', [], 'kwm', [1, 1], ...
-             'val_z', [], 'val_f', []);
+             'sw', [], 'kwm', [1, 1]);
+
 opt = merge_options(opt, varargin{:});
 
 n_mu = numel(opt.mu); n_rho = numel(opt.rho); n_kwm = numel(opt.kwm);
@@ -98,28 +89,13 @@ assert ((n_mu == 2) && (n_rho == 2) && (n_kwm == 2));
 assert (~isempty(opt.sr) && ~isempty(opt.sw))
 
 mu  = opt.mu;
-fluxInterp = false;
 
-if opt.sr == 0
-   % use a function for vertical integration given by table [z, f]:
-   if ~isempty(opt.val_z) && ~isempty(opt.val_f)
-      assert( numel(opt.val_z) == numel(opt.val_f) )
-
-      f = @(h) (interp1(opt.val_z, opt.val_f, h, 'spline', 'extrap'));
-      f_H = f(g_top.cells.H);
-      computeMob = @(vals) [vals/mu(1) (f_H-vals)/mu(2) ];
-      mob = @(sol) computeMob(f(sol.h));
-      fluxInterp = true;
-   else
-      mob = @(sol) [sol.h/mu(1), (g_top.cells.H-sol.h)/mu(2)];
-   end
-else %residual trapping:
-   mob = @(sol) [opt.kwm(1)*sol.h/mu(1), ...
-      opt.kwm(2)*(g_top.cells.H-(sol.h + opt.sr*(sol.h_max-sol.h)))/mu(2)];
-end
+mob = @(sol) [opt.kwm(1)*sol.h/mu(1), ...
+              opt.kwm(2)*(g_top.cells.H-(sol.h + opt.sr*(sol.h_max-sol.h)))/mu(2)];
 
 % used to compute time step in transport eq:
-mob_avg = @(sol, H) [opt.kwm(1)*sol.h/mu(1), opt.kwm(2)*(H-sol.h)/mu(2)];
+%mob_avg = @(sol, H) mob(struct('h', sol.h, 'h_max', sol.h));
+%mob_avg = @(sol, H) [opt.kwm(1)*sol.h/mu(1), opt.kwm(2)*(H-sol.h)/mu(2)];
 
 % "capillary pressure" function, at the moment only h
 pc =  @(h) (h);
@@ -127,11 +103,8 @@ pc =  @(h) (h);
 
 fluid = struct('pc',         pc,                  ...
                'mob',        mob,                 ...
-               'mob_avg',    mob_avg,             ...
                'mu',         mu,                  ...
                'rho',        opt.rho,             ...
                'res_gas',    opt.sr,              ...
                'res_water',  opt.sw,              ...
-               'fluxInterp', fluxInterp, ...
                'kwm',        opt.kwm);
-
