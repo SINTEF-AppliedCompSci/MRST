@@ -140,21 +140,21 @@ classdef LinearSolverAD < handle
         %     For each time step, we introduce a lagrangian variable, denoted lamb_i. From the variations above after multiplying the
         %     first one with lamb_i^t (the superscript ^t denote the transpose), we obtain
         %
-        %     dg = sum_{i} ( (dg_i/dx) dx_i - lamb_i^t((dF_i/dx) dx_i + (dF_i/dx_p) dx_{i - 1} + (dF_i/du_i) du_i)).
+        %     dg = sum_{i} ( (dg_i/dx) dx_i + lamb_i^t((dF_i/dx) dx_i + (dF_i/dx_p) dx_{i - 1} + (dF_i/du_i) du_i)).
         %
         %     We rearrange this sum and get
         %
-        %     dg = sum_{i} ( dx_i^t(dg_i/dx  - (dF_i/dx)^t lamb_i - (dF_i/dx_p)^t lamb_{i + 1}) - lamb_i (dF_i/du_i) du_i)
+        %     dg = sum_{i} ( dx_i^t(dg_i/dx  + (dF_i/dx)^t lamb_i + (dF_{i + 1}/dx_p)^t lamb_{i + 1}) + lamb_i (dF_i/du_i) du_i)
         %
         %     The variable `nextLambdaVec` contains the Lagrangian variable lamb_{i + 1}, which has typically already been computed.
         %
         %     The Adjoint equation is obtained by requiring that the coefficient afther dx_i^t is equal to zero. It is then given
         %
-        %     (dF_i/dx)^t lamb_i = dg_i/dx - (dF_i/dx_p)^t lamb_{i + 1}
+        %     (dF_i/dx)^t lamb_i = - dg_i/dx - (dF_{i + 1}/dx_p)^t lamb_{i + 1}
         %
         %     For these values of lamb_i, the gradient of g with respect to control u is equal to
         %
-        %     dg = - sum_{i} lamb_i^t (dF_i/du) du_i
+        %     dg = sum_{i} lamb_i^t (dF_i/du) du_i
         %
         % PARAMETERS:
         %
