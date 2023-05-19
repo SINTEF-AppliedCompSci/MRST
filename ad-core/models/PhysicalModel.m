@@ -855,16 +855,16 @@ methods
         %   model    - Class instance.
         %   solver   - Linear solver to be used to solve the linearized
         %              system.
-        %   getState - Function handle. Should support the syntax::
+        %   getState - Function handle. Should support the syntax:
         %
         %                state = getState(stepNo)
         %
         %              To obtain the converged state from the forward
         %              simulation for step `stepNo`.
         %   getObj   - Function handle providing the objective function for
-        %              a specific step `stepNo`::
+        %              a specific step `stepNo`. Should support the syntax:
         %
-        %                objfn = getObj(stepNo)
+        %                objfn = getObj(stepNo, model, state)
         %
         %   schedule - Schedule used to compute the forward simulation.
         %   gradient - Current gradient to be updated. See outputs.
@@ -907,7 +907,7 @@ methods
         % This slightly messy setup is made to support hysteresis models,
         % where the forward and backwards equations are very different.
         problem = model.getAdjointEquations(before, current, dt, forces, ...
-                                    'reverseMode', false, 'iteration', inf);
+                                            'reverseMode', false, 'iteration', inf);
 
         if stepNo < numel(dt_steps)
             after    = getState(stepNo + 1);
@@ -934,10 +934,10 @@ methods
         end
         
         [lambda, lambdaVec, rep] = solver.solveAdjointProblem(problem_p,...
-                                                              problem                           , ...
-                                                              lambda                            , ...
-                                                              getObj(stepNo,model,problem.state), ...
-                                                              model                             , ...
+                                                              problem                             , ...
+                                                              lambda                              , ...
+                                                              getObj(stepNo, model, problem.state), ...
+                                                              model                               , ...
                                                               varargin{:});
         report = struct();
         report.Types = problem.types;
