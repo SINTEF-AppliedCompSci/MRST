@@ -102,8 +102,12 @@ classdef LinearSolverAD < handle
         % DESCRIPTION:
         %
         %  This function solves the linear adjoint equations for a given time step and returns the Lagrangian variable `lambdaVec` for this time step
+        %    
+        %  The definition of the Lagrangian variable lambda follows from the derivation of the adjoint equations, which
+        %  we outline here. For a more detailed derivation, see : Suwartadi, Eka, Stein Krogstad, and Bjarne
+        %  Foss. "Nonlinear output constraints handling for production optimization of oil reservoirs." Computational
+        %  Geosciences 16 (2012): 499-517.
         %
-        %  The definition of the Lagrangian variable lambda follows from the derivation of the adjoint equations, which we outline here. 
         %
         %     We rewrite our residual equations as the function F_i where the index i denotes the time step. We have
         %
