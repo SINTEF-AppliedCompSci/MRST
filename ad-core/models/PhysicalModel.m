@@ -839,11 +839,11 @@ methods
 
 
     function [lambda, lambdaVec, report] = solveAdjoint(model, solver, getState,...
-                                                        getObj, schedule, lambdaVec, stepNo, varargin)
+                                                        getObj, schedule, lambda, stepNo, varargin)
         % Solve a single linear adjoint step to obtain the gradient
         %
         % SYNOPSIS:
-        %   [lambda, lambdaVec, report] = model.solveAdjoint(solver, getState, getObj, schedule, lambdaVec, itNo, varargin)
+        %   [lambda, lambdaVec, report] = model.solveAdjoint(solver, getState, getObj, schedule, lambda, itNo, varargin)
         %
         % DESCRIPTION:
         %  This solves the linear adjoint equations. This is the backwards
