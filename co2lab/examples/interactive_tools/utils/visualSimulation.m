@@ -157,8 +157,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
              if strcmpi(field{:}, 'h')
                 data = h;
              else % free plume s-average
-                sfree = free_sg(sG, sG_max, struct('res_water', model.fluid.res_water, ...
-                                                   'res_gas', model.fluid.res_gas));
+                sfree = free_sg(sG, sG_max, model.fluid.res_water, model.fluid.res_gas);
+
                 %data = sfree.*model.G.cells.H./h./(1-model.fluid.res_water);
                 %@@ Should we skip the division by (1-res_water) in the line
                 % above?  In the current form, the saturation in the plume

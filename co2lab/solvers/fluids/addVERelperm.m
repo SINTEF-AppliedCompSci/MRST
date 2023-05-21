@@ -15,8 +15,8 @@ function fluid = addVERelperm(fluid, Gt, varargin)
 %   varargin - Option/value pairs, where the following options are available:
 %              res_water - residual oil saturation (scalar)
 %              res_gas   - residual gas saturation (scalar)
-%              krw       - rel. perm of water at full flowing saturation
-%              krg       - rel. perm of gas at full flowing saturation
+%              krw       - rel. perm of water at (1-res_gas) saturation
+%              krg       - rel. perm of gas at (1-res_water) saturation
 %              top_trap  - Thickness of sub-resolution caprock rugosity
 %              surf_topo - Sub-resolution rugosity geometry type.  Can be
 %                          'smooth', 'square', 'sinus' or 'inf_rough'.
@@ -52,27 +52,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt=struct('res_water',     0,...
-               'res_gas',       0,...
-               'krw',           1,...
-               'krg',           1,...
-               'top_trap',      [],...
+    opt=struct('res_water',     0, ...
+               'res_gas',       0, ...
+               'krw',           [], ...
+               'krg',           [], ...
+               'top_trap',      [], ...
                'surf_topo',     'smooth');
 
     opt = merge_options(opt, varargin{:});
 
-    fluid.krG=@(sg, p, varargin) krG(sg, Gt, opt, varargin{:});
-    fluid.krW=@(sw, p, varargin) krW(sw,opt,varargin{:});
+   if isempty(opt.krw)
+       opt.krw = 1 - opt.res_gas;
+   end 
+   if isempty(opt.krg)
+       opt.krg = 1 - opt.res_water;
+   end
 
-    fluid.pcWG=@(sg, p, varargin) pcWG(sg, p ,fluid, Gt, opt, varargin{:});
-
-    fluid.invPc3D   = @(p) invPc3D(p,opt);
-    % fluid.kr3D      = @(s) s; % @@ should we rather return nothing here,
-    %                           % since the underlying 3D relperm does not
-    %                           % necessarily have to be linear?
-    fluid.res_gas   = opt.res_gas;
-    fluid.res_water = opt.res_water;
-
+   fluid.krG=@(sg, p, varargin) krG(sg, Gt, opt, varargin{:});
+   fluid.krW=@(sw, p, varargin) krW(sw,opt,varargin{:});
+   
+   fluid.pcWG=@(sg, p, varargin) pcWG(sg, p ,fluid, Gt, opt, varargin{:});
+   
+   fluid.invPc3D   = @(p) invPc3D(p,opt);
+   % fluid.kr3D      = @(s) s; % @@ should we rather return nothing here,
+   %                           % since the underlying 3D relperm does not
+   %                           % necessarily have to be linear?
+   fluid.res_gas   = opt.res_gas;
+   fluid.res_water = opt.res_water;
 end
 
 % ============================================================================
@@ -96,7 +102,7 @@ function kr= krG(sg, Gt, opt,varargin)
     % Determine how much of the gas saturation that  can be considered 'free'
     % (and how much is locked up as residual saturation)
     if(~isempty(loc_opt.sGmax))
-        sg_free = free_sg(sg, loc_opt.sGmax, opt);
+        sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
     else
         sg_free = sg;
     end
@@ -145,29 +151,30 @@ function kr= krW(sw,opt,varargin)
 
    if(~isempty(loc_opt.sGmax))
       sg = 1 - sw; 
+      sgmax = max(sg, loc_opt.sGmax);
 
-      ineb = (sg) > loc_opt.sGmax; 
+      %ineb = (sg) > loc_opt.sGmax; 
       
       % compute fraction of aquifer thickness where CO2 saturation is
       % residual ( equivalent to (h_max - h)/H in the height formulation)
-      sg_res = (loc_opt.sGmax - sg) / (1 - opt.res_water - opt.res_gas);  
+      sg_res = (sgmax - sg) / (1 - opt.res_water - opt.res_gas);  
 
-      sw_free = 1 - (loc_opt.sGmax / (1 - opt.res_water)); 
-      kr = sw_free + (1 - opt.res_gas) * sg_res; 
-      % this to avoid errors in ADI derivative
+      sw_free = 1 - (sgmax / (1 - opt.res_water)); 
+      kr = sw_free + opt.krw * sg_res; 
+      % % this to avoid errors in ADI derivative
 
-      if any(ineb)% test necessary since otherwise we risk subtracting an
-                  % array of size 0 from a scalar, which will crash
-                  % kr = kr .* double(~ineb) + double(~ineb) .* (1 - sg / (1 - opt.res_water)); 
-                  % kr(ineb) = (1 - sg(ineb) / (1 - opt.res_water)); 
-         kr = ifcond(kr, 1 - sg / (1 - opt.res_water), ~ineb); 
-         % kr = min(kr, (1 - sg / (1 - opt.res_water))
-      end
-      % kr(kr<0) = 0.0 * kr(kr<0); 
-      kr = max(kr, 0.0); 
-      assert(all(kr >= 0)); 
+      % if any(ineb) % test necessary since otherwise we risk subtracting an
+      %              % array of size 0 from a scalar, which will crash
+      %              % kr = kr .* double(~ineb) + double(~ineb) .* (1 - sg / (1 - opt.res_water)); 
+      %              % kr(ineb) = (1 - sg(ineb) / (1 - opt.res_water)); 
+      %    kr = ifcond(kr, 1 - sg / (1 - opt.res_water), ~ineb); 
+      %    % kr = min(kr, (1 - sg / (1 - opt.res_water))
+      % end
+      % % kr(kr<0) = 0.0 * kr(kr<0); 
+      % kr = max(kr, 0.0); 
+      % assert(all(kr >= 0)); 
    else
-      kr = sw; 
+      kr = sw;
    end
    kr = kr .* opt.krw; 
    
@@ -183,21 +190,22 @@ function pc = pcWG(sg, p, fluid, Gt, opt, varargin)
     loc_opt = merge_options(loc_opt, varargin{:});
     if(~isempty(loc_opt.sGmax))
        % Adjusting the gas saturation to be used for computing cap. press
-        sg_free = free_sg(sg, loc_opt.sGmax, opt);
+        sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
         assert(all(sg_free>=0));
         sg = sg_free; % to be used below
     end
 
+    h = sg .* Gt.cells.H ./ (1-opt.res_water);
+    g = norm(gravity);
+
     if isempty(loc_opt.T)
-       pc = (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) *...
-            norm(gravity) .* sg .* Gt.cells.H;
+        drho = (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p));
     else
-       % temperature-dependent formation-volume factors
-       pc = (fluid.rhoWS .* fluid.bW(p, loc_opt.T) -...
-             fluid.rhoGS .* fluid.bG(p, loc_opt.T)) *... 
-            norm(gravity) .* sg .* Gt.cells.H; 
+        drho = (fluid.rhoWS .* fluid.bW(p, loc_opt.T) -...
+                fluid.rhoGS .* fluid.bG(p, loc_opt.T));
     end
-    
-    pc = pc / (1-opt.res_water);
+
+    pc = drho .* h * g;
+
 end
 

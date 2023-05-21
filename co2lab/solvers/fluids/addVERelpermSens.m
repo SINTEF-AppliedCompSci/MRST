@@ -94,7 +94,7 @@ function kr= krG(sg, Gt, opt,varargin)
     % Determine how much of the gas saturation that  can be considered 'free'
     % (and how much is locked up as residual saturation)
     if(~isempty(loc_opt.sGmax))
-        sg_free = free_sg(sg, loc_opt.sGmax, opt);
+        sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
     else
         sg_free = sg;
     end
@@ -180,7 +180,7 @@ function pc = pcWG(sg, p, fluid, Gt, opt, varargin)
     loc_opt = merge_options(loc_opt, varargin{:});
     if(~isempty(loc_opt.sGmax))
        % Adjusting the gas saturation to be used for computing cap. press
-        sg_free = free_sg(sg, loc_opt.sGmax, opt);
+        sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
         assert(all(sg_free>=0));
         sg = sg_free; % to be used below
     end

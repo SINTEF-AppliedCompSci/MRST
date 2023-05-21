@@ -57,7 +57,7 @@ function kr = krG(sg, p, fluid, cap_scale, opt, varargin)
    loc_opt = struct('sGmax', []); 
    loc_opt = merge_options(loc_opt, varargin{:}); 
    if(~isempty(loc_opt.sGmax))
-      sg_free = free_sg(sg, loc_opt.sGmax, opt); 
+      sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas); 
       h = invS(sg_free, p, fluid, cap_scale, opt); 
       kr = S_beta(h, p, opt.beta, fluid, cap_scale, opt); 
    else
@@ -93,7 +93,7 @@ function pc = pcWG(sg, p, fluid, cap_scale, opt, varargin)
    loc_opt = merge_options(loc_opt, varargin{:}); 
 
    if(~isempty(loc_opt.sGmax))
-      sg_free = free_sg(sg, loc_opt.sGmax, opt); 
+      sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas); 
       h = invS(sg_free, p, fluid, cap_scale, opt); 
       assert(all(sg_free >= 0))
       pc = norm(gravity) * (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) .* h; 
