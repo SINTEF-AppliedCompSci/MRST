@@ -66,5 +66,8 @@ if isfield(rock,'ntg')
     rock2D.ntg = accumarray(colNo, rock.ntg(c.cells).*c.dz)./accumarray(colNo,c.dz);
 end
 
+rock2D.parent = rock; % we need access to the original rock object if we are
+                      % to do vertical integration over columns later
+                      % (e.g. to compute relperms in the heterogeneous case)
 
 end

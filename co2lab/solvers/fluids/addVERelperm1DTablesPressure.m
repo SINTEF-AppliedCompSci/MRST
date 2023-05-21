@@ -63,7 +63,7 @@ end
 %---------------------------------------------------------------------
 
 function varargout = pcWG(sg, p, fluid, opt, varargin)
-   % this transformation has to be doen ce as long as
+   % this transformation has to be done once as long as
    % pc and relperm are separate functions
       loc_opt = struct('sGmax', []);
       loc_opt = merge_options(loc_opt, varargin{:});

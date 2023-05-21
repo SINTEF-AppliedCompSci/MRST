@@ -67,9 +67,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluid.pcWG=@(sg, p, varargin) pcWG(sg, p ,fluid, Gt, opt, varargin{:});
 
     fluid.invPc3D   = @(p) invPc3D(p,opt);
-    fluid.kr3D      = @(s) s; % @@ should we rather return nothing here,
-                              % since the underlying 3D relperm does not
-                              % necessarily have to be linear?
+    % fluid.kr3D      = @(s) s; % @@ should we rather return nothing here,
+    %                           % since the underlying 3D relperm does not
+    %                           % necessarily have to be linear?
     fluid.res_gas   = opt.res_gas;
     fluid.res_water = opt.res_water;
 

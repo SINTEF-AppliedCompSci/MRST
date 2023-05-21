@@ -69,16 +69,16 @@ assert(numel(opt.height)>1);
 prop = @(  varargin) properties(opt, varargin{:});
 kr   = @(state) relperm(state,g_top,opt,varargin{:});
 pc   = @(state) cap_press(state,g_top,opt, varargin{:});
-pc_inv=@(pc) cap_press_inv(pc,g_top,opt,varargin{:});
+% pc_inv=@(pc) cap_press_inv(pc,g_top,opt,varargin{:});
 sat2height =@(state)   saturation2Height_wrapper(state,g_top,opt);
 fluid = struct('properties', prop             , ...
                'saturation', @(x,varargin) x.s, ...%not used
                'relperm'   , @(s,state) kr(state),  ...
                'pc'        , @(state) pc(state),...
-               'invpc'     , @(pc)    pc_inv(pc),...
-               'sat2height', @(state)   sat2height(state),...
-               's_max',1,...
-               's_min',0);
+               'sat2height', @(state)   sat2height(state)); %,...
+               %'invpc'     , @(pc)    pc_inv(pc),...
+               % 's_max',1,...
+               % 's_min',0);
                
 end
 
@@ -90,26 +90,26 @@ function varargout = properties(opt, varargin)
    if nargout > 2, varargout{3} = opt.sr ; end
 end
 %---------------------------------------------------------------------
-function s = cap_press_inv(pc, g_top, opt, varargin)
-   % this trasformation has to be done twice as long as
-   % pc and relperm are separate functions
-   %if nargout<2
-   %  [h,h_max] = saturation2Height_wrapper(state,g_top,opt);
-   %else
-   %  [h,h_max,dh] = saturation2Height_wrapper(state,g_top,opt);
-   %end
+% function s = cap_press_inv(pc, g_top, opt, varargin)
+%    % this trasformation has to be done twice as long as
+%    % pc and relperm are separate functions
+%    %if nargout<2
+%    %  [h,h_max] = saturation2Height_wrapper(state,g_top,opt);
+%    %else
+%    %  [h,h_max,dh] = saturation2Height_wrapper(state,g_top,opt);
+%    %end
    
-   ngrav=norm(gravity);
+%    ngrav=norm(gravity);
    
-   %varargout{1} = ngrav*(bsxfun(@times,h,opt.rho(1))...
-   %   +bsxfun(@times,g_top.H-h,opt.rho(2)));
-   h=bsxfun(@rdivide,pc-ngrav*bsxfun(@times,g_top.H,opt.rho(2)),...
-       ngrav*(opt.rho(1)-opt.rho(2)));
-   % assuming no capillary fringe   
-   s=h./g_top.H;
-   s=max(s,0);
-   s=min(s,1);
-end
+%    %varargout{1} = ngrav*(bsxfun(@times,h,opt.rho(1))...
+%    %   +bsxfun(@times,g_top.H-h,opt.rho(2)));
+%    h=bsxfun(@rdivide,pc-ngrav*bsxfun(@times,g_top.H,opt.rho(2)),...
+%        ngrav*(opt.rho(1)-opt.rho(2)));
+%    % assuming no capillary fringe   
+%    s=h./g_top.H;
+%    s=max(s,0);
+%    s=min(s,1);
+% end
 %---------------------------------------------------------------------
 function varargout = cap_press(state, g_top, opt, varargin)
    % this trasformation has to be done twice as long as
