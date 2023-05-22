@@ -81,8 +81,17 @@ function pc = pcWG(sg, p, fluid, opt, varargin)
 % separate functions
    loc_opt = struct('sGmax', sg); % default is current saturation
    loc_opt = merge_options(loc_opt, varargin{:}); 
+<<<<<<< Updated upstream
    [h, h_max] = saturation2Height(sg, loc_opt.sGmax, opt.Gt, ...
                                   opt.res_gas, opt.res_water, 'poro', opt.poro3D); 
+=======
+   if opt.int_poro
+      error('Int_poro: not implemented yet!!')
+      [h, h_max] = saturation2HeightIntporo(sg, opt, loc_opt); 
+   else
+      [h, h_max] = saturation2Height(sg, opt, loc_opt.sGmax); 
+   end   
+>>>>>>> Stashed changes
    assert(all(h >= 0)); 
    drho = ((fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS * fluid.bG(p)) * norm(gravity)); 
    pc = drho .* h; 
@@ -94,8 +103,17 @@ function kr = krG(sg, opt, varargin)
 
    loc_opt = struct('sGmax', sg);  % default is current saturation
    loc_opt = merge_options(loc_opt, varargin{:}); 
+<<<<<<< Updated upstream
    [h, h_max] = saturation2Height(sg, loc_opt.sGmax, opt.Gt, ...
                                   opt.res_gas, opt.res_water, 'poro', opt.poro3D); 
+=======
+   if opt.int_poro
+      error('Int_poro: not implemented yet!!')
+      [h, h_max] = saturation2HeightIntporo(sg, opt, loc_opt); 
+   else
+      [h, h_max] = saturation2Height(sg, opt, loc_opt.sGmax); 
+   end
+>>>>>>> Stashed changes
    assert(all(h >= 0)); 
    if(isa(h, 'ADI'))
       [kr_tmp, dkr_tmp] = integrateVertically(opt.rock.parent.perm(:, 1), h.val, opt.Gt); 
@@ -115,8 +133,17 @@ function kr = krW(sw, opt, varargin)
    sg = 1 - sw;
    loc_opt = struct('sGmax', sg);  % default is current saturation
    loc_opt = merge_options(loc_opt, varargin{:}); 
+<<<<<<< Updated upstream
    [h, h_max] = saturation2Height(sg, loc_opt.sGmax, opt.Gt, ...
                                   opt.res_gas, opt.res_water, 'poro', opt.poro3D); 
+=======
+   if opt.int_poro
+      error('Int_poro: not implemented yet!!')
+      [h, h_max] = saturation2HeightIntporo(sg, opt, loc_opt); 
+   else
+      [h, h_max] = saturation2Height(sg, opt, loc_opt.sGmax); 
+   end
+>>>>>>> Stashed changes
    assert(all(h >= 0)); 
    if(isa(h, 'ADI'))
       [kr, dkr] = integrateVertically(opt.rock.parent.perm(:, 1), h.val, opt.Gt); 
@@ -131,7 +158,30 @@ function kr = krW(sw, opt, varargin)
       kr_max = integrateVertically(opt.rock.parent.perm(:, 1), h_max, opt.Gt); 
    end
    
+<<<<<<< Updated upstream
    kr = ((opt.kr_H - kr_max) + opt.krw .* (kr_max - kr)) ./ opt.kr_H;
+=======
+   %kr = bsxfun(@rdivide, (opt.kr_H - kr_max) + (1 - opt.res_gas(1)) .* (kr_max - kr), opt.kr_H); 
+   kr = ((opt.kr_H - kr_max) + (1 - opt.res_gas(1)) .* (kr_max - kr)) ./ opt.kr_H;
+end
+
+% ----------------------------------------------------------------------------
+
+function [h h_max] = saturation2Height(sg, opt, sGmax)
+% this transformation is based on the simple transformation
+% s * H = h * (1 - sr(2)) + (h_max - h) * sr(1)
+% s_max * H = h_max * (1 - sr(2))
+   
+   s = free_sg(sg, sGmax, opt); 
+   h_max = sGmax .* opt.Gt.cells.H ./ (1 - opt.res_water); 
+   h = s .* (opt.Gt.cells.H) ./ (1 - opt.res_water); 
+   if(any(h<0))
+      h(h<0) = 0; 
+   end
+   if(any(h>opt.Gt.cells.H))
+      h(h>opt.Gt.cells.H) = opt.Gt.cells.H(h>opt.Gt.cells.H);
+   end
+>>>>>>> Stashed changes
 end
 
 
