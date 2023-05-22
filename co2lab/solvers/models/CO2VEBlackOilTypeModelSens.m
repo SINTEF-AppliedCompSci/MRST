@@ -110,7 +110,11 @@ methods
    
 % ------------------------------------------------------------------------
 function forces = getValidDrivingForces(model) 
-        forces = struct('W', [], 'bc', [], 'src', [],'dz',[],'rhofac',1,'permfac',1,'porofac',1);
+    forces = getValidDrivingForces@ReservoirModel(model);
+    forces.dz = [];
+    forces.rhofac = [];
+    forces.permfac = [];
+    forces.porofac = [];
 end
 
 % ------------------------------------------------------------------------
