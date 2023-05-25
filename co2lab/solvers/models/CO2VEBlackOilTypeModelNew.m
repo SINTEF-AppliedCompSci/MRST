@@ -42,7 +42,7 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 getModelEquations(model, state0, state, dt, drivingForces)
             
             [acc, flux, names, types] = ...
-                model.FlowDiscretization.componentConeservationEquations(...
+                model.FlowDiscretization.componentConservationEquations(...
                     model, state, state0, dt);
             
             % add sources
@@ -50,24 +50,24 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             acc = model.insertSources(acc, src);
             
             % assemble equations
-            for i = 1:numel(eqs)
-                eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
+            eqs = cell(1, numel(acc));
+            for i = 1:numel(acc)
+                eqs{i} = model.operators.AccDiv(acc{i}, flux{i});
             end
             
             % get well equations
             if ~isempty(model.FacilityModel)
-                [wecs, wnames, wtypes, state] = ...
+                [weqs, wnames, wtypes, state] = ...
                     model.FacilityModel.getModelEquations(state0, state, dt, ...
                                                                   drivingForces);
+                % concatenate
+                eqs = [eqs, weqs];
+                names = [names, wnames];
+                types = [types, wtypes];
             end
             
-            % concatenate
-            eqs = [eqs, weqs];
-            names = [names, wnames];
-            types = [types, wtypes];
-            
             % add in boundary conditions
-            [eqs, state, stc] = ...
+            [eqs, state, src] = ...
                 model.addBoundaryConditionsAndSources(eqs, names, types, ...
                                                       state, drivingForces);
         end
@@ -88,6 +88,13 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
 
         function model = setupStateFunctionGroupings(model, varargin)
             model = setupStateFunctionGroupings@ReservoirModel(model, varargin{:});
+        
+            flowprops = model.FlowPropertyFunctions;
+            flowprops = flowprops.setStateFunction('CapillaryPressure', ...
+                                                   CO2VECapillaryPressure(model));
+            flowprops = flowprops.setStateFunction('RelativePermeability', ...
+                                                   CO2VERelativePermeability(model));
+            model.FlowPropertyFunctions = flowprops;
         end
 
 % ------------------------------------------------------------------------        
@@ -139,17 +146,21 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
 
 % ------------------------------------------------------------------------        
         
-        function names = getComponentNames(model)
-            names = getComponentNames@ReservoirModel(model);
+       function names = getComponentNames(model)
+           names = cellfun(@(c) c.name, model.Components, 'uniformoutput', false);    
+           %names = getComponentNames@ReservoirModel(model);
         end
 
 % ------------------------------------------------------------------------        
     
         function [vars, names, origin] = getPrimaryVariables(model, state)
     
-            vars = {model.getProps(state, 'pressure'), ...
-                    model.getProps(state, 'saturation')};
-            names = {'pressure', 'saturation'};
+            [p, s] = model.getProps(state, 'pressure', 'saturation');
+            
+            sW = s(:,1); % water saturation.  s(:,2) is CO2 saturation
+            
+            vars = {p, sW};
+            names = {'pressure', 'sW'};
             origin = {class(model), class(model)};
             
             if ~isempty(model.FacilityModel)
@@ -165,7 +176,20 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
         function [eqs, state, src] = ...
                 addBoundaryConditionsAndSources(model, eqs, names, types, ...
                                                 state, forces)
-            error('implement me');
+            
+            [p, s, mob, rho, X] = model.getProps(state, 'PhasePressures', ...
+                                                        's'             , ...
+                                                        'Mobility'     , ...
+                                                        'Density', ...
+                                                        'ComponentPhaseMassFractions');
+            comps = cellfun(@(x) {x}, X, 'UniformOutput', false);
+            
+            dissolved = {};
+            %components = cellfun(@(x) x.name, model.Components, 'uniformoutput', false);
+                        
+            [eqs, state, src] = addBoundaryConditionsAndSources@ReservoirModel(...
+                model, eqs, names, types, state, p, s, mob, rho, dissolved, ...
+                comps, forces);
         end
 
 % ------------------------------------------------------------------------        
@@ -183,8 +207,25 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
 % ------------------------------------------------------------------------        
         
         function state = initStateAD(model, state, vars, names, origin)
-            state = initStateAD@ReservoirModel(model, state, vars, ...
-                                               names, origin);
+
+            toFacility = strcmp(origin, class(model.FacilityModel));
+            
+            
+            state = model.FacilityModel.initStateAD(state, vars(toFacility), ...
+                                                    names(toFacility), ...
+                                                    origin(toFacility));
+
+            sw_ix = strcmp(names, 'sW');
+            sw = vars{sw_ix};
+            sg = 1 - sw;
+            state = model.setProp(state, 'saturation', {sw, sg});
+            
+            remaining = ~toFacility;
+            remaining(sw_ix) = false;
+            
+            state = initStateAD@ReservoirModel(model, state, vars(remaining), ...
+                                               names(remaining), ...
+                                               origin(remaining));
         end
 
 % ------------------------------------------------------------------------        
@@ -205,7 +246,20 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
 
         function [eq, src] = ...
                 addComponentContributions(model, cname, eq, component, src, force)     
-            error('implement me');
+            
+            cnames = model.getComponentNames();
+            ix = strcmpi(cnames, cname);
+            
+            cells = src.sourceCells;
+            
+            nph = model.getNumberOfPhases;
+            qC = zeros(size(cells));
+            for ph = 1:nph
+                q_ph = src.phaseMass{ph};
+                inj = q_ph > 0;
+                %qC = qC + ~inj.
+            end
+            
         end
     
 % ----------------------------------------------------------------------------

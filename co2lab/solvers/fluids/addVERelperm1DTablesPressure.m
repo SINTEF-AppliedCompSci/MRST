@@ -36,14 +36,14 @@ opt = merge_options(opt, varargin{:});
 if(~opt.kr_pressure)
    fake_pressure = 200 * barsa;
    fluid.krG = @(sg, varargin) krG(sg, fake_pressure, fluid, opt, varargin{:});
-   fluid.krW = @(so, varargin) krW(so, fake_pressure, fluid, opt, varargin{:});
+   fluid.krW = @(sw, varargin) krW(sw, fake_pressure, fluid, opt, varargin{:});
    fluid.pcWG = @(sg, p, varargin) pcWG(sg, p, fluid, opt, varargin{:});
    fluid.cutValues = @(state, varargin) cutValues(state, opt);
    % fluid.S3D = @(SVE, samples, H) S3D(SVE, fake_pressure, samples, H, fluid, opt);
 
 else
    fluid.krG = @(sg, p, varargin) krG(sg, p, fluid, opt, varargin{:});
-   fluid.krW = @(so, p, varargin) krW(so, p, fluid, opt, varargin{:});
+   fluid.krW = @(sw, p, varargin) krW(sw, p, fluid, opt, varargin{:});
    fluid.pcWG = @(sg, p, varargin) pcWG(sg, p, fluid, opt, varargin{:});
    fluid.cutValues = @(state, varargin) cutValues(state, opt);
 
@@ -65,7 +65,7 @@ end
 function varargout = pcWG(sg, p, fluid, opt, varargin)
    % this transformation has to be done once as long as
    % pc and relperm are separate functions
-      loc_opt = struct('sGmax', []);
+      loc_opt = struct('sGmax', sg);
       loc_opt = merge_options(loc_opt, varargin{:});
       sg = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
       drho = ((fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS * fluid.bG(p)) * norm(gravity));
@@ -96,7 +96,7 @@ end
 % ----------------------------------------------------------------------------
 
 function varargout = krG(sg, p, fluid, opt, varargin)
-   loc_opt = struct('sGmax', []);
+   loc_opt = struct('sGmax', sg);
    loc_opt = merge_options(loc_opt, varargin{:});
    sg = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
    H = opt.height;
@@ -145,7 +145,7 @@ function kr = krW(sw, p, fluid, opt, varargin)
    % immobilized above and flowing regularly below
    sg = 1-sw;
       
-   loc_opt = struct('sGmax', []);
+   loc_opt = struct('sGmax', sg);
    loc_opt = merge_options(loc_opt, varargin{:});
    
    sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
