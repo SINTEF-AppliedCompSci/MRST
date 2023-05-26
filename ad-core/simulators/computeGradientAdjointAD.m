@@ -95,23 +95,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     getState = @(i) getStateFromInput(schedule, states, state0, i);
     
     nstep = numel(schedule.step.val);
-    grad = [];
+    lambdaVec = [];
     gradstep = cell(nstep, ncv);
     nt = nstep;
     for step = nt:-1:1
         fprintf('Solving reverse mode step %d of %d\n', nt - step + 1, nt);
-        [dg, grad, report] = model.solveAdjoint(linsolve, getState, ...
-                                         getObjective, schedule, grad, step);
+        [lambda, lambdaVec, report] = model.solveAdjoint(linsolve, getState, ...
+                                         getObjective, schedule, lambdaVec, step);
         if isa(model.FacilityModel, 'GenericFacilityModel')
             ws = states{step}.wellSol;
             cntrScale = getControlEqScaling({ws.type}, model.FacilityModel);
             eqNo      = strcmp('well', report.Types);
             st        = vertcat(ws.status);
             if(not(all(eqNo ==0)))
-                dg{eqNo}  = cntrScale(st).*dg{eqNo};
+                lambda{eqNo}  = cntrScale(st).*lambda{eqNo};
             end
         end
-        gradstep(step, :) = getRequestedGradients(dg, report, opt.ControlVariables);
+        gradstep(step, :) = getRequestedGradients(lambda, report, opt.ControlVariables);
     end
     
     % Sum up to the control steps
@@ -146,15 +146,15 @@ function state = getStateFromInput(schedule, states, state0, i)
     end
 end
 
-function g = getRequestedGradients(dg, report, wantGradFor)
+function g = getRequestedGradients(lambda, report, wantGradFor)
     if ischar(wantGradFor)
-        g = {vertcat(dg{strcmpi(report.Types, wantGradFor)})};
+        g = {vertcat(lambda{strcmpi(report.Types, wantGradFor)})};
     else
         ng = numel(wantGradFor);
         g = cell(1, ng);
         for i = 1:ng
             n = wantGradFor{i};
-            g{i} = -vertcat(dg{strcmpi(report.Types, n)});
+            g{i} = -vertcat(lambda{strcmpi(report.Types, n)});
         end
     end
 end

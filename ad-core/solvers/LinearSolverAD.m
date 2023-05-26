@@ -83,11 +83,112 @@ classdef LinearSolverAD < handle
             report = merge_options_relaxed(report, varargin);
         end
         
-        function [grad, result, report] = solveAdjointProblem(solver, problemPrev,...
-                problemCurr, adjVec, objective, model, varargin) %#ok
+        function [lambda, lambdaVec, report] = solveAdjointProblem(solver       , ...
+                                                                   problemPrev  , ...
+                                                                   problemCurr  , ...
+                                                                   nextLambdaVec, ...
+                                                                   objective    , ...
+                                                                   model        , ...
+                                                                   varargin) %#ok
+        %
+        % Solve the adjoint system to obtain the lagrangian multiplier lambda
+        %
+        % SYNOPSIS:
+        %
+        %   [lambda, lambdaVec, report] = solver.solveAdjointProblem(solver, problemPrev,...
+        %                                                            problemCurr, nextLambdaVec, ...
+        %                                                            objective, model, varargin);
+        %
+        % DESCRIPTION:
+        %
+        %  This function solves the linear adjoint equations for a given time step and returns the Lagrangian variable `lambdaVec` for this time step
+        %    
+        %  The definition of the Lagrangian variable lambda follows from the derivation of the adjoint equations, which
+        %  we outline here. For a more detailed derivation, see : Suwartadi, Eka, Stein Krogstad, and Bjarne
+        %  Foss. "Nonlinear output constraints handling for production optimization of oil reservoirs." Computational
+        %  Geosciences 16 (2012): 499-517.
+        %
+        %
+        %     We rewrite our residual equations as the function F_i where the index i denotes the time step. We have
+        %
+        %     F_i(x_i, x_{i - 1}, u_i) = 0.
+        %    
+        %     where : F_i            : Residual equation at step i (vector with same size as x_i)
+        %             x_i, x_{i - 1} : state at step i and i - 1(vector)
+        %             u_i            : Control variable at step i (vector)
+        %
+        %     The variables `problemCurr` and `problemPrev` provide the linearized equations for F_i with respect to the current step,
+        %     that is dF_i/dx, and with respect to previous step, that is dF_i/dx_p (here x and x_p denote the first
+        %     and second arguments of F_i).
+        %  
+        %     We consider an objective function that has the form of a sum of functions of the state at time step i,
+        %    
+        %     g(x) = sum_{i}  g_i(x_i).
+        %
+        %     Let us derive the adjoint equations and the expression of the gradient of g with respect to the control variables u_i
+        %
+        %     We take the infinitesilmal variation of eq F_i(x_i, x_{i - 1}, u_i) = 0 and get
+        %
+        %     (dF_i/dx) dx_i + (dF_i/dx_p) dx_{i - 1} + (dF_i/du_i) du_i = 0.
+        %
+        %     The infinitiesimal variation of the objective function is given by
+        %
+        %     dg = sum_{i} ( (dg_i/dx) dx_i )
+        %
+        %     The variable `objective` contains the linearization of g, that is (dg_i/dx) (as a vector).
+        %
+        %     For each time step, we introduce a lagrangian variable, denoted lamb_i. From the variations above after multiplying the
+        %     first one with lamb_i^t (the superscript ^t denote the transpose), we obtain
+        %
+        %     dg = sum_{i} ( (dg_i/dx) dx_i + lamb_i^t((dF_i/dx) dx_i + (dF_i/dx_p) dx_{i - 1} + (dF_i/du_i) du_i)).
+        %
+        %     We rearrange this sum and get
+        %
+        %     dg = sum_{i} ( dx_i^t(dg_i/dx  + (dF_i/dx)^t lamb_i + (dF_{i + 1}/dx_p)^t lamb_{i + 1}) + lamb_i (dF_i/du_i) du_i)
+        %
+        %     The variable `nextLambdaVec` contains the Lagrangian variable lamb_{i + 1}, which has typically already been computed.
+        %
+        %     The Adjoint equation is obtained by requiring that the coefficient afther dx_i^t is equal to zero. It is then given
+        %
+        %     (dF_i/dx)^t lamb_i = - dg_i/dx - (dF_{i + 1}/dx_p)^t lamb_{i + 1}
+        %
+        %     For these values of lamb_i, the gradient of g with respect to control u is equal to
+        %
+        %     dg = sum_{i} lamb_i^t (dF_i/du) du_i
+        %
+        % PARAMETERS:
+        %
+        %   solver      - Linear solver to be used to solve the linearized system.
+        %
+        %   problemPrev - Instance of the wrapper class `LinearizedProblemAD` which contains the linearization dF/dx_p of
+        %                 the residual equations, where x_p is the previous step (state0 in `getEquations` function of PhysicalModel)
+        %
+        %   problemCurr - Instance of the wrapper class `LinearizedProblemAD` which contains the linearization of dF/dx of the
+        %                 residual equations, those are the same that are used in the Newton iterations.
+        %
+        %   objective   - Current time step contribution in the objective function, denoted g_i above. It is a AD variable
+        %                 which therefore also provides the derivative with respect to current time step x_i
+        %
+        %   model       - Simulation model
+        %
+        % RETURNS:
+        %
+        %   lambda    - The Lagrangian multiplier for the current time step given as a cell array.
+        %
+        %               The lagrangian multiplier lambdaVec (second output argument) is split up into components that
+        %               correspond to the named residual equation cell array. Indeed, the residual F_i is
+        %               typically provided as a cell array = {F_i^k} where k runs over the named equations, see
+        %               `problem.equationnames` for the instance `problem` in `LinearizedProblemAD`. The cell `lambda`
+        %               has therefore the same size as `eqs` as returned from `getEquations` (in `PhysicalModel`)
+        %
+        %   lambdaVec - The Lagrangian multiplier for the current time step as a full vector (lambda_i in description)
+        %
+        %   report    - Report with information about the solution process.
+        %
+
             
-            opt = struct('scalePressure',  false, ...
-                         'colIx',            nan,   ...
+            opt = struct('scalePressure'  , false, ...
+                         'colIx'          , nan  , ...
                          'equationScaling',   []);
             % For the adjoint problem, the scaling for the rows of the matrix to be inverted
             % corresponds to pressure and, say, saturation. This bad scaling
@@ -118,8 +219,8 @@ classdef LinearSolverAD < handle
                 b = -objective.jac{1}';
             end
 
-            if ~isempty(adjVec)
-                % handle pre-allocated zero adjVec for last step:
+            if ~isempty(nextLambdaVec)
+                % handle pre-allocated zero nextLambdaVec for last step:
                 if isempty(problemPrev)
                     problemPrev = problemCurr;
                 end
@@ -141,7 +242,7 @@ classdef LinearSolverAD < handle
                     nad = cellfun(@numelValue, problemPrev.equations(ix));
                     ix = find(cellfun(@(x)isa(x, 'double'), problemPrev.equations));
                     nd  = cellfun(@numel, problemPrev.equations(ix));
-                    mismatch = numel(adjVec) - sum(nad) - sum(nd);
+                    mismatch = numel(nextLambdaVec) - sum(nad) - sum(nd);
                     if mismatch ~= 0
                         assert(mod(mismatch, numel(ix))==0, 'Unable to resolve jacobian mismatch');
                         for k  =1:numel(ix)
@@ -152,18 +253,18 @@ classdef LinearSolverAD < handle
                         
                 problemPrev = problemPrev.assembleSystem();
                 if isempty(b)
-                    b = - problemPrev.A'*adjVec;
+                    b = - problemPrev.A'*nextLambdaVec;
                 else
                     if ~isfinite(opt.colIx)
                         % standard scalar objective
-                        b = b - problemPrev.A'*adjVec;
+                        b = b - problemPrev.A'*nextLambdaVec;
                     else
                         % Matrix right-hand-side 
-                        if max(opt.colIx) > size(adjVec,2)
+                        if max(opt.colIx) > size(nextLambdaVec,2)
                             warning('Insufficient size of Lagrange muliplier matrix');
                         end
                         tmp = b;
-                        b = - problemPrev.A'*adjVec;
+                        b = - problemPrev.A'*nextLambdaVec;
                         b(:, opt.colIx) = b(:, opt.colIx) + tmp;
                     end
                 end
@@ -185,7 +286,7 @@ classdef LinearSolverAD < handle
                 D(ind) = pmax*ones(np, 1);
                 t_prepare = toc(timer);
                 % Solve system
-                [result, report] = solver.solveLinearSystem(D'*A, D'*b);
+                [lambdaVec, report] = solver.solveLinearSystem(D'*A, D'*b);
                 t_solve = toc(timer) - t_prepare;
             else
                 % Reduce system (if requested)
@@ -198,27 +299,27 @@ classdef LinearSolverAD < handle
                 A = A';
                 t_prepare = toc(timer);
                 % Solve system
-                [result, report] = solver.solveLinearSystem(A, b);
+                [lambdaVec, report] = solver.solveLinearSystem(A, b);
                 t_solve = toc(timer) - t_prepare;
                 % Undo scaling
-                result = solver.undoScalingAdjoint(result, scaling);
+                lambdaVec = solver.undoScalingAdjoint(lambdaVec, scaling);
                 % Permute system back
-                result = solver.deorderLinearSystemAdjoint(result, ordering);
+                lambdaVec = solver.deorderLinearSystemAdjoint(lambdaVec, ordering);
                 % Recover eliminated variables on linear level
-                result = solver.recoverLinearSystemAdjoint(result, lsys);
+                lambdaVec = solver.recoverLinearSystemAdjoint(lambdaVec, lsys);
             end
             eqScale = opt.equationScaling;
             if ~isempty(eqScale)
                 if iscell(eqScale)
                     eqScale = vertcat(eqScale{:});
                 end
-                result = eqScale.*result;
+                lambdaVec = eqScale.*lambdaVec;
             end
             report.SolverTime = toc(timer);
             report.LinearSolutionTime = t_solve;
             report.PreparationTime = t_prepare;
             report.PostProcessTime = report.SolverTime - t_solve - t_prepare;
-            grad = solver.storeIncrements(problemCurr, result);
+            lambda = solver.storeIncrements(problemCurr, lambdaVec);
         end
         
         function [dx, result, report] = solveLinearProblem(solver, problem, model)

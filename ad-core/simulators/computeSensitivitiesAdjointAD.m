@@ -117,12 +117,12 @@ end
 % run adjoint
 for step = nstep:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nstep - step + 1, nstep);
-    [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
-        getObjective, setup.schedule, lambda, step, 'colIx', colIx{step});
+    [lambda, lambdaVec]= setup.model.solveAdjoint(linsolve, getState, ...
+        getObjective, setup.schedule, lambdaVec, step, 'colIx', colIx{step});
     [eqdth, modelParam] = partialWRTparam(modelParam, getState, scheduleParam, step, param);
     result = 0;
-    for k = 1:numel(lami)
-        result = result + lami{k}'*eqdth{k};
+    for k = 1:numel(lambda)
+        result = result + lambda{k}'*eqdth{k};
     end
     result = result.jac;
     if numel(result) ~= numel(param) % might be the case for e.g., GenericAD
@@ -157,9 +157,9 @@ if any(isInitParam)
     for k = 1:numel(nms)
         kn = find(strcmp(nms{k}, varNms));
         assert(numel(kn)==1, 'Unable to match initial state parameter name %s\n', nms{k});
-        for nl = 1:numel(lami)
+        for nl = 1:numel(lambda)
             if isa(linProblem.equations{nl}, 'ADI')
-                sens.(nms{k}) = sens.(nms{k}) + linProblem.equations{nl}.jac{kn}'*lami{nl};
+                sens.(nms{k}) = sens.(nms{k}) + linProblem.equations{nl}.jac{kn}'*lambda{nl};
             end
         end
         if strcmp(initparam{k}.type, 'multiplier')
