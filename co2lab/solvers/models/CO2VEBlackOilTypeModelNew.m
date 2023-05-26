@@ -177,19 +177,15 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 addBoundaryConditionsAndSources(model, eqs, names, types, ...
                                                 state, forces)
             
-            [p, s, mob, rho, X] = model.getProps(state, 'PhasePressures', ...
-                                                        's'             , ...
-                                                        'Mobility'     , ...
-                                                        'Density', ...
-                                                        'ComponentPhaseMassFractions');
-            comps = cellfun(@(x) {x}, X, 'UniformOutput', false);
-            
+            [p, s, mob, rho] = model.getProps(state, 'PhasePressures', ...
+                                                     's'             , ...
+                                                     'Mobility'     , ...
+                                                     'Density');
             dissolved = {};
-            %components = cellfun(@(x) x.name, model.Components, 'uniformoutput', false);
+            comps = model.Components; 
                         
             [eqs, state, src] = addBoundaryConditionsAndSources@ReservoirModel(...
-                model, eqs, names, types, state, p, s, mob, rho, dissolved, ...
-                comps, forces);
+                model, eqs, names, types, state, p, s, mob, rho, dissolved, comps, forces);
         end
 
 % ------------------------------------------------------------------------        
@@ -249,16 +245,15 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             
             cnames = model.getComponentNames();
             ix = strcmpi(cnames, cname);
+
+            qC = src.phaseMass{find(ix)}; % @@ Does not take dissolution into account.  Refine later.
             
-            cells = src.sourceCells;
-            
-            nph = model.getNumberOfPhases;
-            qC = zeros(size(cells));
-            for ph = 1:nph
-                q_ph = src.phaseMass{ph};
-                inj = q_ph > 0;
-                %qC = qC + ~inj.
+            if ~isempty(src.mapping)
+                qC = src.mapping*qC;
             end
+            
+            cells = src.sourceCells;            
+            eq(cells) = eq(cells) - qC;
             
         end
     

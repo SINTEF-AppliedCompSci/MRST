@@ -1,13 +1,14 @@
-classdef CO2VERelativePermeability < StateFunction
+classdef CO2VERelativePermeability < BaseRelativePermeability
 
     properties
     end
     
     methods
         function gp = CO2VERelativePermeability(model, varargin)
-            gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'s', 'pressure'}, 'state');
-            gp.label = 'k_\alpha';
+            gp@BaseRelativePermeability(model, varargin{:});
+            %gp = gp.dependsOn({'s', 'pressure'}, 'state');
+            %gp.label = 'k_\alpha';
+            gp = gp.dependsOn({'pressure'}, 'state');
         end
 
         function kr = evaluateOnDomain(prop, model, state)
