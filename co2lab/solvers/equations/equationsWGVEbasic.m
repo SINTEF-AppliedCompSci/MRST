@@ -127,12 +127,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    primaryVars = {'pressure' , 'sG'}; 
    types = {'cell' , 'cell'};
    names = {'water', 'gas'};  
+
    % Include influence of boundary conditions
-   if state0.s(end, 2) > 0.1
-       %keyboard;
-   end
-   
-   
    [eqs, state] = addBoundaryConditionsAndSources(model, eqs, names, types, state, ...
                                                   {pW, pG}, {sW, sG}, {mobW, mobG}, {rhoW, rhoG}, ...
                                                   {}, {}, drivingForces);
@@ -141,9 +137,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        eqs{3}=sGmax-max(sG,sGmax0);
    end
        
-
-
-
    % Setting up well equations
    dissolved = {{[],[]},{[],[]}};  % two phases, no dissolution
    %add hysteresis variable, equation and name

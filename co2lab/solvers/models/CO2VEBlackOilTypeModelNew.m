@@ -89,12 +89,21 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
         function model = setupStateFunctionGroupings(model, varargin)
             model = setupStateFunctionGroupings@ReservoirModel(model, varargin{:});
         
+            % FlowPropertyFunctions
             flowprops = model.FlowPropertyFunctions;
             flowprops = flowprops.setStateFunction('CapillaryPressure', ...
                                                    CO2VECapillaryPressure(model));
             flowprops = flowprops.setStateFunction('RelativePermeability', ...
                                                    CO2VERelativePermeability(model));
             model.FlowPropertyFunctions = flowprops;
+            
+            % PVTPropertyFunctions
+            pvtprops = model.PVTPropertyFunctions;
+            pvtprops = pvtprops.setStateFunction(...
+                'ShrinkageFactors', ...
+                ShrinkageFactors(model, 'usePhasePressures', false));
+            
+            model.PVTPropertyFunctions = pvtprops;
         end
 
 % ------------------------------------------------------------------------        
@@ -121,6 +130,16 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             [state, report] = ...
                 updateAfterConvergence@ReservoirModel(model, ...
                                                       state0, state, dt, drivingForces);
+            
+            if model.outputFluxes
+                % add internal fluxes
+                qWG = model.getProp(state, 'PhaseFlux');
+                state = storeFluxes(model, state, qWG{1}, [], qWG{2});
+                
+                % No need to add boundary fluxes, as this is already done 
+                % in the call to 'addBoundaryConditionsAndSources' when 
+                % setting up the equations
+            end
             
             sGmax0 = model.getProp(state0, 'sGmax');
             sG     = model.getProp(state, 'sg');

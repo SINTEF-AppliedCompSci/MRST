@@ -65,8 +65,11 @@ end
 function varargout = pcWG(sg, p, fluid, opt, varargin)
    % this transformation has to be done once as long as
    % pc and relperm are separate functions
-      loc_opt = struct('sGmax', sg);
+      loc_opt = struct('sGmax', []);
       loc_opt = merge_options(loc_opt, varargin{:});
+      if isempty(loc_opt.sGmax)
+          loc_opt.sGmax = sg;
+      end
       sg = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
       drho = ((fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS * fluid.bG(p)) * norm(gravity));
       H = opt.height;
@@ -96,8 +99,11 @@ end
 % ----------------------------------------------------------------------------
 
 function varargout = krG(sg, p, fluid, opt, varargin)
-   loc_opt = struct('sGmax', sg);
-   loc_opt = merge_options(loc_opt, varargin{:});
+    loc_opt = struct('sGmax', []);
+    loc_opt = merge_options(loc_opt, varargin{:});
+    if isempty(loc_opt.sGmax)
+        loc_opt.sGmax = sg;
+    end
    sg = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
    H = opt.height;
    drho = ((fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS * fluid.bG(p)) * norm(gravity));
@@ -144,9 +150,12 @@ function kr = krW(sw, p, fluid, opt, varargin)
    % approximation built on sharp interface assumption, with water
    % immobilized above and flowing regularly below
    sg = 1-sw;
-      
-   loc_opt = struct('sGmax', sg);
+
+   loc_opt = struct('sGmax', []);
    loc_opt = merge_options(loc_opt, varargin{:});
+   if isempty(loc_opt.sGmax)
+       loc_opt.sGmax = sg;
+   end
    
    sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
 

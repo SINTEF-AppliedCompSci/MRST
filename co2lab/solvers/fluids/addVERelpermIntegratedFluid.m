@@ -79,27 +79,33 @@ end
 function pc = pcWG(sg, p, fluid, opt, varargin)
 % this transformation has to be done twice as long as pc and relperm are
 % separate functions
-   loc_opt = struct('sGmax', sg); % default is current saturation
-   loc_opt = merge_options(loc_opt, varargin{:}); 
-   [h, h_max] = saturation2Height(sg, loc_opt.sGmax, opt.Gt, ...
-                                  opt.res_gas, opt.res_water, 'poro', opt.poro3D); 
-   if opt.int_poro
-      error('Int_poro: not implemented yet!!')
-      [h, h_max] = saturation2HeightIntporo(sg, opt, loc_opt); 
-   else
-      [h, h_max] = saturation2Height(sg, opt, loc_opt.sGmax); 
-   end   
-   assert(all(h >= 0)); 
-   drho = ((fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS * fluid.bG(p)) * norm(gravity)); 
-   pc = drho .* h; 
+    loc_opt = struct('sGmax', []);
+    loc_opt = merge_options(loc_opt, varargin{:});
+    if isempty(loc_opt.sGmax)
+        loc_opt.sGmax = sg;
+    end
+    [h, h_max] = saturation2Height(sg, loc_opt.sGmax, opt.Gt, ...
+                                   opt.res_gas, opt.res_water, 'poro', opt.poro3D); 
+    if opt.int_poro
+        error('Int_poro: not implemented yet!!')
+        [h, h_max] = saturation2HeightIntporo(sg, opt, loc_opt); 
+    else
+        [h, h_max] = saturation2Height(sg, opt, loc_opt.sGmax); 
+    end   
+    assert(all(h >= 0)); 
+    drho = ((fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS * fluid.bG(p)) * norm(gravity)); 
+    pc = drho .* h; 
 end
 
 % ----------------------------------------------------------------------------
 
 function kr = krG(sg, opt, varargin)
 
-   loc_opt = struct('sGmax', sg);  % default is current saturation
-   loc_opt = merge_options(loc_opt, varargin{:}); 
+   loc_opt = struct('sGmax', []);
+   loc_opt = merge_options(loc_opt, varargin{:});
+   if isempty(loc_opt.sGmax)
+       loc_opt.sGmax = sg;
+   end
 
    [h, h_max] = saturation2Height(sg, loc_opt.sGmax, opt.Gt, ...
                                   opt.res_gas, opt.res_water, 'poro', opt.poro3D); 
@@ -126,8 +132,11 @@ end
 
 function kr = krW(sw, opt, varargin)
    sg = 1 - sw;
-   loc_opt = struct('sGmax', sg);  % default is current saturation
-   loc_opt = merge_options(loc_opt, varargin{:}); 
+   loc_opt = struct('sGmax', []);
+   loc_opt = merge_options(loc_opt, varargin{:});
+   if isempty(loc_opt.sGmax)
+       loc_opt.sGmax = sg;
+   end
    [h, h_max] = saturation2Height(sg, loc_opt.sGmax, opt.Gt, ...
                                   opt.res_gas, opt.res_water, 'poro', opt.poro3D); 
    if opt.int_poro

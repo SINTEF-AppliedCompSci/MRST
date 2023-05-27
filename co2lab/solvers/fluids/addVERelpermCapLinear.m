@@ -54,53 +54,62 @@ function s = invPc(p, cap_scale, opt)
 end
 
 function kr = krG(sg, p, fluid, cap_scale, opt, varargin)
-   loc_opt = struct('sGmax', []); 
-   loc_opt = merge_options(loc_opt, varargin{:}); 
-   if(~isempty(loc_opt.sGmax))
-      sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas); 
-      h = invS(sg_free, p, fluid, cap_scale, opt); 
-      kr = S_beta(h, p, opt.beta, fluid, cap_scale, opt); 
-   else
-      h = invS(sg, p, fluid, cap_scale, opt); 
-      kr = S_beta(h, p, opt.beta, fluid, cap_scale, opt); 
-   end
+    loc_opt = struct('sGmax', []);
+    loc_opt = merge_options(loc_opt, varargin{:});
+    if isempty(loc_opt.sGmax)
+        loc_opt.sGmax = sg;
+    end
+    if(~isempty(loc_opt.sGmax))
+        sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas); 
+        h = invS(sg_free, p, fluid, cap_scale, opt); 
+        kr = S_beta(h, p, opt.beta, fluid, cap_scale, opt); 
+    else
+        h = invS(sg, p, fluid, cap_scale, opt); 
+        kr = S_beta(h, p, opt.beta, fluid, cap_scale, opt); 
+    end
 end
 
 function kr = krW(sw, opt, varargin)
 % beta = 1; 
 % fo now linear
-   loc_opt = struct('sGmax', []); 
-   loc_opt = merge_options(loc_opt, varargin{:}); 
-   if(~isempty(loc_opt.sGmax))
-      sg = 1 - sw; 
-      ineb = (sg)>loc_opt.sGmax; 
-      sg_res = (loc_opt.sGmax - sg); 
-      % assert(all(sg_res >= 0)); 
-      sw_free = 1 - loc_opt.sGmax; 
-      kr = sw_free + (1 - opt.res_gas) * sg_res; 
-      % this to avoid errors in ADI derivative
-      kr(~ineb) = sw(~ineb); 
-      kr(kr<0) = 0.0 * kr(kr<0); 
-      assert(all(kr >= 0)); 
-   else
-      kr = sw;
+    loc_opt = struct('sGmax', []);
+    loc_opt = merge_options(loc_opt, varargin{:});
+    if isempty(loc_opt.sGmax)
+        loc_opt.sGmax = sg;
+    end
+    if(~isempty(loc_opt.sGmax))
+        sg = 1 - sw; 
+        ineb = (sg)>loc_opt.sGmax; 
+        sg_res = (loc_opt.sGmax - sg); 
+        % assert(all(sg_res >= 0)); 
+        sw_free = 1 - loc_opt.sGmax; 
+        kr = sw_free + (1 - opt.res_gas) * sg_res; 
+        % this to avoid errors in ADI derivative
+        kr(~ineb) = sw(~ineb); 
+        kr(kr<0) = 0.0 * kr(kr<0); 
+        assert(all(kr >= 0)); 
+    else
+        kr = sw;
     end
 end
 
 function pc = pcWG(sg, p, fluid, cap_scale, opt, varargin)
 
-   loc_opt = struct('sGmax', []); 
-   loc_opt = merge_options(loc_opt, varargin{:}); 
+    loc_opt = struct('sGmax', []);
+    loc_opt = merge_options(loc_opt, varargin{:});
+    if isempty(loc_opt.sGmax)
+        loc_opt.sGmax = sg;
+    end
 
-   if(~isempty(loc_opt.sGmax))
-      sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas); 
-      h = invS(sg_free, p, fluid, cap_scale, opt); 
-      assert(all(sg_free >= 0))
-      pc = norm(gravity) * (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) .* h; 
-   else
-      h = invS(sg, p, fluid, cap_scale, opt); 
-      pc = norm(gravity) * (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) .*h;
-   end
+    if(~isempty(loc_opt.sGmax))
+        sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas); 
+        h = invS(sg_free, p, fluid, cap_scale, opt); 
+        assert(all(sg_free >= 0))
+        pc = norm(gravity) * (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) .* h; 
+    else
+        h = invS(sg, p, fluid, cap_scale, opt); 
+        pc = norm(gravity) * (fluid.rhoWS .* fluid.bW(p) - fluid.rhoGS .* fluid.bG(p)) .*h;
+    end
 end
 
 function S_out = S_beta(h, p, beta, fluid, cap_scale, opt)

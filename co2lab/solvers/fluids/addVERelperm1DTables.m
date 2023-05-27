@@ -52,8 +52,11 @@ end
 function varargout = cap_press(sg, p, H, fluid, opt, varargin)
 % this transformation has to be done twice as long as
 % pc and relperm are separate functions
-   loc_opt = struct('sGmax', []); 
-   loc_opt = merge_options(loc_opt, varargin{:}); 
+    loc_opt = struct('sGmax', []);
+    loc_opt = merge_options(loc_opt, varargin{:});
+    if isempty(loc_opt.sGmax)
+        loc_opt.sGmax = sg;
+    end
    sg = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas); 
    SH = sg .* H; 
    h = interpTable(opt.table_co2.SH, opt.table_co2.h, SH); 
@@ -75,14 +78,18 @@ end
 % ----------------------------------------------------------------------------
 
 function varargout = krG(sg, p, H, fluid, opt, varargin)
-   loc_opt = struct('sGmax', []); 
-   loc_opt = merge_options(loc_opt, varargin{:}); 
-   sg = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas); 
-   SH = sg .* H; 
-   gh = interpTable(opt.table_co2.SH, opt.table_co2.h, SH); 
-   kr = interpTable(opt.table_co2.h, opt.table_co2.krH, gh) ./ H; 
-   assert(all(SH ./ H <= 1)); 
-   varargout{1} = kr;
+    loc_opt = struct('sGmax', []);
+    loc_opt = merge_options(loc_opt, varargin{:});
+    if isempty(loc_opt.sGmax)
+        loc_opt.sGmax = sg;
+    end
+    
+    sg = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas); 
+    SH = sg .* H; 
+    gh = interpTable(opt.table_co2.SH, opt.table_co2.h, SH); 
+    kr = interpTable(opt.table_co2.h, opt.table_co2.krH, gh) ./ H; 
+    assert(all(SH ./ H <= 1)); 
+    varargout{1} = kr;
 end
 
 % ----------------------------------------------------------------------------

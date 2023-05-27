@@ -96,6 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                         dh                      , ...
                                                         'rs', rs); %#ok
       leaked = tot_inj - sum(reports(i).masses);
+      reports(i).tot_inj = tot_inj;
       reports(i).masses = [reports(i).masses, leaked]; %#ok
    end
    
@@ -109,5 +110,6 @@ function [h, h_max] = compute_plume_height(Gt, state, sw, sr)
     else
        smax = state.smax(:,2); % no dissolution.  Current max = historical max
     end
-    [h, h_max] = upscaledSat2height(state.s(:,2), smax, Gt, 'resSat', [sw, sr]);
+    [h, h_max] = saturation2Height(state.s(:,2), smax, Gt, sr, sw);
+    %    [h, h_max] = upscaledSat2height(state.s(:,2), smax, Gt, 'resSat', [sw, sr]);
 end

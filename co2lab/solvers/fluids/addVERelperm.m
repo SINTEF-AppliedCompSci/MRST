@@ -96,9 +96,12 @@ end
 function kr= krG(sg, Gt, opt,varargin)
 
     % Check for records of residual saturation
-    loc_opt=struct('sGmax',[]);
-    loc_opt=merge_options(loc_opt,varargin{:});
-
+    loc_opt = struct('sGmax', []);
+    loc_opt = merge_options(loc_opt, varargin{:});
+    if isempty(loc_opt.sGmax)
+        loc_opt.sGmax = sg;
+    end
+        
     % Determine how much of the gas saturation that  can be considered 'free'
     % (and how much is locked up as residual saturation)
     if(~isempty(loc_opt.sGmax))
@@ -146,8 +149,11 @@ function kr= krG(sg, Gt, opt,varargin)
 % ----------------------------------------------------------------------------
 function kr= krW(sw,opt,varargin)
 
-   loc_opt = struct('sGmax', []); 
-   loc_opt = merge_options(loc_opt, varargin{:}); 
+   loc_opt = struct('sGmax', []);
+   loc_opt = merge_options(loc_opt, varargin{:});
+   if isempty(loc_opt.sGmax)
+       loc_opt.sGmax = sg;
+   end
 
    if(~isempty(loc_opt.sGmax))
       sg = 1 - sw; 
@@ -186,8 +192,13 @@ end
 
 % ----------------------------------------------------------------------------
 function pc = pcWG(sg, p, fluid, Gt, opt, varargin)
-    loc_opt = struct('sGmax',[], 'T', []);
+
+    loc_opt = struct('sGmax', []);
     loc_opt = merge_options(loc_opt, varargin{:});
+    if isempty(loc_opt.sGmax)
+        loc_opt.sGmax = sg;
+    end
+    
     if(~isempty(loc_opt.sGmax))
        % Adjusting the gas saturation to be used for computing cap. press
         sg_free = free_sg(sg, loc_opt.sGmax, opt.res_water, opt.res_gas);
