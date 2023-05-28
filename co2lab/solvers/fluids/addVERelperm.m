@@ -193,7 +193,7 @@ end
 % ----------------------------------------------------------------------------
 function pc = pcWG(sg, p, fluid, Gt, opt, varargin)
 
-    loc_opt = struct('sGmax', []);
+    loc_opt = struct('sGmax', [], 'T', []);
     loc_opt = merge_options(loc_opt, varargin{:});
     if isempty(loc_opt.sGmax)
         loc_opt.sGmax = sg;
