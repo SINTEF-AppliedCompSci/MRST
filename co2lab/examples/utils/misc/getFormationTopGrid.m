@@ -91,8 +91,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             rock.poro = rock2D.poro;
         end
         
-        rock2D  = averageRock(rock, Gt);
         updateNaNs();
+        rock2D  = averageRock(rock, Gt);
         
     elseif isfield(g,'PORO') || isfield(g,'NTG')
 
@@ -107,8 +107,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if ~isfield(rock,'poro')
             rock.poro = rock2D.poro;
         end
-        rock2D  = averageRock(rock, Gt);
+
         updateNaNs();
+        rock2D  = averageRock(rock, Gt);
         
     end
     
@@ -120,20 +121,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % poro, or ntg may not exist, an additional conditional statement is
     % required.
 
-        if isfield(rock2D,'perm') && any(isnan(rock2D.perm))
+        if isfield(rock,'perm') && any(isnan(rock.perm(:)))
             warning(['Nan permeability values are being replaced with the '...
                 'average value.']);
-            rock2D.perm(isnan(rock2D.perm)) = petrodata.avgperm; 
+            rock.perm(isnan(rock.perm)) = petrodata.avgperm; 
         end
-        if isfield(rock2D,'poro') && any(isnan(rock2D.poro))
+        if isfield(rock,'poro') && any(isnan(rock.poro))
             warning(['Nan porosity values are being replaced with the '...
                 'average value.']);
-            rock2D.poro(isnan(rock2D.poro)) = petrodata.avgporo;
+            rock.poro(isnan(rock.poro)) = petrodata.avgporo;
         end
-        if isfield(rock2D,'ntg') && any(isnan(rock2D.ntg))
+        if isfield(rock,'ntg') && any(isnan(rock.ntg))
             warning(['Nan net-to-gross values are being replaced with the '...
                 'average value.']);
-            rock2D.ntg(isnan(rock2D.ntg))   = petrodata.avgntg;
+            rock.ntg(isnan(rock.ntg))   = petrodata.avgntg;
         end
 
     end
