@@ -1,6 +1,8 @@
 classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
     
     properties
+        hysteresis
+        dissolution
     end
 
     methods
@@ -11,6 +13,10 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             model.fluid = fluid;
             [model.water, model.oil, model.gas] = deal(true, false, true);
             model.gravity = norm(gravity);
+            
+            % determine if model includes hysteresis and/or dissolution
+            model.hysteresis = model.fluid.res_gas > 0;
+            model.dissolution = isfield(model.fluid, 'dis_max');
             
             model = model.setupOperators(Gt, rock2D);
             model.Components = {ImmiscibleComponent('brine', 1), ...
@@ -54,6 +60,17 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             for i = 1:numel(acc)
                 eqs{i} = model.operators.AccDiv(acc{i}, flux{i});
             end
+            
+            if model.hysteresis
+                sG = model.getProp(state, 'sg');
+                sGmax = model.getProp(state, 'sGmax');
+                sGmax0 = model.getProp(state0, 'sGmax');
+
+                names = [names, {'hysteresis'}];
+                types = [types, {'cell'}];
+                eqs = [eqs, { sGmax - max(sGmax0, sG) }];
+            end
+                
             
             % get well equations
             if ~isempty(model.FacilityModel)
@@ -118,7 +135,9 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             state.s     = [1-sg, sg];    
 
             % ensure sGmax between sg and 1
-            state.sGmax = max(min(1, state.sGmax), sg);
+            if model.hysteresis
+                state.sGmax = max(min(1, state.sGmax), sg);
+            end
             
         end
 
@@ -141,9 +160,11 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 % setting up the equations
             end
             
-            sGmax0 = model.getProp(state0, 'sGmax');
-            sG     = model.getProp(state, 'sg');
-            state = model.setProp(state, 'sGmax', max(sG, sGmax0));
+            if model.hysteresis
+                sGmax0 = model.getProp(state0, 'sGmax');
+                sG     = model.getProp(state, 'sg');
+                state = model.setProp(state, 'sGmax', max(sG, sGmax0));
+            end
             
         end
 
@@ -181,6 +202,13 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             vars = {p, sW};
             names = {'pressure', 'sW'};
             origin = {class(model), class(model)};
+            
+            if model.hysteresis
+                % add sGmax as primary variable
+                vars = [vars, { model.getProps(state, 'sGmax') }];
+                names = [names, {'sGmax'}];
+                origin = [origin, class(model)];
+            end
             
             if ~isempty(model.FacilityModel)
                 [v, n, o] = model.FacilityModel.getPrimaryVariables(state);
