@@ -2,7 +2,8 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
     
     properties
         hysteresis
-        dissolution
+        disgas  % the name of this field should not be changed, in order to
+                % play nice with the rest of AD-OO.
     end
 
     methods
@@ -16,11 +17,14 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             
             % determine if model includes hysteresis and/or dissolution
             model.hysteresis = model.fluid.res_gas > 0;
-            model.dissolution = isfield(model.fluid, 'dis_max');
+            model.disgas = isfield(model.fluid, 'dis_max'); 
             
             model = model.setupOperators(Gt, rock2D);
-            model.Components = {ImmiscibleComponent('brine', 1), ...
-                                ImmiscibleComponent('CO2', 2)};
+            model.Components = {MiscibleWaterComponent('brine', 1), ...
+                                CO2Component('CO2', model.disgas, 2)};
+            
+            % model.Components = {ImmiscibleComponent('brine', 1), ...
+            %                     ImmiscibleComponent('CO2', 2)};
         end
         
 % ------------------------------------------------------------------------        
@@ -51,7 +55,7 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 model.FlowDiscretization.componentConservationEquations(...
                     model, state, state0, dt);
             
-            % add sources
+            % add sources from wells
             src = model.FacilityModel.getComponentSources(state);
             acc = model.insertSources(acc, src);
             
@@ -71,6 +75,18 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 eqs = [eqs, { sGmax - max(sGmax0, sG) }];
             end
                 
+            if model.disgas
+                % add conservation equation for dissolved gas
+                sG = model.getProp(state, 'sg');
+                rs = model.getProp(state, 'rs');
+                isSat = (sG > 0) | rs > model.fluid.dis_max;
+                eq_dis = sG;
+                eq_dis(isSat) = rs(isSat) - model.fluid.dis_max;
+
+                names = [names, {'dissolution'}];
+                types = [types, {'cell'}];
+                eqs = [eqs, {eq_dis}];
+            end
             
             % get well equations
             if ~isempty(model.FacilityModel)
@@ -130,6 +146,7 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
                                                          drivingForces);
             
+            % truncate saturations between 0 and 1, and ensure they sum to 1
             sg          = state.s(:,2);
             sg          = min(1, max(0, sg)); %(1-model.fluid.res_water, max(0,sg)); @@
             state.s     = [1-sg, sg];    
@@ -139,6 +156,10 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 state.sGmax = max(min(1, state.sGmax), sg);
             end
             
+            % if dissolution, ensure maximum dissolution is respected
+            if model.disgas
+                state.rs = max(0, min(state.rs, model.fluid.dis_max));
+            end
         end
 
 % ------------------------------------------------------------------------        
@@ -160,11 +181,14 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 % setting up the equations
             end
             
+            % @@ necessary?
             if model.hysteresis
                 sGmax0 = model.getProp(state0, 'sGmax');
                 sG     = model.getProp(state, 'sg');
                 state = model.setProp(state, 'sGmax', max(sG, sGmax0));
             end
+            
+            % @@ do we need to do anything with rs?
             
         end
 
@@ -197,11 +221,29 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
     
             [p, s] = model.getProps(state, 'pressure', 'saturation');
             
-            sW = s(:,1); % water saturation.  s(:,2) is CO2 saturation
+            sG = s(:,2); % water saturation.  s(:,2) is CO2 saturation
             
-            vars = {p, sW};
-            names = {'pressure', 'sW'};
+            vars = {p, sG};
+            names = {'pressure', 'sG'};
             origin = {class(model), class(model)};
+            
+            if model.disgas
+                rs = model.getProp(state, 'rs');
+                unsat = rs < model.fluid.dis_max;
+                % X represents phase saturation in cells where dissolution has
+                % reached its maximum, and amount of dissolved CO2 in other cells
+                X = sG;
+                X(unsat) = rs(unsat);
+                vars = [vars, X];
+                names = [names, 'X'];
+                origin = [origin, class(model)];
+            else
+                % We do not consider dissolution, and use sG directly as 
+                % primary variable
+                vars = [vars, sG];
+                names = [names, 'sG'];
+                origin = [origin, class(model)];
+            end
             
             if model.hysteresis
                 % add sGmax as primary variable
@@ -258,13 +300,24 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                                                     names(toFacility), ...
                                                     origin(toFacility));
 
-            sw_ix = strcmp(names, 'sW');
-            sw = vars{sw_ix};
-            sg = 1 - sw;
-            state = model.setProp(state, 'saturation', {sw, sg});
+            if model.disgas
+                x_ix = strcmp(names, 'X');
+                x = vars{x_ix};
+                unsat = val(x) < model.fluid.dis_max;
+                sg = x; sg(unsat) = 0;
+                rs = x; rs(~unsat) = model.fluid.dis_max;
+                state = model.setProp(state, 'saturation', {1-sg, sg});
+                state = model.setProp(state, 'rs', rs);
+            else
+                % saturation is a primary variable
+                sg_ix = strcmp(names, 'sG');
+                sg = vars{sg_ix};
+                state = model.setProp(state, 'saturation', {1-sg, sg});
+            end
+            
             
             remaining = ~toFacility;
-            remaining(sw_ix) = false;
+            remaining(sg_ix) = false;
             
             state = initStateAD@ReservoirModel(model, state, vars(remaining), ...
                                                names(remaining), ...
