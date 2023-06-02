@@ -82,6 +82,7 @@ W2D                = convertwellsVE(W, G, Gt, rock2D);
 initState.pressure = rhow * g(3) * Gt.cells.z;
 initState.s        = repmat([1, 0], Gt.cells.num, 1);
 initState.sGmax    = initState.s(:,2);
+initState.rs       = zeros(Gt.cells.num, 1);
 
 %% 
 % To avoid plotting artifacts when visualizing the volumetric and the
@@ -117,6 +118,9 @@ fluid   = makeVEFluid(Gt, rock2D, 'P-scaled table'             , ...
                'pvMult_fac'  , c_rock                 , ...
                'invPc3D'     , invPc3D                , ...
                'kr3D'        , kr3D                   , ...
+               'dissolution' , true, ...
+               'dis_rate'    , 0, ...
+               'dis_max'     , 0.03, ...
                'transMult'   , transMult);
 
 %% Set up simulation schedule
@@ -147,9 +151,16 @@ schedule.step.control = [ones(50, 1); ...
                          ones(95, 1) * 2];
 
 %% Create and simulate model
-model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
+%model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
+model = CO2VEBlackOilTypeModelNew(Gt, rock2D, fluid);
+
 [wellSol, states] = simulateScheduleAD(initState, model, schedule);
-states = [{initState} states(:)'];
+[wellSol_new, states_new] = simulateScheduleAD(initState, model_new, schedule);
+states_old = [{initState} states(:)'];
+states_new = [{initState} states_new(:)'];
+
+states = states_old;
+states = states_new;
 
 %% Animate the plume migration over the whole simulation period
 clf
@@ -169,7 +180,7 @@ for i=1:numel(states)
                                     'rhoW', fluid.rhoW, ...
                                     'rhoG', fluid.rhoG, ...
                                     'p', states{100}.pressure);
-    sat = height2Sat(struct('h', h, 'h_max', h_max), Gt, fluid);
+    sat = height2Sat(h, h_max, Gt, fluid.res_water, fluid.res_gas);
     title(sprintf('Time: %4d yrs (%s)', time(i),ptxt{period(i)}));
     ix = sat>0; if ~any(ix), continue; end
     hs = plotCellData(Gt.parent, sat, ix); drawnow

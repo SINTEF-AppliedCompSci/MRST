@@ -100,5 +100,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    pj   = p(j);
    t(j) = -f(pj-1, 1) ./ (f(pj, 1) - f(pj-1, 1));
 
-   assert (~any((t < 0) | (t > 1)));
+   assert (~any((t < 0) | (t > 1)), 'bad value for t');
 end

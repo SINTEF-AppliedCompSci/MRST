@@ -1,5 +1,5 @@
-function s = height2Sat(sol, Gt, fluid)
-%Convert from height to saturation
+function s = height2Sat(h, hmax, Gt, sw, sg)
+%Convert from height to (fine scale) saturation
 %
 % SYNOPSIS:
 %   s = height2Sat(sol, Gt, fluid)
@@ -11,9 +11,13 @@ function s = height2Sat(sol, Gt, fluid)
 %       Values less than zero are treated as zero while values below the
 %       bottom of a column are treated as the column depth.
 %
+%   hmax - historically maximum thickness.  One scalar value for each
+%          column in the top surface grid
+%    
 %   Gt - A top-surface grid as defined by function 'topSurfaceGrid'.
 %
-%   fluid - a fluid object for example initiated with initVEFluid
+%   sw - residual water saturation
+%   sg - residual gas saturation
 %
 % RETURNS:
 %   s - Saturation - one value for each cell in the underlying 3D model.
@@ -41,23 +45,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-if isfield(fluid, 'res_gas')
-   % ADI-type fluid
-   sr = fluid.res_gas;
-   sw = fluid.res_water;
-elseif(~isfield(fluid, 'sw'))
-   [mu, rho, res] = fluid.properties();                                     %#ok
-   sr = res(1);
-   sw = res(2);
-end
-
-% magn = @(v)(sqrt(sum(v.^2,2)));
-%n    = Gt.cells.normals(:,3)./magn(Gt.cells.normals);
-%h = n.*h;
 s = zeros(numel(Gt.columns.cells),1);
 % n: number of completely filled cells
 % t: fill degree for columns single partially filled cell
-[n, t] = fillDegree(sol.h, Gt); %
+[n, t] = fillDegree(h, Gt); %
 
 % number of cells in each column
 nc = diff(Gt.cells.columnPos);
@@ -76,27 +67,28 @@ s(Gt.columns.cells(f>0)) = 1*(1-sw);
 %partially filled cells
 s(Gt.columns.cells(f==0)) = t(n<nc)*(1-sw);
 
-if sr>0 &&any(sol.h_max>sol.h)
+if sg > 0 && any(hmax > h)
    % %hysteresis:
-   [n_sr, t_sr] = fillDegree(sol.h_max, Gt);
-   % remove all cells where sol.h_max-sol.h == 0 and leave only the fraction that is
+   [n_sr, t_sr] = fillDegree(hmax, Gt);
+   
+   % remove all cells where hmax - h == 0 and leave only the fraction that is
    % residual co2 in cells that have both residual and free co2
    ix = find(n_sr == n);
-   t_sr(ix) = max(t_sr(ix)-t(ix),0);
+   t_sr(ix) = max(t_sr(ix) - t(ix),0);
 
-   ix2 = n_sr-n >= 1;
-   f_sr = rldecode(n_sr, nc)-cellNoInCol+1;
-   %s_copy = s;
+   ix2 = n_sr - n >= 1;
+   f_sr = rldecode(n_sr, nc) - cellNoInCol + 1;
+   
    % cells with residual saturation in the whole cell
-   s(Gt.columns.cells(f_sr>0 & f<0)) = sr;
+   s(Gt.columns.cells(f_sr>0 & f<0)) = sg;
+   
    % cells with residual saturation in bottom part of a cell and free co2 on top
    currSat = s(Gt.columns.cells(f_sr>0 &f ==0));
-   s(Gt.columns.cells(f_sr>0 & f==0)) = currSat+(1-t(ix2))*sr;
+   s(Gt.columns.cells(f_sr>0 & f==0)) = currSat+(1-t(ix2))*sg;
+   
    % cells with possible residual saturation in part of the cell and water in the bottom
    currSat = s(Gt.columns.cells(f_sr==0));
-   s(Gt.columns.cells(f_sr==0)) = currSat + t_sr(n_sr<nc)*sr;
-
-   %residual = sum(s-s_copy)
+   s(Gt.columns.cells(f_sr==0)) = currSat + t_sr(n_sr<nc)*sg;
 
 end
 end

@@ -28,7 +28,7 @@ classdef MiscibleWaterComponent < ImmiscibleComponent
                 rhoS = pvt.get(model, state, 'SurfaceDensity', true);
                 b = pvt.get(model, state, 'ShrinkageFactors', true);
                 
-                c{wix} = rhoS(wix) .* b(wix);
+                c{wix} = rhoS{wix} .* b{wix};
 
                 
             else

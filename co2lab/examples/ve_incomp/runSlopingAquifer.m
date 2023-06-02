@@ -67,7 +67,7 @@ SVE = computeMimeticIPVE(Gt, rock2D, 'Innerproduct','ip_simple');
 preComp = initTransportVE(Gt, rock2D);
 sol = initResSolVE(Gt, 0, 0);
 sol.wellSol = initWellSol(W, 300*barsa());
-sol.s = height2Sat(sol, Gt, fluidVE);
+sol.s = height2Sat(sol.h, sol.h_max, Gt, fluidVE.res_water, fluidVE.res_gas);
 
 % Use C++ acceleration for the transport calculation
 % NB: requires that the VEmex module has been compiled
@@ -124,7 +124,7 @@ while t<T
    
    % Reconstruct 'saturation' defined as s=h/H, where h is the height of
    % the CO2 plume and H is the total height of the formation
-   sol.s = height2Sat(sol, Gt, fluidVE);
+   sol.s = height2Sat(sol.h, sol.h_max, Gt, fluidVE.res_water, fluidVE.res_gas);
    assert( max(sol.s(:,1))<1+eps && min(sol.s(:,1))>-eps );
    t = t + dT;
 
