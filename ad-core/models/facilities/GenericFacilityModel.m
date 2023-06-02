@@ -46,19 +46,16 @@ classdef GenericFacilityModel < FacilityModel
             % individual components' preference at different conditions
             [p, temp] = facility.getSurfaceConditions();
             surfaceDensity = fp.get(facility, state, 'InjectionSurfaceDensity');
-            nph = model.getNumberOfPhases();
+            nph = model.getNumberOfPhases(); 
             surfaceRates = cell(1, nph);
             [surfaceRates{:}] = deal(zeros(numelValue(cflux{1}), 1));
-            compi = vertcat(map.W.compi);
             for c = 1:numel(cflux)
                 component = model.Components{c};
                 if ~isa(component, 'ConcentrationComponent')
                     composition = component.getPhaseCompositionSurface(model, state, p, temp);
-%                     composition = compi;
                     for ph = 1:nph
-                        comp = compi(:,ph);
-                        if any(comp)
-                            ci = comp./surfaceDensity{ph};
+                        if any(composition{ph})
+                            ci = composition{ph}./surfaceDensity{ph};
                             surfaceRates{ph} = surfaceRates{ph} + ci.*cflux{c};
                         end
                     end
@@ -73,9 +70,6 @@ classdef GenericFacilityModel < FacilityModel
                 for ph = 1:nph
                     if ~isa(surfaceDensity{ph}, 'ADI') && isa(surfaceDensityProd{ph}, 'ADI')
                         surfaceDensity{ph} = model.AutoDiffBackend.convertToAD(surfaceDensity{ph}, surfaceDensityProd{ph});
-                    end
-                    if ~isa(surfaceRates{ph}, 'ADI') && isa(surfaceRatesProd{ph}, 'ADI')
-                        surfaceRates{ph} = model.AutoDiffBackend.convertToAD(surfaceRates{ph}, surfaceRatesProd{ph});
                     end
                     surfaceRates{ph}(isProd) = surfaceRatesProd{ph};
                     surfaceDensity{ph}(isProd) = surfaceDensityProd{ph};
