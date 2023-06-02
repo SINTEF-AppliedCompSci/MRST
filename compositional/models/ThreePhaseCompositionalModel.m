@@ -223,6 +223,8 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             if nargin < 3
                 dt = inf;
             end
+            hasTime = isfield(state, 'time');
+            if hasTime, time0 = state.time; end
             state0 = state;
             if iteration == 1
                 state.eos.iterations = 0;
@@ -264,6 +266,9 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             state = model.setProp(state, ['s', v], void.*(1-sL));
 
             assert(all(all(state.s >= 0)), 'Negative saturations after flash.');
+            
+            if hasTime, state.time = time0; end
+            
         end
     
         
