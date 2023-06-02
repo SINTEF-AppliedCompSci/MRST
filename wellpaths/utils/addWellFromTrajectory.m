@@ -1,10 +1,10 @@
-function W = addWellFromTrajectory(W, G, rock, traj, varargin)
+function [W, trajectory] = addWellFromTrajectory(W, G, rock, traj, varargin)
 % This function adds a well based on a piecewise linear trajectory traj.
 % All function arguments are the same as for addWell except for in place of
 % cellInx, there should be a nx3 matrix of trajectory coordinates.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -34,10 +34,10 @@ if ~isfield(G.faces, 'bbox')
     G = addBoundingBoxFields(G);
 end
 
-tmp = computeTraversedCells(G, traj, 'faces', opt.faces, ...
+trajectory = computeTraversedCells(G, traj, 'faces', opt.faces, ...
             'exteriorFaceCorrection', opt.exteriorFaceCorrection);
 
-if isempty(tmp.cell)
+if isempty(trajectory.cell)
     if opt.errorOnEmptyCellSet
         error('Did not find any traversed cells for trajectory.');
     else
@@ -48,11 +48,11 @@ if isempty(tmp.cell)
     end
 else
     if isempty(opt.refDepth) && isfield(G.cells, 'centroids')
-        opt.refDepth = G.cells.centroids(tmp.cell(1), 3);
+        opt.refDepth = G.cells.centroids(trajectory.cell(1), 3);
     end
     % multiply segments by weight (non-unit for segments shared by multiple cells)
-    seg = bsxfun(@times, tmp.vec, tmp.weight);
-    W = addWell(W, G, rock, tmp.cell, 'lineSegments', seg, 'refDepth', opt.refDepth, other{:});
+    seg = bsxfun(@times, trajectory.vec, trajectory.weight);
+    W = addWell(W, G, rock, trajectory.cell, 'lineSegments', seg, 'refDepth', opt.refDepth, other{:});
 end
 end
 

@@ -163,7 +163,7 @@ function [c, rho, mu, u, R, B, A, dA] = blackOilPVT(pvtfun, rhos, p, z)
 %   `pvtg`, `pvto`.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

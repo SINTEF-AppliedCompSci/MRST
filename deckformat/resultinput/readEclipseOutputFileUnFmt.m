@@ -24,7 +24,7 @@ function varargout = readEclipseOutputFileUnFmt(fname, varargin)
 %   `readEclipseOutputFileFmt`, `fopen`.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -42,7 +42,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   opt = struct('cellOutput', false);
+   opt = struct('cellOutput', false, ...
+                'maxCellSize',  inf);
    opt = merge_options(opt, varargin{:});
 
    [fid, msg] = fopen(fname, 'rb', 'ieee-be');
@@ -56,7 +57,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    streamReader = @readEclipseOutputStream;
    if opt.cellOutput
-      streamReader = @readEclipseOutputStreamCellOutput;
+      streamReader = @(varargin)readEclipseOutputStreamCellOutput(varargin{:}, 'maxCellSize', opt.maxCellSize);
    end
 
    [varargout{1 : nargout}] = streamReader(fid, @readFieldUnFmt);

@@ -37,7 +37,7 @@ function pth = writeJutulInput(state0, model, schedule, varargin)
 %   readJutulOutput, runJutulOnDaemon, simulateScheduleJutul
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -125,6 +125,9 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
         end
     end
     jutul.T = model.operators.T;
+    if isfield(model.operators, 'T_all')
+        jutul.T_all = model.operators.T_all;
+    end
     jutul.N = model.operators.N;
     jutul.phases = model.getActivePhases();
     jutul.name = name;

@@ -2,7 +2,7 @@ function PROPS = generatePROPS(model, varargin)
 % Generate PROPS from model. Very limited function.
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -34,16 +34,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     f = model.fluid;
     p = linspace(opt.pMin, opt.pMax, opt.np)';
     s = linspace(0, 1, opt.ns)';
-    if numel(f.rhoWS) > 1
-        warning('Jutul does not support multiple PVT regions. Taking first value.')
-    end
+    msg = 'Jutul does not support multiple PVT regions. Taking first value.';
     if model.water
+        if numel(f.rhoWS) > 1, warning(msg); end
         density(2) = f.rhoWS(1);
     end
     if model.oil
+        if numel(f.rhoOS) > 1, warning(msg); end
         density(1) = f.rhoOS(1);
     end
     if model.gas
+        if numel(f.rhoGS) > 1, warning(msg); end
         density(3) = f.rhoGS(1);
     end
     PROPS = opt.props;
