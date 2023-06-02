@@ -168,41 +168,8 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                         
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
                                                          drivingForces);
-            
-            % truncate saturations between 0 and 1, and ensure they sum to 1
-            sg          = state.s(:,2);
-            sg          = min(1, max(0, sg)); %(1-model.fluid.res_water, max(0,sg)); @@
-            state.s     = [1-sg, sg];    
-
-            % ensure sGmax between sg and 1
-            if model.hysteresis
-                state.sGmax = max(min(1, state.sGmax), sg);
-            end
-            
         end
 
-% % ------------------------------------------------------------------------        
-        
-%         function [state, report] = updateState(model, state, problem, dx, ...
-%                                                drivingForces)
-%             [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
-%                                                          drivingForces);
-            
-%             % truncate saturations between 0 and 1, and ensure they sum to 1
-%             sg          = state.s(:,2);
-%             sg          = min(1, max(0, sg)); %(1-model.fluid.res_water, max(0,sg)); @@
-%             state.s     = [1-sg, sg];    
-
-%             % ensure sGmax between sg and 1
-%             if model.hysteresis
-%                 state.sGmax = max(min(1, state.sGmax), sg);
-%             end
-            
-%             % if dissolution, ensure maximum dissolution is respected
-%             if model.disgas
-%                 state.rs = max(0, min(state.rs, model.fluid.dis_max));
-%             end
-%         end
 
 % ------------------------------------------------------------------------        
         
@@ -214,23 +181,29 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                                                       state0, state, dt, drivingForces);
             
             if model.outputFluxes
-                % add internal fluxes
+                % @@ Can this be done so we won't have to back-up the
+                % boundary fluxes?
+
+                % store already-registered boundary fluxes
+                bnd_flux_ixs = drivingForces.bc.face;
+                bnd_fluxes = state.flux(bnd_flux_ixs, :);
+                
+                % add internal fluxes (@@ will overwrite boundary fluxes)
                 qWG = model.getProp(state, 'PhaseFlux');
                 state = storeFluxes(model, state, qWG{1}, [], qWG{2});
                 
-                % No need to add boundary fluxes, as this is already done 
-                % in the call to 'addBoundaryConditionsAndSources' when 
-                % setting up the equations
+                % copy back the overwritten boundary fluxes
+                state.flux(bnd_flux_ixs, :) = bnd_fluxes;
             end
             
-            % @@ necessary?
-            if model.hysteresis
-                sGmax0 = model.getProp(state0, 'sGmax');
-                sG     = model.getProp(state, 'sg');
-                state = model.setProp(state, 'sGmax', max(sG, sGmax0));
-            end
+            % % @@ necessary?
+            % if model.hysteresis
+            %     sGmax0 = model.getProp(state0, 'sGmax');
+            %     sG     = model.getProp(state, 'sg');
+            %     state = model.setProp(state, 'sGmax', max(sG, sGmax0));
+            % end
             
-            % @@ do we need to do anything with rs?
+            % % @@ do we need to do anything with rs?
             
         end
 

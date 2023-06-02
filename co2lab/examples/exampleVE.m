@@ -87,15 +87,17 @@ initState.rs       = zeros(Gt.cells.num, 1);
 %% 
 % To avoid plotting artifacts when visualizing the volumetric and the
 % top-surface grids, we shift the volumetric grid 100 meters down,
-GG = G; 
-GG.nodes.coords(:,3) = GG.nodes.coords(:,3) + 100;
-screensize = get(0,'screensize'); 
-figure('position',[screensize(3:4)-[845 565] 840 480]);
-plotGrid(GG, 'facecolor', [1 1 .7]); 
-plotGrid(Gt, 'facecolor', [.4 .5 1]);
-[~,ht]=plotWell(G,W); set(ht,'FontSize',10, 'BackgroundColor',[.8 .8 .8]);
-view(-65,33); clear GG;
 
+if false
+    GG = G; 
+    GG.nodes.coords(:,3) = GG.nodes.coords(:,3) + 100;
+    screensize = get(0,'screensize'); 
+    figure('position',[screensize(3:4)-[845 565] 840 480]);
+    plotGrid(GG, 'facecolor', [1 1 .7]); 
+    plotGrid(Gt, 'facecolor', [.4 .5 1]);
+    [~,ht]=plotWell(G,W); set(ht,'FontSize',10, 'BackgroundColor',[.8 .8 .8]);
+    view(-65,33); clear GG;
+end
 
 %% Fluid model
 % The PVT behavior of the injected CO2 is assumed to be given by an
@@ -153,7 +155,10 @@ schedule.step.control = [ones(50, 1); ...
 %% Create and simulate model
 %model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
 model = CO2VEBlackOilTypeModelNew(Gt, rock2D, fluid);
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 [wellSol, states] = simulateScheduleAD(initState, model, schedule);
 [wellSol_new, states_new] = simulateScheduleAD(initState, model_new, schedule);
 states_old = [{initState} states(:)'];
