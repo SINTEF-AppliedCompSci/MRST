@@ -73,22 +73,37 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 names = [names, {'hysteresis'}];
                 types = [types, {'cell'}];
                 eqs = [eqs, { sGmax - max(sGmax0, sG) }];
-            end
+                % @@@ add influence of dissolution here
                 
-            % if model.disgas
-            %     % add conservation equation for dissolved gas
-            %     sG = model.getProp(state, 'sg');
-            %     rs = model.getProp(state, 'rs');
-            %     isSat = (sG > 0) | rs > model.fluid.dis_max;
-            %     eq_dis = sG;
-            %     if any(isSat)
-            %         eq_dis(isSat) = rs(isSat) - model.fluid.dis_max;
-            %     end
+                % @@@ also remember to ensure a minimal dissolution
+                % corresponding to residual water pore volume
+            end
 
-            %     names = [names, {'dissolution'}];
-            %     types = [types, {'cell'}];
-            %     eqs = [eqs, {eq_dis}];
-            % end
+            if model.hasRateDrivenDissolution()
+                % Add conservation equation for dissolved gas
+                [pv, pv0] = deal(model.getProp(state, 'PoreVolume'), ...
+                                 model.getProp(state0, 'PoreVolume'));
+                [rs, rs0] = deal(model.getProp(state, 'rs'), ...
+                                 model.getProp(state0, 'rs'));
+                [b, b0]   = deal(model.getProp(state, 'ShrinkageFactors'), ...
+                                 model.getProp(state0, 'ShrinkageFactors'));
+                [sW, sW0] = deal(model.getProp(state, 'sw'), ...
+                                 model.getProp(state0, 'sw'));
+
+                bW = b{1}; bW0 = b0{1};
+                
+                acc_dis  = ((pv  .* bW  .* sW  .* rs) - ...
+                            (pv0 .* bW0 .* sW0 .* rs0)) / dt;
+                
+                flux_dis = model.getProp(state, 'DissolvedFlux');
+                
+                eq_dis = model.operators.AccDiv(acc_dis, flux_dis);
+                
+                eta = model.computeDissolutionTransfer(state0, state, dt);
+                eqs = [eqs, {eq_dis - eta}];
+                names = [names, {'dissolution'}];
+                types = [types, {'cell'}];
+            end
             
             % get well equations
             if ~isempty(model.FacilityModel)
@@ -106,6 +121,73 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 model.addBoundaryConditionsAndSources(eqs, names, types, ...
                                                       state, drivingForces);
         end
+
+% ------------------------------------------------------------------------        
+
+        function eta = computeDissolutionTransfer(model, state0, state, dt)
+
+            % compute maximum possible transfer rate (considering how much is already
+            % dissolved, and how much CO2 is available for further dissolution)
+            
+            [pv, pv0] = deal(model.getProp(state, 'PoreVolume'), ...
+                             model.getProp(state0, 'PoreVolume'));
+            [b, b0] = deal(model.getProp(state, 'ShrinkageFactors'), ...
+                           model.getProp(state0, 'ShrinkageFactors'));
+            [sW, sW0] = deal(model.getProp(state, 'sw'), ...
+                             model.getProp(state0, 'sw'));
+            [sG, sG0] = deal(model.getProp(state, 'sg'), ...
+                             model.getProp(state0, 'sg'));
+            
+            bW = b{1}; bW0 = b0{1};
+            bG = b{2}; bG0 = b0{2};
+            
+            rsmax = model.fluid.dis_max;
+            rs0 = model.getProp(state0, 'rs');
+            
+            state_rsmax = state;
+            state_rsmax.rs = state_rsmax.rs * 0 + rsmax;
+           
+            flux_max_dis = model.getProp(state_rsmax, 'DissolvedFlux'); 
+
+            % what is the maximum amount of CO2 that could be still absorbed by the
+            % brine in the cell
+            max_demand  = ((pv  .* bW  .* sW  .* rsmax) - ...
+                           (pv0 .* bW0 .* sW0 .* rs0)) / dt;
+            
+            max_demand = model.operators.AccDiv(max_demand, flux_max_dis);
+            
+            % how much dissolved CO2 could maximally be supplied from the
+            % remaining CO2 phase in the cell
+            dummyADI = bW * 0; % @@
+            max_supply = dummyADI + (pv0 .* bG0 .* sG0) / dt;
+            
+            src = model.FacilityModel.getComponentSources(state);
+            if ~isempty(src.cells)
+                max_supply(src.cells) = max_supply(src.cells) + src.value{2} / model.fluid.rhoGS;
+            end
+            
+            phase_fluxes = model.getProp(state, 'ComponentPhaseFlux');
+            co2_phase_flux = phase_fluxes{2, 2}; % second component in second phase
+            
+            % @@@ figure out how to add max_supply back in
+            %max_supply = model.operators.AccDiv(max_supply, -1 * co2_phase_flux);
+            
+            % The maximum amount of CO2 that can be dissolved in a cell
+            % will be limited by the most strict of the two above bounds
+            max_transfer = max(min(max_demand, max_supply), 0);
+            
+            % The amount of actually dissolved CO2 is also limited by the
+            % actual dissolution rate
+            eta = min(model.fluid.dis_rate, max_transfer);
+            %eta = 0;
+            % co2present = sG > 0.2;
+            % eta = dummyADI;
+            % if ~isempty(src.cells)
+            %     eta(co2present) = 0.0001;
+            % end
+            
+        end
+
         
 % ------------------------------------------------------------------------        
 
@@ -131,6 +213,12 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             flowprops = flowprops.setStateFunction('RelativePermeability', ...
                                                    CO2VERelativePermeability(model));
             model.FlowPropertyFunctions = flowprops;
+
+            % FluxDiscretization
+            flowdisc = model.FlowDiscretization;
+            flowdisc = flowdisc.setStateFunction('DissolvedFlux', ...
+                                                 CO2VEDissolvedFlux(model));
+            model.FlowDiscretization = flowdisc;
             
             % PVTPropertyFunctions
             pvtprops = model.PVTPropertyFunctions;
@@ -145,7 +233,12 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
         
         function [state, report] = updateState(model, state, problem, dx, ...
                                                drivingForces)
-            if model.disgas 
+            
+            if model.hasInstantDissolution()
+
+                % In the instant dissolution model, we need to 'unpack' 
+                % saturation and 'rs' from the single primary variable 'X'.
+                
                 % handle variable 'X' separately
                 incX = model.getIncrement(dx, problem, 'X');
                 rs_orig = model.getProp(state, 'rs');
@@ -240,7 +333,9 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             
             [vars, names, origin] = deal({p}, {'pressure'}, {class(model)});
             
-            if model.disgas
+            if model.hasInstantDissolution()
+                
+                % Instant dissolution model
                 rs = model.getProp(state, 'rs');
                 unsat = rs < model.fluid.dis_max;
                 % X represents phase saturation in cells where dissolution has
@@ -250,26 +345,41 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 vars = [vars, X];
                 names = [names, 'X'];
                 origin = [origin, class(model)];
+                
+            elseif model.disgas
+                
+                % Finite rate dissolution model
+                rs = model.getProp(state, 'rs');
+                vars = [vars, sG, rs];
+                names = [names, 'sG', 'rs'];
+                origin = [origin, class(model), class(model)];
+                
             else
+                
                 % We do not consider dissolution, and use sG directly as 
                 % primary variable
                 vars = [vars, sG];
                 names = [names, 'sG'];
                 origin = [origin, class(model)];
+                
             end
             
             if model.hysteresis
+                
                 % add sGmax as primary variable
                 vars = [vars, { model.getProps(state, 'sGmax') }];
                 names = [names, {'sGmax'}];
                 origin = [origin, class(model)];
+                
             end
             
             if ~isempty(model.FacilityModel)
+                
                 [v, n, o] = model.FacilityModel.getPrimaryVariables(state);
                 vars = [vars, v];
                 names = [names, n];
                 origin = [origin, o];
+                
             end
         end
 
@@ -313,7 +423,11 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                                                     names(toFacility), ...
                                                     origin(toFacility));
 
-            if model.disgas
+            if model.hasInstantDissolution()
+                                
+                % The instant dissolution model has a special treatment of
+                % saturation and dissolved CO2; both of which are stored in a
+                % single primary variable 'X'.
                 x_ix = strcmp(names, 'X');
                 x = vars{x_ix};
                 rs = model.getProp(state, 'rs');
@@ -324,6 +438,7 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 state = model.setProp(state, 'rs', rs);
                 remaining(x_ix) = false;
             else
+                % In models other than the instant dissolution model,
                 % saturation is a primary variable
                 sg_ix = strcmp(names, 'sG');
                 sg = vars{sg_ix};
@@ -376,8 +491,20 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             Gt = model.G;
             gdz = model.gravity * s.Grad(Gt.cells.z);
         end
+
+% ----------------------------------------------------------------------------        
+
+        function res = hasInstantDissolution(model)
+            res = model.disgas && (model.fluid.dis_rate == 0 || ...
+                                   model.fluid.dis_rate == Inf);
+        end        
+        
+% ----------------------------------------------------------------------------        
+        function res = hasRateDrivenDissolution(model)
+            res = model.disgas && ~model.hasInstantDissolution();
+        end        
+        
     end
-    
 end
 
 

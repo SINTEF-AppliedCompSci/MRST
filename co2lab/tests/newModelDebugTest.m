@@ -72,8 +72,8 @@ bc.sat = repmat([1 0], 2, 1);
 
 % well
 wcell = ceil(xres/4);
-inj_rate = 0.045 * mega * 1e3 / year/ co2_rho;
-%inj_rate = 0.02 * mega * 1e3 / year/ co2_rho;
+%inj_rate = 0.045 * mega * 1e3 / year/ co2_rho;
+inj_rate = 0.02 * mega * 1e3 / year/ co2_rho;
 W2D = addWell([], Gt, rock2D, wcell, 'type', 'rate', ...
               'val', inj_rate, 'comp_i', [0 1]);
 W2D.WI = W2D.WI .* Gt.cells.H(wcell);
@@ -96,6 +96,27 @@ model2 = CO2VEBlackOilTypeModelNew(Gt, rock2D, fluid);
 [wellSol2, states2] = simulateScheduleAD(initState, model2, schedule);
 
 
+% plot saturation, residual saturation and dissolved CO2
+figure
+for i = 1:numel(states)
+    clf; hold on;
+    [h, hmax] = upscaledSat2height(states2{i}.s(:,2), states2{i}.sGmax, Gt, ...
+                                   'resSat', [srw, src]);
+    
+    plot(h/zlen);
+    plot(hmax/zlen);
+    plot(states2{i}.rs*10);
+    legend('sG', 'sGmax', 'rs');
+    pause(0.4);
+end
+
+
+
+
+
+
+
+% plot residual saturation
 disgas = isfield(model.fluid, 'dis_max');
 for i = 1:numel(states)
     [h, hmax] = upscaledSat2height(states{i}.s(:,2), states{i}.sGmax, Gt, ...
