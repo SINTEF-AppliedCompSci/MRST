@@ -22,9 +22,6 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             model = model.setupOperators(Gt, rock2D);
             model.Components = {MiscibleWaterComponent('brine', 1), ...
                                 CO2Component('CO2', model.disgas, 2)};
-            
-            % model.Components = {ImmiscibleComponent('brine', 1), ...
-            %                     ImmiscibleComponent('CO2', 2)};
         end
         
 % ------------------------------------------------------------------------        
@@ -119,9 +116,6 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 
                 fac = (1-model.fluid.res_water) / model.fluid.res_gas;
                 eqs = [eqs, { sGmax - max(sGmax0 - dSg * fac, sG) }];
-                
-                % @@@ also remember to ensure a minimal dissolution
-                % corresponding to residual water pore volume
             end
             
             % get well equations
@@ -217,9 +211,7 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             
             % The amount of actually dissolved CO2 is also limited by the
             % actual dissolution rate
-            %eta = min(model.fluid.dis_rate, max_transfer);
             eta = max(min(model.fluid.dis_rate, max_transfer), min_transfer);
-            %eta = min(max(model.fluid.dis_rate, min_transfer), max_transfer);
         end
 
         
@@ -322,16 +314,6 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 % copy back the overwritten boundary fluxes
                 state.flux(bnd_flux_ixs, :) = bnd_fluxes;
             end
-            
-            % % @@ necessary?
-            % if model.hysteresis
-            %     sGmax0 = model.getProp(state0, 'sGmax');
-            %     sG     = model.getProp(state, 'sg');
-            %     state = model.setProp(state, 'sGmax', max(sG, sGmax0));
-            % end
-            
-            % % @@ do we need to do anything with rs?
-            
         end
 
 % ------------------------------------------------------------------------        
@@ -541,18 +523,4 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
     end
 end
 
-
-
-% ---------------------------------------
-
-% function model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
-% function [problem, state] = getEquations(model, state0, state, dt, drivingForces, varargin)
-% function [fn, index] = getVariableField(model, name, varargin)
-% function [state, report] = updateState(model, state, problem, dx, drivingForces)
-% function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-% function model = setupOperators(model, Gt, rock, varargin)
-    
-    
-% function gdz = getGravityGradient(model)
-% function rhoS = getSurfaceDensities(model)
 % function [problem, state] = getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
