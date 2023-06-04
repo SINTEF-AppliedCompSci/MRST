@@ -33,7 +33,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.temp_gradient     = 35.6; % degrees per kilometer
    opt.water_density     = 1000; % kg per m3
    opt.dis_max           = (53 * kilogram / meter^3) / rhoCref; % value from CO2store
-   opt.dis_rate          = 0; % 1e-5; % Use '0' or 'Inf' for instant dissolution
+   opt.dis_rate          = 0; % 1e-11; % Use '0' or 'Inf' for instant dissolution
    opt.max_num_wells     = 10;
    opt.default_rate      = 1 * mega * 1e3 / year / rhoCref; % default injection rate
    opt.max_rate          = 10 * mega * 1e3 / year / rhoCref; % maximum allowed injection rate

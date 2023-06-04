@@ -209,7 +209,10 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             
             % The amount of actually dissolved CO2 is also limited by the
             % actual dissolution rate
-            eta = max(min(model.fluid.dis_rate, max_transfer), min_transfer);
+            basic_rate = model.fluid.dis_rate .* pv ./ model.G.cells.H; % rate per area multiplied
+                                                                        % by CO2/brine interface
+                                                                        % area in cell
+            eta = max(min(basic_rate, max_transfer), min_transfer);
         end
 
         
@@ -302,15 +305,19 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 % boundary fluxes?
 
                 % store already-registered boundary fluxes
-                bnd_flux_ixs = drivingForces.bc.face;
-                bnd_fluxes = state.flux(bnd_flux_ixs, :);
+                if ~isempty(drivingForces.bc)
+                    bnd_flux_ixs = drivingForces.bc.face;
+                    bnd_fluxes = state.flux(bnd_flux_ixs, :);
+                end
                 
                 % add internal fluxes (@@ will overwrite boundary fluxes)
                 qWG = model.getProp(state, 'PhaseFlux');
                 state = storeFluxes(model, state, qWG{1}, [], qWG{2});
                 
                 % copy back the overwritten boundary fluxes
-                state.flux(bnd_flux_ixs, :) = bnd_fluxes;
+                if ~isempty(drivingForces.bc)
+                    state.flux(bnd_flux_ixs, :) = bnd_fluxes;
+                end
             end
         end
 
