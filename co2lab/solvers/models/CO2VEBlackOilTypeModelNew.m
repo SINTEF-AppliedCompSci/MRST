@@ -64,20 +64,6 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             for i = 1:numel(acc)
                 eqs{i} = model.operators.AccDiv(acc{i}, flux{i});
             end
-            
-            if model.hysteresis
-                sG = model.getProp(state, 'sg');
-                sGmax = model.getProp(state, 'sGmax');
-                sGmax0 = model.getProp(state0, 'sGmax');
-
-                names = [names, {'hysteresis'}];
-                types = [types, {'cell'}];
-                eqs = [eqs, { sGmax - max(sGmax0, sG) }];
-                % @@@ add influence of dissolution here
-                
-                % @@@ also remember to ensure a minimal dissolution
-                % corresponding to residual water pore volume
-            end
 
             if model.hasRateDrivenDissolution()
                 % Add conservation equation for dissolved gas
@@ -90,7 +76,8 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 [sW, sW0] = deal(model.getProp(state, 'sw'), ...
                                  model.getProp(state0, 'sw'));
 
-                bW = b{1}; bW0 = b0{1};
+                bW = b{1}; bW0 = b0{1}; 
+                bG = b{2};
                 
                 acc_dis  = ((pv  .* bW  .* sW  .* rs) - ...
                             (pv0 .* bW0 .* sW0 .* rs0)) / dt;
@@ -103,6 +90,38 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 eqs = [eqs, {eq_dis - eta}];
                 names = [names, {'dissolution'}];
                 types = [types, {'cell'}];
+                
+                % amount of saturation "eaten up" by dissolution.  Will  be
+                % used to compute depletion of residual staturation further below.
+                dSg = (eta * dt) ./ (pv .* bG); 
+            else
+                % @@ in the case of an instant dissolution model, setting dSg
+                % to zero is not strictly correct.  Even if maximum
+                % saturation is reached at the moment s > 0 in a cell, there
+                % may still be later dissolution of CO2 from the fact that
+                % brine flow may change the concentration of CO2 in the
+                % column.  To account for this, we would need to do a strict
+                % accounting of dissolved CO2 in each cell, just as we do in
+                % the rate-driven case.
+                dSg = 0;
+            end
+            
+            
+            if model.hysteresis
+                sG = model.getProp(state, 'sg');
+                sGmax = model.getProp(state, 'sGmax');
+                sGmax0 = model.getProp(state0, 'sGmax');
+
+                names = [names, {'hysteresis'}];
+                types = [types, {'cell'}];
+                
+                dissolved = eta * dt;
+                
+                fac = (1-model.fluid.res_water) / model.fluid.res_gas;
+                eqs = [eqs, { sGmax - max(sGmax0 - dSg * fac, sG) }];
+                
+                % @@@ also remember to ensure a minimal dissolution
+                % corresponding to residual water pore volume
             end
             
             % get well equations
@@ -161,17 +180,24 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             dummyADI = bW * 0; % @@
             max_supply = dummyADI + (pv0 .* bG0 .* sG0) / dt;
             
+            %max_supply = max_supply - (pv .* bG .* sG) / dt;
+            
             src = model.FacilityModel.getComponentSources(state);
             if ~isempty(src.cells)
-                max_supply(src.cells) = max_supply(src.cells) + src.value{2} / model.fluid.rhoGS;
+                max_supply(src.cells) = max_supply(src.cells) + ...
+                                        src.value{2} / model.fluid.rhoGS;
+                % max_supply(src.cells) = max_supply(src.cells) + ...
+                %                         max(src.value{2}, 0) / model.fluid.rhoGS;
             end
             
             phase_fluxes = model.getProp(state, 'ComponentPhaseFlux');
             co2_phase_flux = phase_fluxes{2, 2}; % second component in second phase
+            co2_phase_flux = co2_phase_flux / model.fluid.rhoGS; % volume, not mass
             
-            % @@@ figure out how to add max_supply back in
-            %max_supply = model.operators.AccDiv(max_supply, -1 * co2_phase_flux);
-            
+            co2_inflow = -1 * model.operators.C' * co2_phase_flux;
+            co2_inflow(co2_inflow < 0) = 0; % @@ necessary?
+            max_supply = max_supply + value(co2_inflow);
+
             % The maximum amount of CO2 that can be dissolved in a cell
             % will be limited by the most strict of the two above bounds
             max_transfer = max(min(max_demand, max_supply), 0);
@@ -179,12 +205,6 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             % The amount of actually dissolved CO2 is also limited by the
             % actual dissolution rate
             eta = min(model.fluid.dis_rate, max_transfer);
-            %eta = 0;
-            % co2present = sG > 0.2;
-            % eta = dummyADI;
-            % if ~isempty(src.cells)
-            %     eta(co2present) = 0.0001;
-            % end
             
         end
 
@@ -258,7 +278,7 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                     model.stripVars(problem.primaryVariables, {'X'});
                 dx(ix) = [];
             end
-                        
+            
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
                                                          drivingForces);
         end

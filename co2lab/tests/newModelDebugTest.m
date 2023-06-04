@@ -89,19 +89,23 @@ schedule.step.val = [repmat(day, 50, 1);
 schedule.step.control = [ones(50, 1); 2 * ones(50, 1)];
 
 %% create model and run simulation
-model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
-[wellSol, states] = simulateScheduleAD(initState, model, schedule);
+% model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
+% [wellSol, states] = simulateScheduleAD(initState, model, schedule);
 
 model2 = CO2VEBlackOilTypeModelNew(Gt, rock2D, fluid);
+
+model2.fluid.dis_rate = 1e-8;
+model2.fluid.dis_max = 0.03;
 [wellSol2, states2] = simulateScheduleAD(initState, model2, schedule);
 
 
 % plot saturation, residual saturation and dissolved CO2
 figure
-for i = 1:numel(states)
+for i = 1:numel(states2)
     clf; hold on;
     [h, hmax] = upscaledSat2height(states2{i}.s(:,2), states2{i}.sGmax, Gt, ...
                                    'resSat', [srw, src]);
+    % @@@ investigate possibly negative h
     
     plot(h/zlen);
     plot(hmax/zlen);
@@ -109,7 +113,6 @@ for i = 1:numel(states)
     legend('sG', 'sGmax', 'rs');
     pause(0.4);
 end
-
 
 
 
