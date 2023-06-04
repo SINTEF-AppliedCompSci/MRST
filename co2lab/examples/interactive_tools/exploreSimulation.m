@@ -33,6 +33,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.temp_gradient     = 35.6; % degrees per kilometer
    opt.water_density     = 1000; % kg per m3
    opt.dis_max           = (53 * kilogram / meter^3) / rhoCref; % value from CO2store
+   opt.dis_rate          = 0; % 1e-5; % Use '0' or 'Inf' for instant dissolution
    opt.max_num_wells     = 10;
    opt.default_rate      = 1 * mega * 1e3 / year / rhoCref; % default injection rate
    opt.max_rate          = 10 * mega * 1e3 / year / rhoCref; % maximum allowed injection rate
@@ -68,9 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    var.wells             = reset_wells(opt.max_num_wells);
    % Temporary variables used by different functions
    temps = [];
-   
-   
-   
+      
    set_formation(opt.default_formation, false);
 
    % Setting up interactive interface
@@ -162,12 +161,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                               'pvMult_fac'    , opt.pvMult                                 , ...
                               'residual'      , [opt.water_residual,  opt.co2_residual]    , ...
                               'dissolution'   , use_dissolution                            , ...
-                              'dis_rate'      , 0 , ... % @@ instant dissolution
+                              'dis_rate'      , opt.dis_rate                               , ...
                               'dis_max'       , opt.dis_max                                , ...
                               'surf_topo'     , topo                                       , ...
                               'top_trap'      , dh);
                               
-      model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
+      model     = CO2VEBlackOilTypeModelNew(var.Gt, var.rock2D, fluid);
       schedule  = setup_schedule();
       if isempty(schedule)
          return; % something went wrong
