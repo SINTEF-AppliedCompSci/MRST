@@ -177,8 +177,8 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             
             % how much dissolved CO2 could maximally be supplied from the
             % remaining CO2 phase in the cell
-            dummyADI = bW * 0; % @@
-            max_supply = dummyADI + (pv0 .* bG0 .* sG0) / dt;
+            zeroADI = bW * 0; %@@
+            max_supply = zeroADI + (pv0 .* bG0 .* sG0) / dt;
             
             %max_supply = max_supply - (pv .* bG .* sG) / dt;
             
@@ -202,10 +202,24 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             % will be limited by the most strict of the two above bounds
             max_transfer = max(min(max_demand, max_supply), 0);
             
+            % Newly drained areas with residual brine will reach max CO2
+            % concentration instantly, regardless of rate.  We therefore set
+            % a minimum rate
+            rw = model.fluid.res_water;
+            reswat_change = rw / (1 - rw) * (pv .* sG .* bW - pv0 .* sG0 .* bW0);
+            
+            min_transfer = zeroADI;
+            sGmax = model.getProp(state, 'sGmax');
+            imbibing = sG < sGmax;
+            
+            min_transfer(~imbibing) = ...
+                model.fluid.dis_max * max(reswat_change(~imbibing), 0) / dt;
+            
             % The amount of actually dissolved CO2 is also limited by the
             % actual dissolution rate
-            eta = min(model.fluid.dis_rate, max_transfer);
-            
+            %eta = min(model.fluid.dis_rate, max_transfer);
+            eta = max(min(model.fluid.dis_rate, max_transfer), min_transfer);
+            %eta = min(max(model.fluid.dis_rate, min_transfer), max_transfer);
         end
 
         
