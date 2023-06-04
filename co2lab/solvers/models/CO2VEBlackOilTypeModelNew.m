@@ -112,8 +112,6 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
                 names = [names, {'hysteresis'}];
                 types = [types, {'cell'}];
                 
-                dissolved = eta * dt;
-                
                 fac = (1-model.fluid.res_water) / model.fluid.res_gas;
                 eqs = [eqs, { sGmax - max(sGmax0 - dSg * fac, sG) }];
             end
