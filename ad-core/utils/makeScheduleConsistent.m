@@ -141,7 +141,8 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
         for j = 1:numel(other)
             ind_all = find(strcmp(names, currentNames{other(j)}));
             c_all = W_all(ind_all).cells;
-            c = W(other(j)).cells;
+            W_other = W(other(j));
+            c = W_other.cells;
             
             % The number of cells / the actual cells have changed.
             if numel(c) == numel(c_all) && ...
@@ -156,6 +157,11 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
                 W_all(ind_all).cells = [W_all(ind_all).cells; new_cells];
                 W_all(ind_all).cell_origin = [W_all(ind_all).cell_origin; ...
                                              repmat(i, size(new_cells))]; %#ok
+                if isfield(W_other, 'perf_map') && W_other.isMS
+                    % Assume that ms wells only expand?
+                    W_all(ind_all).perf_map = W_other.perf_map;
+                    W_all(ind_all).cells_to_nodes = W_other.cells_to_nodes;
+                end
             end
             cellsChangedFlag(ind_all) = cellsChangedFlag(ind_all) | flag;
         end
@@ -260,6 +266,9 @@ function schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag
                 % Treat rest of the fields, whatever they may be
                 for k = 1:numel(restfields)
                     fn = restfields{k};
+                    if strcmp(fn, 'cells_to_nodes') || strcmp(fn, 'perf_map')
+                        continue
+                    end
                     W_all(j).(fn) = W(sub).(fn);
                 end
                 

@@ -122,6 +122,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             if isCompostional
                 W(j).components = ones(1, n_hc)/n_hc;
             end
+            if isfield(W(j), 'isMS') && isempty(W(j).isMS)
+                W(j).isMS = false;
+            end
         end
         
         if isfield(W, 'solventFrac')
