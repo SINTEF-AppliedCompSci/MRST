@@ -1,16 +1,65 @@
 classdef WellboreReservoirComponentFlux < CouplingTerm
-   
+%State function for mass flux between wellbore and reservoir
+    
     properties
     end
     
     methods
         
-        function prop = WellboreReservoirComponentFlux(model, well, reservoir, varargin)
+        function prop = WellboreReservoirComponentFlux(model, reservoir, wellbore, varargin)
             
-            prop@CouplingTerm(model, varargin{:});
-            prop.label = 'q';
-            prop.submodels.well      = well;
+            % Optional input arguments
+            opt = struct( ...
+                'cellsReservoir', [], ...
+                'cellsWellbore' , []  ...
+            );
+            [opt, extra] = merge_options(opt, varargin{:});
+            % Parent class constructor
+            prop@CouplingTerm(model, extra{:});
+            
+            % Check that models share the same component names
+            assert(isa(model.submodels.(wellbore), 'WellboreModel'), ...
+                'Wellbore model must be of class `WellboreModel`');
+            assert( ...
+                isa(model.submodels.(reservoir), 'GeothermalModel') && ...
+                isa(model.submodels.(wellbore).parentModel, 'GeothermalModel'), ...
+                ['State function currently only implemented for ', ...
+                'Geothermal models']                               ...
+            );
+            
+            % Set reservoir and wellbore cells if not given
+            if isempty(opt.cellsReservoir)
+                opt.cellsReservoir ...
+                    = model.submodels.(wellbore).getGlobalWellCells();
+            end
+            if isempty(opt.cellsWellbore)
+                opt.cellsWellbore ...
+                    = model.submodels.(wellbore).G.cells.type == 0;
+            end
+            
+            if isempty(prop.couplings)
+                % Specify coupling
+                coupling = { ...
+                    struct( ...
+                        'model'    , reservoir         , ... % Wellbore model name
+                        'equations', {{'H2O'}}         , ... % Equations
+                        'subset'   , opt.cellsReservoir, ... % Perforated reservoir cells
+                        'sign'     , -1                 ... % Source
+                    ), ...
+                    struct( ...
+                        'model'    , wellbore          , ... % Model name
+                        'equations', {{'H2O'}}         , ... % Equations
+                        'subset'   , opt.cellsWellbore , ... % Perforated well cells
+                        'sign'     , 1                   ... % Sink
+                    ), ...
+                };
+                % Set to state function
+                prop.couplings = coupling;
+                
+            end
+            prop.label = 'Q^{w,r}';
             prop.submodels.reservoir = reservoir;
+            prop.submodels.well      = wellbore;
             
         end
         
@@ -60,3 +109,22 @@ classdef WellboreReservoirComponentFlux < CouplingTerm
     end
     
 end
+
+%{
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

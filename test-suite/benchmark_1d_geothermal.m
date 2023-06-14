@@ -2,7 +2,7 @@ function setup = benchmark_1d_geothermal(varargin)
 %Test case describing four 1D geothermal benchmarks from Weis et al (2014)
 
 %{
-Copyright 2009-2021 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

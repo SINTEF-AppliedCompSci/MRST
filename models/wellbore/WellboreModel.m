@@ -6,6 +6,7 @@ classdef WellboreModel < WrapperModel
         trajectories
         groups
         allowCtrlSwitching
+        shutCtrlType = 'rate';
         water, oil, gas
         thermal = false
         
@@ -329,6 +330,9 @@ classdef WellboreModel < WrapperModel
             fp = fp.setStateFunction('BottomholePressure'   , WellboreBottomholePressure(model));
             % Add bottomhole temperature
             fp = fp.setStateFunction('BottomholeTemperature', WellboreBottomholeTemperature(model));
+            % Set Wellbore friction loss
+            fp = fp.setStateFunction('FrictionLoss', WellboreFrictionLoss(model));
+            
             % Set to model
             model.parentModel.FlowPropertyFunctions = fp;
             
@@ -426,7 +430,7 @@ classdef WellboreModel < WrapperModel
         end
         %-----------------------------------------------------------------%
 
-        % ----------------------------------------------------------------%
+        %-----------------------------------------------------------------%
         function [model, state] = updateForChangedControls(model, state, forces)
         % Update model and state when controls/drivingForces has changed
         
@@ -442,7 +446,7 @@ classdef WellboreModel < WrapperModel
             end
             
         end
-        % ----------------------------------------------------------------%
+        %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
         function state = initStateAD(model, state, vars, names, origin)
@@ -484,53 +488,31 @@ classdef WellboreModel < WrapperModel
         function [eqs, names, types, state] = getMassFluxEquations(model, state)
         % Equations realting segment mass fluxes to the pressure by means
         % of a wellbore friction model
-        
-            [~, roughness] = model.getSegmentRoughness();
 
-            d = model.G.faces.radius.*2;
-            l = model.G.faces.length;
-
-            v = model.getProp(state, 'massFlux');
-            [p, s, rho, mu, pot, flag] = model.parentModel.getProps(state, ...
-                                        'pressure'                , ...
-                                        's'                       , ...
-                                        'Density'                 , ...
-                                        'Viscosity'               , ...
-                                        'PhasePotentialDifference', ...
-                                        'PhaseUpwindFlag'         );
+            
+            dp = model.getProp(state, 'FrictionLoss');
+            [p, s, rho] = model.parentModel.getProps(state, ...
+                'pressure'    , ...
+                's'           , ...
+                'Density'       ...
+            );
             
             nph = model.getNumberOfPhases();
             
-            [rhoMix, muMix] = deal(0);
+            rhoMix = 0;
             if ~iscell(s), s = expandMatrixToCell(s); end
             for ph = 1:nph
                 rhoMix = rhoMix + rho{ph}.*s{ph};
-                muMix  = muMix + mu{ph}.*s{ph};
             end
             
             rhoMix = model.parentModel.operators.faceAvg(rhoMix);
-            muMix  = model.parentModel.operators.faceUpstr(flag{1,1}, muMix);            
-
-            dp = wellBoreFriction(v, rhoMix, muMix, d, l, roughness, 'massRate');
-
-            %@@
-            if isa(dp, 'ADI') && 0
-                ix = 3;
-                d = diag(dp.jac{ix});
-                bad = abs(d) == 0;
-                if any(bad)
-                    n = numel(value(dp));
-                    rval = eps;
-                    dp.jac{ix} = dp.jac{ix} + sparse(1:n, 1:n, bad.*rval, n, n);
-                end
-            end
             
             g   = norm(model.parentModel.gravity);
             dz  = model.parentModel.operators.Grad(model.G.cells.centroids(:,3));
             dpw = model.parentModel.operators.Grad(p);
             
             pot   = dpw - rhoMix.*g.*dz;
-            bhp   = model.getProp(state, 'bhp');
+            
             eqs   = (pot - dp)./(1*atm);
             eqs   = {eqs};
             names = {'flux'};
@@ -550,7 +532,6 @@ classdef WellboreModel < WrapperModel
             nw = model.numWells();
             ng = model.numGroups();
             [iic, iif] = model.getInletSegments();
-            icno = find(iic); ifno = find(iif);
         
             % Make mask types
             % No control - well is controlled by group or group is not
@@ -605,24 +586,47 @@ classdef WellboreModel < WrapperModel
             % Convert surface volume rates to mass rates
             [rhoS, Qt] = model.getProps(state, 'SurfaceDensity', 'qt');
             qs = Qt./rhoS{1}(iic);
-            
             % Add in as source in corresponding well cells
             ctrlEqs(is_surface_rate) = target(is_surface_rate) - qs(is_surface_rate);
-            ctrlEqs(is_none) = Qt(is_none);
             
-            eqs   = {ctrlEqs};
+            % Set zero rate for wells that do not have a control
+%             ctrlEqs(is_none | ~is_open) = Qt(is_none | ~is_open);
+            is_shut = is_none | ~is_open;
+            if any(is_shut)
+                switch model.shutCtrlType
+                    case 'rate'
+                        ctrlEqs(is_shut) = Qt(is_shut);
+                    case 'bhp'
+                        cells = model.operators.N(iif,2);
+                        dz = model.G.cells.centroids(cells,3);
+                        g = norm(model.parentModel.gravity);
+                        rho = model.getProp(state, 'Density');
+                        rho = rho{1}(cells);
+                        pShut = 1*atm + dz.*g.*rho;
+                        ctrlEqs(is_shut) = bhp(is_shut) - pShut;
+                end
+            end
+            
+            % Format output
+            eqs   = {ctrlEqs  };
             names = {'control'};
             types = {'control'};
             
+            % Add source term to mass conservation equation
+            consEqs{1}(iic) = consEqs{1}(iic) - Qt;
+            
             if ~model.thermal, return; end
             
-            h = model.getProps(state, 'enthalpy');
-            is_inj  = value(Qt) > 0;
-            
+            % Compute injection/production enthalpy
+            [h, bht] = model.getProps(state, 'enthalpy', 'BottomHoleTemperature');
+            is_inj = value(Qt) > 0;
+            fix = isnan(value(targetTemp));
+            if ~isa(targetTemp, 'ADI'), bht = value(bht); end
+            targetTemp(fix) = bht(fix);
             hInj = model.parentModel.fluid.hW(bhp, targetTemp);
             h(iic) = is_inj.*hInj + ~is_inj.*h(iic);
 
-            consEqs{1}(iic) = consEqs{1}(iic) - Qt;
+            % Add source term to energy conservation equation
             consEqs{2}(iic) = consEqs{2}(iic) - Qt.*h(iic);
             
         end
@@ -779,12 +783,18 @@ classdef WellboreModel < WrapperModel
             p = problem; p.primaryVariables = p.primaryVariables(parent);
             [state, report] = updateState@WrapperModel(model, state, p, dx, forces);
 
+            
             for i = (nnz(parent) + 1):numel(problem.primaryVariables)
-                 p = problem.primaryVariables{i};
-                 % Update wellbore model variables
-                 state = model.updateStateFromIncrement(state, dx, problem, p);
+                dxAbsMax = inf;
+                p = problem.primaryVariables{i};
+%                 if strcmpi(p, 'massFlux'), dxAbsMax = 1e-3*mean(model.G.faces.areas)*litre/second; end
+                % Update wellbore model variables
+                state = model.updateStateFromIncrement(state, dx, problem, p, inf, dxAbsMax);
             end
             
+%             sgn = sign(state.massFlux);
+%             v = max(abs(state.massFlux), 1e-3);
+%             state.massFlux = v.*sgn;
 %             model = model.applyLimits(state);
 
         end
@@ -1068,6 +1078,7 @@ classdef WellboreModel < WrapperModel
     
 end
 
+%-------------------------------------------------------------------------%
 function rock = extractSubrock(rock, cells)
 
     n = numel(rock.poro);
@@ -1080,3 +1091,23 @@ function rock = extractSubrock(rock, cells)
     end
 
 end
+%-------------------------------------------------------------------------%
+
+%{
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

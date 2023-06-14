@@ -1,19 +1,31 @@
-function src = getHeatFluxBoundary(model, src, drivingForces)
+function forces = getHeatFluxFromSources(model, forces, drivingForces)
 %Add heat flux from boundary conditions
 
     % Early return if no BCs are given
-    if isempty(src.bc.sourceCells)
-        src.bc.heatFlux = [];
-        return
+    [forces.bc.heatFlux, forces.src.heatFlux] = deal([]);
+    if ~isempty(forces.bc.sourceCells)
+        bc = drivingForces.bc;
+        propsRes = bc.propsRes;
+        propsBC  = bc.propsForce;
+        [qAdv, q] = computeAdvectiveHeatFlux( ...
+            model, propsRes, propsBC, forces.bc.phaseMass);
+        qCond = computeConductiveHeatFlux(propsRes, propsBC, bc);
+        forces.bc.advHeatFlux = q;
+        forces.bc.condHeatFlux = qCond;
+        forces.bc.heatFlux = qAdv + qCond;
     end
-    bc = drivingForces.bc;
-    propsRes = bc.propsRes;
-    propsBC  = bc.propsBC;
-    [qAdv, q] = computeAdvectiveHeatFlux(model, propsRes, propsBC, src);
-    qCond = computeConductiveHeatFlux(propsRes, propsBC, bc);
-    src.bc.advHeatFlux = q;
-    src.bc.condHeatFlux = qCond;
-    src.bc.heatFlux = qAdv + qCond;
+    
+    if ~isempty(forces.src.sourceCells)
+        src = drivingForces.src;
+        propsRes  = src.propsRes;
+        propsSrc  = src.propsForce;
+        [qAdv, q] = computeAdvectiveHeatFlux( ...
+            model, propsRes, propsSrc, forces.src.phaseMass);
+        qCond = computeConductiveHeatFlux(propsRes, propsSrc, src);
+        forces.src.advHeatFlux = q;
+        forces.src.condHeatFlux = qCond;
+        forces.src.heatFlux = qAdv + qCond;
+    end
     
 end
 
@@ -26,9 +38,9 @@ function [q, qph] = computeAdvectiveHeatFlux(model, propsRes, propsBC, src)
     hbc = model.getProps(propsBC , 'PhaseEnthalpy');
     hr  = model.getProps(propsRes, 'PhaseEnthalpy');    
     for i = 1:nph
-        inflow = src.bc.phaseMass{i} > 0;
+        inflow = src{i} > 0;
         h      = inflow.*hbc{i} + ~inflow.*hr{i};
-        qph{i} = src.bc.phaseMass{i}.*h;
+        qph{i} = src{i}.*h;
         q      = q + qph{i};
     end
     
@@ -44,7 +56,7 @@ function q = computeConductiveHeatFlux(propsRes, propsBC, bc)
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

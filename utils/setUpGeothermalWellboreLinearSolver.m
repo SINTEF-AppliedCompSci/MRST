@@ -1,5 +1,7 @@
-function solver = setUpGeothermalLinearSolverAD_WB(model, varargin)
+function solver = setUpGeothermalWellboreLinearSolver(model, varargin)
+%Set up a linear solver for composite geothermal models with WellboreModel
 
+    % Optional input arguments
     opt = struct('useCPR', true);
     opt = merge_options(opt, varargin{:});
 
@@ -10,8 +12,9 @@ function solver = setUpGeothermalLinearSolverAD_WB(model, varargin)
         solver.setSolver('gmres');
     else
         solver = AMGCL_CPRSolverAD();
-        solver.decoupling = 'none';
+        solver.decoupling = 'quasiimpes';
     end
+    % Set maximum iterations and tolerance
     solver.maxIterations = 200;
     solver.tolerance = 1e-4;
     
@@ -40,3 +43,22 @@ function solver = setUpGeothermalLinearSolverAD_WB(model, varargin)
     solver.reduceToCell = false;
     
 end
+
+%{
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}

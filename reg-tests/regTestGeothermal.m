@@ -15,10 +15,13 @@ mrstVerbose off
 % Define test cases for regression testing
 tests = {
     % Test case name        % Test case options
-    'qfs_geothermal'      , {'Name', 'qfs'};
-    'qfs_geothermal'      , {'NaCl', true, 'Name', 'qfs_nacl'};
-    'small_egs_geothermal', {};
-    'htates_geothermal'   , {};
+    'qfs_geothermal'       , {'Name', 'qfs'};
+    'qfs_geothermal'       , {'NaCl', true, 'Name', 'qfs_nacl'};
+    'small_egs_geothermal' , {};
+    'fivespot_geothermal'  , {};
+    'convection_geothermal', {'Name', 'convection'};
+    'convection_geothermal', {'massInjection', true, 'Name', 'convection_mass'};
+    'htates_geothermal'    , {};
 };
 % Set up regression test group
 rtest = RegressionTestGroup('geothermal', tests(:,1), 'regTestOpt', tests(:,2));
@@ -30,7 +33,7 @@ rtest.runRegressionTests();
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

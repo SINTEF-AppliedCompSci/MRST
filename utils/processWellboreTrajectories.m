@@ -1,5 +1,55 @@
 function [W, Gsub] = processWellboreTrajectories(G, rock, coords, varargin)
-    
+%Process wellbore trajectories for use in WellboreModel.
+%
+% SYNOPSIS:
+%   [W, Gsub] = processWellboreTrajectories(G, rock, coords)
+%   [W, Gsub] = processWellboreTrajectories(G, rock, coords, 'pn1', vn1, ...)
+%
+% PARAMETERS:
+%   G      - MRST grid structure
+%
+%   rock   - MRST rock structure
+%
+%   coords - Either a cell array of coordinates defining the trajectory for
+%            each wellbore, or a structure of existing wells
+%
+% OPTIONAL ARGUMENTS:
+%   names     - Cell array of well names
+%
+%   radius    - Vector of well radii, one per well
+%
+%   refDepth  - Vector of well reference depths, one per well
+%
+%   roughness - Vector of well roughnesses, one per well
+%
+% RETURNS:
+%   W    - Well structure with trajectories added. Well cells will also be
+%          topologically sorted.
+%
+%   Gsub - Grid made by extracting the traversed cells of model.G.
+%
+% NOTE:
+%   The WellboreModel is currently only compatible with GeothermalModel
+
+%{
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     % Process input arguments
     %---------------------------------------------------------------------%
     opt = struct('names'    , {{}}, ...
@@ -89,6 +139,11 @@ function [opt, wellsGiven, varargin] = processInput(coords, opt, varargin)
         opt.refDepth = 0*meter;
         opt.names    = cellfun(@(n) sprintf('W%d', n), ...
                                 num2cell(1:nw), 'UniformOutput', false);
+    else
+        W = coords;
+        opt.radius   = arrayfun(@(W) W.r(1), W);
+        opt.names    = {W.name}';
+        opt.refDepth = [W.refDepth]';
     end
     [opt, varargin] = merge_options(opt, varargin{:});
 
@@ -186,6 +241,7 @@ function W = topoSortWellCells(G, W)
 
 end
 
+%-------------------------------------------------------------------------%
 function traj = addHybridCells(G, W, traj)
 
     hybrid = ~ismember(W.cells, traj.cell);
@@ -193,7 +249,7 @@ function traj = addHybridCells(G, W, traj)
     
     assert(nnz(~hybrid) == nnz(~G.cells.hybrid(W.cells)))
     traj.cell = W.cells;
-    traj.vec = interp1(find(~hybrid), traj.vec, (1:nc)');
+    traj.vec = interp1(find(~hybrid), traj.vec, (1:nc)', 'linear', 'extrap');
     traj.vec(hybrid,3) = G.cells.aperture(W.cells(hybrid));
     w0 = traj.weight;
     traj.weight = zeros(nc,1);
@@ -201,3 +257,4 @@ function traj = addHybridCells(G, W, traj)
     traj.weight(hybrid) = 1;
     
 end
+%-------------------------------------------------------------------------%

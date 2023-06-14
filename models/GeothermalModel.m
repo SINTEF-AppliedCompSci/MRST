@@ -45,7 +45,8 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
         % with H2O as the only component
         compFluid 
         % Physical quantities and bounds
-        geothermalGradient = 30*Kelvin/(kilo*meter);
+        geothermalGradient        = 30*Kelvin/(kilo*meter);
+        radiogenicHeatFluxDensity = 0*micro*watt/meter^3;
         minimumTemperature = -inf;
         maximumTemperature =  inf;
         % Update limits
@@ -119,58 +120,72 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                      'have fields transHr and transHf (rock/fluid heat trans)']);
             end
             
-            drock = rock;
-            if model.dynamicFlowTrans()
-                % Assign dummy transmissibilities to appease
-                % model.setupOperators
+            if ~isFractured(model.G)
                 drock = rock;
-                drock.perm = rock.perm(1*barsa, 273.15 + 20*Kelvin);
-            end
-            % Let reservoir model set up operators
-            model = setupOperators@ReservoirModel(model, G, drock, varargin{:});
-            model.rock = rock;
-            
-            pv  = model.operators.pv;
-            vol = opt.vol;
-            if isempty(vol), vol = G.cells.volumes; end
-            model.operators.vol = vol;
-            % Compute heat transmissibilities if we are not using dynamic
-            if ~model.dynamicHeatTransRock()
-                % Compute static heat transmissibility
-                Thr = opt.transHr;
-                if isempty(Thr)
-                    lambdaR = rock.lambdaR.*(vol - pv)./vol;
-                    r       = struct('perm', lambdaR);
-                    Thr     = getFaceTransmissibility(model.G, r);
-                    if hasNNC, Thr = [Thr; G.nnc.transHr]; end
+                if model.dynamicFlowTrans()
+                    % Assign dummy transmissibilities to appease
+                    % model.setupOperators
+                    drock = rock;
+                    drock.perm = rock.perm(1*barsa, 273.15 + 20*Kelvin);
                 end
-                % Assign to model.operators
-                if numel(Thr) < model.G.faces.num
-                    Thr_all = zeros(model.G.faces.num, 1);
-                    Thr_all(model.operators.internalConn) = Thr;
-                    Thr = Thr_all;
+                % Let reservoir model set up operators
+                model = setupOperators@ReservoirModel(model, G, drock, varargin{:});
+                model.rock = rock;
+
+                pv  = model.operators.pv;
+                vol = opt.vol;
+                if isempty(vol), vol = G.cells.volumes; end
+                model.operators.vol = vol;
+                % Compute heat transmissibilities if we are not using dynamic
+                if ~model.dynamicHeatTransRock()
+                    % Compute static heat transmissibility
+                    Thr = opt.transHr;
+                    if isempty(Thr)
+                        lambdaR = rock.lambdaR.*(vol - pv)./vol;
+                        r       = struct('perm', lambdaR);
+                        Thr     = getFaceTransmissibility(model.G, r);
+                        if hasNNC, Thr = [Thr; G.nnc.transHr]; end
+                    end
+                    % Assign to model.operators
+                    if numel(Thr) < model.G.faces.num
+                        Thr_all = zeros(model.G.faces.num, 1);
+                        Thr_all(model.operators.internalConn) = Thr;
+                        Thr = Thr_all;
+                    end
+                    model.operators.Thr     = Thr(model.operators.internalConn);
+                    model.operators.Thr_all = Thr;
                 end
-                model.operators.Thr     = Thr(model.operators.internalConn);
-                model.operators.Thr_all = Thr;
-            end
-            
-            if ~model.dynamicHeatTransFluid()
-                % Compute static heat transmissibility
-                Thf = opt.transHf;
-                if isempty(Thf)
-                    lambdaF = repmat(model.fluid.lambdaF, model.G.cells.num, 1).*pv./vol;
-                    r       = struct('perm', lambdaF);
-                    Thf     = getFaceTransmissibility(model.G, r);
-                    if hasNNC, Thf = [Thf; G.nnc.transHr]; end
+
+                if ~model.dynamicHeatTransFluid()
+                    % Compute static heat transmissibility
+                    Thf = opt.transHf;
+                    if isempty(Thf)
+                        lambdaF = repmat(model.fluid.lambdaF, model.G.cells.num, 1).*pv./vol;
+                        r       = struct('perm', lambdaF);
+                        Thf     = getFaceTransmissibility(model.G, r);
+                        if hasNNC, Thf = [Thf; G.nnc.transHr]; end
+                    end
+                    % Assign to model.operators
+                     if numel(Thf) < model.G.faces.num
+                        Thf_all = zeros(model.G.faces.num, 1);
+                        Thf_all(model.operators.internalConn) = Thf;
+                        Thf = Thf_all;
+                    end
+                    model.operators.Thf     = Thf(model.operators.internalConn);
+                    model.operators.Thf_all = Thf;
                 end
-                % Assign to model.operators
-                 if numel(Thf) < model.G.faces.num
-                    Thf_all = zeros(model.G.faces.num, 1);
-                    Thf_all(model.operators.internalConn) = Thf;
-                    Thf = Thf_all;
-                end
-                model.operators.Thf     = Thf(model.operators.internalConn);
-                model.operators.Thf_all = Thf;
+            else
+                % Require DFM module
+                require dfm
+                % Assert that we do not have dynamic transmissibilities
+                assert(~(model.dynamicFlowTrans()      || ...
+                         model.dynamicHeatTransRock()  || ...
+                         model.dynamicHeatTransFluid()), ...
+                        ['Dynamic transmissibility not supported in ', ...
+                        'fractured models'] ...
+                );
+                % Set up operators
+                model = fractureOperatorModifications(model, G, rock);
             end
             
             % Compute hash
@@ -216,7 +231,7 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                         && numel(ctrl.bc.T) == numel(ctrl.bc.face)) || ...
                     (isfield(ctrl.bc, 'Hflux') ...
                         && numel(ctrl.bc.Hflux) == numel(ctrl.bc.face)),  ...
-                    'bc must have a given temperature (T) or heat flux (Hflux)');
+                    'BC must have a given temperature (T) or heat flux (Hflux)');
                 % Check that bcs have component field
                 if ~isfield(ctrl.bc, 'components')
                     assert(numel(model.compFluid.names) == 1, ...
@@ -225,6 +240,24 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     ctrl.bc.components = ones(numel(ctrl.bc.face),1);
                 end
             end
+            
+            if isfield(ctrl, 'src') && ~isempty(ctrl.src)
+                % Check that bcs have thermal fields
+                assert( ...
+                    (isfield(ctrl.src, 'T') ...
+                        && numel(ctrl.src.T) == numel(ctrl.src.cell)) || ...
+                    (isfield(ctrl.src, 'Hflux') ...
+                        && numel(ctrl.src.Hflux) == numel(ctrl.src.face)),  ...
+                    'Source must have a given temperature (T) or heat flux (Hflux)');
+                % Check that bcs have component field
+                if ~isfield(ctrl.src, 'components')
+                    assert(numel(model.compFluid.names) == 1, ...
+                        ['Model has more than one component - please ', ...
+                         'provide component field to src (src.cmomponents)']);
+                    ctrl.src.components = ones(numel(ctrl.src.cell),1);
+                end
+            end
+            
             if isfield(ctrl, 'W') && ~isempty(ctrl.W)
                 % Check that wells have a prescribed temperature
                 assert(all(arrayfun(@(w) isfield(w, 'T'), ctrl.W))  , ...
@@ -285,6 +318,11 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 molf  = ComponentPhaseMoleFractionsBrine(model);
                 pvt   = pvt.setStateFunction('ComponentPhaseMassFractions', massf);
                 pvt   = pvt.setStateFunction('ComponentPhaseMoleFractions', molf );
+                % Radiogenic heat production
+                if any(model.radiogenicHeatFluxDensity > 0)
+                    rh  = RadiogenicHeatSource(model);
+                    pvt = pvt.setStateFunction('RadiogenicHeatSource', rh);
+                end
                 % Replace
                 model.PVTPropertyFunctions = pvt;
             end
@@ -476,6 +514,11 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 end
                 % Assemble equations
                 eeqs{1} = model.operators.AccDiv(eeqs{1}, eflux{1});
+                % Add in radiogenic heat source
+                if any(model.radiogenicHeatFluxDensity > 0)
+                    qh = model.getProp(state, 'RadiogenicHeatSource');
+                    eeqs{1} = eeqs{1} - qh;
+                end
             else
                 [eeqs, enames, etypes] = deal([]);
             end
@@ -718,7 +761,10 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
             end
             
             if isfield(forces, 'bc') && ~isempty(forces.bc)
-                forces.bc = getBCProperties(forces.bc, model, state);
+                forces.bc = getForceProperties(forces.bc, model, state);
+            end
+            if isfield(forces, 'src') && ~isempty(forces.src)
+                forces.src = getForceProperties(forces.src, model, state);
             end
             [eqs, state, src] = addBoundaryConditionsAndSources@ReservoirModel(model, eqs, names, types, state, ...
                                                                       pressures, sat, mob, rho, {}, comps, forces);
@@ -726,10 +772,15 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                 return
             end
             eix = strcmpi(names, 'energy');
-            if ~isempty(src.bc.sourceCells)
-                src = getHeatFluxBoundary(model, src, forces);
-                q = src.bc.mapping*src.bc.heatFlux;
-                eqs{eix}(src.bc.sourceCells) = eqs{eix}(src.bc.sourceCells) - q;
+            if ~isempty(src.bc.sourceCells) || ~isempty(src.src.sourceCells)
+                % Compute heat flux
+                src = getHeatFluxFromSources(model, src, forces);
+                % Add in heat flux from BCs
+                qBC = src.bc.mapping*src.bc.heatFlux;
+                eqs{eix}(src.bc.sourceCells) = eqs{eix}(src.bc.sourceCells) - qBC;
+                % Add in heat flux from srouces
+                qSrc = src.src.mapping*src.src.heatFlux;
+                eqs{eix}(src.src.sourceCells) = eqs{eix}(src.src.sourceCells) - qSrc;
             end
             
         end
@@ -802,12 +853,13 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
                     state = model.storeBoundaryFluxes(state, fWOG{1}, fWOG{2}, fWOG{3}, drivingForces);
                     
                     if ~model.thermal, return; end
-                    drivingForces.bc = getBCProperties(drivingForces.bc, model, state_flow);
+                    drivingForces.bc = getForceProperties(drivingForces.bc, model, state_flow);
                     src = struct();
                     phaseMass = cellfun(@(rho, q) rho.*q, drivingForces.bc.propsRes.rho, fRes', 'UniformOutput', false);
                     src.bc.phaseMass = phaseMass;
                     src.bc.sourceCells = sum(model.G.faces.neighbors(drivingForces.bc.face,:), 2);
-                    src = getHeatFluxBoundary(model, src, drivingForces);
+                    src.src.sourceCells = [];
+                    src = getHeatFluxFromSources(model, src, drivingForces);
                     
                     faces = drivingForces.bc.face;
                     sgn = 1 - 2*(model.G.faces.neighbors(faces, 2) == 0);
@@ -875,8 +927,66 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
     
 end
 
+% Helpers for fractures models with DFM
+
+%-------------------------------------------------------------------------%
+function res = isFractured(G)
+
+   res = isfield(G, 'hybridNeighbors');
+   
+end
+%-------------------------------------------------------------------------%
+
+%-------------------------------------------------------------------------%
+function model = fractureOperatorModifications(model, G, rock)
+    
+    [operators, G] = computeOperatorsDFM(G, rock);
+    model.operators = operators;
+    
+    pv  = model.operators.pv;
+    vol = G.cells.volumes;
+    % Compute static heat transmissibility in rock
+    lambdaR   = model.rock.lambdaR.*(vol - pv)./vol;
+    rock.perm = lambdaR;
+    op = computeOperatorsDFM(G, rock);
+    model.operators.Thr     = op.T;
+    model.operators.Thr_all = op.T_all;
+    % Compute static heat transmissibility in fluid
+    lambdaF   = model.fluid.lambdaF.*pv./vol;
+    rock.perm = lambdaF;
+    op = computeOperatorsDFM(G, rock);
+    model.operators.Thf     = op.T;
+    model.operators.Thf_all = op.T_all;
+    % Update model with the modified grid
+    model.G = G;
+   
+end
+%-------------------------------------------------------------------------%
+
+%-------------------------------------------------------------------------%
+function [operators, G] = computeOperatorsDFM(G, rock)
+
+    % Compute matrix-matrix and matrix-fracture half-face transmissibilities
+    Tmhf = computeTrans_DFM(G, rock, 'hybrid', true);
+    % Compute fracture-fracture transmissibilities
+    [G, Tf] = computeHybridTrans(G, Tmhf); % will add field 'neighbors' to G.cells
+    % Convert half-transmissibilities to full transmissibilities
+    Tm = 1./accumarray(G.cells.faces(:,1), 1./Tmhf, [G.faces.num, 1]);
+    % Assign transmissibility (temporarily add cells.neighbors to
+    % face.neighbors list, to permit creation of the corresponding
+    % operators)
+    if ~isempty(G.cells.neighbors)
+        G.nnc.cells = G.cells.neighbors;
+        G.nnc.trans = Tf;
+    end
+    operators = setupOperatorsTPFA(G, rock, 'trans', Tm);
+    operators.vol = G.cells.volumes;
+    
+end
+%-------------------------------------------------------------------------%
+
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

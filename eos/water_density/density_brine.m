@@ -16,7 +16,7 @@ function rho_b = density_brine(p, t, c)
 %   'density_pure_water', 'viscosity_pure_water', 'viscosity_brine'
 
 %{
-Copyright 2009-2022 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

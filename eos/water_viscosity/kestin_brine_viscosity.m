@@ -1,10 +1,10 @@
 function mu_mPas = kestin_brine_viscosity(p, T, c)
 %Compute the brine viscosity defined by Kestin et al. (1981) ref. Tables of
 %the dynamic and kinematic viscosity of aqueous NaCl solution temperature
-%range 20-150ºC and the pressure range 0.1-35MPa
+%range 20-150ÂºC and the pressure range 0.1-35MPa
 % 
 % Pressure is in MPa
-% Temperature in ºC 
+% Temperature in ÂºC 
 % Salt concentration in mol/kg H2O
 
     % Compute the beta factors
@@ -32,15 +32,15 @@ function mu_mPas = kestin_brine_viscosity(p, T, c)
     B = -(0.396e-1).*c + (0.102e-1).*(c.^2) - (0.702e-3).*(c.^3);
 
 
-    mu_w0_20 = 1002;                                                           % viscosity of mu_w0 at 20ºC in µPa s. 
+    mu_w0_20 = 1002;                                                           % viscosity of mu_w0 at 20ÂºC in ÂµPa s. 
 
-    % compute µ_w0 (mu_w0) 
+    % compute Âµ_w0 (mu_w0) 
     log_mu_w0_ov_mu_w0_20 = (20-T)./(96+T).*[1.2378 - (1.303e-3).*(20-T) + (3.06e-6).*((20-T).^2) ...
                                             + (2.55e-8).*((20-T).^3)];
 
     mu_w0 = (10.^log_mu_w0_ov_mu_w0_20).*mu_w0_20;
 
-    % compute µ_0 (mu_0)
+    % compute Âµ_0 (mu_0)
     log_mu_0_ov_mu_W0 = A + B.*log_mu_w0_ov_mu_w0_20;                                    
     mu_0 = (10.^log_mu_0_ov_mu_W0).*mu_w0;                                  
 
@@ -52,7 +52,7 @@ function mu_mPas = kestin_brine_viscosity(p, T, c)
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
