@@ -102,6 +102,14 @@ function subop = getSubOperators(model, cellMap, faceMap)
     % Transmissibility
     subop.T     = op.T(faceMap.activeConn);
     subop.T_all = op.T_all(faceMap.keep);
+    if isfield(subop, 'Thr')
+        subop.Thr   = op.Thr(faceMap.activeConn);
+        subop.Thr_all = op.Thr_all(faceMap.keep);
+    end
+    if isfield(subop, 'Thf')
+        subop.Thf   = op.Thf(faceMap.activeConn);
+        subop.Thf_all = op.Thf_all(faceMap.keep);
+    end
     % Neighboring connections
     subop.N = cellMap.renum(op.N(faceMap.activeConn, :));
     % Transpose in case we have a single internal connection
@@ -127,6 +135,10 @@ function subop = getSubOperators(model, cellMap, faceMap)
     subop.splitFaceCellValue = @(operators, flag, x) splitFaceCellValue(operators, flag, x, [nf, nc]);
     % Pore volume
     subop.pv = op.pv(cellMap.keep);
+    if isfield(op, 'vol')
+        subop.vol = op.vol(cellMap.keep);
+    end
+        
     subop.internalConn = all(faceMap.neighbors ~= 0, 2);
     % Remove field
     if isfield(subop, 'diag_updated')
