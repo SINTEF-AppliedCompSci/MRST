@@ -99,6 +99,7 @@ classdef SparseTensor
         end
         
         function tensor = setFromTensorProd(tensor, vec, prod, varargin)
+            
             opts = struct('argindex', 1);            
             opts = merge_options(opts, varargin{:}); 
             argindex = opts.argindex;

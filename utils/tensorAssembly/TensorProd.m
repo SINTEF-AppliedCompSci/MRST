@@ -277,7 +277,32 @@ classdef TensorProd
             
             
         end
-        
+
+        function matrices = getMatrices(prod)
+            
+            dispind1 = prod.dispind1;
+            dispind2 = prod.dispind2;
+            dispind3 = prod.dispind3;
+            
+            n1 = prod.tbl1.num;
+            n2 = prod.tbl2.num;
+            n3 = prod.tbl3.num;
+
+            npiv = prod.pivottbl.num;
+
+            % Dispatch from tbl1 to pivot
+            D1 = sparse((1 : npiv)', dispind1, 1, npiv, n1);
+            % Dispatch from tbl2 to pivot
+            D2 = sparse((1 : npiv)', dispind2, 1, npiv, n2);
+            % Sum from pivot to tbl3
+            S = sparse(dispind3, (1 : npiv)', 1, n3, npiv);
+
+            matrices = struct('D1', D1, ...
+                              'D2', D2, ...
+                              'S', S);
+            
+        end
+            
         function [ind1, ind2] = getDispatchInd(prod)
         % In the case where the product is set up to create a bilinear mapping (see
         % SparseTensor.setFromTensorProd method), then we can use this function
