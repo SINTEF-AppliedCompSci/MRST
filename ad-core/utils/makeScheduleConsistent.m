@@ -173,6 +173,13 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
             for j = 1:numel(W_new)
                 W_new(j).cell_origin = repmat(i, numel(W_new(j).cells), 1);
             end
+            % New or old wells could potentially be MS wells. Consolidate
+            % the field names to make sure that these are consistent with
+            % the superset of fields needed to describe all wells in the
+            % model.
+            W_all = consolidateWellFields(W_new, W_all);
+            W_new = consolidateWellFields(W_all, W_new);
+
             W_all = [W_all; W_new]; %#ok
             changed_new = arrayfun(@(x) ~all(x.cstatus), W_new);
             cellsChangedFlag = [cellsChangedFlag; changed_new]; %#ok
@@ -490,4 +497,21 @@ function array = swap(array, in, out)
     tmp = array(out, :);
     array(out, :) = array(in, :);
     array(in, :) = tmp;
+end
+
+function W_all = consolidateWellFields(W_new, W_all)
+    if isempty(W_new) || isempty(W_all)
+        return
+    end
+    fn_new = fieldnames(W_new);
+    fn_all = fieldnames(W_all);
+    if numel(fn_all) < numel(fn_new)
+        missing = setdiff(fn_new, fn_all);
+        for j = 1:numel(W_all)
+            W_all(j).isMS = false;
+            for k = 1:numel(missing)
+                W_all(j).(missing{k}) = [];
+            end
+        end
+    end
 end
