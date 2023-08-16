@@ -66,7 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    check_num_records(nrec);
 
-   data = repmat(template, [nrec, 1]);
+   data = repmat(reshape(template, 1, []), [nrec, 1]);
    for rec = 1 : nrec
       data(rec, :) = readDefaultedRecord(fid, template);
 
