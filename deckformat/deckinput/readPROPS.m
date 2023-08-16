@@ -185,17 +185,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'ROCKOPTS'
             tmpl = { 'PRESSURE', 'NOSTORE', 'PVTNUM', 'DEFLATION' };
-            prp.(kw) = readDefaultedKW(fid, tmpl, 'NRec', 1);    clear tmpl
+            prp.(kw) = readFixedNumRecords(fid, tmpl, 1);    clear tmpl
 
          case 'ROCK'
-            nrec = ntpvt;
-
-            if isfield(prp, 'ROCKOPTS')
-               nrec = ntrocc;
-            end
-
             tmpl(1:6) = { 'NaN' };
-            data      = readDefaultedKW(fid, tmpl, 'NRec', nrec);
+            nrec      = numRockRecords(deck.RUNSPEC, prp);
+            data      = readFixedNumRecords(fid, tmpl, nrec);
             prp.(kw)  = to_double(data);  clear tmpl nrec
 
          case 'SPECHEAT'
@@ -443,6 +438,58 @@ function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp, nequil, nmeosr] = ...
    end
    if isfield(deck.RUNSPEC, 'EQLDIMS')
       nequil = deck.RUNSPEC.EQLDIMS(1);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function ntrock = numRockRecords(runspec, props)
+% The number of records in ROCK depends on ROCKOPTS and TABDIMS
+%
+% 1. If TABDIMS does not exist, then the number of ROCK records is 1.
+%
+% 2. Otherwise, if ROCKOPTS is NOT present, then the number of ROCK records
+%    is NTPVT (= TABDIMS(2)).
+%
+% 3. Otherwise, the number of records depends on item 3 of ROCKOPTS
+%    a) If ROCKOPTS(3) = 'PVTNUM' (default), then the number of ROCK
+%       records is NTPVT.
+%    b) If ROCKOPTS(3) = 'SATNUM', then the number of ROCK records is
+%       NTSFUN (= TABDIMS(1)).
+%    c) If ROCKOPTS(3) = 'ROCKNUM', then the number of ROCK records is
+%       NTROCC (= TABDIMS(13)).
+%
+% Finally, if ROCKOPTS(3) = 'ROCKNUM', but NTROCC is defaulted (< 1), then
+% the number of ROCK records is NTPVT.
+
+   if ~isfield(runspec, 'TABDIMS')
+      ntrock = 1;
+   else
+      ntrock = numRockRecordsFromTabdims(runspec, props);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function ntrock = numRockRecordsFromTabdims(runspec, props)
+   ntpvt = runspec.TABDIMS(2);
+   if ~isfield(props, 'ROCKOPTS')
+      ntrock = ntpvt;
+      return
+   end
+
+   % ROCKOPTS exists.  Look at ROCKOPTS(3) to infer number of ROCK records
+   switch props.ROCKOPTS{3}
+      case 'PVTNUM'
+         ntrock = ntpvt;
+      case 'SATNUM'
+         ntrock = runspec.TABDIMS(1); % NTSFUN
+      case 'ROCKNUM'
+         ntrock = runspec.TABDIMS(13); % NTROCC
+         if ntrock < 1, ntrock = ntpvt; end % NTROCC default => NTPVT
+      otherwise
+         error('Unsupported:ROCKOPTS', ...
+               'NTROC mode ''%s'' is unsupported', props.ROCKOPTS{3});
    end
 end
 
