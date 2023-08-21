@@ -119,7 +119,7 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
     pth = fullfile(folder_path, [name, '.mat']);
     jutul = struct();
     if reduce
-        keys = {'GRID', 'REGIONS', 'SOLUTION', 'SUMMARY', 'SCHEDULE', 'UnhandledKeywords'};
+        keys = {'GRID', 'REGIONS', 'SUMMARY', 'SCHEDULE', 'UnhandledKeywords'};
         for i = 1:numel(keys)
             deck = stripIfPresent(deck, keys{i});
         end
