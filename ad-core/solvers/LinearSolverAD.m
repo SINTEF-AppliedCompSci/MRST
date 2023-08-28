@@ -123,7 +123,7 @@ classdef LinearSolverAD < handle
         %  
         %     We consider an objective function that has the form of a sum of functions of the state at time step i,
         %    
-        %     g(x) = sum_{i}  g_i(x_i).
+        %     g(x) = sum_{i}  g_i(x_i, u_i).
         %
         %     Let us derive the adjoint equations and the expression of the gradient of g with respect to the control variables u_i
         %
@@ -133,7 +133,7 @@ classdef LinearSolverAD < handle
         %
         %     The infinitiesimal variation of the objective function is given by
         %
-        %     dg = sum_{i} ( (dg_i/dx) dx_i )
+        %     dg = sum_{i} ( (dg_i/dx) dx_i + (dg_i/du) du_i)
         %
         %     The variable `objective` contains the linearization of g, that is (dg_i/dx) (as a vector).
         %
@@ -154,7 +154,7 @@ classdef LinearSolverAD < handle
         %
         %     For these values of lamb_i, the gradient of g with respect to control u is equal to
         %
-        %     dg = sum_{i} lamb_i^t (dF_i/du) du_i
+        %     dg = sum_{i} lamb_i^t (dF_i/du) du_i + (dg_i/du) du_i
         %
         % PARAMETERS:
         %
