@@ -51,12 +51,6 @@ function model = setAvgMPFA(model, varargin)
     dp = fd.getStateFunction('PressureGradient');
     dp.Grad = @(p) avgmpfa.gradient(p);
     fd = fd.setStateFunction('PressureGradient', dp);
-
-    % % Gravity potential difference
-    % dg = fd.getStateFunction('GravityPotentialDifference');
-    % dg.weight = Mg;
-    % fd = fd.setStateFunction('GravityPotentialDifference', dg);
-
     model.FlowDiscretization = fd;
 
     model.operators.Grad = dp.Grad;
