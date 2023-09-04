@@ -113,7 +113,7 @@ plotter(G, statesMPFA, 'MPFA')
 return
 
 %% Simulate explicit MPFA and explicit TPFA
-model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep');
+model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep', dt(1));
 model_ntpfa_exp = setTimeDiscretization(model_ntpfa, 'Explicit');
 model_mpfa_exp = setTimeDiscretization(model_mpfa, 'Explicit');
 disp('TPFA explicit')
