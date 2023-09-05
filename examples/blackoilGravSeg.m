@@ -82,7 +82,6 @@ model_ntpfa = setNTPFADiscretization(model, 'myRatio', []);
 statesNTPFA = solve(state0, model_ntpfa, schedule, input, opts{:});
 plotter(G, statesNTPFA{end}, sprintf('%s', input.discmethod), figs(5))
 
-end
 
 function plotter(G, state, str, figno, edgealpha)
 
