@@ -21,7 +21,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
    
    gravity on;
-   mrstModule add ad-core;
+   mrstModule add ad-core co2lab;
 
    rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
    
