@@ -355,6 +355,8 @@ function schedule = reorderWellsPerforations(schedule, opt)
                     schedule = originReorder(schedule, wNo, opt);
                 case 'depth'
                     schedule = depthReorder(schedule, wNo, opt);
+                case 'depth-origin'
+                    schedule = depthOriginReorder(schedule, wNo, opt);
                 case 'none'
                     % We are leaving everything to chance!
                 otherwise
@@ -394,9 +396,47 @@ function schedule = reorderCellFields(schedule, wellNo, opt, sortIx)
     end
 end
 
+function schedule = depthOriginReorder(schedule, wellNo, opt)
+    w = schedule.control(1).W(wellNo);
+    if isempty(opt.G)
+        return
+    end
+    origin = w.cell_origin;
+    z = opt.G.cells.centroids(w.cells, 3);
+    sortIx = zeros(numel(origin), 1);
+    uorigin = sort(unique(origin));
+    group_z = zeros(numel(uorigin), 1);
+    for i = 1:numel(uorigin)
+        o = uorigin(i);
+        group_z(i) = mean(z(origin == o));
+    end
+    [~, groupSortIx] = sort(group_z);
+    uorigin = uorigin(groupSortIx);
+
+    offset = 0;
+    for i = 1:numel(uorigin)
+       o = uorigin(i);
+       pos = find(origin == o);
+       n = numel(pos);
+       sortIx((offset+1):(offset+n)) = pos;
+       offset = offset + n;
+    end
+    schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
+end
+
 function schedule = originReorder(schedule, wellNo, opt)
     W = schedule.control(1).W(wellNo);
-    [~, sortIx] = sort(W.cell_origin);
+    origin = W.cell_origin;
+    sortIx = zeros(numel(origin), 1);
+    uorigin = sort(unique(origin));
+    offset = 0;
+    for i = 1:numel(uorigin)
+       o = uorigin(i);
+       pos = find(origin == o);
+       n = numel(pos);
+       sortIx((offset+1):(offset+n)) = pos;
+       offset = offset + n;
+    end
     schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
 end
 
