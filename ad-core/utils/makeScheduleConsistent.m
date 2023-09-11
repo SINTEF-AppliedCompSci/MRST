@@ -41,9 +41,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     opt = struct('perforationFields', {{'WI', 'dZ', 'dir', 'r', 'rR'}}, ...
-                 'DepthReorder',      false, ...
-                 'ReorderStrategy',   {{}}, ...
-                 'G',                 [], ...
+                 'DepthReorder',      false, ... % Legacy option
+                 'ReorderStrategy',   {{}}, ...  % One strategy or one strategy per well
+                 'setDepths',         false, ... % Ensure that top cell is at refDepth and that wells are perforated at cell centers
+                 'G',                 [], ...    % Grid to use for depth calculations
                  'fixSign',           true);
 
     opt = merge_options(opt, varargin{:});
@@ -78,7 +79,9 @@ end
 function schedule = setReferenceDepths(schedule, W_all, opt)
     for wNo = 1:numel(W_all)
         w = W_all(wNo);
-        if (isfield(w.defaulted, 'refDepth') && w.defaulted.refDepth) || isnan(w.refDepth)
+        is_defaulted = isfield(w.defaulted, 'refDepth') && w.defaulted.refDepth;
+        should_fix = is_defaulted || isnan(w.refDepth) || opt.setDepths;
+        if should_fix
             assert(~isempty(opt.G), 'Grid must be provided when refDepth is defaulted');
             z = opt.G.cells.centroids(:, 3);
             c = w.cells;
