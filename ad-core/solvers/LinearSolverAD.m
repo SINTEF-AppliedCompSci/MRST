@@ -181,7 +181,7 @@ classdef LinearSolverAD < handle
         %               `problem.equationnames` for the instance `problem` in `LinearizedProblemAD`. The cell `lambda`
         %               has therefore the same size as `eqs` as returned from `getEquations` (in `PhysicalModel`)
         %
-        %   lambdaVec - The Lagrangian multiplier for the current time step as a full vector (lambda_i in description)
+        %   lambdaVec - The Lagrangian multiplier for the current time step as a full vector (lambda_i in description descrition above)
         %
         %   report    - Report with information about the solution process.
         %

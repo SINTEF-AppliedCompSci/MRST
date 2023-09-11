@@ -108,10 +108,10 @@ getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
 if ~isempty(opt.accumulateResiduals) || ~opt.isScalar
     % allocate correct size of Lagrange multiplier matrix
     [colIx, nrow, ncol] = getColumnIndex(opt.accumulateResiduals, opt.matchMap, setup, states{end});
-    lambda = zeros(nrow, ncol);
+    lambdaVec = zeros(nrow, ncol);
 else
     colIx = repmat({nan}, [nstep, 1]);
-    lambda = [];
+    lambdaVec = [];
 end
 
 % run adjoint
