@@ -38,12 +38,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     f = model.fluid;
     [satnum, pvtnum] = deal(1);
+    cc = opt.cells(1);
     if isfield(model.rock, 'regions')
         if isfield(model.rock.regions, 'pvt')
-            pvtnum = model.rock.regions.pvt(opt.cells);
+            pvtnum = model.rock.regions.pvt(cc);
         end
         if isfield(model.rock.regions, 'saturation')
-            satnum = model.rock.regions.saturation(opt.cells);
+            satnum = model.rock.regions.saturation(cc);
         end
     end
     [pc, pc_sign, pc_scale] = getEquilPC(model, satnum, opt.cells);
