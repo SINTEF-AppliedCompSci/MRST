@@ -132,7 +132,15 @@ function region = getRegion(model, deck, eql, cells, regionIx, satnum, pvtnum)
         z_method = eql(10);
         assert(z_method == 1);
         zvd = deck.PROPS.ZMFVD{regionIx};
-        z_fn = @(p, z) interpolateDepthTable(zvd(:, 1), zvd(:, 2:end), z);
+        mole_fractions = zvd(:, 2:end);
+        mole_total = sum(mole_fractions, 2);
+        if min(mole_total) == 0
+            error('Bad mole fractions')
+        elseif not(max(mole_total) == 1 && min(mole_total) == 1)
+            warning('Mole fractions in ZMFVD do not sum up to one, normalizing.')
+            mole_fractions = bsxfun(@rdivide, mole_fractions, mole_total);
+        end
+        z_fn = @(p, z) interpolateDepthTable(zvd(:, 1), mole_fractions, z);
         if isfield(deck.PROPS, 'RTEMP')
             T = deck.PROPS.RTEMP;
             T_fn = @(p, z) repmat(T, size(p));
