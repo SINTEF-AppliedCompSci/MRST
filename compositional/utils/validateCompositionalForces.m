@@ -69,7 +69,9 @@ function [rho, compi] = getSurfaceParameters(model, W, rhoL, rhoV, x, y, L, Z_L,
     end
     rho = model.getSurfaceDensities();
     if isfield(model.rock, 'regions')
-        rho = rho(model.rock.regions.pvt(W.cells(1)), :);
+        if isfield(model.rock.regions, 'pvt')
+            rho = rho(model.rock.regions.pvt(W.cells(1)), :);
+        end
     end
     rho(model.getLiquidIndex()) = rhoL;
     rho(model.getVaporIndex()) = rhoV;
