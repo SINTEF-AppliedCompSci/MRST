@@ -35,6 +35,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nPh = sum(actPh);
 
     rho = cell(1, nPh);
+    
+    cc = opt.cells(1);
 
     f = model.fluid;
     [satnum, pvtnum] = deal(1);

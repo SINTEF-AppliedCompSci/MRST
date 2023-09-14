@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 for i = 1:numel(wellIndices)
                     wNo = wellIndices(i);
                     [rho, comp] = getSurfaceParameters(model, forces.W(wNo), rhoL(i), rhoV(i), x(i, :), y(i, :), L(i), Z_L(i), Z_V(i), Z(i, :));
-                    forces.W(wNo).compi = comp;
+%                     forces.W(wNo).compi = comp;
                     forces.W(wNo).rhoS = rho;
                 end
             end
@@ -68,6 +68,9 @@ function [rho, compi] = getSurfaceParameters(model, W, rhoL, rhoV, x, y, L, Z_L,
         comp = sum(bsxfun(@times, val, Z'), 1);
     end
     rho = model.getSurfaceDensities();
+    if isfield(model.rock, 'regions')
+        rho = rho(model.rock.regions.pvt(W.cells(1)), :);
+    end
     rho(model.getLiquidIndex()) = rhoL;
     rho(model.getVaporIndex()) = rhoV;
     if numel(hc) < nph

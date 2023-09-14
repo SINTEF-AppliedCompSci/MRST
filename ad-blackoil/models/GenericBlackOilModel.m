@@ -15,7 +15,10 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & GenericReservoirModel
 
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
             [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
-            src = model.FacilityModel.getComponentSources(state);
+            
+            if ~isempty(model.FacilityModel)
+                src = model.FacilityModel.getComponentSources(state);
+            end
             % Treat source or bc terms
             if ~isempty(drivingForces.bc) || ~isempty(drivingForces.src)
                 [pressures, sat, mob, rho, rs, rv] = model.getProps(state, 'PhasePressures', 's', 'Mobility', 'Density', 'Rs', 'Rv');
@@ -32,16 +35,20 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & GenericReservoirModel
             end
 
             % Add sources
-            eqs = model.insertSources(eqs, src);
+            if ~isempty(model.FacilityModel)
+                eqs = model.insertSources(eqs, src);
+            end
             % Assemble equations
             for i = 1:numel(eqs)
                 eqs{i} = model.operators.AccDiv(eqs{i}, flux{i});
             end
             % Get facility equations
-            [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
-            eqs = [eqs, weqs];
-            names = [names, wnames];
-            types = [types, wtypes];
+            if ~isempty(model.FacilityModel)
+                [weqs, wnames, wtypes, state] = model.FacilityModel.getModelEquations(state0, state, dt, drivingForces);
+                eqs = [eqs, weqs];
+                names = [names, wnames];
+                types = [types, wtypes];
+            end
         end
 
         function names = getComponentNames(model)
@@ -60,7 +67,8 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & GenericReservoirModel
             %
             % SEE ALSO:
             %   :meth:`ad_core.models.PhysicalModel.validateModel`
-            assert(isa(model.FacilityModel, 'GenericFacilityModel'), ...
+            assert(isempty(model.FacilityModel) || ...
+                isa(model.FacilityModel, 'GenericFacilityModel'), ...
                 'Generic model can only be used with GenericFacilityModel.')
             if isempty(model.Components)
                 nph = model.getNumberOfPhases();

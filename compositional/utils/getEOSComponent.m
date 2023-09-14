@@ -42,7 +42,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     extra = model.getNonEoSPhaseNames();
     phases = model.getPhaseNames();
     for i = 1:numel(extra)
-        rho(phases == extra(i)) = model.fluid.(['rho', extra(i), 'S']);
+        rho(phases == extra(i)) = model.fluid.(['rho', extra(i), 'S'])(1);
     end
     c = EquationOfStateComponent(name, p, T, ci, frac, rho, mixture.molarMass(hcpos));
 end

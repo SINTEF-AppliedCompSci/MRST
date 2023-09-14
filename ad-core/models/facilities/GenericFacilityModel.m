@@ -46,7 +46,7 @@ classdef GenericFacilityModel < FacilityModel
             % individual components' preference at different conditions
             [p, temp] = facility.getSurfaceConditions();
             surfaceDensity = fp.get(facility, state, 'InjectionSurfaceDensity');
-            nph = model.getNumberOfPhases();
+            nph = model.getNumberOfPhases(); 
             surfaceRates = cell(1, nph);
             [surfaceRates{:}] = deal(zeros(numelValue(cflux{1}), 1));
             for c = 1:numel(cflux)

@@ -37,10 +37,42 @@ function model = initDeckEOSModel(deck)
     model = EquationOfStateModel([], fluid);
     
     eos_type = deck.PROPS.EOS;
+    if iscell(eos_type) && numel(eos_type) > 1,
+        warning('Multiple EOS regions not supported, using region 1');
+        eos_type = eos_type{1};
+    end
     if isfield(deck.PROPS, 'PRCORR') && (isempty(eos_type) || strcmp(eos_type, 'PR'))
         model = model.setType('PRCORR');
     else
         model = model.setType(eos_type);
+    end
+    if isfield(deck.PROPS, 'OMEGAA')
+        omegaA = deck.PROPS.OMEGAA(1,:);
+        defaulted = isnan(omegaA);
+        switch eos_type
+            case 'PR'
+                val = 0.457235529;
+            case {'RK', 'SRK', 'ZJ'}
+                val = 0.4274802;
+        end
+        omegaA(defaulted) = val;
+        model.omegaA = omegaA;
+        % @@ sinlge value for all components for now
+        model.omegaA = omegaA(1);
+    end
+    if isfield(deck.PROPS, 'OMEGAB')
+        omegaB = deck.PROPS.OMEGAB(1,:);
+        defaulted = isnan(omegaB);
+        switch eos_type
+            case 'PR'
+                val = 0.077796074;
+            case {'RK', 'SRK', 'ZJ'}
+                val =  0.08664035;
+        end
+        omegaB(defaulted) = val;
+        model.omegaB = omegaB;
+        % @@ sinlge value for all components for now
+        model.omegaB = omegaB(1);
     end
     if isfield(deck.PROPS, 'SSHIFT')
         model.PropertyModel.volumeShift = deck.PROPS.SSHIFT;
