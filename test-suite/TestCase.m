@@ -369,7 +369,8 @@ classdef TestCase
         function ok = hasDrivingForce(test, force)
         % Check if the test case has a given driving force
         
-            ok = isfield(test.schedule.control(1), force);
+            ok = isfield(test.schedule.control(1), force) ...
+                && ~isempty(test.schedule.control(1).(force));
             
         end
         
@@ -544,7 +545,8 @@ classdef TestCase
                 if ~isempty(opt.Name)
                     opt.Name = [opt.Name, '_'];
                 end
-                opt.Name = [opt.Name, test.getTestCaseHash()];
+                [hash, hashStruct] = test.getTestCaseHash();
+                opt.Name   = [opt.Name, hash];
             end
             has_ls  = ~isempty(opt.LinearSolver);    % Linear solver given
             has_nls = ~isempty(opt.NonLinearSolver); % Nonlinear solver given
@@ -592,7 +594,39 @@ classdef TestCase
                     'Description'    , desc,       ...
                     'useHash'        , false,      ...
                     'NonLinearSolver', opt.NonLinearSolver, varargin{:});
+                
+            if opt.useHash
+                % Save struct with checksums for all test case properties
+                % to enable a more fine-grained comparison of different
+                % test case instances
+                directory = problem.OutputHandlers.states.getDataPath();
+                save(fullfile(directory, 'setup_hash.mat'), 'hashStruct');
+            end
         
+        end
+        
+        %-----------------------------------------------------------------%
+        function pth = writeJutulInput(test, varargin)
+        % Write .mat file that can be parsed and ran using JutulDarcy
+        
+            opt = struct('Name'   , test.name, ...
+                         'useHash', []       );
+            [opt, varargin] = merge_options(opt, varargin{:});
+            
+            if isempty(opt.useHash)
+                opt.useHash = mrstSettings('get', 'useHash');
+            end
+            if opt.useHash
+                if ~isempty(opt.Name)
+                    opt.Name = [opt.Name, '_'];
+                end
+                hash     = test.getTestCaseHash();
+                opt.Name = [opt.Name, hash];
+            end
+        
+            pth = writeJutulInput(test.state0, test.model, test.schedule, ...
+                opt.Name, varargin{:});
+            
         end
         
     end

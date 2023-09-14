@@ -41,9 +41,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
     opt = struct('perforationFields', {{'WI', 'dZ', 'dir', 'r', 'rR'}}, ...
-                 'DepthReorder',      false, ...
-                 'ReorderStrategy',   {{}}, ...
-                 'G',                 [], ...
+                 'DepthReorder',      false, ... % Legacy option
+                 'ReorderStrategy',   {{}}, ...  % One strategy or one strategy per well
+                 'setDepths',         false, ... % Ensure that top cell is at refDepth and that wells are perforated at cell centers
+                 'G',                 [], ...    % Grid to use for depth calculations
                  'fixSign',           true);
 
     opt = merge_options(opt, varargin{:});
@@ -78,7 +79,9 @@ end
 function schedule = setReferenceDepths(schedule, W_all, opt)
     for wNo = 1:numel(W_all)
         w = W_all(wNo);
-        if (isfield(w.defaulted, 'refDepth') && w.defaulted.refDepth) || isnan(w.refDepth)
+        is_defaulted = isfield(w.defaulted, 'refDepth') && w.defaulted.refDepth;
+        should_fix = is_defaulted || isnan(w.refDepth) || opt.setDepths;
+        if should_fix
             assert(~isempty(opt.G), 'Grid must be provided when refDepth is defaulted');
             z = opt.G.cells.centroids(:, 3);
             c = w.cells;
@@ -141,7 +144,8 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
         for j = 1:numel(other)
             ind_all = find(strcmp(names, currentNames{other(j)}));
             c_all = W_all(ind_all).cells;
-            c = W(other(j)).cells;
+            W_other = W(other(j));
+            c = W_other.cells;
             
             % The number of cells / the actual cells have changed.
             if numel(c) == numel(c_all) && ...
@@ -156,6 +160,11 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
                 W_all(ind_all).cells = [W_all(ind_all).cells; new_cells];
                 W_all(ind_all).cell_origin = [W_all(ind_all).cell_origin; ...
                                              repmat(i, size(new_cells))]; %#ok
+                if isfield(W_other, 'perf_map') && W_other.isMS
+                    % Assume that ms wells only expand?
+                    W_all(ind_all).perf_map = W_other.perf_map;
+                    W_all(ind_all).cells_to_nodes = W_other.cells_to_nodes;
+                end
             end
             cellsChangedFlag(ind_all) = cellsChangedFlag(ind_all) | flag;
         end
@@ -167,6 +176,13 @@ function [W_all, cellsChangedFlag] = getWellSuperset(schedule, ctrl_order, opt)
             for j = 1:numel(W_new)
                 W_new(j).cell_origin = repmat(i, numel(W_new(j).cells), 1);
             end
+            % New or old wells could potentially be MS wells. Consolidate
+            % the field names to make sure that these are consistent with
+            % the superset of fields needed to describe all wells in the
+            % model.
+            W_all = consolidateWellFields(W_new, W_all);
+            W_new = consolidateWellFields(W_all, W_new);
+
             W_all = [W_all; W_new]; %#ok
             changed_new = arrayfun(@(x) ~all(x.cstatus), W_new);
             cellsChangedFlag = [cellsChangedFlag; changed_new]; %#ok
@@ -260,6 +276,9 @@ function schedule = updateSchedule(schedule, ctrl_order, W_all, cellsChangedFlag
                 % Treat rest of the fields, whatever they may be
                 for k = 1:numel(restfields)
                     fn = restfields{k};
+                    if strcmp(fn, 'cells_to_nodes') || strcmp(fn, 'perf_map')
+                        continue
+                    end
                     W_all(j).(fn) = W(sub).(fn);
                 end
                 
@@ -339,6 +358,8 @@ function schedule = reorderWellsPerforations(schedule, opt)
                     schedule = originReorder(schedule, wNo, opt);
                 case 'depth'
                     schedule = depthReorder(schedule, wNo, opt);
+                case 'depth-origin'
+                    schedule = depthOriginReorder(schedule, wNo, opt);
                 case 'none'
                     % We are leaving everything to chance!
                 otherwise
@@ -378,9 +399,47 @@ function schedule = reorderCellFields(schedule, wellNo, opt, sortIx)
     end
 end
 
+function schedule = depthOriginReorder(schedule, wellNo, opt)
+    w = schedule.control(1).W(wellNo);
+    if isempty(opt.G)
+        return
+    end
+    origin = w.cell_origin;
+    z = opt.G.cells.centroids(w.cells, 3);
+    sortIx = zeros(numel(origin), 1);
+    uorigin = sort(unique(origin));
+    group_z = zeros(numel(uorigin), 1);
+    for i = 1:numel(uorigin)
+        o = uorigin(i);
+        group_z(i) = mean(z(origin == o));
+    end
+    [~, groupSortIx] = sort(group_z);
+    uorigin = uorigin(groupSortIx);
+
+    offset = 0;
+    for i = 1:numel(uorigin)
+       o = uorigin(i);
+       pos = find(origin == o);
+       n = numel(pos);
+       sortIx((offset+1):(offset+n)) = pos;
+       offset = offset + n;
+    end
+    schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
+end
+
 function schedule = originReorder(schedule, wellNo, opt)
     W = schedule.control(1).W(wellNo);
-    [~, sortIx] = sort(W.cell_origin);
+    origin = W.cell_origin;
+    sortIx = zeros(numel(origin), 1);
+    uorigin = sort(unique(origin));
+    offset = 0;
+    for i = 1:numel(uorigin)
+       o = uorigin(i);
+       pos = find(origin == o);
+       n = numel(pos);
+       sortIx((offset+1):(offset+n)) = pos;
+       offset = offset + n;
+    end
     schedule = reorderCellFields(schedule, wellNo, opt, sortIx);
 end
 
@@ -481,4 +540,21 @@ function array = swap(array, in, out)
     tmp = array(out, :);
     array(out, :) = array(in, :);
     array(in, :) = tmp;
+end
+
+function W_all = consolidateWellFields(W_new, W_all)
+    if isempty(W_new) || isempty(W_all)
+        return
+    end
+    fn_new = fieldnames(W_new);
+    fn_all = fieldnames(W_all);
+    if numel(fn_all) < numel(fn_new)
+        missing = setdiff(fn_new, fn_all);
+        for j = 1:numel(W_all)
+            W_all(j).isMS = false;
+            for k = 1:numel(missing)
+                W_all(j).(missing{k}) = [];
+            end
+        end
+    end
 end

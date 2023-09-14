@@ -1,4 +1,4 @@
-function  [G, rock, fluid, deck] = setupNorneRealization(realNo)
+function  [G, rock, fluid, deck] = setupNorneRealization(realNo, varargin)
 % Helper function to generate specific Norne realization. Will run 
 % generateNorneEnsemble.m if this hasn't been done already. 
 %
@@ -10,7 +10,12 @@ function  [G, rock, fluid, deck] = setupNorneRealization(realNo)
 %    specific Norne realization.
 %
 % PARAMETERS:
-%    realNo  - the realization required.
+%    realNo  - requested realization. Number between 1 and 50. If omitted,
+%              defaults to 1.
+%
+% KEYWORD ARGUMENTS:
+%    actnum  - override for ACTNUM. Must be a subset of the ACTNUM in the
+%              generated ensemble. This is checked by the function.
 %
 % RETURNS:
 %     G - MRST grid structure for realization realNo.
@@ -46,27 +51,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if nargin<1    
         realNo = 1;
     end
+    opt = struct('actnum', []);
+    opt = merge_options(opt, varargin{:});
   
     try
         pth = getDatasetPath('norne_ensemble');
         norne=load(fullfile(pth,'data','NorneInitEns.mat'));
-        assert(realNo<numel(norne.ensemble));
-        data = norne.ensemble(realNo);
     catch me
         if ~exist('pth', 'var')
            error('Download:Failed', ...
                  'Failed to download Norne Ensemble dataset: %s', ...
                  me.message);
         end
-
         addpath(fullfile(pth,'data'));
         generateNorneEnsemble(max(50,realNo));
         rmpath(fullfile(pth,'data'));
         
         norne = load(fullfile(pth,'data','NorneInitEns.mat'));
-        data  = norne.ensemble(realNo);
     end
-    
+    assert(realNo<=numel(norne.ensemble));
+    data = norne.ensemble(realNo);
+
     % The generated data contains 12 extra disconnected cells that need to
     % be accounted for when assigning data
     if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL())
@@ -75,7 +80,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
     grdecl = convertInputUnits(readGRDECL(grdecl), getUnitSystem('METRIC'));
-    G      = processGRDECL(grdecl, 'SplitDisconnected',false);
+    actnum = opt.actnum;
+    if ~isempty(actnum)
+        assert(numel(actnum) == numel(grdecl.ACTNUM));
+        imap0 = find(grdecl.ACTNUM);
+        imap = find(actnum);
+        overlap = setdiff(imap, imap0);
+        assert(isempty(overlap));
+        % TODO: Is ordering ok here?
+        newix = ismember(imap, imap0);
+        data.PERMX = data.PERMX(newix);
+        data.PORO = data.PORO(newix);
+        data.NTG = data.NTG(newix);
+        grdecl.ACTNUM = actnum;
+    end
+    G = processGRDECL(grdecl, 'SplitDisconnected',false);
     
     % Assign permeability: apply multipliers as in ECLIPSE input file
     data.PERMX = convertFrom(exp(data.PERMX), milli*darcy);

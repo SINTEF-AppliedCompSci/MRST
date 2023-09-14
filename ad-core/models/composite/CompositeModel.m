@@ -65,7 +65,7 @@ classdef CompositeModel < PhysicalModel
             if iscell(coupling)
                 % Cell array of coupling terms, set each of them
                 for i = 1:numel(coupling)
-                    model = model.setCouplingTerm(coupling{i});
+                    model = model.setCouplingTerm(coupling{i}, name{i});
                 end
                 return;
             end
@@ -77,7 +77,7 @@ classdef CompositeModel < PhysicalModel
             assert(~ismember(name, names), ...
                 ['A coupling term with name %s already exists. ', ...
                  'Please provide a unique name with as a third ', ...
-                 'argument to this function']);
+                 'argument to this function'], name);
              
             % Set to coupling term state function grouping
             model.CouplingTerms ...
@@ -162,30 +162,82 @@ classdef CompositeModel < PhysicalModel
             if init
                 % Assemble all primary variables into one vector and
                 % initialize as AD
-                varsAD      = [vars{:}];
+                [varsAD, mapl, mapn] = unpackVars(vars, 1, 1, [], []);
                 [varsAD{:}] = model.AutoDiffBackend.initVariablesAD(varsAD{:});
-                % Split up variables per submodel
-                pos = cumsum([0, cellfun(@numel, vars)])+1;
-                for i = 1:nm, vars{i} = varsAD(pos(i):pos(i+1)-1); end
-                % Set primary variables for each submodel to state
-                for i = 1:nm
-                    mname = active{i};
+                vars = packVars(varsAD, mapl, mapn, 2);
+                state = model.setPrimaryVariables(state, names);
+            end
+            
+            % Initialize AD state for all submodels
+            state = model.initStateAD(state, vars, names, origin);
+            
+            % Evaluate all statefunctions for all models if requested
+            if strcmpi(model.stateFunctionEvaluationMode, 'full')
+                state = model.evaluateAllStateFunctions(state);
+            end
+
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function [vars, names, origin] = getPrimaryVariables(model, state)
+            
+            active = model.getActiveModels(state);
+            nm     = numel(active);
+            [vars, names, origin] = deal(cell(1,nm));
+            for i = 1:nm
+                % Get the AD state for this model
+                mname = active{i};
+                [vars{i}, names{i}, origin{i}] ...
+                    = model.submodels.(mname).getPrimaryVariables(state.(mname));
+            end
+            
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function state = setPrimaryVariables(model, state, names)
+            
+            active = model.getActiveModels(state);
+            nm     = numel(active);
+            for i = 1:nm
+                mname = active{i};
+                if isa(model.submodels.(mname), 'CompositeModel')
+                    state.(mname) = model.submodels.(mname).setPrimaryVariables( ...
+                        state.(mname), names{i});
+                else
                     state.(mname).primaryVariables = names{i};
                 end
             end
             
-            % Initialize AD state for all submodels
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function state = initStateAD(model, state, vars, names, origin)
+            
+            active = model.getActiveModels(state);
+            nm     = numel(active);
             for i = 1:nm
                 mname = active{i};
                 state.(mname) = model.submodels.(mname).initStateAD( ...
                     state.(mname), vars{i}, names{i}, origin{i});
-                % Evaluate all statefunctions for all models if requested
-                if strcmpi(model.stateFunctionEvaluationMode, 'full')
-                    state.(mname) = model.submodels.(mname). ...
-                        evaluateAllStateFunctions(state.(mname));
-                end
             end
-
+            
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function state = evaluateAllStateFunctions(model, state)
+            
+            active = model.getActiveModels(state);
+            nm = numel(active);
+            for i = 1:nm
+                mname = active{i};
+                state.(mname) = model.submodels.(mname). ...
+                        evaluateAllStateFunctions(state.(mname));
+            end
+            
         end
         %-----------------------------------------------------------------%
         
@@ -353,7 +405,7 @@ classdef CompositeModel < PhysicalModel
                 [q, state] = model.getProp(state, cname{1});
                 % Insert into correct equation
                 ct  = model.CouplingTerms.getStateFunction(cname{1});
-                eqs = ct.insertCoupling(eqs, active, names, q);
+                eqs = ct.insertCoupling(model, eqs, active, names, q);
             end
             
         end
@@ -384,11 +436,11 @@ classdef CompositeModel < PhysicalModel
                 eqNames = cellfun(@(names) [active{i}, '.', names], eqNames, 'UniformOutput', false);                
                 problem = problem.appendEquations(problems{i}.equations, problems{i}.types, eqNames);
                 problem.primaryVariables = [problem.primaryVariables, problems{i}.primaryVariables];
-                problems{i} = [];
-                if isfield(state.(active{i}), 'pressure')
+                if isfield(problems{i}.state, 'pressure')
                     % Stack pressures of each submodel for use in CPR
-                    pressure = [pressure; state.(active{i}).pressure]; %#ok
+                    pressure = [pressure; problems{i}.state.pressure]; %#ok
                 end
+                problems{i} = [];
             end
             % Set problem properties
             problem.dt             = dt;
@@ -435,7 +487,8 @@ classdef CompositeModel < PhysicalModel
                 mname = mnames{i};
                 startswith = @(str, x) strcmp(str(1:min(numel(str), numel(x)+1)), [x, '.']);
                 ix = find(cellfun(@(x) startswith(x, mname), problem.equationNames));
-                names = strrep(problem.equationNames(ix), [mname, '.'], '');
+%                 names = strrep(problem.equationNames(ix), [mname, '.'], '');
+                names = cellfun(@(name) name(numel([mname, '.'])+1:end), problem.equationNames(ix), 'UniformOutput', false);
                 problems{i} = LinearizedProblem( ...
                     problem.equations(ix)       , ...
                     problem.types(ix)           , ...
@@ -462,13 +515,12 @@ classdef CompositeModel < PhysicalModel
         % Get a single property from the nonlinear state
             
             name = regexp(name, '[.]', 'split');
-            if numel(name) == 2
+            if numel(name) >= 2
                 % We are asking for a submodel property, query the submodel
-                ix = strcmpi(model.names, name{1});
-                [p, state.(name{2})] = model.models{ix}.getProp(state.(name{1}), name{2});
+                [p, state.(name{2})] = model.submodels.(name{1}).getProp(state.(name{1}), name{2});
             else
                 % Property stems from this model (likely a coupling term)
-                [p, state] = getProp@PhysicalModel(model, state, name);
+                [p, state] = getProp@PhysicalModel(model, state, name{1});
             end
             
         end
@@ -538,7 +590,7 @@ classdef CompositeModel < PhysicalModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function [gradient, result, report] = solveAdjoint(model, solver, getState, getObj, schedule, gradient, stepNo, varargin)
+        function [lambda, lambdaVec, report] = solveAdjoint(model, solver, getState, getObj, schedule, gradient, stepNo, varargin)
             
             validforces = model.getValidDrivingForces();
             dt_steps = schedule.step.val;
@@ -602,8 +654,8 @@ classdef CompositeModel < PhysicalModel
             else
                 problem_p = [];
             end
-            [gradient, result, rep] = solver.solveAdjointProblem(problem_p,...
-                problem, gradient, getObj(stepNo,model,problem.state), model, ...
+            [lambda, lambdaVec, rep] = solver.solveAdjointProblem(problem_p,...
+                problem, lambda, getObj(stepNo,model,problem.state), model, ...
                 varargin{:});
             report = struct();
             report.Types = problem.types;
@@ -672,6 +724,45 @@ classdef CompositeModel < PhysicalModel
     end
     
 end
+
+%-------------------------------------------------------------------------%
+function [vars, mapl, mapn] = unpackVars(vars, level, num, mapl, mapn)
+
+    vars0 = vars;
+    vars = {};
+    for i = 1:numel(vars0)
+        if iscell(vars0{i})
+            [v, mapl, mapn] = unpackVars(vars0{i}, level+1, i, mapl, mapn);
+            vars = [vars, v];
+        else
+            vars = [vars, vars0{i}];
+            mapl = [mapl, level];
+            mapn = [mapn, num];
+        end
+    end
+
+end
+%-------------------------------------------------------------------------%
+
+%-------------------------------------------------------------------------%
+function vars = packVars(varsAD, mapl, mapn, level)
+
+    subsetl = mapl == level;
+    n = max(mapn(subsetl));
+    vars = cell(1,n);
+    vl = varsAD(subsetl);
+    for node = 1:n
+        subsetn = mapn(subsetl) == node;
+        if any(subsetn)
+            vn = vl(subsetn);
+        else
+            vn = packVars(varsAD(~subsetl), mapl(~subsetl), mapn(~subsetl), level+1);
+        end
+        vars{node} = vn;
+    end
+
+end
+%-------------------------------------------------------------------------%
 
 %{
 Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.

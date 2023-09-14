@@ -158,99 +158,107 @@ classdef ThreePhaseSurfactantPolymerModel < ThreePhaseBlackOilModel
 
         % --------------------------------------------------------------------%
         function model = setupStateFunctionGroupings(model, varargin)
+            first_time = isempty(model.FlowDiscretization) && isempty(model.FlowPropertyFunctions) && isempty(model.PVTPropertyFunctions);
             model = setupStateFunctionGroupings@ThreePhaseBlackOilModel(model, varargin{:});
 
-            fp = model.FlowPropertyFunctions;
-            pp = model.PVTPropertyFunctions;
-            fd = model.FlowDiscretization;
-            pvtreg  = pp.getRegionPVT(model);
-            satreg  = fp.getRegionSaturation(model);
-            surfreg = fp.getRegionSurfactant(model);
+            if first_time
+                % We do some recursive tricks here to get correct kr / mu.
+                % For this reason this part should only be called once.
+                % Otherwise you get deeply nested kr / mu defs.
+                fp = model.FlowPropertyFunctions;
+                pp = model.PVTPropertyFunctions;
+                fd = model.FlowDiscretization;
+                pvtreg  = pp.getRegionPVT(model);
+                satreg  = fp.getRegionSaturation(model);
+                surfreg = fp.getRegionSurfactant(model);
 
-            % We set up EOR viscosities and relative permeabilities. They are computed from
-            % the black-oil value by using a multiplier approach, where we have
-            % one multiplier for each EOR effect.
-            pp = pp.setStateFunction('Viscosity', EORViscosity(model, pvtreg));
-            pp = pp.setStateFunction('BaseViscosity', BlackOilViscosity(model));
-            fp = fp.setStateFunction('RelativePermeability', EORRelativePermeability(model));
-            fp = fp.setStateFunction('BaseRelativePermeability', BaseRelativePermeability(model, satreg));
+                % We set up EOR viscosities and relative permeabilities. They are computed from
+                % the black-oil value by using a multiplier approach, where we have
+                % one multiplier for each EOR effect.
+                pp = pp.setStateFunction('Viscosity', EORViscosity(model, pvtreg));
+                pp = pp.setStateFunction('BaseViscosity', BlackOilViscosity(model));
 
-            % The statefunction ViscosityMultipliers and RelPermMultipliers are containers
-            % for the Viscosity and Relative Permeability multpliers.  Each
-            % multiplier is set up as a property (for example
-            % 'PolymerEffViscMult' below) and added to the container.
-            viscmult = PhaseMultipliers(model);
-            viscmult.label = 'M_\mu';
+                kr_base = fp.getStateFunction('RelativePermeability');
+                fp = fp.setStateFunction('RelativePermeability', EORRelativePermeability(model));
+                fp = fp.setStateFunction('BaseRelativePermeability', kr_base);
 
-            % TODO: we need to find an easier way to handle the viscosity multiplication between different component
-            % hopefully, we only handle once.
-            pviscmult = PhaseMultipliers(model);
-            pviscmult.label = 'M_{\mu_p}';
+                % The statefunction ViscosityMultipliers and RelPermMultipliers are containers
+                % for the Viscosity and Relative Permeability multpliers.  Each
+                % multiplier is set up as a property (for example
+                % 'PolymerEffViscMult' below) and added to the container.
+                viscmult = PhaseMultipliers(model);
+                viscmult.label = 'M_\mu';
 
-            relpermult = PhaseMultipliers(model);
-            relpermult.label = 'M_{kr}';
-            relpermult.operator = @rdivide; % The relperm multipliers are divided
+                % TODO: we need to find an easier way to handle the viscosity multiplication between different component
+                % hopefully, we only handle once.
+                pviscmult = PhaseMultipliers(model);
+                pviscmult.label = 'M_{\mu_p}';
 
-            if model.polymer
+                relpermult = PhaseMultipliers(model);
+                relpermult.label = 'M_{kr}';
+                relpermult.operator = @rdivide; % The relperm multipliers are divided
 
-                fp = fp.setStateFunction('PolymerAdsorption', PolymerAdsorption(model, satreg));
-                fd = fd.setStateFunction('PolymerPhaseFlux' , PolymerPhaseFlux(model));
-                fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model));
-                fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxWithPolymer(model));
+                if model.polymer
 
-                % We set up the water effective viscosity multiplier based on polymer concentration
-                peffmult = 'PolymerEffViscMult';
-                pp = pp.setStateFunction(peffmult, PolymerEffViscMult(model, pvtreg));
-                viscmult = viscmult.addMultiplier(model, peffmult, 'W');
+                    fp = fp.setStateFunction('PolymerAdsorption', PolymerAdsorption(model, satreg));
+                    fd = fd.setStateFunction('PolymerPhaseFlux' , PolymerPhaseFlux(model));
+                    fd = fd.setStateFunction('FaceConcentration', FaceConcentration(model));
+                    fd = fd.setStateFunction('ComponentPhaseFlux', ComponentPhaseFluxWithPolymer(model));
 
-                % We set up the polymer effective viscosity multiplier, which is used for polymer transport
-                polyviscmult = 'PolymerViscMult';
-                pp = pp.setStateFunction(polyviscmult, PolymerViscMult(model, pvtreg));
-                % TODO: really not sure whether this is the correct way to
-                % do pviscmult
-                pviscmult = pviscmult.addMultiplier(model, polyviscmult, 'W');
+                    % We set up the water effective viscosity multiplier based on polymer concentration
+                    peffmult = 'PolymerEffViscMult';
+                    pp = pp.setStateFunction(peffmult, PolymerEffViscMult(model, pvtreg));
+                    viscmult = viscmult.addMultiplier(model, peffmult, 'W');
 
-                % We set up the polymer permeability reduction effect. If permeability reduction
-                % is present, it means that we must divide the water relative
-                % permeability with the value of the "multiplier".
-                rppmult = 'PolymerPermReduction';
-                fp = fp.setStateFunction(rppmult, PolymerPermReduction(model));
-                relpermult = relpermult.addMultiplier(model, rppmult, 'W');
-                % if necessary, the following can be moved out similar with
-                % others, currently they are overwritten due to polymer
-                if ~isempty(model.FacilityModel) && isprop(model.FacilityModel, 'FacilityFlowDiscretization')
-                    ffd = model.FacilityModel.FacilityFlowDiscretization;
-                    ffd = ffd.setStateFunction('Mobility', PerforationMobilityEOR(model));
-                    if model.polymer
-                        ffd = ffd.setStateFunction('ComponentPhaseDensity', PerforationComponentPhaseDensityEOR(model));
+                    % We set up the polymer effective viscosity multiplier, which is used for polymer transport
+                    polyviscmult = 'PolymerViscMult';
+                    pp = pp.setStateFunction(polyviscmult, PolymerViscMult(model, pvtreg));
+                    % TODO: really not sure whether this is the correct way to
+                    % do pviscmult
+                    pviscmult = pviscmult.addMultiplier(model, polyviscmult, 'W');
+
+                    % We set up the polymer permeability reduction effect. If permeability reduction
+                    % is present, it means that we must divide the water relative
+                    % permeability with the value of the "multiplier".
+                    rppmult = 'PolymerPermReduction';
+                    fp = fp.setStateFunction(rppmult, PolymerPermReduction(model));
+                    relpermult = relpermult.addMultiplier(model, rppmult, 'W');
+                    % if necessary, the following can be moved out similar with
+                    % others, currently they are overwritten due to polymer
+                    if ~isempty(model.FacilityModel) && isprop(model.FacilityModel, 'FacilityFlowDiscretization')
+                        ffd = model.FacilityModel.FacilityFlowDiscretization;
+                        ffd = ffd.setStateFunction('Mobility', PerforationMobilityEOR(model));
+                        if model.polymer
+                            ffd = ffd.setStateFunction('ComponentPhaseDensity', PerforationComponentPhaseDensityEOR(model));
+                        end
+                        model.FacilityModel.FacilityFlowDiscretization = ffd;
                     end
-                    model.FacilityModel.FacilityFlowDiscretization = ffd;
                 end
+
+                if model.surfactant
+                    fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));
+                    fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model, satreg));
+                    % The EOR relative permeability is set up as the
+                    % SurfactantRelativePermeability combined with multipliers.
+                    fp = fp.setStateFunction('BaseRelativePermeability', SurfactantRelativePermeability(model, satreg, surfreg));
+                    fp.CapillaryPressure = SurfactantCapillaryPressure(model, satreg);
+
+                    % We set up the surfactant viscosity multiplier
+                    smult = 'SurfactantViscMultiplier';
+                    pp = pp.setStateFunction(smult, SurfactantViscMultiplier(model, pvtreg));
+                    viscmult = viscmult.addMultiplier(model, smult, 'W');
+                    pviscmult = pviscmult.addMultiplier(model, smult, 'W');
+                end
+
+                pp = pp.setStateFunction('ViscosityMultipliers', viscmult);
+                % TODO: BAD NAME!
+                pp = pp.setStateFunction('PolyViscMult', pviscmult);
+                fp = fp.setStateFunction('RelativePermeabilityMultipliers', relpermult);
+
+                model.FlowPropertyFunctions = fp;
+                model.PVTPropertyFunctions  = pp;
+                model.FlowDiscretization    = fd;  
             end
-
-            if model.surfactant
-                fp = fp.setStateFunction('CapillaryNumber', CapillaryNumber(model));
-                fp = fp.setStateFunction('SurfactantAdsorption', SurfactantAdsorption(model, satreg));
-                % The EOR relative permeability is set up as the
-                % SurfactantRelativePermeability combined with multipliers.
-                fp = fp.setStateFunction('BaseRelativePermeability', SurfactantRelativePermeability(model, satreg, surfreg));
-                fp.CapillaryPressure = SurfactantCapillaryPressure(model, satreg);
-
-                % We set up the surfactant viscosity multiplier
-                smult = 'SurfactantViscMultiplier';
-                pp = pp.setStateFunction(smult, SurfactantViscMultiplier(model, pvtreg));
-                viscmult = viscmult.addMultiplier(model, smult, 'W');
-                pviscmult = pviscmult.addMultiplier(model, smult, 'W');
-            end
-
-            pp = pp.setStateFunction('ViscosityMultipliers', viscmult);
-            % TODO: BAD NAME!
-            pp = pp.setStateFunction('PolyViscMult', pviscmult);
-            fp = fp.setStateFunction('RelativePermeabilityMultipliers', relpermult);
-
-            model.FlowPropertyFunctions = fp;
-            model.PVTPropertyFunctions  = pp;
-            model.FlowDiscretization    = fd;            
         end
 
         % --------------------------------------------------------------------%

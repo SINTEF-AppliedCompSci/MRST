@@ -40,6 +40,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     f = model.fluid;
     [satnum, pvtnum] = deal(1);
+    cc = opt.cells(1);
     if isfield(model.rock, 'regions')
         if isfield(model.rock.regions, 'pvt')
             pvtnum = model.rock.regions.pvt(cc);
