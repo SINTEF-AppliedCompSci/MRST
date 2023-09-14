@@ -1,4 +1,4 @@
-function w  = readWellKW(fid, w, kw)
+function w  = readWellKW(fid, w, kw, varargin)
 %Read well definitions from an ECLIPSE Deck specification.
 %
 % SYNOPSIS:
@@ -51,6 +51,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % are affecting the report settings there had better be some previously
    % defined wells.
    %
+   
+   ncomp = nan; if nargin > 3, ncomp = varargin{1}; end
+       
    no_well_ok = { ...
       'GRUPTREE', 'WELSPECS', ...
       'RPTSCHED', 'RPTRST', 'OUTSOL' ...
@@ -81,6 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'WPIMULT' , w = readWPIMult (fid, w);
       case {'WELTARG', 'WELLTARG'}
          w = readWelTarg(fid, w);
+      case 'WINJGAS' , w = readWInjGas(fid, w);
 
       % -------------------------------------------------------------------
 
@@ -91,6 +95,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'GRUPNET' , w = readGrupNet (fid, w);
       case 'GRUPTREE', w = readGrupTree(fid, w);
       case 'WGRUPCON', w = readWGrupCon(fid, w);
+      case 'WELLSTRE', w = readWellStre(fid, w, ncomp);
 
       % -------------------------------------------------------------------
 
@@ -818,6 +823,37 @@ function w = readWelTarg(fid, w)
    end
 
    assert (isempty(data), 'Internal error processing ''WELTARG''.');
+end
+
+%--------------------------------------------------------------------------
+
+function w = readWellStre(fid, w, ncomp)
+
+   %             1          2          ...      ncomp
+   template = [{'Default'}, repmat({'0.0'}, 1, ncomp)];
+   numeric  = 2:ncomp+1;
+
+   data = readDefaultedKW(fid, template);
+   data = toDouble(data, numeric);
+   
+   w.WELLSTRE = [w.WELLSTRE; data];
+
+end
+
+%--------------------------------------------------------------------------
+
+function w = readWInjGas(fid, w)
+
+   %            1          2          3          4          5
+   template = {'Default', 'Default', 'Default', 'Default', '0.0'};
+   numeric  = 5;
+
+   data = readDefaultedKW(fid, template);
+   
+   data = toDouble(data, numeric);
+   
+   w.WINJGAS = [w.WINJGAS; data];
+
 end
 
 %--------------------------------------------------------------------------

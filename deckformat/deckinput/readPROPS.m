@@ -53,7 +53,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             endboxKeyword;
             
          case 'EOS'
-            prp.(kw) = readDefaultedKW(fid, {'PR'}, 'NRec', nmeosr);
+            prp.(kw) = readDefaultedKW(fid, {'NaN'}, 'NRec', nmeosr);
 
          case 'EHYSTR'
              tmpl = {'0.1', '2', '1.0', '0.1', ...
@@ -67,6 +67,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'PRCORR'
             prp.PRCORR = true;
+            
+         case {'OMEGAA', 'OMEGAB'}
+             tmpl = repmat({'NaN'}, 1, ncomp);
+             data = readDefaultedKW(fid, tmpl, 'NRec', nmeosr); clear tmpl
+             prp.(kw) = to_double(data);
 
          case 'GRAVITY'
             tmpl     = { '45.5', '1.0', '0.7773' };
