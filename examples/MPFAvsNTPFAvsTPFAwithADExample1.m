@@ -1,7 +1,7 @@
 %% Combining consistent discretizations with AD-OO
 % We follow example 6.1.2 in the MRST book (see
-% examples/1ph/showInconsistentTPFA in the book module).
-% We create a skewed grid with  two wells where the underlying problem is
+% examples/1ph/showInconsistentTPFA in the book module). We create a
+% skewed grid with two wells where the underlying problem is
 % symmetric. An inconsistent discretization of the fluxes may introduce
 % asymmetry in the production pattern when injecting a fluid.
 clear all
@@ -54,9 +54,7 @@ W = addWell(W, G, rock, c3, 'comp_i', [1, 0], 'type', 'bhp', 'val', 50*barsa, 'r
 gravity reset off;
 
 fluid = initSimpleADIFluid('cR', 1e-8/barsa, 'rho', [1, 1000, 100]);
-if ~exist('useComp', 'var')
-    useComp = false;
-end
+useComp = true;
 
 if useComp
     % Compositional, two-component
@@ -78,26 +76,24 @@ end
 dt = [1; 9; repmat(15, 26, 1)] * day;
 schedule = simpleSchedule(dt, 'W', W);
 
-%% Simulate implicit AvgMPFA
-disp('AvgMPFA implicit')
-mrstModule add nfvm
-ratio = [];
-model_avgmpfa = setAvgMPFADiscretization(model, 'myRatio', ratio);
-[wsAvgMPFA, statesAvgMPFA] = simulateScheduleAD(state0, model_avgmpfa, schedule);
-plotter(G, statesAvgMPFA, 'AvgMPFA')
-
-%% Simulate implicit NTPFA
-disp('NTPFA implicit')
-mrstModule add nfvm
-ratio = 0.0;
-model_ntpfa = setNTPFADiscretization(model, 'myRatio', ratio);
-[wsNTPFA, statesNTPFA] = simulateScheduleAD(state0, model_ntpfa, schedule);
-plotter(G, statesNTPFA, 'NTPFA')
-
 %% Simulate the implicit TPFA base case
 disp('TPFA implicit')
 [wsTPFA, statesTPFA] = simulateScheduleAD(state0, model, schedule);
-plotter(G, statesTPFA, 'TPFA')
+plotFinalPressure(G, statesTPFA, 'TPFA')
+
+%% Simulate implicit AvgMPFA
+disp('AvgMPFA implicit')
+ratio = [];
+model_avgmpfa = setAvgMPFADiscretization(model, 'myRatio', ratio);
+[wsAvgMPFA, statesAvgMPFA] = simulateScheduleAD(state0, model_avgmpfa, schedule);
+plotFinalPressure(G, statesAvgMPFA, 'AvgMPFA')
+
+%% Simulate implicit NTPFA
+disp('NTPFA implicit')
+ratio = [];
+model_ntpfa = setNTPFADiscretization(model, 'myRatio', ratio);
+[wsNTPFA, statesNTPFA] = simulateScheduleAD(state0, model_ntpfa, schedule);
+plotFinalPressure(G, statesNTPFA, 'NTPFA')
 
 %% Simulate implicit MPFA
 % The simulator reuses the multipoint transmissibility calculations from
@@ -105,35 +101,35 @@ plotter(G, statesTPFA, 'TPFA')
 % is computed using MPFA instead of the regular two-point difference for
 % each face.
 disp('MPFA implicit')
-mrstModule add mpfa
 model_mpfa = setMPFADiscretization(model);
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
-plotter(G, statesMPFA, 'MPFA')
+plotFinalPressure(G, statesMPFA, 'MPFA')
 
 return
 
-%% Simulate explicit MPFA and explicit TPFA
-model_exp = setTimeDiscretization(model, 'Explicit', 'initialStep', dt(1));
-model_ntpfa_exp = setTimeDiscretization(model_ntpfa, 'Explicit');
-model_mpfa_exp = setTimeDiscretization(model_mpfa, 'Explicit');
-disp('TPFA explicit')
-[wsExplicit, statesExplicit] = simulateScheduleAD(state0, model_exp, schedule);
-disp('NTPFA explicit')
-[wsNTPFAExplicit, statesNTPFAExplicit] = simulateScheduleAD(state0, model_ntpfa_exp, schedule);
-disp('MPFA explicit')
-[wsMPFAExplicit, statesMPFAExplicit] = simulateScheduleAD(state0, model_mpfa_exp, schedule);
+%% Collect implicit solver data
+wsImplicit{1} = wsTPFA;
+wsImplicit{2} = wsAvgMPFA;
+wsImplicit{3} = wsNTPFA;
+wsImplicit{4} = wsMPFA;
+statesImplicit{1} = statesTPFA;
+statesImplicit{2} = statesAvgMPFA;
+statesImplicit{3} = statesNTPFA;
+statesImplicit{4} = statesMPFA;
+names = {'TPFA', 'AvgMPFA', 'NTPFA', 'MPFA'};
 
-figure
-plotToolbar(G, statesExplicit);
-title('TPFA explicit')
+%% Simulate using explicit time discretization
+models_exp{1} = setTimeDiscretization(model, 'Explicit');
+models_exp{2} = setTimeDiscretization(model_avgmpfa, 'Explicit');
+models_exp{3} = setTimeDiscretization(model_ntpfa, 'Explicit');
+models_exp{4} = setTimeDiscretization(model_mpfa, 'Explicit');
 
-figure
-plotToolbar(G, statesNTPFAExplicit);
-title('TPFA explicit')
-
-figure
-plotToolbar(G, statesMPFAExplicit)
-title('MPFA explicit')
+for k = 1:numel(models_exp)
+    str = sprintf('%s explicit', names{k});
+    fprintf('%s\n', str);
+    [wsExplicit{k}, statesExplicit{k}] = simulateScheduleAD(state0, models_exp{k}, schedule); %#ok
+    plotFinalPressure(G, statesExplicit{k}, str);
+end
 
 %% Plot the producer results
 % We note that there are two choices that impact the accuracy of the
@@ -142,61 +138,56 @@ title('MPFA explicit')
 % lines. In addition, the time-stepping and choice of implicitness
 % significantly impacts the accuracy of the arrival of the front.
 time = cumsum(dt);
-h1 = figure; hold on
-title('Water production - inconsistent scheme')
+color = lines(2*numel(wsImplicit));
 
-h2 = figure; hold on
-title('Water production - consistent scheme')
-for i = 2:3
-    if i == 2
-        c = 'r';
-    else
-        c = 'b';
-    end
-    wn = W(i).name;
+h1 = figure; hold on; grid on
+title('Water production inconsistent scheme well');
+
+h2 = figure; hold on; grid on
+title('Water production consistent schemes well');
+
+for iwell = 2:3
+    wn = W(iwell).name;
+
     if useComp
         get = @(ws) -getWellOutput(ws, 'ComponentTotalFlux', wn, 1);
-        ti = get(wsTPFA);
-        te = get(wsExplicit);
-        ni = get(wsNTPFA);
-        ne = get(wsNTPFAExplicit);
-        mi = get(wsMPFA);
-        me = get(wsMPFAExplicit);
+        for k = 1:numel(wsExplicit)
+            out_i{k} = get(wsImplicit{k}); %#ok
+            out_e{k} = get(wsExplicit{k}); %#ok
+        end
         l = 'CO2 production';
         yl = [0, 0.18];
     else
         rt = {'qWs', 'qOs'};
-        qs_te = getWellOutput(wsExplicit, rt, wn);
-        qs_ti = getWellOutput(wsTPFA, rt, wn);
-        qs_ne = getWellOutput(wsNTPFAExplicit, rt, wn);
-        qs_ni = getWellOutput(wsNTPFA, rt, wn);
-        qs_me = getWellOutput(wsMPFAExplicit, rt, wn);
-        qs_mi = getWellOutput(wsMPFA, rt, wn);
-
-        ti = qs_ti(:, :, 1) ./ (sum(qs_ti, 3));
-        te = qs_te(:, :, 1) ./ (sum(qs_te, 3));
-        ni = qs_ni(:, :, 1) ./ (sum(qs_ni, 3));
-        ne = qs_ne(:, :, 1) ./ (sum(qs_ne, 3));
-        mi = qs_mi(:, :, 1) ./ (sum(qs_mi, 3));
-        me = qs_me(:, :, 1) ./ (sum(qs_me, 3));
+        get = @(ws) getWellOutput(ws, rt, wn);
+        for k = 1:numel(wsExplicit)
+            qs_e = get(wsExplicit{k});
+            qs_i = get(wsImplicit{k});
+            out_i{k} = qs_i(:,:,1) ./ (sum(qs_i, 3)); %#ok
+            out_e{k} = qs_e(:,:,1) ./ (sum(qs_e, 3)); %#ok
+        end
         l = 'Water cut';
         yl = [0, 1];
     end
-    li = sprintf('%s: Implicit', wn);
-    le = sprintf('%s: Explicit', wn);
+
+    iname = @(name) sprintf('%s %s', name, wn);
+    ename = @(name) sprintf('%s explicit %s', name, wn);
+
     % Inconsistent solvers
     figure(h1);
-    plot(time/day, ti, '--', 'linewidth', 2, 'color', c, 'DisplayName', li);
-    plot(time/day, te, '-', 'linewidth', 1, 'color', c, 'DisplayName', le);
+    plot(time/day, out_i{1}, '-', 'linewidth', 2, 'color', color(iwell-1,:), 'DisplayName', iname('TPFA'));
+    plot(time/day, out_e{1}, '--', 'linewidth', 1, 'color', color(iwell-1,:), 'DisplayName', ename('TPFA'));
     xlabel('Days simulated');
     ylabel(l);
     ylim(yl);
+
     % Consistent solvers
     figure(h2);
-    plot(time/day, mi, '--', 'linewidth', 2, 'color', c, 'DisplayName', li);
-    plot(time/day, me, '-', 'linewidth', 1, 'color', c, 'DisplayName', le);
-    plot(time/day, ni, '--', 'linewidth', 2, 'color', c, 'DisplayName', li);
-    plot(time/day, ne, '-', 'linewidth', 1, 'color', c, 'DisplayName', le);
+    for k = 2:numel(wsExplicit)
+        cidx = k-1 + (iwell-2)*numel(wsExplicit);
+        plot(time/day, out_i{k}, '-', 'linewidth', 2, 'color', color(cidx,:), 'DisplayName', iname(names{k}));
+        plot(time/day, out_e{k}, '--', 'linewidth', 1, 'color', color(cidx,:), 'DisplayName', ename(names{k}));
+    end
     xlabel('Days simulated');
     ylabel(l);
     ylim(yl);
@@ -212,35 +203,24 @@ for i = 1:2
 end
 
 %% Interactive plotting
-plotWellSols({wsTPFA, wsNTPFA, wsMPFA, wsExplicit, wsNTPFAExplicit, wsMPFAExplicit}, ...
-             time, ...
-             'datasetnames', ...
-             {'TPFA implicit', 'NTPFA implicit', 'MPFA implicit', ...
-              'TPFA explicit', 'NTPFA explicit', 'MPFA explicit'})
+namesExplicit = cellfun(@(name) sprintf('%s explicit', name), names, 'un', false);
+plotWellSols({wsImplicit{:}, wsExplicit{:}}, time, ...
+             'datasetnames', {names{:}, namesExplicit{:}}); %#ok
 
 %% Plot the front at a chosen time-step
 if useComp
-    ix = 20;
+    timestep = 20;
 else
-    ix = 10;
+    timestep = 10;
 end
 
 x = reshape(G.cells.centroids(:, 1), G.cartDims);
 y = reshape(G.cells.centroids(:, 2), G.cartDims);
 
-for i = 1:3
-    if i == 1
-        impl = statesTPFA;
-        expl = statesExplicit;
-    elseif i == 2
-        impl = statesNTPFA;
-        expl = statesNTPFAExplicit;
-    else
-        impl = statesMPFA;
-        expl = statesMPFAExplicit;
-    end
-    impl = impl{ix};
-    expl = expl{ix};
+for k = 1:numel(statesImplicit)
+    impl = statesImplicit{k}{timestep};
+    expl = statesExplicit{k}{timestep};
+
     if useComp
         vi = impl.components(:, 1);
         ei = expl.components(:, 1);
@@ -248,6 +228,7 @@ for i = 1:3
         vi = impl.s(:, 1);
         ei = expl.s(:, 1);
     end
+
     N = 20;
     cval = [.5 * movsum(linspace(0, 1, N + 1), 2), 1];
     figure(i);
@@ -263,28 +244,9 @@ for i = 1:3
         c = G.cells.centroids(W(wno).cells, :);
         plot(c(1), c(2), 'kO', 'markersize', 8, 'markerFaceColor', 'r')
     end
+    title(names{k});
 end
 
-
-function plotter(G, states, name)
-
-    figure
-    plotToolbar(G, states)
-    axis tight equal
-    colorbar
-    title(name)
-
-    figure, hold on
-    plotCellData(G, states{end}.pressure, 'edgealpha', 0);
-    contour(reshape(G.cells.centroids(:, 1), G.cartDims), ...
-            reshape(G.cells.centroids(:, 2), G.cartDims), ...
-            reshape(states{end}.pressure, G.cartDims), ...
-            'linewidth', 1, 'color', 'k');
-    axis tight equal
-    colorbar
-    title([name, ' at endtime'])
-
-end
 
 %% Copyright Notice
 %
