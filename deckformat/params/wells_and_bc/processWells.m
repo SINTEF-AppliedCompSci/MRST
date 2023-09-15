@@ -773,12 +773,11 @@ end
 %--------------------------------------------------------------------------
 
 function wellstre = insertDefaultWELLSTRE(control)
-    wellstre = control.WELLSTRE;
-
-%    if numel(wellstre) > 0
-%       i = isnan(vertcat(wellstre{:,9}));
-%       wellstre(i,9) = { 1 * atm };
-%    end
+    if isfield(control, 'WELLSTRE')
+        wellstre = control.WELLSTRE;
+    else
+        wellstre = [];
+    end
 end
 
 %--------------------------------------------------------------------------
