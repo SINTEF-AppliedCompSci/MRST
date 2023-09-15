@@ -693,6 +693,7 @@ function W = buildWell(W, G, rock, c2a, control, i, p, ...
    Kh    =  Kh(ia);
    WI    =  WI(ia);
    Wdiam =  Wdiam(ia);
+   Skin  =  Skin(ia);
 
    if sum(nperf) > 0
       sizeW = numel(W);
