@@ -176,11 +176,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             model.checkProperty(state, 'Temperature', [ncell, 1], [1, 2]);
             if ~isfield(state, 'x') || ~isfield(state, 'K')
                 state.components = ensureMinimumFraction(state.components, model.EOSModel.minimumComposition);
-                
-                time0 = 0; if isfield(state, 'time'), time0 = state0.time; end
-                state = model.computeFlash(state, inf);
-                state.time = time0;
-                
+                state = model.computeFlash(state, inf);                
             end
             if isfield(state, 'wellSol') && ~isfield(state.wellSol, 'components')
                 for i = 1:numel(state.wellSol)
@@ -223,6 +219,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             if nargin < 3
                 dt = inf;
             end
+            % Preserve simulated time
             hasTime = isfield(state, 'time');
             if hasTime, time0 = state.time; end
             state0 = state;
@@ -266,7 +263,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             state = model.setProp(state, ['s', v], void.*(1-sL));
 
             assert(all(all(state.s >= 0)), 'Negative saturations after flash.');
-            
+            % Preserve simulated time
             if hasTime, state.time = time0; end
             
         end
