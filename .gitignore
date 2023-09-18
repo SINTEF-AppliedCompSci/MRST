@@ -8,3 +8,4 @@ optimization/examples/model2D/schedule_opt.mat
 *.mat
 *.mex
 *.oct
+*.asv
