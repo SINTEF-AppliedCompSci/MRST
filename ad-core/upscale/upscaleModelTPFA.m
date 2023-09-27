@@ -134,6 +134,28 @@ function rock_c = getRock(rock, CG, opt)
         perm_c = 1./bsxfun(@rdivide, perm_c, counts);
     end
     rock_c = makeRock(CG, perm_c, poro_c);
+    if isfield(rock, 'regions')
+        rock_c = coarsenRegion(CG, rock, rock_c, 'saturation');
+        rock_c = coarsenRegion(CG, rock, rock_c, 'pvt');
+    end
+end
+
+function rock_c = coarsenRegion(CG, rock, rock_c, t)
+    if isfield(rock.regions, t)
+        ncoarse = CG.cells.num;
+        reg_fine = rock.regions.(t);
+        reg_coarse = zeros(ncoarse, 1);
+        for i = 1:ncoarse
+            act = CG.partition == i;
+            u = unique(reg_fine(act));
+            if numel(u) > 1
+                warning(['Multiple ', t,' regions found for block ', num2str(i),...
+                        ', will take first encountered value']);
+            end
+            reg_coarse(i) = u(1);
+        end
+        rock_c.regions.(t) = reg_coarse;
+    end
 end
 
 function [Tc, N_int] = getTransmissibility(CG, rock_c, opt)
