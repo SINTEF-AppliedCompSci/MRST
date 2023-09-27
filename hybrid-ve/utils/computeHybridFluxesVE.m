@@ -29,7 +29,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     isFine = G.cells.discretization  == 1;
 
     
-    [pW, pG, mobW, mobG] = evaluatePropertiesVE(model, pW, sG, h, H, rhoW, rhoG, muW, muG, isFine);
+    [pW, pG, mobW, mobG] = evaluatePropertiesVE(model, pW, sG, h, H, rhoW, rhoG, muW, muG, isFine, ':');
     if isa(model, 'ThreePhaseCompositionalModel')
         sW = 1-sG;
         rhoWf = op.faceAvg(rhoW.*sW)./max(op.faceAvg(sW), 1e-8);
@@ -78,7 +78,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 end
 
-function [pW, sG, h, H, rhow, rhog, muw, mug, isFine] = getTransitionValuesVE_coarse(model, pW, h_global, index, subs, rhoW, rhoG, muW, muG)    
+function [pW, sG, h, H, rhow, rhog, muw, mug, isFine, c] = getTransitionValuesVE_coarse(model, pW, h_global, index, subs, rhoW, rhoG, muW, muG)    
     c = model.operators.N(subs, index);
     t = model.G.cells.topDepth(c);
     
@@ -102,7 +102,7 @@ function [pW, sG, h, H, rhow, rhog, muw, mug, isFine] = getTransitionValuesVE_co
     pW = getWaterPressureFromHeight(B, t, B, b, h_global(c), pW(c), g, rhow, rhog);
 end
 
-function [pW, sG, h, H, rhow, rhog, muw, mug, isFine] = getTransitionValuesVE_fine(model, pW, h_global, index, subs, rhoW, rhoG, muW, muG)    
+function [pW, sG, h, H, rhow, rhog, muw, mug, isFine, c] = getTransitionValuesVE_fine(model, pW, h_global, index, subs, rhoW, rhoG, muW, muG)    
     c = model.operators.N(subs, index);
     t = model.G.cells.topDepth(c);
     
@@ -168,8 +168,8 @@ function [vW, vG, upcw, upcg] = computeTransitionFluxVE(model, pW, h, rhoW, rhoG
             pW(isFine) = pW(isFine) - dpFine;
         end    
 
-        [pW_l, sG_l, h_l, H_l, rhoW_l, rhoG_l, muW_l, muG_l] = getTransitionValuesVE_coarse(model, pW, h, 1, vtc, rhoW, rhoG, muW, muG);
-        [pW_r, sG_r, h_r, H_r, rhoW_r, rhoG_r, muW_r, muG_r] = getTransitionValuesVE_coarse(model, pW, h, 2, vtc, rhoW, rhoG, muW, muG);
+        [pW_l, sG_l, h_l, H_l, rhoW_l, rhoG_l, muW_l, muG_l, ~, c_l] = getTransitionValuesVE_coarse(model, pW, h, 1, vtc, rhoW, rhoG, muW, muG);
+        [pW_r, sG_r, h_r, H_r, rhoW_r, rhoG_r, muW_r, muG_r, ~, c_r] = getTransitionValuesVE_coarse(model, pW, h, 2, vtc, rhoW, rhoG, muW, muG);
 
         isFine_l = false;
         isFine_r = false;
@@ -177,8 +177,8 @@ function [vW, vG, upcw, upcg] = computeTransitionFluxVE(model, pW, h, rhoW, rhoG
         gdz_w = g*grad(b1, b2);
     else
         % Treat coarse cells as fine cells
-        [pW_l, sG_l, h_l, H_l, rhoW_l, rhoG_l, muW_l, muG_l] = getTransitionValuesVE_fine(model, pW, h, 1, vtc, rhoW, rhoG, muW, muG);
-        [pW_r, sG_r, h_r, H_r, rhoW_r, rhoG_r, muW_r, muG_r] = getTransitionValuesVE_fine(model, pW, h, 2, vtc, rhoW, rhoG, muW, muG);
+        [pW_l, sG_l, h_l, H_l, rhoW_l, rhoG_l, muW_l, muG_l, ~, c_l] = getTransitionValuesVE_fine(model, pW, h, 1, vtc, rhoW, rhoG, muW, muG);
+        [pW_r, sG_r, h_r, H_r, rhoW_r, rhoG_r, muW_r, muG_r, ~, c_r] = getTransitionValuesVE_fine(model, pW, h, 2, vtc, rhoW, rhoG, muW, muG);
 
         isFine_l = true;
         isFine_r = true;
@@ -188,8 +188,8 @@ function [vW, vG, upcw, upcg] = computeTransitionFluxVE(model, pW, h, rhoW, rhoG
         gdz_w = gdz_g;
     end
 
-    [pW_l, pG_l, mobW_l, mobG_l] = evaluatePropertiesVE(model, pW_l, sG_l, h_l, H_l, rhoW_l, rhoG_l, muW_l, muG_l, isFine_l);
-    [pW_r, pG_r, mobW_r, mobG_r] = evaluatePropertiesVE(model, pW_r, sG_r, h_r, H_r, rhoW_r, rhoG_r, muW_r, muG_r, isFine_r);
+    [pW_l, pG_l, mobW_l, mobG_l] = evaluatePropertiesVE(model, pW_l, sG_l, h_l, H_l, rhoW_l, rhoG_l, muW_l, muG_l, isFine_l, c_l);
+    [pW_r, pG_r, mobW_r, mobG_r] = evaluatePropertiesVE(model, pW_r, sG_r, h_r, H_r, rhoW_r, rhoG_r, muW_r, muG_r, isFine_r, c_r);
     
 
 
@@ -204,13 +204,13 @@ function [vW, vG, upcw, upcg] = computeTransitionFluxVE(model, pW, h, rhoW, rhoG
 end
 
 
-function [pW, pG, mobW, mobG] = evaluatePropertiesVE(model, pW, sG, h, H, rhoW, rhoG, muW, muG, isFine)
+function [pW, pG, mobW, mobG] = evaluatePropertiesVE(model, pW, sG, h, H, rhoW, rhoG, muW, muG, isFine, coarse_cells)
     g = norm(model.gravity);
     f = model.fluid;
     sW = 1 - sG;
     isVE = ~isFine;
     if isfield(f, 'pcWG')
-        pcWG = f.pcWG(sG);
+        pcWG = evalSatFunction(f.pcWG, sG, coarse_cells, model.rock, 'saturation');
     else
         pcWG = 0;
     end
@@ -219,10 +219,28 @@ function [pW, pG, mobW, mobG] = evaluatePropertiesVE(model, pW, sG, h, H, rhoW, 
     pG = pW + pcWG;
     % Mobility
     if isprop(model, 'EOSModel')
-        krw = f.krO(sW);
+        kr = f.krO;
     else
-        krw = f.krW(sW);
+        kr = f.krW;
     end
+    krw = evalSatFunction(kr, sW, coarse_cells, model.rock, 'saturation');
+    krg = evalSatFunction(f.krG, sG, coarse_cells, model.rock, 'saturation');
     mobW = (isVE.*sW + isFine.*krw)./muW;
-    mobG = (isVE.*sG + isFine.*f.krG(sG))./muG;
+    mobG = (isVE.*sG + isFine.*krg)./muG;
+end
+
+function v = evalSatFunction(f, s, cells, rock, regfield)
+    if iscell(f)
+        reg = rock.regions.(regfield);
+        reg = reg(cells);
+        v = 0.*s;
+        for i = 1:numel(f)
+            act = reg == i;
+            if any(act)
+                v(act) = f{i}(s(act));
+            end
+        end
+    else
+        v = f(s);
+    end
 end
