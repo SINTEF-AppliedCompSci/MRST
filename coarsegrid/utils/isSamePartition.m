@@ -48,37 +48,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          (numel(p1) == numel(p2))
       % p1 ~= p2, but both numeric vectors and both have the same number of
       % elements.  Check if one is uncompressed permutation of the other.
-      %
-      % Note: Extracting block-to-cell mapping requires SORTROWS.
 
-      [b2c_p1, b2c_1] = block_cells(p1);
-      [b2c_p2, b2c_2] = block_cells(p2);
-
-      if sum(diff(b2c_p1) > 0) == sum(diff(b2c_p2) > 0)
-         % Same number of active blocks.  Possibly same partition.
-         %
-         % Check if fine-scale cells partition equally in both vectors.
-         %
-         % Note: By construction, cell indices appear in sorted order in
-         % the b2c array.
-         cells = @(b, pos, b2c) ...
-            reshape(b2c(pos(b) : (pos(b + 1) - 1)), [], 1);
-
-         c1 = @(b1) cells(b1, b2c_p1, b2c_1);
-         c2 = @(b2) cells(b2, b2c_p2, b2c_2);
-         eq = @(c)  isequal(c1(p1(c)), c2(p2(c)));
-
-         % Loop representative (first) cells from each block of p1 and see
-         % if the blocks containing those cells have the same contents in
-         % both p1 and p2.
-         b = all(arrayfun(eq, b2c_1(b2c_p1(diff(b2c_p1) > 0))));
-      else
-         % Different number of active blocks so p1 and p2 do definitely not
-         % represent the same cell partitions.  Note: This assignment is,
-         % strictly speaking, a no-op because 'b' is already FALSE from the
-         % earlier ISEQUAL check.
-         b = false;
-      end
+      bmap = unique([reshape(p1, [], 1), reshape(p2, [], 1)], 'rows');
+      b = size(bmap, 1) == size(unique(bmap(:,1)), 1);
    end
 end
 
@@ -86,10 +58,4 @@ end
 
 function b = is_vector(x)
    b = (ndims(x) == 2) && (sum(size(x) == 1) >= 1);             %#ok<ISMAT>
-end
-
-%--------------------------------------------------------------------------
-
-function [pos, b2c] = block_cells(p)
-   [pos, b2c] = invertPartition(reshape(p, [], 1));
 end
