@@ -24,7 +24,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'Would you like to download the files?'];
 
    if do_download_library(s)
-      run(fullfile(ROOTDIR, 'utils', '3rdparty', 'matlab_bgl', 'downloadMBGL')) 
+      d = fileparts(fileparts(mfilename('fullpath')));
+      run(fullfile(d,'downloadMBGL')) 
    else
        fprintf(2, 'Unable to load matlab_bgl\n');
    end
