@@ -121,7 +121,7 @@ fluid   = makeVEFluid(Gt, rock2D, 'P-scaled table'             , ...
                'invPc3D'     , invPc3D                , ...
                'kr3D'        , kr3D                   , ...
                'dissolution' , true, ...
-               'dis_rate'    , 0, ...
+               'dis_rate'    , 2e-7, ...%0, ...
                'dis_max'     , 0.03, ...
                'transMult'   , transMult);
 
@@ -154,14 +154,11 @@ schedule.step.control = [ones(50, 1); ...
 
 %% Create and simulate model
 %model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
-model = CO2VEBlackOilTypeModelNew(Gt, rock2D, fluid);
-<<<<<<< Updated upstream
+model_new = CO2VEBlackOilTypeModelNew(Gt, rock2D, fluid);
 
-=======
->>>>>>> Stashed changes
-[wellSol, states] = simulateScheduleAD(initState, model, schedule);
+%[wellSol, states] = simulateScheduleAD(initState, model, schedule);
 [wellSol_new, states_new] = simulateScheduleAD(initState, model_new, schedule);
-states_old = [{initState} states(:)'];
+%states_old = [{initState} states(:)'];
 states_new = [{initState} states_new(:)'];
 
 states = states_old;
