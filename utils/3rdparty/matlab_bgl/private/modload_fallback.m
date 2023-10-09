@@ -20,12 +20,29 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   d = fileparts(fileparts(mfilename('fullpath')));
+   s = ['Did not find matlab_bgl library ', ...
+                'Would you like to download the files?'];
 
-   error(['MatlabBGL software is not available\n\n',    ...
-          ' -> Use downloadMBGL script to install ',    ...
-          '(copy-paste command below)\n\n',             ...
-          '    run ''%s''\n\n',                         ...
-          'Then run mrstModule add matlab_bgl again.'], ...
-          fullfile(d, 'downloadMBGL'));
+   if do_download_library(s)
+      d = fileparts(fileparts(mfilename('fullpath')));
+      run(fullfile(d,'downloadMBGL')) 
+   else
+       fprintf(2, 'Unable to load matlab_bgl\n');
+   end
+end
+
+
+
+function status = do_download_library(msg)
+    status = mrstSettings('get', 'allowDL');
+    if status && mrstSettings('get', 'promptDL')
+       if mrstPlatform('desktop')
+           title = 'Missing dependency';
+           choice = questdlg(msg, title, 'Yes', 'No', 'Yes');
+       else
+           disp(msg);
+           choice = input(' y/n [y]: ', 's');
+       end
+       status = any(strcmpi(choice, {'y', 'yes'}));
+   end
 end
