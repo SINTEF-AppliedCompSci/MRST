@@ -20,15 +20,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   s = sprintf(['Did not find matlab_bgl library ', ...
-                'Would you like to download the files?']);
+   s = ['Did not find matlab_bgl library ', ...
+                'Would you like to download the files?'];
 
    if do_download_library(s)
-      addpath(fullfile(ROOTDIR,'utils','3rdparty','matlab_bgl'));
-      downloadMBGL();
+      run(fullfile(ROOTDIR, 'utils', '3rdparty', 'matlab_bgl', 'downloadMBGL')) 
    else
        fprintf(2, 'Unable to load matlab_bgl\n');
-       % warning()
    end
 end
 
@@ -44,6 +42,6 @@ function status = do_download_library(msg)
            disp(msg);
            choice = input(' y/n [y]: ', 's');
        end
-       status = strcmpi(choice, 'y') || strcmpi(choice, 'yes');
+       status = any(strcmpi(choice, {'y', 'yes'}));
    end
 end
