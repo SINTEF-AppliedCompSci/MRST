@@ -184,7 +184,7 @@ for i=1:numel(states)
                                     'p', states{100}.pressure);
     sat = height2Sat(h, h_max, Gt, fluid.res_water, fluid.res_gas);
     title(sprintf('Time: %4d yrs (%s)', time(i),ptxt{period(i)}));
-    ix = sat>0; if ~any(ix), continue; end
+    ix = sat>eps; if ~any(ix), continue; end
     hs = plotCellData(Gt.parent, sat, ix); drawnow
 end
 

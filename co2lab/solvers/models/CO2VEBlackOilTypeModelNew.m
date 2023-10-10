@@ -20,14 +20,14 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             model.disgas = isfield(model.fluid, 'dis_max'); 
             
             model = model.setupOperators(Gt, rock2D);
-            model.Components = {MiscibleWaterComponent('brine', 1), ...
-                                CO2Component('CO2', model.disgas, 2)};
+            model.Components = {MiscibleWaterComponent('brine'), ...
+                                CO2Component('CO2', model.disgas)};
         end
         
 % ------------------------------------------------------------------------        
 
         function model = setupOperators(model, Gt, rock)
-        % Compute vertially-integrated transmissibilities if not provided
+        % Compute vertially-integrated transmissibilities 
             rock_tmp      = rock; 
             rock_tmp.perm = rock.perm .* Gt.cells.H; 
             T             = computeTrans(Gt, rock_tmp); 
@@ -35,7 +35,7 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             nf            = Gt.faces.num; 
             T             = 1 ./ accumarray(cf, 1 ./ T, [nf, 1]);       
             
-            % Computing vertically-integrated pore - volume
+            % Computing vertically-integrated pore-volume
             pv = poreVolume(Gt, rock); 
             pv = pv .* Gt.cells.H; 
             
@@ -249,9 +249,10 @@ classdef CO2VEBlackOilTypeModelNew < ReservoirModel & GenericReservoirModel
             
             % PVTPropertyFunctions
             pvtprops = model.PVTPropertyFunctions;
-            pvtprops = pvtprops.setStateFunction(...
-                'ShrinkageFactors', ...
-                ShrinkageFactors(model, 'usePhasePressures', false));
+            pvtprops = pvtprops.setStateFunction('Density', CO2VEBlackOilDensity(model));
+            pvtprops = pvtprops.setStateFunction('ShrinkageFactors', ...
+                                                 ShrinkageFactors(model,  ...
+                                                              'usePhasePressures', false));
             
             model.PVTPropertyFunctions = pvtprops;
         end

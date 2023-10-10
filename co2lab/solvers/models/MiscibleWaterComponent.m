@@ -1,45 +1,50 @@
-classdef MiscibleWaterComponent < ImmiscibleComponent
+classdef MiscibleWaterComponent < GenericComponent
+    
+    properties
+    end
     
     methods
-        function c = MiscibleWaterComponent(name, waterIndex)
-            c@ImmiscibleComponent(name, waterIndex);
+        function c = MiscibleWaterComponent(name)
+            c@GenericComponent(name);
             c = c.functionDependsOn('getComponentDensity', ...
                                     {'ShrinkageFactors', 'SurfaceDensity'}, ...
                                     'PVTPropertyFunctions');
         end
         
-        function c = getPhaseComposition(component, model, state, varargin)
-            % @@ This is modeled after the GasComponent in the black oil module.  But should 
-            %    it not rather call the GenericComponent version, to account for presence in 
-            %    multiple phases?
-            c = getPhaseComposition@ImmiscibleComponent(component, model, state, varargin{:});
-        end        
-        
         function c = getComponentDensity(component, model, state, varargin)
-            if model.disgas
-                % establish (empty) cell array with one entry per phase
-                phasenames = model.getPhaseNames();
-                nph = numel(phasenames);
-                c = cell(nph, 1);
-
-                wix = (phasenames == 'W');
-                pvt = model.PVTPropertyFunctions;
-                
-                rhoS = pvt.get(model, state, 'SurfaceDensity', true);
-                b = pvt.get(model, state, 'ShrinkageFactors', true);
-                
-                c{wix} = rhoS{wix} .* b{wix};
-
-                
-            else
-                % density of water in water phase (which is the only phase
-                % with water)
-                c = getComponentDensity@ImmiscibleComponent(component, model, state); 
-            end
-        end
+            c = getComponentDensity@GenericComponent(component, model, state);
             
+            % this gives the density of the pure water phase, which in our
+            % black-oil like formulation equals the component density of water
+            [b, rhoS] = model.getProps(state, 'ShrinkageFactors', 'SurfaceDensity');
+            
+            phase_ix = model.getPhaseIndex('W');
+            
+            % component density of water in water phase equals the density of
+            % pure water in the water phase 
+            c{phase_ix} = rhoS{phase_ix} .* b{phase_ix}; 
+        end
+        
+        function c = getPhaseCompositionSurface(component, model, state, varargin)
+            c = getPhaseCompositionSurface@GenericComponent(component, model, state);
+            c{model.getPhaseIndex('W')} = 1;
+        end
+        
+        function c = getPhaseComponentFractionInjection(component, model, state, force)
+        % Get the volume fraction of the component in each phase (when
+        % injecting from outside the domain)
+            c = cell(2, 1); % one per phase
+            if isfield(force, 'compi')
+                comp_i = vertcat(force.compi);
+            else
+                comp_i = vertcat(force.sat);
+            end
+            index = model.getPhaseIndex('W');
+            ci = comp_i(:, index);
+            if any(ci ~= 0)
+                c{index} = ci;
+            end
+            
+        end
     end
-
-    
-    
 end

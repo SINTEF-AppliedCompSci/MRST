@@ -1,8 +1,11 @@
-classdef CO2Component < ImmiscibleComponent
+classdef CO2Component < GenericComponent
 
+    properties
+    end
+    
     methods
-        function c = CO2Component(name, disgas, gasIndex)
-            c@ImmiscibleComponent(name, gasIndex);
+        function c = CO2Component(name, disgas)
+            c@GenericComponent(name);
             c = c.functionDependsOn('getComponentDensity', ...
                                     {'ShrinkageFactors', 'SurfaceDensity'}, ...
                                     'PVTPropertyFunctions');
@@ -11,41 +14,47 @@ classdef CO2Component < ImmiscibleComponent
             end
         end
         
-        function c = getPhaseComposition(component, model, state, varargin)
-            % @@ This is modeled after the GasComponent in the black oil module.  But should 
-            %    it not rather call the GenericComponent version, to account for presence in 
-            %    multiple phases?
-            c = getPhaseComposition@ImmiscibleComponent(component, model, state, varargin{:});
+        function c = getPhaseCompositionSurface(component, model, state, varargin)
+            c = getPhaseCompositionSurface@GenericComponent(component, model, state);
+            c{model.getPhaseIndex('G')} = 1;
+        end
+        
+        function c = getPhaseComponentFractionInjection(component, model, state, force)
+        % Get the volume fraction of the component in each phase (when
+        % injecting from outside the domain)
+            c = cell(2, 1); % one per phase
+            if isfield(force, 'compi')
+                comp_i = vertcat(force.compi);
+            else
+                comp_i = vertcat(force.sat);
+            end
+            index = model.getPhaseIndex('G');
+            ci = comp_i(:, index);
+            if any(ci ~= 0)
+                c{index} = ci;
+            end
         end
         
         function c = getComponentDensity(component, model, state, varargin)
+            c = getComponentDensity@GenericComponent(component, model, state, varargin{:});
+            
+            [b, rhoS] = model.getProps(state, 'ShrinkageFactors', ...
+                                              'SurfaceDensity');
+            co2_phase_ix = model.getPhaseIndex('G');
+            
+            % component density of CO2 in CO2 phase 
+            c{co2_phase_ix} = rhoS{co2_phase_ix} .* b{co2_phase_ix};
+            
             if model.disgas
-                % establish (empty) cell array with one entry per phase
-                phasenames = model.getPhaseNames();
-                nph = numel(phasenames);
-                c = cell(nph, 1);
                 
-                gix = (phasenames == 'G');
-                pvt = model.PVTPropertyFunctions;
+                % component density of CO2 in brine phase
+                w_phase_ix = model.getPhaseIndex('W');
                 
-                rho = pvt.get(model, state, 'Density', true);
-                b = pvt.get(model, state, 'ShrinkageFactors', true);
-                rhoS = pvt.get(model, state, 'SurfaceDensity', true);
-                rhoGS = rhoS{gix};
+                rs = model.getProp(state, 'rs');
+                rhoGS = rhoS{co2_phase_ix};
+                bW = b{w_phase_ix};
                 
-                % density of CO2 in CO2 phase
-                c{gix} = rho{gix};
-                
-                % density of CO2 in brine phase
-                if model.disgas
-                    wix = (phasenames == 'W');
-                    bW = b{wix};
-                    rs = model.getProp(state, 'rs');
-                    c{wix} = rs .* rhoGS .* bW;
-                end
-            else
-                % density of CO2 in CO2 phase (which is the only phase with CO2)
-                c = getComponentDensity@ImmiscibleComponent(component, model, state, varargin{:});
+                c{w_phase_ix} = rs .* rhoGS .* bW;
             end
         end
     end
