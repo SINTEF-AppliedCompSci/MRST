@@ -66,18 +66,20 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
                 
                 [pv, pv0] = deal(model.getProp(state, 'PoreVolume'), ...
                                  model.getProp(state0, 'PoreVolume'));
-                [rs, rs0] = deal(model.getProp(state, 'rs'), ...
-                                 model.getProp(state0, 'rs'));
+                % [rs, rs0] = deal(model.getProp(state, 'rs'), ...
+                %                  model.getProp(state0, 'rs'));
                 [b, b0]   = deal(model.getProp(state, 'ShrinkageFactors'), ...
                                  model.getProp(state0, 'ShrinkageFactors'));
-                [sW, sW0] = deal(model.getProp(state, 'sw'), ...
-                                 model.getProp(state0, 'sw'));
+                % [sW, sW0] = deal(model.getProp(state, 'sw'), ...
+                %                  model.getProp(state0, 'sw'));
 
+                [co2dis, co2dis0] = deal(model.dissolvedCO2Mass(state), ...
+                                         model.dissolvedCO2Mass(state0));
+                
+                acc_dis = (co2dis - co2dis0) / dt;
+                
                 bW = b{1}; bW0 = b0{1}; 
                 bG = b{2};
-                
-                acc_dis  = ((pv  .* bW  .* sW  .* rs) - ...
-                            (pv0 .* bW0 .* sW0 .* rs0)) / dt;
                 
                 flux_dis = model.getProp(state, 'DissolvedFlux');
                 
@@ -86,13 +88,14 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
                 if model.hasRateDrivenDissolution()
                     % Add conservation equation for dissolved gas
                     eta = model.computeDissolutionTransfer(state0, state, dt);
-                    eqs = [eqs, {eq_dis - eta}];
+                    eta_mass = eta .* model.fluid.rhoGS .* bW;
+                    eqs = [eqs, {eq_dis - eta_mass}];
                     names = [names, {'dissolution'}];
                     types = [types, {'cell'}];
                     
                     % amount of saturation "eaten up" by dissolution.  Will  be
                     % used to compute depletion of residual staturation further below.
-                    dSg = (eta * dt) ./ (pv .* bG); 
+                    dSg = eta_mass;
                 else
                     assert(model.hasInstantDissolution())
                     
@@ -110,9 +113,12 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
 
                 names = [names, {'hysteresis'}];
                 types = [types, {'cell'}];
+
+                fac = (1 - model.fluid.res_water) ./ model.fluid.res_gas ./ pv ./ model.fluid.rhoGS ./ bG;
+                eqs = [eqs, { sGmax - max(sGmax0 - dSg .* dt .* fac, sG) }];
                 
-                fac = (1-model.fluid.res_water) / model.fluid.res_gas;
-                eqs = [eqs, { sGmax - max(sGmax0 - dSg * fac, sG) }];
+                % fac = (1-model.fluid.res_water) / model.fluid.res_gas;
+                % eqs = [eqs, { sGmax - max(sGmax0 - dSg * fac, sG) }];
             end
             
             % get well equations
@@ -132,6 +138,25 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
                                                       state, drivingForces);
         end
 
+% ------------------------------------------------------------------------        
+        function m = dissolvedCO2Mass(model, state)
+            w_ph_ix = model.getPhaseIndex('W');
+            co2_comp_ix = 2; % @@ hard coded for now
+            
+            masses = model.getProp(state, 'ComponentPhaseMass');
+            m = masses{co2_comp_ix, w_ph_ix};
+        end
+
+% ------------------------------------------------------------------------        
+        function m = undissolvedCO2Mass(model, state)
+            co2_ph_ix = model.getPhaseIndex('G');
+            co2_comp_ix = 2; % @@ hard coded for now
+            
+            masses = model.getProp(state, 'ComponentPhaseMass');
+            m = masses{co2_comp_ix, co2_ph_ix};
+        end
+        
+        
 % ------------------------------------------------------------------------        
 
         function eta = computeDissolutionTransfer(model, state0, state, dt)
@@ -156,65 +181,77 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
             
             state_rsmax = state;
             state_rsmax.rs = state_rsmax.rs * 0 + rsmax;
-           
-            flux_max_dis = model.getProp(state_rsmax, 'DissolvedFlux'); 
-
-            % what is the maximum amount of CO2 that could be still absorbed by the
-            % brine in the cell
-            max_demand  = ((pv  .* bW  .* sW  .* rsmax) - ...
-                           (pv0 .* bW0 .* sW0 .* rs0)) / dt;
+            state_rsmax = model.initStateFunctionContainers(state_rsmax);
             
-            max_demand = model.operators.AccDiv(max_demand, flux_max_dis);
+            [co2dis_max, co2dis0] = deal(model.dissolvedCO2Mass(state_rsmax), ...
+                                         model.dissolvedCO2Mass(state0));
+                
+            flux_dis = model.getProp(state, 'DissolvedFlux');
+            % flux_max_dis = model.getProp(state_rsmax, 'DissolvedFlux');  @@@@
+
+            max_demand = (co2dis_max - co2dis0) / dt; 
+            max_demand = model.operators.AccDiv(max_demand, flux_dis);
             
             % how much dissolved CO2 could maximally be supplied from the
             % remaining CO2 phase in the cell
-            zeroADI = bW * 0; %@@
-            max_supply = zeroADI + (pv0 .* bG0 .* sG0) / dt;
-            
-            %max_supply = max_supply - (pv .* bG .* sG) / dt;
+            max_supply = model.undissolvedCO2Mass(state0) / dt;
             
             src = model.FacilityModel.getComponentSources(state);
             if ~isempty(src.cells)
-                max_supply(src.cells) = max_supply(src.cells) + ...
-                                        src.value{2} / model.fluid.rhoGS;
-                % max_supply(src.cells) = max_supply(src.cells) + ...
-                %                         max(src.value{2}, 0) / model.fluid.rhoGS;
+                max_supply(src.cells) = max_supply(src.cells) + value(src.value{2});
             end
             
             phase_fluxes = model.getProp(state, 'ComponentPhaseFlux');
-            co2_phase_flux = phase_fluxes{2, 2}; % second component in second phase
-            co2_phase_flux = co2_phase_flux / model.fluid.rhoGS; % volume, not mass
+            co2_phase_flux = phase_fluxes{2, 2}; % @@ second component (CO2) in second phase (CO2)
             
             co2_inflow = -1 * model.operators.C' * co2_phase_flux;
-            co2_inflow(co2_inflow < 0) = 0; % @@ necessary?
-            max_supply = max_supply + value(co2_inflow);
+            max_supply = max_supply + max(value(co2_inflow), 0.0);
 
-            % The maximum amount of CO2 that can be dissolved in a cell
+            % The maximum amount of CO2 mass that can be dissolved in a cell
             % will be limited by the most strict of the two above bounds
             max_transfer = max(min(max_demand, max_supply), 0);
+
+            % convert from mass rate to rs rate
+            max_transfer  = max_transfer ./ (bW .* model.fluid.rhoGS);
             
-            % Newly drained areas with residual brine will reach max CO2
-            % concentration instantly, regardless of rate.  We therefore set
-            % a minimum rate
-            rw = model.fluid.res_water;
-            reswat_change = rw / (1 - rw) * (pv .* sG .* bW - pv0 .* sG0 .* bW0);
+            % The vertical zone where there is both brine and CO2 is considered instantly
+            % saturated.  We must ensure that sufficient CO2 is dissolved to
+            % fulfil this at all times.
+            sW_touched = model.brineSaturationInTwoPhaseZone(state);
+            min_dissolved = model.fluid.dis_max .* sW_touched .* bW .* pv; % @@ NB: This assumes 
+            cur_dissolved = rs0 .* sW .* bW .* pv;                         % vertical heterogeneity.
+            min_transfer = max(min_dissolved - cur_dissolved, 0) / dt;     % Generalize this!
             
-            min_transfer = zeroADI;
-            sGmax = model.getProp(state, 'sGmax');
-            imbibing = sG < sGmax;
-            
-            min_transfer(~imbibing) = ...
-                model.fluid.dis_max * max(reswat_change(~imbibing), 0) / dt;
-            
+
             % The amount of actually dissolved CO2 is also limited by the
             % actual dissolution rate
             basic_rate = model.fluid.dis_rate .* pv ./ model.G.cells.H; % rate per area multiplied
                                                                         % by CO2/brine interface
                                                                         % area in cell
-            eta = max(min(basic_rate, max_transfer), min_transfer);
+            eta =  min(basic_rate, max_transfer);
+            %eta = min(max(basic_rate, min_transfer), max_transfer);
+            %eta = max(min(basic_rate, max_transfer), min_transfer);
         end
 
         
+% ------------------------------------------------------------------------        
+        function sW_touched = brineSaturationInTwoPhaseZone(model, state)
+            % @@ This function must be generalized to the vertically non-heterogeneous case!
+            sG = model.getProp(state, 'sg');
+            sGmax = model.getProp(state, 'sGmax');
+            sW = 1 - sG;
+            
+            [rw, rg] = deal(model.fluid.res_water, model.fluid.res_gas);
+            
+            [h, h_max] = upscaledSat2height(sG, sGmax, model.G, ...
+                                            'resSat', [rw, rg]); % @@ additional arguments for non-heterogeneous
+            H = model.G.cells.H;
+            
+            sW_untouched = (H - h_max) ./ H; % part of water saturation that were always below CO2 plume
+            
+            sW_touched = sW  - sW_untouched; % part of water saturation that at some point was
+                                             % in contact with the CO2
+        end
 % ------------------------------------------------------------------------        
 
         function model = validateModel(model, varargin)

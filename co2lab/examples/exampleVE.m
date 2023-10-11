@@ -44,7 +44,7 @@ t_ref   = 94+273.15;                            % reference temperature
 co2_rho = co2.rho(p_ref, t_ref);                % CO2 density
 co2_c   = co2.rhoDP(p_ref, t_ref) / co2_rho;    % CO2 compressibility
 wat_c   = 0;                                    % water compressibility
-c_rock  = 4.35e-5 / barsa;                      % rock compressibility
+c_rock  = 0; % 4.35e-5 / barsa;                      % rock compressibility @@@@@
 srw     = 0.27;                                 % residual water
 src     = 0.20;                                 % residual CO2
 pe      = 5 * kilo * Pascal;                    % capillary entry pressure
@@ -121,7 +121,7 @@ fluid   = makeVEFluid(Gt, rock2D, 'P-scaled table'             , ...
                'invPc3D'     , invPc3D                , ...
                'kr3D'        , kr3D                   , ...
                'dissolution' , true, ...
-               'dis_rate'    , 0, ...%2e-7, ...%0, ...
+               'dis_rate'    , 2e-9,...%2e-7, ...%0, ...
                'dis_max'     , 0.03, ...
                'transMult'   , transMult);
 
@@ -145,7 +145,6 @@ schedule.control(2).W.val = 0;
 % Specifying length of simulation timesteps
 schedule.step.val = [repmat(year,    50, 1); ...
                      repmat(10*year, 95, 1)];
-
 % Specifying which control to use for each timestep.
 % The first 100 timesteps will use control 1, the last 100
 % timesteps will use control 2.
@@ -153,6 +152,13 @@ schedule.step.control = [ones(50, 1); ...
                          ones(95, 1) * 2];
 
 %% Create and simulate model
+
+schedule.step.val = schedule.step.val(1:65); % @@@@@
+schedule.step.control = schedule.step.control(1:65); % @@@@@
+
+
+
+
 model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
 [wellSol, states] = simulateScheduleAD(initState, model, schedule);
 states = [{initState}; states];
@@ -174,7 +180,7 @@ for i=1:numel(states)
                                     'pcWG', fluid.pcWG, ...
                                     'rhoW', fluid.rhoW, ...
                                     'rhoG', fluid.rhoG, ...
-                                    'p', states{100}.pressure);
+                                    'p', states{100}.pressure); % @@@@ Why 100?
     sat = height2Sat(h, h_max, Gt, fluid.res_water, fluid.res_gas);
     title(sprintf('Time: %4d yrs (%s)', time(i),ptxt{period(i)}));
     ix = sat>eps; if ~any(ix), continue; end
