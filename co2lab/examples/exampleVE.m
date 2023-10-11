@@ -121,7 +121,7 @@ fluid   = makeVEFluid(Gt, rock2D, 'P-scaled table'             , ...
                'invPc3D'     , invPc3D                , ...
                'kr3D'        , kr3D                   , ...
                'dissolution' , true, ...
-               'dis_rate'    , 2e-7, ...%0, ...
+               'dis_rate'    , 0, ...%2e-7, ...%0, ...
                'dis_max'     , 0.03, ...
                'transMult'   , transMult);
 
@@ -153,16 +153,9 @@ schedule.step.control = [ones(50, 1); ...
                          ones(95, 1) * 2];
 
 %% Create and simulate model
-%model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
-model_new = CO2VEBlackOilTypeModelNew(Gt, rock2D, fluid);
-
-%[wellSol, states] = simulateScheduleAD(initState, model, schedule);
-[wellSol_new, states_new] = simulateScheduleAD(initState, model_new, schedule);
-%states_old = [{initState} states(:)'];
-states_new = [{initState} states_new(:)'];
-
-states = states_old;
-states = states_new;
+model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
+[wellSol, states] = simulateScheduleAD(initState, model, schedule);
+states = [{initState}; states];
 
 %% Animate the plume migration over the whole simulation period
 clf

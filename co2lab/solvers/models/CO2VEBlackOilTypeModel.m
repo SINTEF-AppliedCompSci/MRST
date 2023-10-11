@@ -1,239 +1,539 @@
-classdef CO2VEBlackOilTypeModel < ReservoirModel
-    % Black-oil type model for vertically integrated gas/water flow
-    % 
-    % SYNOPSIS:
-    %    model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
-    %
-    % DESCRIPTION:
-    %   Class representing a model with vertically-integrated two-phase flow (CO2
-    %   and brine), based on the s-formulation where upscaled saturation is a
-    %   primary variable), and with optional support for dissolution of gas into
-    %   the water phase.
-    %
-    % REQUIRED PARAMETERS:
-    %   Gt     - Top surface grid, generated from a regular 3D simulation grid
-    %            using the 'topSurfaceGrid' function in MRST-co2lab
-    %   
-    %   rock2D - Vertically averaged rock structure, generated from regular 3D
-    %            rock structure using the 'averageRock' function in MRST-co2lab.
-    % 
-    %   fluid  - Fluid object, representing the properties of the water and gas
-    %            phases.  The fluid object can be constructed using the
-    %            'makeVEFluid' function in MRST-co2lab.  This object also
-    %            specifies whether or not gas dissolves into water, and if so,
-    %            whether to model dissolution as an instantaneous or rate-driven
-    %            process. 
-    % RETURNS:
-    %   Class instance.
-    %
-    % SEE ALSO:
-    % `topSurfaceGrid`, `averageRock`, `makeVEFluid`, `ReservoirModel`
+classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
+    
+    properties
+        hysteresis
+        disgas  % the name of this field should not be changed, in order to
+                % play nice with the rest of AD-OO.
+    end
 
-    % ============================= Class properties ==========================
-properties
-   
-   % Equation is chosen based on whether fluid object includes dissolution
-   % effects or not 
-   equation
-   adjointType
-end
-      
-% ============================== Public methods ===========================
-methods
-   
-   % Constructor
-   function model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
-   
-      opt = struct('adjointType','hyst');%valid hyst/nohyst
-      [opt, unparsed] = merge_options(opt, varargin{:});%#ok
-   
-      model@ReservoirModel(Gt, varargin{:});
-      model.rock    = rock2D;
-      model.fluid   = fluid;
-      model.water   = true;
-      model.gas     = true;
-      model.oil     = false;
-      model.gravity = gravity;
-      
-      if isfield(fluid, 'dis_rate')
-         % use model equations with dissolution
-         model.equation = @equationsWGVEdisgas;
-         model.adjointType='nohyst';
-      else
-         % use basic model equations (no dissolution)
-         model.equation = @equationsWGVEbasic;
-         model.adjointType=opt.adjointType;
-      end
-      
-      model = model.setupOperators(Gt, rock2D);
-      
-      % This object and its equation does not support temporal variation
-      % in temperatures, so if dependence is detected, throw an error
-      if nargin(@fluid.bG) > 1
-         error(['This model requires that fluid properties are function of ' ...
-                'pressure only.']);
-      end
-   end
-      
-% =========================== Private methods ============================
-   function model = setupOperators(model, Gt, rock, varargin)
-
-      % Compute vertially-integrated transmissibilities if not provided
-      rock_tmp      = rock; 
-      rock_tmp.perm = rock.perm .* Gt.cells.H; 
-      T             = computeTrans(Gt, rock_tmp); 
-      cf            = Gt.cells.faces(:, 1); 
-      nf            = Gt.faces.num; 
-      T             = 1 ./ accumarray(cf, 1 ./ T, [nf, 1]);       
-
-      % Computing vertically-integrated pore - volume
-      pv = poreVolume(Gt, rock); 
-      pv = pv .* Gt.cells.H; 
-
-      model.operators = setupOperatorsTPFA(Gt, rock, 'porv', pv, 'trans', T);
-      model.operators.T_all = T;
-      
-      % @@ In case of a height-formulation, operators.pv should be divided
-      % by height, i.e. model.operators.pv = model.operators.pv ./ Gt.cells.H
-   end
-% ------------------------------------------------------------------------
-   function [problem, state] = ...
-          getEquations(model, state0, state, dt, drivingForces, varargin)
-      
-      [problem, state] = model.equation(model         , ...
-                                        state0        , ...
-                                        state         , ...
-                                        dt            , ...
-                                        drivingForces , ...
-                                        varargin{:});
-   end
-   %
-   function [problem, state] = ...
-          getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
-      if(strcmp(model.adjointType,'nohyst'))
-          % do nothing
-         [problem, state] = model.equation(model         , ...
-                                        state0        , ...
-                                        state         , ...
-                                        dt            , ...
-                                        drivingForces , varargin{:}); 
-      else
-        %use extended type of equations to get hysteresis correct  
-        [problem, state] = model.equation(model         , ...
-                                        state0        , ...
-                                        state         , ...
-                                        dt            , ...
-                                        drivingForces , ...
-                                        'adjointForm',true,varargin{:});
-      end
-   end
+    methods
+        function model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid, varargin)
+            
+            model = model@ReservoirModel(Gt, varargin{:});
+            model.rock = rock2D;
+            model.fluid = fluid;
+            [model.water, model.oil, model.gas] = deal(true, false, true);
+            model.gravity = norm(gravity);
+            
+            % determine if model includes hysteresis and/or dissolution
+            model.hysteresis = model.fluid.res_gas > 0;
+            model.disgas = isfield(model.fluid, 'dis_max'); 
+            
+            model = model.setupOperators(Gt, rock2D);
+            model.Components = {MiscibleWaterComponent('brine'), ...
+                                CO2Component('CO2', model.disgas)};
+        end
+        
+% ------------------------------------------------------------------------        
+        
+        function model = setupOperators(model, Gt, rock)
+        % Compute vertially-integrated transmissibilities 
+            rock_tmp      = rock; 
+            rock_tmp.perm = rock.perm .* Gt.cells.H; 
+            T             = computeTrans(Gt, rock_tmp); 
+            cf            = Gt.cells.faces(:, 1); 
+            nf            = Gt.faces.num; 
+            T             = 1 ./ accumarray(cf, 1 ./ T, [nf, 1]);       
+            
+            % Computing vertically-integrated pore-volume
+            pv = poreVolume(Gt, rock); 
+            pv = pv .* Gt.cells.H; 
+            
+            model.operators = setupOperatorsTPFA(Gt, rock, 'porv', pv, 'trans', T);
+            model.operators.T_all = T;
+        end
+        
 % ------------------------------------------------------------------------
 
-   function [fn, index] = getVariableField(model, name, varargin)
+        function [eqs, names ,types, state] = ...
+                getModelEquations(model, state0, state, dt, drivingForces)
+            
+            [acc, flux, names, types] = ...
+                model.FlowDiscretization.componentConservationEquations(...
+                    model, state, state0, dt);
+            
+            % add sources from wells
+            src = model.FacilityModel.getComponentSources(state);
+            acc = model.insertSources(acc, src);
+            
+            % assemble equations
+            eqs = cell(1, numel(acc));
+            for i = 1:numel(acc)
+                eqs{i} = model.operators.AccDiv(acc{i}, flux{i});
+            end
+
+            if model.hasDissolution()
+                
+                [pv, pv0] = deal(model.getProp(state, 'PoreVolume'), ...
+                                 model.getProp(state0, 'PoreVolume'));
+                [rs, rs0] = deal(model.getProp(state, 'rs'), ...
+                                 model.getProp(state0, 'rs'));
+                [b, b0]   = deal(model.getProp(state, 'ShrinkageFactors'), ...
+                                 model.getProp(state0, 'ShrinkageFactors'));
+                [sW, sW0] = deal(model.getProp(state, 'sw'), ...
+                                 model.getProp(state0, 'sw'));
+
+                bW = b{1}; bW0 = b0{1}; 
+                bG = b{2};
+                
+                acc_dis  = ((pv  .* bW  .* sW  .* rs) - ...
+                            (pv0 .* bW0 .* sW0 .* rs0)) / dt;
+                
+                flux_dis = model.getProp(state, 'DissolvedFlux');
+                
+                eq_dis = model.operators.AccDiv(acc_dis, flux_dis);
+                
+                if model.hasRateDrivenDissolution()
+                    % Add conservation equation for dissolved gas
+                    eta = model.computeDissolutionTransfer(state0, state, dt);
+                    eqs = [eqs, {eq_dis - eta}];
+                    names = [names, {'dissolution'}];
+                    types = [types, {'cell'}];
+                    
+                    % amount of saturation "eaten up" by dissolution.  Will  be
+                    % used to compute depletion of residual staturation further below.
+                    dSg = (eta * dt) ./ (pv .* bG); 
+                else
+                    assert(model.hasInstantDissolution())
+                    
+                    dSg = max(eq_dis, 0)  * dt ./ (pv .* bG);
+                end
+            else
+                % no dissolution, so no depletion of residual saturation
+                dSg = 0;
+            end
+            
+            if model.hysteresis
+                sG = model.getProp(state, 'sg');
+                sGmax = model.getProp(state, 'sGmax');
+                sGmax0 = model.getProp(state0, 'sGmax');
+
+                names = [names, {'hysteresis'}];
+                types = [types, {'cell'}];
+                
+                fac = (1-model.fluid.res_water) / model.fluid.res_gas;
+                eqs = [eqs, { sGmax - max(sGmax0 - dSg * fac, sG) }];
+            end
+            
+            % get well equations
+            if ~isempty(model.FacilityModel)
+                [weqs, wnames, wtypes, state] = ...
+                    model.FacilityModel.getModelEquations(state0, state, dt, ...
+                                                                  drivingForces);
+                % concatenate
+                eqs = [eqs, weqs];
+                names = [names, wnames];
+                types = [types, wtypes];
+            end
+            
+            % add in boundary conditions
+            [eqs, state, src] = ...
+                model.addBoundaryConditionsAndSources(eqs, names, types, ...
+                                                      state, drivingForces);
+        end
+
+% ------------------------------------------------------------------------        
+
+        function eta = computeDissolutionTransfer(model, state0, state, dt)
+
+            % compute maximum possible transfer rate (considering how much is already
+            % dissolved, and how much CO2 is available for further dissolution)
+            
+            [pv, pv0] = deal(model.getProp(state, 'PoreVolume'), ...
+                             model.getProp(state0, 'PoreVolume'));
+            [b, b0] = deal(model.getProp(state, 'ShrinkageFactors'), ...
+                           model.getProp(state0, 'ShrinkageFactors'));
+            [sW, sW0] = deal(model.getProp(state, 'sw'), ...
+                             model.getProp(state0, 'sw'));
+            [sG, sG0] = deal(model.getProp(state, 'sg'), ...
+                             model.getProp(state0, 'sg'));
+            
+            bW = b{1}; bW0 = b0{1};
+            bG = b{2}; bG0 = b0{2};
+            
+            rsmax = model.fluid.dis_max;
+            rs0 = model.getProp(state0, 'rs');
+            
+            state_rsmax = state;
+            state_rsmax.rs = state_rsmax.rs * 0 + rsmax;
+           
+            flux_max_dis = model.getProp(state_rsmax, 'DissolvedFlux'); 
+
+            % what is the maximum amount of CO2 that could be still absorbed by the
+            % brine in the cell
+            max_demand  = ((pv  .* bW  .* sW  .* rsmax) - ...
+                           (pv0 .* bW0 .* sW0 .* rs0)) / dt;
+            
+            max_demand = model.operators.AccDiv(max_demand, flux_max_dis);
+            
+            % how much dissolved CO2 could maximally be supplied from the
+            % remaining CO2 phase in the cell
+            zeroADI = bW * 0; %@@
+            max_supply = zeroADI + (pv0 .* bG0 .* sG0) / dt;
+            
+            %max_supply = max_supply - (pv .* bG .* sG) / dt;
+            
+            src = model.FacilityModel.getComponentSources(state);
+            if ~isempty(src.cells)
+                max_supply(src.cells) = max_supply(src.cells) + ...
+                                        src.value{2} / model.fluid.rhoGS;
+                % max_supply(src.cells) = max_supply(src.cells) + ...
+                %                         max(src.value{2}, 0) / model.fluid.rhoGS;
+            end
+            
+            phase_fluxes = model.getProp(state, 'ComponentPhaseFlux');
+            co2_phase_flux = phase_fluxes{2, 2}; % second component in second phase
+            co2_phase_flux = co2_phase_flux / model.fluid.rhoGS; % volume, not mass
+            
+            co2_inflow = -1 * model.operators.C' * co2_phase_flux;
+            co2_inflow(co2_inflow < 0) = 0; % @@ necessary?
+            max_supply = max_supply + value(co2_inflow);
+
+            % The maximum amount of CO2 that can be dissolved in a cell
+            % will be limited by the most strict of the two above bounds
+            max_transfer = max(min(max_demand, max_supply), 0);
+            
+            % Newly drained areas with residual brine will reach max CO2
+            % concentration instantly, regardless of rate.  We therefore set
+            % a minimum rate
+            rw = model.fluid.res_water;
+            reswat_change = rw / (1 - rw) * (pv .* sG .* bW - pv0 .* sG0 .* bW0);
+            
+            min_transfer = zeroADI;
+            sGmax = model.getProp(state, 'sGmax');
+            imbibing = sG < sGmax;
+            
+            min_transfer(~imbibing) = ...
+                model.fluid.dis_max * max(reswat_change(~imbibing), 0) / dt;
+            
+            % The amount of actually dissolved CO2 is also limited by the
+            % actual dissolution rate
+            basic_rate = model.fluid.dis_rate .* pv ./ model.G.cells.H; % rate per area multiplied
+                                                                        % by CO2/brine interface
+                                                                        % area in cell
+            eta = max(min(basic_rate, max_transfer), min_transfer);
+        end
+
+        
+% ------------------------------------------------------------------------        
+
+        function model = validateModel(model, varargin)
+            model = validateModel@ReservoirModel(model, varargin{:});
+        end
+
+% ------------------------------------------------------------------------        
+
+        function state = validateState(model, state)
+            state = validateState@ReservoirModel(model, state);
+        end
+
+% ------------------------------------------------------------------------        
+
+        function model = setupStateFunctionGroupings(model, varargin)
+            model = setupStateFunctionGroupings@ReservoirModel(model, varargin{:});
+        
+            % FlowPropertyFunctions
+            flowprops = model.FlowPropertyFunctions;
+            flowprops = flowprops.setStateFunction('CapillaryPressure', ...
+                                                   CO2VECapillaryPressure(model));
+            flowprops = flowprops.setStateFunction('RelativePermeability', ...
+                                                   CO2VERelativePermeability(model));
+            model.FlowPropertyFunctions = flowprops;
+
+            % FluxDiscretization
+            flowdisc = model.FlowDiscretization;
+            flowdisc = flowdisc.setStateFunction('DissolvedFlux', ...
+                                                 CO2VEDissolvedFlux(model));
+            model.FlowDiscretization = flowdisc;
+            
+            % PVTPropertyFunctions
+            pvtprops = model.PVTPropertyFunctions;
+            pvtprops = pvtprops.setStateFunction('Density', CO2VEBlackOilDensity(model));
+            pvtprops = pvtprops.setStateFunction('ShrinkageFactors', ...
+                                                 ShrinkageFactors(model,  ...
+                                                              'usePhasePressures', false));
+            
+            model.PVTPropertyFunctions = pvtprops;
+        end
+
+% ------------------------------------------------------------------------        
+        
+        function [state, report] = updateState(model, state, problem, dx, ...
+                                               drivingForces)
+            
+            if model.hasInstantDissolution()
+
+                % In the instant dissolution model, we need to 'unpack' 
+                % saturation and 'rs' from the single primary variable 'X'.
+                
+                % handle variable 'X' separately
+                incX = model.getIncrement(dx, problem, 'X');
+                rs_orig = model.getProp(state, 'rs');
+                unsat = rs_orig < model.fluid.dis_max;
+
+                % update rs field
+                state = model.updateStateFromIncrement(state, incX .* unsat, ...
+                                                       problem, 'rs', inf, inf);
+                state = model.capProperty(state, 'rs', 0, model.fluid.dis_max);
+                                                       
+                % update saturation
+                ds = incX;
+                ds(unsat) = 0;
+                state = model.updateStateFromIncrement(state, ds, problem, 's', ...
+                                                       inf, model.dsMaxAbs);
+                [problem.primaryVariables, ix] = ...
+                    model.stripVars(problem.primaryVariables, {'X'});
+                dx(ix) = [];
+            end
+            
+            [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
+                                                         drivingForces);
+        end
+
+
+% ------------------------------------------------------------------------        
+        
+        function [state, report] = ...
+                updateAfterConvergence(model, state0, state, dt, drivingForces)
       
-      switch(lower(name))
-        case {'sgmax'}
-          index = 1;
-          fn = 'sGmax';
-        case {'rs'}
-          index = 1;
-          fn = 'rs';
-        otherwise
-          [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
-      end
-   end
+            [state, report] = ...
+                updateAfterConvergence@ReservoirModel(model, ...
+                                                      state0, state, dt, drivingForces);
+            
+            if model.outputFluxes
+                % @@ Can this be done so we won't have to back-up the
+                % boundary fluxes?
 
+                % store already-registered boundary fluxes
+                if ~isempty(drivingForces.bc)
+                    bnd_flux_ixs = drivingForces.bc.face;
+                    bnd_fluxes = state.flux(bnd_flux_ixs, :);
+                end
+                
+                % add internal fluxes (@@ will overwrite boundary fluxes)
+                qWG = model.getProp(state, 'PhaseFlux');
+                state = storeFluxes(model, state, qWG{1}, [], qWG{2});
+                
+                % copy back the overwritten boundary fluxes
+                if ~isempty(drivingForces.bc)
+                    state.flux(bnd_flux_ixs, :) = bnd_fluxes;
+                end
+            end
+        end
+
+% ------------------------------------------------------------------------        
+
+        function [fn, index] = getVariableField(model, name, varargin)
+            
+            switch(lower(name))
+              case {'sgmax'}
+                index = 1;
+                fn = 'sGmax';
+              case {'rs'}
+                index = 1;
+                fn = 'rs';
+              otherwise
+                [fn, index] = getVariableField@ReservoirModel(model, name, varargin{:});
+            end
+        end
+
+% ------------------------------------------------------------------------        
+        
+       function names = getComponentNames(model)
+           names = cellfun(@(c) c.name, model.Components, 'uniformoutput', false);    
+           %names = getComponentNames@ReservoirModel(model);
+        end
+
+% ------------------------------------------------------------------------        
+    
+        function [vars, names, origin] = getPrimaryVariables(model, state)
+    
+            [p, s] = model.getProps(state, 'pressure', 'saturation');
+            
+            sG = s(:,2); % water saturation.  s(:,2) is CO2 saturation
+            
+            [vars, names, origin] = deal({p}, {'pressure'}, {class(model)});
+            
+            if model.hasInstantDissolution()
+                
+                % Instant dissolution model
+                rs = model.getProp(state, 'rs');
+                unsat = rs < model.fluid.dis_max;
+                % X represents phase saturation in cells where dissolution has
+                % reached its maximum, and amount of dissolved CO2 in other cells
+                X = sG;
+                X(unsat) = rs(unsat);
+                vars = [vars, X];
+                names = [names, 'X'];
+                origin = [origin, class(model)];
+                
+            elseif model.disgas
+                
+                % Finite rate dissolution model
+                rs = model.getProp(state, 'rs');
+                vars = [vars, sG, rs];
+                names = [names, 'sG', 'rs'];
+                origin = [origin, class(model), class(model)];
+                
+            else
+                
+                % We do not consider dissolution, and use sG directly as 
+                % primary variable
+                vars = [vars, sG];
+                names = [names, 'sG'];
+                origin = [origin, class(model)];
+                
+            end
+            
+            if model.hysteresis
+                
+                % add sGmax as primary variable
+                vars = [vars, { model.getProps(state, 'sGmax') }];
+                names = [names, {'sGmax'}];
+                origin = [origin, class(model)];
+                
+            end
+            
+            if ~isempty(model.FacilityModel)
+                
+                [v, n, o] = model.FacilityModel.getPrimaryVariables(state);
+                vars = [vars, v];
+                names = [names, n];
+                origin = [origin, o];
+                
+            end
+        end
+
+% ------------------------------------------------------------------------        
+        
+        function [eqs, state, src] = ...
+                addBoundaryConditionsAndSources(model, eqs, names, types, ...
+                                                state, forces)
+            
+            [p, s, mob, rho] = model.getProps(state, 'PhasePressures', ...
+                                                     's'             , ...
+                                                     'Mobility'     , ...
+                                                     'Density');
+            dissolved = {};
+            comps = model.Components; 
+                        
+            [eqs, state, src] = addBoundaryConditionsAndSources@ReservoirModel(...
+                model, eqs, names, types, state, p, s, mob, rho, dissolved, comps, forces);
+        end
+
+% ------------------------------------------------------------------------        
+        
+        function ctrl = validateDrivingForces(model, ctrl, index)
+            ctrl = validateDrivingForces@ReservoirModel(model, ctrl, index);
+        end
+
+% ------------------------------------------------------------------------        
+        
+        function forces = getValidDrivingForces(model)
+            forces = getValidDrivingForces@ReservoirModel(model);
+        end
+
+% ------------------------------------------------------------------------        
+        
+        function state = initStateAD(model, state, vars, names, origin)
+
+            toFacility = strcmp(origin, class(model.FacilityModel));
+            remaining = ~toFacility;
+            
+            state = model.FacilityModel.initStateAD(state, vars(toFacility), ...
+                                                    names(toFacility), ...
+                                                    origin(toFacility));
+
+            if model.hasInstantDissolution()
+                                
+                % The instant dissolution model has a special treatment of
+                % saturation and dissolved CO2; both of which are stored in a
+                % single primary variable 'X'.
+                x_ix = strcmp(names, 'X');
+                x = vars{x_ix};
+                rs = model.getProp(state, 'rs');
+                unsat = rs < model.fluid.dis_max;
+                sg = x; sg(unsat) = 0;
+                rs = x; rs(~unsat) = model.fluid.dis_max;
+                state = model.setProp(state, 'saturation', {1-sg, sg});
+                state = model.setProp(state, 'rs', rs);
+                remaining(x_ix) = false;
+            else
+                % In models other than the instant dissolution model,
+                % saturation is a primary variable
+                sg_ix = strcmp(names, 'sG');
+                sg = vars{sg_ix};
+                state = model.setProp(state, 'saturation', {1-sg, sg});
+                remaining(sg_ix) = false;
+            end
+            
+            state = initStateAD@ReservoirModel(model, state, vars(remaining), ...
+                                               names(remaining), ...
+                                               origin(remaining));
+        end
+
+% ------------------------------------------------------------------------        
+            
+        function [v_eqs, tolerances, names] = ...
+                getConvergenceValues(model, problem, varargin)
+            [v_eqs, tolerances, names] = ...
+                getConvergenceValues@ReservoirModel(model, problem, varargin{:});
+        end
+
+% ------------------------------------------------------------------------        
+        
+        function [model, state] = updateForChangedControls(model, state, forces)
+            [model, state] = updateForChangedControls@ReservoirModel(model, state, forces);
+        end
+
+% ------------------------------------------------------------------------        
+
+        function [eq, src] = ...
+                addComponentContributions(model, cname, eq, component, src, force)     
+            
+            cnames = model.getComponentNames();
+            ix = strcmpi(cnames, cname);
+
+            qC = src.phaseMass{find(ix)}; % @@ Does not take dissolution into account.  Refine later.
+            
+            if ~isempty(src.mapping)
+                qC = src.mapping*qC;
+            end
+            
+            cells = src.sourceCells;            
+            eq(cells) = eq(cells) - qC;
+            
+        end
+    
 % ----------------------------------------------------------------------------
-   function rhoS = getSurfaceDensities(model)
-      rhoS = [model.fluid.rhoWS, model.fluid.rhoGS];
-   end
    
-% ----------------------------------------------------------------------------
-function [state, report] = updateState(model, state, problem, dx, drivingForces)
+        function gdz = getGravityGradient(model)
+            s  = model.operators;
+            Gt = model.G;
+            gdz = model.gravity * s.Grad(Gt.cells.z);
+        end
 
-   [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
-                                                drivingForces);
+% ----------------------------------------------------------------------------        
 
-   sg          = state.s(:,2);
-   sg          = min(1, max(0, sg)); %(1-model.fluid.res_water, max(0,sg)); @@
-   state.s     = [1-sg, sg];    
-   
-   state.sGmax = min(1,state.sGmax);
-   state.sGmax = max(0,state.sGmax);
-   state.sGmax = max(state.sGmax,sg);
-   
-   if isfield(model.fluid, 'dis_rate')
-      % The model includes dissolution
-      if model.fluid.dis_rate > 0
-         % rate-driven dissolution
-         f           = model.fluid;
-         min_rs      = minRs(state.pressure,state.s(:,2),state.sGmax,f,model.G);
-         min_rs      = min_rs./state.s(:,1);
-         state.rs    = max(min_rs,state.rs);
-         state.rs    = min(state.rs,f.rsSat(state.pressure));         
-      else
-         % instantaneous dissolution
-         diff = 1e-3; % @@  necessary for convergence in some cases
-         state.rs = min(state.rs, model.fluid.rsSat(state.pressure) + diff);
-      end
-   end
+        function res = hasInstantDissolution(model)
+            res = model.disgas && (model.fluid.dis_rate == 0 || ...
+                                   model.fluid.dis_rate == Inf);
+        end        
+        
+% ----------------------------------------------------------------------------        
+        function res = hasRateDrivenDissolution(model)
+            res = model.disgas && ~model.hasInstantDissolution();
+        end        
+
+% ----------------------------------------------------------------------------        
+        function res = hasDissolution(model)
+            res = hasInstantDissolution(model) || hasRateDrivenDissolution(model);
+        end 
+    end
 end
 
 
-   
-% ------------------------------------------------------------------------
-   
-   function [state, report] = ...
-       updateAfterConvergence(model, state0, state, dt, drivingForces)
-      
-      [state, report] = updateAfterConvergence@ReservoirModel(model, ...
-                                        state0, state, dt, drivingForces);%#ok
-      
-      % Here, we update the hysteresis variable 'sGmax'.  If the residual
-      % saturation of gas is 0 (i.e. model.fluid.residuals(2) == 0),
-      % keeping track of 'sGmax' is not strictly necessary for
-      % computation, but it may still be useful information for
-      % interpretation, and to simplify program logic we compute it at all
-      % times.
-      report = []; % not used
-      if isfield(model.fluid, 'dis_rate')
-         return; % sGmax already updated along with other ADI variables
-      end
-         
-      sGmax0 = model.getProp(state0, 'sGmax');
-      sG     = model.getProp(state, 'sg');
-      
-      state = model.setProp(state, 'sGmax', max(sG, sGmax0));
-   end
 
-% ----------------------------------------------------------------------------
 
-   function gdz = getGravityGradient(model)
-      s  = model.operators;
-      Gt = model.G;
-      g  = model.gravity(3); % @@ requires theta=0
-      gdz = g * s.Grad(Gt.cells.z);
-   end
 
-end
-end   
-
-%{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
-
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
-%}
-
+% function [problem, state] = getAdjointEquations(model, state0, state, dt, drivingForces, varargin)
