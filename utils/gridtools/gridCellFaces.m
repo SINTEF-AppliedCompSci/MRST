@@ -10,9 +10,10 @@ function [cf, p] = gridCellFaces(G, c)
 %
 %
 % RETURNS:
+%   cf   - cell face positions in `G`
+%
 %   p    - indirectionmap into `n`. The faces of cell `c(i)` is found at
 %          positions `p(i):p(i+1)-1` in `n`
-%   cf   - cell face positions in `G`
 
 %{
 Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
@@ -32,7 +33,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    if nargin < 2
+        c = (1:G.cells.num)';
+    end
 
     % Find number of faces per cell
     nf = diff([G.cells.facePos(c), G.cells.facePos(c+1)], [],2);
