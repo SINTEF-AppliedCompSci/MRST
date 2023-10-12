@@ -119,7 +119,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                      value(freeMov)], 0); % may be ADI variables
         
     if(abs(sum(masses(2:end))-gasPhase) > 1e-3 * gasPhase)
-        disp(abs(sum(masses(2:end))-gasPhase))
         disp('There is a mismatch between mass calculations');
     end
     

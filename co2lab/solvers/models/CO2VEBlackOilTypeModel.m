@@ -64,22 +64,15 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
 
             if model.hasDissolution()
                 
-                [pv, pv0] = deal(model.getProp(state, 'PoreVolume'), ...
-                                 model.getProp(state0, 'PoreVolume'));
-                % [rs, rs0] = deal(model.getProp(state, 'rs'), ...
-                %                  model.getProp(state0, 'rs'));
-                [b, b0]   = deal(model.getProp(state, 'ShrinkageFactors'), ...
-                                 model.getProp(state0, 'ShrinkageFactors'));
-                % [sW, sW0] = deal(model.getProp(state, 'sw'), ...
-                %                  model.getProp(state0, 'sw'));
+                pv = model.getProp(state, 'PoreVolume');
+                b  = model.getProp(state, 'ShrinkageFactors');
 
                 [co2dis, co2dis0] = deal(model.dissolvedCO2Mass(state), ...
                                          model.dissolvedCO2Mass(state0));
                 
                 acc_dis = (co2dis - co2dis0) / dt;
                 
-                bW = b{1}; bW0 = b0{1}; 
-                bG = b{2};
+                [bW, bG] = deal(b{:});
                 
                 flux_dis = model.getProp(state, 'DissolvedFlux');
                 
@@ -95,15 +88,15 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
                     
                     % amount of saturation "eaten up" by dissolution.  Will  be
                     % used to compute depletion of residual staturation further below.
-                    dSg = eta_mass;
+                    s_depletion = eta_mass;
                 else
                     assert(model.hasInstantDissolution())
                     
-                    dSg = max(eq_dis, 0)  * dt ./ (pv .* bG);
+                    s_depletion = max(eq_dis, 0);
                 end
             else
                 % no dissolution, so no depletion of residual saturation
-                dSg = 0;
+                s_depletion = 0;
             end
             
             if model.hysteresis
@@ -115,10 +108,8 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
                 types = [types, {'cell'}];
 
                 fac = (1 - model.fluid.res_water) ./ model.fluid.res_gas ./ pv ./ model.fluid.rhoGS ./ bG;
-                eqs = [eqs, { sGmax - max(sGmax0 - dSg .* dt .* fac, sG) }];
+                eqs = [eqs, { sGmax - max(sGmax0 - s_depletion .* dt .* fac, sG) }];
                 
-                % fac = (1-model.fluid.res_water) / model.fluid.res_gas;
-                % eqs = [eqs, { sGmax - max(sGmax0 - dSg * fac, sG) }];
             end
             
             % get well equations
@@ -187,7 +178,6 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
                                          model.dissolvedCO2Mass(state0));
                 
             flux_dis = model.getProp(state, 'DissolvedFlux');
-            % flux_max_dis = model.getProp(state_rsmax, 'DissolvedFlux');  @@@@
 
             max_demand = (co2dis_max - co2dis0) / dt; 
             max_demand = model.operators.AccDiv(max_demand, flux_dis);
@@ -318,6 +308,18 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
                 ds(unsat) = 0;
                 state = model.updateStateFromIncrement(state, ds, problem, 's', ...
                                                        inf, model.dsMaxAbs);
+                state = model.capProperty(state, 's', 0, 1 - model.fluid.res_water);
+                
+                % ensure that cells with no remaining water saturation 'unsat' by making 
+                % all such cells have a rs-value strictly less than fluid.dis_max
+                sg_updated = model.getProp(state, 's');
+                sg_updated = sg_updated(:, model.getPhaseIndex('G'));
+                turned_unsat = (ds < 0) & (sg_updated == 0);
+                tiny = zeros(size(sg_updated));
+                tiny(turned_unsat) = -1 * eps;
+                state = model.updateStateFromIncrement(state, tiny, problem, 'rs', inf, inf);
+                
+                % Get rid of the 'X' variable
                 [problem.primaryVariables, ix] = ...
                     model.stripVars(problem.primaryVariables, {'X'});
                 dx(ix) = [];
@@ -503,6 +505,8 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
                 state = model.setProp(state, 'saturation', {1-sg, sg});
                 remaining(sg_ix) = false;
             end
+            
+            
             
             state = initStateAD@ReservoirModel(model, state, vars(remaining), ...
                                                names(remaining), ...
