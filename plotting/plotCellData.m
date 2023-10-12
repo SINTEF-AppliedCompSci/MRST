@@ -107,7 +107,7 @@ end
 
 assert (size(data, 1) == G.cells.num || ...
         size(data, 1) == numel(cells),  ...
-        'The DATA should have one value for each grid cell in output.');
+        'The DATA should be a column vector with one value for each grid cell in output.');
 
 if G.griddim == 3
    % Define the boundary to be the boundary faces of the selected subset
