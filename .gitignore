@@ -5,4 +5,5 @@ startup_user.m
 examples/data/*
 output/*
 settings.mat
+_settings.mat
 settings_octave.mat
