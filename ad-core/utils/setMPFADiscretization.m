@@ -1,5 +1,5 @@
-function model = setMPFADiscretization(model)
-    % Set MPFA discretization on a model
+function model = setMPFADiscretization(model, varargin)
+% Set MPFA discretization on a model
 
 %{
 Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
@@ -26,7 +26,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         m = model;
     end
-    m = setMPFA(m);
+    m = setMPFA(m, varargin{:});
     if isWrapper
         model.parentModel = m;
     else
@@ -34,11 +34,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function model = setMPFA(model)
+function model = setMPFA(model, varargin)
     require mpfa
-    [~, M] = computeMultiPointTrans(model.G, model.rock); % From MPFA code
+
+    opt = struct('M', []);
+    opt = merge_options(opt, varargin{:});
+
+    if isempty(opt.M)
+        [~, M] = computeMultiPointTrans(model.G, model.rock); % From MPFA code
+    else
+        M = opt.M;
+    end
+
     Tv = M.rTrans; % Cells -> Inner faces
     Tg = M.rgTrans(model.operators.internalConn, :); % Inner -> Inner
+
     % Change sign and re-scale operators to fit with AD-OO
     % definition of gradient.
     T = getFaceTransmissibility(model.G, model.rock);
@@ -50,12 +60,14 @@ function model = setMPFA(model)
     if isempty(model.FlowDiscretization)
         model = model.setupStateFunctionGroupings();
     end
+
     % Discrete gradient
     fd = model.FlowDiscretization;
     dp = fd.getStateFunction('PressureGradient');
     model.operators.mpfagrad = MPFAGrad;
     dp.Grad = @(x) MPFAGrad*x;
     fd = fd.setStateFunction('PressureGradient', dp);
+
     % Gravity potential difference
     dg = fd.getStateFunction('GravityPotentialDifference');
     dg.weight = Mg;
