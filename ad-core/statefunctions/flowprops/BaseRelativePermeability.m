@@ -11,9 +11,6 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'s'}, 'state');
             gp.label = 'k_\alpha';
-            if isfield(model.fluid, 'ehystr')
-                warning('Hysteresis is not supported by %s', class(gp));
-            end
             if model.water && model.oil && ~isfield(model.fluid, 'krO')
                 % We then need connate water. Precompute it.
                 gp = gp.storeConnateWater(model);
@@ -36,6 +33,8 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
                     elseif model.water
                         kr = prop.relPermWO(model, state);
                     end
+                elseif model.gas && model.water
+                    kr = prop.relPermWG(model, state);
                 else
                     kr = prop.relPermUnified(model, state);
                 end
@@ -47,7 +46,7 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
             % Three-phase system
             [sw, so, sg] = model.getProps(state, 'sw', 'so', 'sg');
             krW = prop.evaluatePhaseRelativePermeability(model, 'w', sw);
-            krG = prop.evaluatePhaseRelativePermeability(model, 'g', sg);
+            krG = prop.evaluateGasRelPerm(model, sg, state);
             % Oil rel perm is special
             if isfield(model.fluid, 'krO')
                 krO = prop.evaluateFluid(model, 'krO', so);
@@ -80,13 +79,21 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
             % Oil-gas system
             [sg, so] = model.getProps(state, 'sg', 'so');
             f = model.fluid;
-            krG = evaluatePhaseRelativePermeability(prop, model, 'g', sg);
+            krG = prop.evaluateGasRelPerm(model, sg, state);
             if isfield(f, 'krO')
                 krO = prop.evaluateFluid(model, 'krO', so);
             else
                 krO = prop.evaluatePhaseRelativePermeability(model, 'og', so);
             end
             kr = {krO, krG};
+        end
+        
+        function kr = relPermWG(prop, model, state)
+            % Water-gas system
+            [sw, sg] = model.getProps(state, 'sw', 'sg');
+            krW = evaluatePhaseRelativePermeability(prop, model, 'w', sw);
+            krG = prop.evaluateGasRelPerm(model, sg, state);
+            kr = {krW, krG};
         end
 
         function kr = relPermUnified(prop, model, state)
@@ -179,6 +186,11 @@ classdef BaseRelativePermeability < StateFunction & SaturationProperty
         function property = subset(property, subs)
             property = subset@StateFunction(property, subs);
             property.cell_subset = subs;
+        end
+        
+        function krg = evaluateGasRelPerm(prop, model, sg, state)
+            % Special function that can be overridden for hysteresis
+            krg = evaluatePhaseRelativePermeability(prop, model, 'g', sg);
         end
     end
 end
