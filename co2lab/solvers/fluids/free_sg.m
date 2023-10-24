@@ -7,23 +7,27 @@ function fsg = free_sg(sg, sGmax, rw, rn)
 % DESCRIPTION:
 % This function determine the amount of present saturation that is 
 % effectively mobile.  It works for sharp-interface models, as well as 
-% capillary fringe models that uses endpoint scaling.  For sharp-interface
-% models, the free saturation can be thought of the part of the CO2
-% saturation that is within the mobile plume (as opposed to the residual
-% saturation in the inebibided zone).  For more general capillary fringe
-% models, it can be considered the part of the saturation in the mobile plume
-% that is tied to the fine-scale capillary pressure.
+% capillary fringe models that uses endpoint scaling.  'fsg' represent
+% the CO2 that will be able to evacuate, e.g. excluding anything already
+% residually trapped, or that will be left as residuall yrapped.
+%
+% As an example, for sharp-interface models (no capillary fringe), the
+% the free saturation can be thought of the part of the CO2 saturation 
+% that is within the mobile plume (as opposed to the residual saturation
+% in the inebibided zone), and that is not part of what will be left behind 
+% as residual trapping after imbibition.
 %    
 % For the sharp-interface model, the formula can be thought of as
 % representing the simple transformation: 
-% s * H = h * (1 - sr(2)) + (h_max - h) * sr(1) s_max * H = h_max * (1 - sr(2))
+%       s * H = h * (1 - sr(2)) + (h_max - h) * sr(1) 
+%   s_max * H = h_max * (1 - sr(2))
 % 
 % For the capillary fringe model with endpoint scaling, the formula can be
 % derived from the expression:
-% s_free = s - (C/(1-C)) (s_max - s),  where C = sr(2) / (1 - sr(1))
+% s_free = s - (C/(1-C)) (s_max - s),  where C = rn / (1 - rw)
 %
-% Refer to the paper "Fully-implicit simulation of vertical-equilibrium 
-% models with hysteresis and capillary fringe" 
+% Refer to formula 17 of the paper "Fully-implicit simulation of 
+% vertical-equilibrium models with hysteresis and capillary fringe" 
 % (Nilsen et al, 2016, DOI 10.1007/s10596-016-9547-y) for a derivation of the
 % latter formula.
 %   
