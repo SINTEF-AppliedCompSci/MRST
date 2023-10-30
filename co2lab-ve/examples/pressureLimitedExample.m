@@ -9,6 +9,7 @@
 % to makeBjarmelandModel().
 
 mrstModule add ad-core optimization
+mrstModule add co2lab-common co2lab-spillpoint co2lab-ve 
 saveResults = false;
 
 %% Set up simple example

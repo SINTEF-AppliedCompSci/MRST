@@ -6,6 +6,7 @@
 % pressure-buildup (as done in 'pressureLimitedExample.m').
 
 mrstModule add ad-core ad-props optimization
+mrstModule add co2lab-common co2lab-spillpoint co2lab-ve 
 gravity on;
 
 saveResults = false;

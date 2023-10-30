@@ -569,9 +569,3 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
         end 
     end
 end
-
-
-
-
-
-% function [problem, state] = getAdjointEquations(model, state0, state, dt, drivingForces, varargin)

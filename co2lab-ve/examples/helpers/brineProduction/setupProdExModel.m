@@ -40,7 +40,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     caprock_pressure = (Gt.cells.z * seainfo.water_density * norm(gravity)) ...
         .* (1 + seainfo.press_deviation/100) + opt.surface_pressure;
     ta = trapAnalysis(Gt, true);
-    co2 = CO2props();
     ref_temp = seainfo.seafloor_temp + 273.15;
     T_ref = ref_temp + seainfo.temp_gradient * (Gt.cells.z - seainfo.seafloor_depth) / 1000;   
     fluid = makeVEFluid(Gt, rock2D, 'si_rugosity'                               , ...
