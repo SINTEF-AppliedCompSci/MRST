@@ -532,7 +532,8 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
             cnames = model.getComponentNames();
             ix = strcmpi(cnames, cname);
 
-            qC = src.phaseMass{find(ix)}; % @@ Does not take dissolution into account.  Refine later.
+            % @@ Does not take dissolution into account.  Refine later.
+            qC = src.phaseMass{find(ix)}; 
             
             if ~isempty(src.mapping)
                 qC = src.mapping*qC;
@@ -547,8 +548,11 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
    
         function gdz = getGravityGradient(model)
             s  = model.operators;
-            Gt = model.G;
-            gdz = model.gravity * s.Grad(Gt.cells.z);
+            z = model.G.cells.z;
+            if isfield(model.G, 'dz')
+                z = z + model.G.dz;
+            end
+            gdz = model.gravity * s.Grad(z);
         end
 
 % ----------------------------------------------------------------------------        

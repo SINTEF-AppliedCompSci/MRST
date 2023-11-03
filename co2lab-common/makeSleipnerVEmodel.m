@@ -53,7 +53,7 @@ opt.assign_coords   = false;
 opt = merge_options(opt, varargin{:});
 
 try
-   datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
+   datadir = fullfile(mrstPath('co2lab-common'), 'data', 'mat');
    if ~opt.assign_coords
        disp(' -> Reading Sleipner.mat');
        load(fullfile(datadir,'Sleipner'));
