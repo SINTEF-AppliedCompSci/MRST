@@ -10,7 +10,7 @@ classdef PhasePotentialDifference < StateFunction
         function gp = PhasePotentialDifference(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn('PressureGradient');
-            gp.hasGravity = norm(model.getGravityGradient(), inf) > 0;
+            gp.hasGravity = norm(value(model.getGravityGradient()), inf) > 0;
             if gp.hasGravity
                 gp = gp.dependsOn('GravityPotentialDifference');
             end
