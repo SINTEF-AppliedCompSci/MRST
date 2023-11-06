@@ -237,7 +237,8 @@ for i = 1:nph
     if isa(totMob, 'ADI')
         sample = totMob;
     else
-        sample = pressure{1};
+        sample = getSampleAD(pressure{i}, mobF{i, 1}, mobF{i, 2}, T, rhoAvgF{i}, ...
+                                          bF{i, 1}, bF{i,2}, dzbc);
     end
     zeroAD = model.AutoDiffBackend.convertToAD(zeros(nbc, 1), sample);
     [q_s, q_r] = deal(zeroAD);
