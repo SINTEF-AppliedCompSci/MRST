@@ -700,7 +700,7 @@ classdef ADI
         function J = mtimesJac(M, J1)
         J = cell(1, numel(J1));
         for k = 1:numel(J)
-            J{k} = M*J1{k};
+            J{k} = sparse(M)*J1{k};
         end
         end
 
