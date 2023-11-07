@@ -42,7 +42,22 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
             model.operators = setupOperatorsTPFA(Gt, rock, 'porv', pv, 'trans', T);
             model.operators.T_all = T;
         end
+
+% ------------------------------------------------------------------------
         
+function rhoS = getSurfaceDensities(model, regions, phases)
+% getSurfaceDensities@ReservoirModel removes (ADI) derivatives from results, so
+% we override it here (to allow optimization that involves surface densities).
+    rhoWS = model.fluid.rhoWS;
+    rhoGS = model.fluid.rhoGS;
+    
+    if nargin > 1 && ~isempty(regions)
+        rhoWS = rhoWS(regions, :);
+        rhoGS = rhoGS(regions, :);
+    end
+    rhoS = {rhoWS, rhoGS};
+end
+
 % ------------------------------------------------------------------------
 
         function [eqs, names ,types, state] = ...

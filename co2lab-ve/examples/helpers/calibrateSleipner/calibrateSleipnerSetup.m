@@ -16,7 +16,6 @@ function [ model, schedule, initState, states, wellSols ] = calibrateSleipnerSet
     clear schedule
     gravity on
     
-    
     %% Well info, rate data:
     wellXcoord      = opt.wellXcoord;
     wellYcoord      = opt.wellYcoord;
@@ -174,7 +173,6 @@ function [ model, schedule, initState, states, wellSols ] = calibrateSleipnerSet
         'pvMult_fac'  , pvMult, ...
         'residual'    , [sw, sr] , ...
         'dissolution' , isDissOn, 'dis_max', dis_max);
-    
     
     %% Run initial simulation
     % All parameter multipliers are set as 1 for the initial simulation. 
