@@ -20,7 +20,7 @@ function model = setrhoGmultfun(model, varargin)
     
     % set multiplier and update density functions
     model.fluid.rhoGmult = val;
-    model.fluid.rhoGS = model.fluid.rhoGS_orig * val;
+    model.fluid.rhoGS = model.fluid.rhoGS_orig .* val;
     model.fluid.rhoG = @(p, varargin) val .* model.fluid.rhoG_orig(p, varargin{:});
     
     % change in upscaled capillary pressure is best expressed through an

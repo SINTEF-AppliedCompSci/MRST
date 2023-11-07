@@ -108,7 +108,7 @@ tic
 toc
 
 % Recompute optimal solution
-[v_opt, der_opt, wellSols_opt, states_opt] = objh(p_opt);
+[v_opt, der_opt, wellSols_opt, states_opt, setup_opt] = objh(p_opt);
 
 % Plot final simulated heights vs. observed plume thicknesses
 states_opt = addHeightData(states_opt, Gt, model.fluid); % for easier plotting
@@ -116,4 +116,28 @@ plotObsAndSim(Gt, newplumes, states_opt)
 
 
 %% Some final output
+cvols = setup.model.G.cells.volumes .* setup.model.G.cells.H;
+q_mean = mean(arrayfun(@(x)x.W.val, setup.schedule.control));
+q_mean_opt = mean(arrayfun(@(x)x.W.val, setup_opt.schedule.control));
 
+fprintf('\nVariable             Initial    Calibrated    Unit \n')
+fprintf('----------------------------------------------------\n')
+fprintf(' avg. porosity      |  %1.3f   |  %1.3f      |      \n', ...
+        mean(setup.model.operators.pv ./ cvols), mean(setup_opt.model.operators.pv ./ cvols));
+fprintf(' avg. permeability  |  %2.3f   |  %2.3f      | darcy\n', ...
+        convertTo(mean(setup.model.rock.perm), darcy), convertTo(mean(setup_opt.model.rock.perm),darcy));
+fprintf(' CO2 density        |  %4.1f   |  %4.1f      | kg/m3\n', ...
+        setup.model.fluid.rhoGS, setup_opt.model.fluid.rhoGS);
+fprintf(' avg. CO2 entry rate| %0.4f   | %0.4f      | m3/s \n', q_mean, q_mean_opt);
+
+% Initial versus calibrated grid:
+figure
+subplot(1,3,1)
+title({'Initial';'top-surface elevations'})
+plotCellData(setup.model.G, setup.model.G.cells.z, 'edgealpha',0.1); colorbar; axis equal tight off
+subplot(1,3,2)
+title({'Calibrated';'top-surface elevations'})
+plotCellData(setup_opt.model.G, setup_opt.model.G.cells.z + setup_opt.model.G.dz, 'edgealpha',0.1); colorbar; axis equal tight off
+subplot(1,3,3)
+title({'Difference'; 'top-surface elevations'});
+plotCellData(setup_opt.model.G, setup_opt.model.G.dz, 'edgealpha',0.1); colorbar; axis equal tight off
