@@ -103,9 +103,7 @@ objh = @(p) evaluatePlumeMatch(p, @matchToPlumeData, setup, params, newplumes, s
                                
 
 % Run optimization (parameter calibration)
-tic
 [v, p_opt, history] = unitBoxBFGS(p0, objh);
-toc
 
 % Recompute optimal solution
 [v_opt, der_opt, wellSols_opt, states_opt, setup_opt] = objh(p_opt);
@@ -124,7 +122,7 @@ fprintf('\nVariable             Initial    Calibrated    Unit \n')
 fprintf('----------------------------------------------------\n')
 fprintf(' avg. porosity      |  %1.3f   |  %1.3f      |      \n', ...
         mean(setup.model.operators.pv ./ cvols), mean(setup_opt.model.operators.pv ./ cvols));
-fprintf(' avg. permeability  |  %2.3f   |  %2.3f      | darcy\n', ...
+fprintf(' avg. permeability  |  %2.3f   |  %2.3f     | darcy\n', ...
         convertTo(mean(setup.model.rock.perm), darcy), convertTo(mean(setup_opt.model.rock.perm),darcy));
 fprintf(' CO2 density        |  %4.1f   |  %4.1f      | kg/m3\n', ...
         setup.model.fluid.rhoGS, setup_opt.model.fluid.rhoGS);
