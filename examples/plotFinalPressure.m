@@ -26,13 +26,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     colorbar
     title(name)
 
-    figure, hold on
-    plotCellData(G, states{end}.pressure, 'edgealpha', 0);
-    contour(reshape(G.cells.centroids(:, 1), G.cartDims), ...
-            reshape(G.cells.centroids(:, 2), G.cartDims), ...
-            reshape(states{end}.pressure, G.cartDims), ...
-            'linewidth', 1, 'color', 'k');
-    axis tight equal
-    colorbar
-    title([name, ' at endtime'])
+    if isfield('G', 'cartDims')
+        figure, hold on
+        plotCellData(G, states{end}.pressure, 'edgealpha', 0);
+        contour(reshape(G.cells.centroids(:, 1), G.cartDims), ...
+                reshape(G.cells.centroids(:, 2), G.cartDims), ...
+                reshape(states{end}.pressure, G.cartDims), ...
+                'linewidth', 1, 'color', 'k');
+        axis tight equal
+        colorbar
+        title([name, ' at endtime'])
+    end
+
 end
