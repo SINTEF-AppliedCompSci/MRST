@@ -231,7 +231,7 @@ for k = 1:numel(statesImplicit)
 
     N = 20;
     cval = [.5 * movsum(linspace(0, 1, N + 1), 2), 1];
-    figure(i);
+    figure(k);
     clf;
     hold on
     colormap(flipud([.7 * winter(128).^2 + .3; 1, 1, 1]));
