@@ -271,8 +271,16 @@ function [a, faceA, faceB, faceC] = findABC(G, interpFace, c, Kn)
         trisurf(ind, hap(:, 1), hap(:, 2), hap(:, 3), 'Facecolor', 'cyan', 'facealpha', 0.5)
 
         tol = -1e-5;
-        in_convex_hull = mex_inhull(xc, hap, ind, tol);
-        fprintf('mex_inhull for cell %d with tol=%f: %d\n', c, tol, in_convex_hull);
+        switch G.griddim
+            case 2
+                xv = hap(ind, 1);
+                yv = hap(ind, 2);
+                in_convex_hull = inpolygon(xc(1), xc(2), xv, yv);
+                fprintf('inpolygon for cell %d with tol=%f: %d\n', c, tol, in_convex_hull);
+            case 3
+                in_convex_hull = mex_inhull(xc, hap, ind, tol);
+                fprintf('mex_inhull for cell %d with tol=%f: %d\n', c, tol, in_convex_hull);
+        end
 
         % Plot Kn.
         Gc = extractSubgrid(G, c);

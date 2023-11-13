@@ -97,7 +97,15 @@ function out = find_cells(G, cells, interpFace)
         faces = G.cells.faces(G.cells.facePos(c):G.cells.facePos(c+1)-1);
         hap = interpFace.coords(faces, :);
         ind = convhull(hap);
-        in(i) = mex_inhull(G.cells.centroids(c, :), hap, ind, -1e-5);
+        xc = G.cells.centroids(c, :);
+        switch G.griddim
+            case 2
+                xv = hap(ind, 1);
+                yv = hap(ind, 2);
+                in(i) = inpolygon(xc(1), xc(2), xv, yv);
+            case 3
+                in(i) = mex_inhull(xc, hap, ind, -1e-5);
+        end
     end
     out = ~in;
 end
