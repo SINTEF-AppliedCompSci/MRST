@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    % precalculate the complete perm
    kr_H = integrateVertically(opt.rock.parent.perm(:, end), opt.Gt.cells.H, opt.Gt); 
-   opt.perm2D = kr_H ./ opt.Gt.cells.H; % arithmetic mean of permeability along column
+   %opt.perm2D = kr_H ./ opt.Gt.cells.H; % arithmetic mean of permeability along column
    opt.kr_H = kr_H; % integrated permeability along column
    
    if opt.int_poro

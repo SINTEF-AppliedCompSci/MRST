@@ -16,16 +16,16 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %                   Gt (can be obtained from a normal rock structure using
 %                   the 'averageRock' function in CO2lab).
 %   relperm_model - Text string used to specify one of several possible
-%                   models for computing upscaled permeabilities.  Options are:
-%                   - 'si_integrated' : sharp-interface model taking into
-%                                       account vertically heterogeneous rock
-%                                       properties (by vertical integration)
-%                   - 'si_rugosity' : sharp-interface model where rock is
-%                                     considered vertically homogeneous (thus
-%                                     saving on computation by preventing
-%                                     vertical integration).  This model also
-%                                     optionally supports impact of caprock
-%                                     rugosity.
+%                   models for computing upscaled permeabilities.  Options
+%                   are:
+%                   - 'sharp_interface_simple': sharp interface model with
+%                                               vertically averaged
+%                                               properties, yielding linear
+%                                               upscaled relperm curves.
+%                   - 'sharp_interface_integrated': sharp interface model
+%                                                   with integration of vertical
+%                                                   heterogeneities, yielding
+%                                                   nonlinear relperm curves.
 %                   - 'linear cap.' : Linear capillary fringe model with
 %                                     Brooks-Corey type relative
 %                                     permeability and endpoint scaling.
@@ -126,17 +126,11 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %
 % Optional arguments related to subscale rugosity of top surface
 %   
-%  surf_topo - What model to use for top surface rugosity.  Options are:
-%              'smooth', 'sinus', 'inf_rough', and 'square'.  This option is
-%              only used if the relperm model has been set to 'sharp
-%              interface'.
-%  top_trap  - Name of file containing the height of the top trap, either as
-%              a single scalar value or as a value per cell.  Only used for
-%              the relperm model 'sharp interface'.  Default is empty (no
-%              subscale trapping).
-%  surf_topo - Topography model used when computing the impact of caprock
-%              rugosity.  Options are 'smooth', 'sinus', 'inf_rough', and
-%              'square'.  Default is 'smooth'.
+%  rugosity  - scalar or field with one value per cell in the topsurface
+%              grid, representing the upscaled structural trapping potential
+%              within the cell.  It is given as a length, which expresses
+%              the thickness of the "accretion layer" representing the
+%              effect of the subscale traps.
 %     
 % Optional arguments related to models for relative permeability and capillary
 % pressure.  Relperm parameters are relevant for relperm-models 'S-table',
@@ -231,12 +225,27 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    fluid.surface_tension = opt.surface_tension;
    drho = fluid.rhoWS - fluid.rhoGS;
    C = opt.C * norm(gravity) * max(Gt.cells.H) * drho;
+
+   krw = ifelse(opt.krmax(1) < 0, 1 - opt.residual(2), opt.krmax(1));
+   krg = ifelse(opt.krmax(2) < 0, 1 - opt.residual(1), opt.krmax(2));
+   
    switch relperm_model
-     case 'si_integrated' 
-       fluid = setup_integrated_fluid(fluid, Gt, rock, opt.residual, opt.krmax);
-     case 'si_rugosity'
-       fluid = make_sharp_interface_fluid(fluid, Gt, opt.residual, opt.krmax, ...
-                                          opt.top_trap, opt.surf_topo);
+     case 'sharp_interface_simple'
+       fluid = addVERelpermSharpInterface(fluid, Gt, rock, ...
+                                          'krw', krw, ...
+                                          'krg', krg, ...
+                                          'res_water', opt.residual(1), ...
+                                          'res_gas', opt.residual(2), ...
+                                          'dh', opt.rugosity, ...
+                                          'type', 'simple');
+     case 'sharp_interface_integrated'
+       fluid = addVERelpermSharpInterface(fluid, Gt, rock, ...
+                                          'krw', krw, ...
+                                          'krg', krg, ...
+                                          'res_water', opt.residual(1), ...
+                                          'res_gas', opt.residual(2), ...
+                                          'dh', opt.rugosity, ...
+                                          'type', 'integrated');
      case 'linear cap.'
        fluid = make_lin_cap_fluid(fluid, Gt, opt.residual);
      case 'S table'
@@ -329,10 +338,8 @@ function opt = default_options()
 
    % Caprock rugosity parameters (only used for the relperm model 'sharp
    % interface')
-   opt.top_trap = [];
-   opt.surf_topo = 'smooth'; % Choices are 'smooth', 'sinus', 'inf_rough',
-                             % and 'square'.
-
+   opt.rugosity = 0;
+   
    % Parameters used for relperms and capillary pressures based on table
    % lookup (i.e. 'S-table', 'P-scaled table' and 'P-K-scaled table)
    opt.C               = 0.4;   % scaling factor in Brooks-Corey type capillary pressure curve
@@ -598,3 +605,11 @@ function fluid = make_p_k_scaled_fluid(fluid, Gt, rock, residual, C, alpha, beta
 end
 
 % ----------------------------------------------------------------------------
+function res = ifelse(cond, yes, no)
+    if cond
+        res = yes;
+    else
+        res = no;
+    end
+end
+

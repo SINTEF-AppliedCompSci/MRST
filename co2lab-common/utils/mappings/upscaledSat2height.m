@@ -147,7 +147,7 @@ function [h, h_max, dh] = sharp_interface_case(sg, sgmax, Gt, rg, rw, ...
             Vtot = Vh(H, 0);
         else
             Vtot = pvol_columns; % if we have precomputed values
-                                     % available, use them instead
+                                 % available, use them instead
         end
 
         [h_max, dhmdv] = Vinv(Vh, value(sgmax) .* Vtot, Vtot, rw, H, tol);
@@ -183,3 +183,43 @@ function [h, h_max] = capillary_case(S, S_max, Gt, pcWG, p, rhoW, rhoG)
     h_max = pcmax ./ drho;    
 end
 
+% ----------------------------------------------------------------------------
+function [v, dvdh] = pvol(h, rw, poro_areas, Gt)
+    [v, dvdh] = integrateVertically(poro_areas, h, Gt);
+    
+    % scaling results with fraction of porevolume available for CO2
+    v    = v    * (1-rw);
+    dvdh = dvdh * (1-rw);
+    
+end
+
+% ----------------------------------------------------------------------------
+function [h, dh] = Vinv(vfun, vtarget, vmax, Rw, H, tol)
+
+    h = vtarget ./ vmax .* H ./ (1-rw); % initial guess
+    
+    [v, dvdh] = vfun(h, rw);
+    
+    res = v - vtarget;
+    
+    dh = 1 ./ dvdh; % dh/dv
+    
+    while max(abs(res)) > tol
+        h = h - res .* dh;
+        h = max(min(h, H), 0);
+        [v, dvdh] = vfun(h, rw);
+        
+        res = v - vtarget;
+        dh = 1./ dvdh;
+    end
+end
+
+% ----------------------------------------------------------------------------
+function J = lMultDiag(d, J1)
+   n = numel(d); 
+   D = sparse((1:n)', (1:n)', d, n, n); 
+   J = cell(1, numel(J1)); 
+   for k = 1:numel(J)
+      J{k} = D * J1{k}; 
+   end
+end
