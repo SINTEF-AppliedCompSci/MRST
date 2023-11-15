@@ -24,7 +24,8 @@ function fluid = addVERelpermSharpInterface(fluid, Gt, rock, varargin)
         
         poro3D = rock.parent.poro;
         perm3D = rock.parent.perm;
-        pvol_columns = accumarray((1:Gt.cells.num)', diff(Gt.cells.columnPos), Gt.parent.cells.volumes);
+        pvol_columns = accumarray(rldecode((1:Gt.cells.num)', diff(Gt.cells.columnPos)), ...
+                                  Gt.parent.cells.volumes(Gt.columns.cells) .* poro3D(Gt.columns.cells));
         perm_H = integrateVertically(perm3D, Gt.cells.H, Gt);
     end
     
@@ -42,9 +43,9 @@ function fluid = addVERelpermSharpInterface(fluid, Gt, rock, varargin)
         fluid.krW = @(sw, p, varargin) krW_simple(h_hmax(1-sw, varargin{:}), Gt, fluid, rock, krw, krH_lost);
     else
         fluid.krG = @(sg, p, varargin) ...
-            krG_integrated(h_hmax(sg, varargin), Gt, fluid, rock, perm3D, krg, krH_lost);
+            krG_integrated(h_hmax(sg, varargin{:}), Gt, fluid, rock, perm3D, krg, krH_lost, perm_H);
         fluid.krW = @(sw, p, varargin) ...
-            krW_integrated(h_hmax(1-sw, varargin), Gt, fluid, rock, perm3D, krw, krH_lost, perm_H);
+            krW_integrated(h_hmax(1-sw, varargin{:}), Gt, fluid, rock, perm3D, krw, krH_lost, perm_H);
     end        
     
     % @@ Add capillary pressure
@@ -54,12 +55,12 @@ function fluid = addVERelpermSharpInterface(fluid, Gt, rock, varargin)
 end
 
 % ----------------------------------------------------------------------------
-function kr = krG_integrated(heights, Gt, fluid, rock, perm3D, kr_endpoint, krH_lost)
+function kr = krG_integrated(heights, Gt, fluid, rock, perm3D, kr_endpoint, krH_lost, perm_H)
     [H, h, hmax] = deal(Gt.cells.H, heights{:});
     assert(all(h >= 0));
     if isa(h, 'ADI')
         [krH_tmp, dkrH_tmp] = integrateVertically(perm3D(:,1), h.val, Gt);
-        krH = ADI(kr_tmp, lMultDiag(dkrH_tmp, h.jac));
+        krH = ADI(krH_tmp, lMultDiag(dkrH_tmp, h.jac));
     else
         krH = integrateVertically(perm3D(:,1), h, Gt);
     end
@@ -69,7 +70,7 @@ function kr = krG_integrated(heights, Gt, fluid, rock, perm3D, kr_endpoint, krH_
     krH = max(krH - krH_lost, 0);
     
     % compute fraction of full permeability, and multiply by endpoint scaling.
-    kr = krH ./ H .* kr_endpoint;
+    kr = krH ./ perm_H .* kr_endpoint;
         
 end
 
@@ -80,11 +81,11 @@ function kr = krW_integrated(heights, Gt, fluid, rock, perm3D, kr_endpoint, krH_
     
     % computing permeability integrated along CO2 column (no modification for endpoint or 
     % caprock rugosity
-    kr_H_co2 = krG_integrated(heights, Gt, fluid, rock, perm3D, 1.0, 0.0); 
+    kr_H_co2 = krG_integrated(heights, Gt, fluid, rock, perm3D, 1.0, 0.0, perm_H) .* perm_H;
     
     kr_H_wat = perm_H - max(kr_H_co2, krH_lost);
     
-    kr = kr_H_wat ./ H .* kr_endpoint;
+    kr = kr_H_wat ./ perm_H .* kr_endpoint;
 end
 
 % ----------------------------------------------------------------------------
@@ -182,4 +183,14 @@ function pc = pcWG(sg, p, fluid, Gt, poro3D, pvol_columns, varargin)
      
      pc = drho .* h * norm(gravity);
     
+end
+
+% ----------------------------------------------------------------------------
+function J = lMultDiag(d, J1)
+   n = numel(d); 
+   D = sparse((1:n)', (1:n)', d, n, n); 
+   J = cell(1, numel(J1)); 
+   for k = 1:numel(J)
+      J{k} = D * J1{k}; 
+   end
 end

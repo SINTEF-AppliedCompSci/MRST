@@ -1,11 +1,14 @@
+mrstModule add co2lab-common co2lab-ve
 mrstModule add static-modeling
 mrstModule add ad-core ad-props ad-blackoil
+mrstModule add mrst-gui
 gravity on;
 
 %% User options
-heterogeneity = false;
+heterogeneity = true;
 rugosity = false;
 
+show_plots = true;
 
 %% Set up 3D test grid
 [xres, zres] = deal(100, 50); 
@@ -37,6 +40,16 @@ else
 end
 
 rock = struct('poro', poro(:), 'perm', perm(:));
+
+if show_plots
+    figure; 
+    subplot(2, 1, 1); 
+    plotCellData(G, rock.poro, 'edgealpha', 0.2); view(0,0); colorbar; title('porosity');
+    subplot(2, 1, 2); 
+    plotCellData(G, rock.perm, 'edgealpha', 0.2); view(0,0); colorbar; title('permeability');
+    set(gcf, 'position', [900, 800, 1000, 500]);
+end
+
 
 
 %% Simulate 3D injection and migration
@@ -106,13 +119,25 @@ schedule.step.control = [ones(numel(dT_injection), 1); ...
                     
 
 % Run simulation
-model = TwoPhaseWaterGasModel(G, rock, fluid, 0, 0, 'verbose', true);
+model = TwoPhaseWaterGasModel(G, rock, fluid, 0, 0, 'verbose', false);
 [wellSol3D, states3D] = simulateScheduleAD(initState, model, schedule);
+
+if show_plots
+    % allow plotting of perm/poro as well
+    for i=1:numel(states3D)
+        states3D{i}.perm = rock.perm;
+        states3D{i}.poro = rock.poro;
+    end
+    figure; plotToolbar(G, states3D, 'field', 's:2'); view(0,0); title('3D simulation');
+end
+
 
 %% Run VE simulation
 [Gt, G] = topSurfaceGrid(G);
 rockVE = averageRock(rock, Gt);
-fluidVE = makeVEFluid(Gt, rockVE, 'sharp_interface_simple', ...
+model_type = ifelse(heterogeneity, 'sharp_interface_integrated', ...
+                                   'sharp_interface_simple');
+fluidVE = makeVEFluid(Gt, rockVE, model_type, ...
                       'residual', [0, 0], ...% @@@
                       'co2_mu_ref', muco2, ...
                       'wat_mu_ref', muw, ...
@@ -147,12 +172,15 @@ scheduleVE.step = schedule.step;
 [wellSolVE, statesVE] = simulateScheduleAD(initStateVE, modelVE, scheduleVE);
 
 % Reconstruct 3D solution
-satVE3D = {};
 for i = 1:numel(statesVE)
     s = statesVE{i}.s(:,2);
     smax = statesVE{i}.sGmax;
     [h, hmax] = upscaledSat2height(s, smax, Gt, 'resSat', [0, 0]); % @@
-    satVE3D = [satVE3D, {height2Sat(h, hmax, Gt, 0, 0)}]; % @@
+    statesVE{i}.sg3D = height2Sat(h, hmax, Gt, 0, 0);% @@
+    statesVE{i}.perm = rock.perm;
+    statesVE{i}.poro = rock.poro;
 end
 
-plotToolbar(G, satVE3D); view(0,0);
+if show_plots
+    figure; plotToolbar(G, statesVE, 'field', 'sg3D'); view(0,0); title('VE simulation');
+end

@@ -194,7 +194,7 @@ function [v, dvdh] = pvol(h, rw, poro_areas, Gt)
 end
 
 % ----------------------------------------------------------------------------
-function [h, dh] = Vinv(vfun, vtarget, vmax, Rw, H, tol)
+function [h, dh] = Vinv(vfun, vtarget, vmax, rw, H, tol)
 
     h = vtarget ./ vmax .* H ./ (1-rw); % initial guess
     
