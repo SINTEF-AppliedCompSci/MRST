@@ -4,16 +4,34 @@ mrstModule add ad-core ad-props ad-blackoil
 mrstModule add mrst-gui
 gravity on;
 
+% In this example, we compare the result of a full 3D simulation and its
+% corresponding VE simulation on a cross section of a sloping aquifer.  
+% The simulation can be run with or without the following effects:
+% - Residual trapping
+% - Heterogeneous rock properties
+% - Impact of small-scale oscillations in caprock ('rugosity')
+% 
+% Note that if you include sub-scale oscillations in caprock, the grid used 
+% in the 3D simulation will have to be much finer in order to properly capture
+% the geometry.  The VE model will still use the original resolution grid, as
+% caprock rugosity is modeled as an upscaled effect anyway.
+%
+% You may turn on and off these effects in the 'User options' section below.
+
 %% User options
 heterogeneity = true;
 residual = true;
-rugosity = true;
+rugosity = false;
 
 show_plots = true;
 
 %% Set up 3D test grid
-[xres, zres] = deal(100, 25); %(100, 50);
+
+[xres, zres] = deal(100, 25); 
 [L, H] = deal(5000 * meter, 25 * meter);
+
+% The call to 'make_testgrid' sets up a grid with the specified dimension,
+% resolution and slope, and with a large structural trap towards the right side.
 G = make_testgrid([xres, 1, zres], [L, 1, H], 5, 0.02, 2000, [0.6, 900, 30]);
 
 if rugosity
@@ -44,19 +62,24 @@ if heterogeneity
     poro = poroFromPerm(perm, avg_poro, 1e-10);
     
 else
+    % Rock properties will be constant, and equal to the prescribed averages.
     poro = avg_poro * ones(G.cells.num, 1);
     perm = avg_perm * ones(G.cells.num, 1);
 end
 
+% We make two versions of the rock object, one standard, and one high-res.  The 
+% latter one will have to be used for the 3D simulation when caprock rugosity is
+% turned on.
 rock = struct('poro', poro(:), 'perm', perm(:));
 rockFine = struct('poro', reshape(repmat(poro(:), 1, xfac)', [], 1), ...
                   'perm', reshape(repmat(perm(:), 1, xfac)', [], 1));
 
-% choosing grid and rock to use for 3D simulation
+% choosing grid and rock to use for 3D simulation.
 Gsim = ifelse(rugosity, GFine, G);
 rocksim = ifelse(rugosity, rockFine, rock);
 
 if show_plots
+    % Show the cross-section grid with the porosity and permeability fields.
     figure; 
     subplot(2, 1, 1); 
     plotCellData(Gsim, rocksim.poro, 'edgealpha', 0.2); view(0,0); colorbar; title('porosity');
@@ -68,7 +91,6 @@ if show_plots
 end
 
 %% Simulate 3D injection and migration
-
 
 % Define initial state
 rhow = 1050; % density of brine
@@ -116,7 +138,7 @@ bc_cells = sum(Gsim.faces.neighbors(open_faces, :), 2);
 
 bc = addBC([], open_faces, 'pressure', initState.pressure(bc_cells), 'sat', [1, 0]);
 
-% define schedule
+% define injection schedule (1 year of injection, 100 years of migration)
 inj_period = 1 * year;
 inj_steps = ifelse(rugosity, 36*5, 36);
 migr_period = 100 * year;
@@ -139,18 +161,34 @@ model = TwoPhaseWaterGasModel(Gsim, rocksim, fluid, 0, 0, 'verbose', false);
 [wellSol3D, states3D] = simulateScheduleAD(initState, model, schedule);
 
 if show_plots
-    % allow plotting of perm/poro as well
+    % We insert the permeability and porosity fields into the simulation results,
+    % to allow them to be visualized as well in the call to 'plotToolbar' below.
     for i=1:numel(states3D)
         states3D{i}.perm = rocksim.perm/darcy;
         states3D{i}.poro = rocksim.poro;
     end
+    
+    % plotToolbar will open an interactive window, where the result of the simulation
+    % can be explored in detail.
     figure; plotToolbar(Gsim, states3D, 'field', 's:2'); view(0,0); title('3D simulation');
 end
 
 
 %% Run VE simulation
+
+% We now seek to simulate the same scenario, this time using the
+% vertical-equilibrium model (which is much more computationally efficient).  To
+% do this, we will have to convert all the objects (grid, rock fluid, initial
+% state, wells and boundary conditions) to their corresponding VE form.  
+
+% Convert grid and rock to VE form
 [Gt, G] = topSurfaceGrid(G);
 rockVE = averageRock(rock, Gt);
+
+% Establish the VE form of the fluid to use.  The upscaled relperm and capillary
+% pressure curves will be modeled depending on the choice of simulation model
+% type.  The 'rugosity' variable allows and upscaled representation of the effect
+% of caprock oscillations, without having to explicitly model them on a fine grid.
 model_type = ifelse(heterogeneity, 'sharp_interface_integrated', ...
                                    'sharp_interface_simple');
 dh = ifelse(rugosity, H/30, 0);
@@ -167,19 +205,27 @@ fluidVE = makeVEFluid(Gt, rockVE, model_type, ...
                       'pvMult_fac', cf_rock);
                       %'krmax', (1 - fliplr(smin)).^1); % corey exponent 2
 
-% convert all other objects to VE version
+% Here we create the simulation model.
 modelVE = CO2VEBlackOilTypeModel(Gt, rockVE, fluidVE);
 
+% The VE form of the initial state ressembles that of the 3D form, but 
+% has a lot less cells (since the z-dimension is integrated out).
 initStateVE.pressure = pfun(Gt.cells.z);
 initStateVE.s = repmat([1, 0], Gt.cells.num, 1);
 initStateVE.sGmax = initStateVE.s(:,2);
 
+% Define VE boundary conditions (open boundary on right side), in the same way
+% as for the 3D c ase, but using the VE grid.
 open_faces_VE = find(Gt.faces.centroids(:,1) == max(Gt.faces.centroids(:,1)));
 bc_cells_VE = sum(Gt.faces.neighbors(open_faces_VE,:), 2);
 bcVE = addBC([], open_faces_VE, ...
              'pressure', initStateVE.pressure(bc_cells_VE), ...
              'sat', [1, 0]);
 
+% Since the 3D simulation was run on a finer 3D grid if rugosity was included, we
+% cannot simply convert the existing well, but have to generate a corresponding
+% well on the original 3D grid and then convert it to VE.  If rugosity was turned
+% off, we can convert the well directly.
 if rugosity
     wellcell_tmp = sub2ind(G.cartDims, well_ix, 1, well_iz);
     Wtmp = addWell([], G, rock, wellcell_tmp, ...
@@ -188,13 +234,13 @@ if rugosity
             'val', injection_rate, ...
             'comp_i', [0, 1]);
     WVE = convertwellsVE(Wtmp, G, Gt, rockVE);
-
 else
     % we can recycle the existing well, as it was defined on the parent grid
     WVE = convertwellsVE(W, G, Gt, rockVE);
 end
 
-
+% We use the same schedule as before, but with the VE versions of wells and
+% boundary conditions.
 scheduleVE.control = struct('W', WVE, 'bc', bcVE);
 scheduleVE.control(2) = struct('W', WVE, 'bc', bcVE);
 scheduleVE.control(2).W.val = 0;
@@ -203,7 +249,7 @@ scheduleVE.step = schedule.step;
 % run VE simulation
 [wellSolVE, statesVE] = simulateScheduleAD(initStateVE, modelVE, scheduleVE);
 
-% Reconstruct 3D solution
+% Reconstruct 3D solution from VE solution (so we can plot it on the original 3D grid).
 for i = 1:numel(statesVE)
     s = statesVE{i}.s(:,2);
     smax = statesVE{i}.sGmax;
@@ -214,5 +260,8 @@ for i = 1:numel(statesVE)
 end
 
 if show_plots
+    % Open a new window to explore the result of the VE simulation.  If you left
+    % open the 'plotToolbar' window created above for the 3D case, you can now easily
+    % compare the two simulation outcomes.
     figure; plotToolbar(G, statesVE, 'field', 'sg3D'); view(0,0); title('VE simulation');
 end
