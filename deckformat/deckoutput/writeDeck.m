@@ -182,7 +182,7 @@ if(isfield(deck.RUNSPEC,'WELLDIMS'))
     fmt = getFmtStr(f.int, numel(v)); 
     dump_vector(fid,dirname, 'welldims', fmt, v, false);
 end
-flds={'OIL','WATER','GAS','DISGAS','VAPOIL','METRIC','NOGRAV','FIELD','UNIFOUT','FMTOUT'};
+flds={'OIL','WATER','GAS','DISGAS','VAPOIL','METRIC','NOGRAV','FIELD','UNIFOUT','FMTOUT','TEMP','THERMAL','MECH'};
 for i=1:numel(flds)
     fld = flds{i};
     if(isfield(deck.RUNSPEC, fld))
@@ -263,7 +263,8 @@ if grid_support
     dump_vector(fid, dirname, 'zcorn', getFmtStr(f.sci), zcorn);
 end
 % write other data from deck
-flds = {'PERMX', 'PERMY', 'PERMZ', 'PORO', 'ACTNUM'};
+flds = {'PERMX', 'PERMY', 'PERMZ', 'PORO', 'ACTNUM',...
+    'PRATIO', 'YMODULE', 'BIOTCOEF', 'POELCOEF', 'THELCOEF', 'THERMEXR','THCONR'};
 for k = 1:numel(flds)
     if isfield(deck.GRID, flds{k})
         if strcmp(flds{k}, 'ACTNUM')
@@ -280,6 +281,12 @@ if isfield(deck.GRID, 'NNC')
     fmt = getFmtStr(f.int, f.int, f.int, f.int, f.int, f.int, f.sci, '/');
     dump_vector(fid, dirname, 'nnc' , fmt, nnc');
 end
+if isfield(deck.GRID, 'BCCON')
+    bccon = deck.GRID.BCCON;
+    fmt = getFmtStr(f.int, f.int, f.int, f.int, f.int, f.int, f.int, f.string,'/');
+    dump_vector(fid,dirname, lower('BCCON'), fmt, bccon');
+end
+
 end
 
 %--------------------------------------------------------------------------
@@ -422,10 +429,15 @@ for i=1:numel(myfields)
     
     v = deck.SOLUTION.(myfield);
     %if iscell(v), v = v{1}; end
-    if strcmp(myfield,'EQUIL')
+    if strcmp(myfield,'STREQUIL')
+        v=v(:,1:9);
+        fmt = getFmtStr(f.sci, f.sci, f.sci, f.sci, f.sci, f.sci, f.sci, f.sci, f.sci);
+        dump_multiple(fid,dirname, lower(myfield), fmt, v);
+        fprintf(fid,'\n/\n');
+    elseif strcmp(myfield,'EQUIL')
         v=v(:,1:9);
         fmt = getFmtStr(f.sci, f.sci, f.sci, f.sci, f.sci, f.sci, f.int, f.int, f.int);
-        dump_multiple(fid,dirname, lower(myfield), fmt, v);
+        dump_multiple(fid,dirname, lower(myfield), fmt, v);   
     elseif strcmp(myfield,'THPRES')
         v=v(:,1:3);
         fmt = getFmtStr(f.int, f.int, f.sci,'/');
