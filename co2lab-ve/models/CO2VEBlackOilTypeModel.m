@@ -339,6 +339,8 @@ end
             
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
                                                          drivingForces);
+            
+            state.sGmax = max(state.sGmax, state.s(:,2)); % enforce sGmax >= sg
         end
 
 

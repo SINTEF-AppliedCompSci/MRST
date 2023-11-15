@@ -114,8 +114,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %                to one minus the residual saturation of the opposite phase,
 %                consistent with a fine-scale linear relative permeability
 %                curve. This value is only relevant for the 'sharp
-%                interface' relperm models, i.e. 'si_integrated' and
-%                'si_rugority'.
+%                interface' relperm models.
 %  dissolution - True or false, depending on whether or not to include CO2
 %                dissolution into brine in the model.
 %  dis_rate    - If dissolution is active, this option describes the

@@ -203,8 +203,14 @@ function [h, dh] = Vinv(vfun, vtarget, vmax, rw, H, tol)
     res = v - vtarget;
     
     dh = 1 ./ dvdh; % dh/dv
-    
+
+    count = 0;
     while max(abs(res)) > tol
+        count = count + 1;
+        if count > 10
+            error('Could not converge while computing h from volume.');
+        end
+
         h = h - res .* dh;
         h = max(min(h, H), 0);
         [v, dvdh] = vfun(h, rw);
