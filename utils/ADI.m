@@ -186,7 +186,11 @@ classdef ADI
           if ~isa(u,'ADI') %u is a scalar/matrix
               h = v;
               h.val = u*h.val;
-              h.jac = h.mtimesJac(u, h.jac);
+              if numel(v.val) == 1 && numel(u) > 1
+                  h.jac = h.outerprod(u, h.jac);
+              else
+                  h.jac = h.mtimesJac(u, h.jac);
+              end
           elseif ~isa(v,'ADI') && isscalar(v)
               h = mtimes(v,u);
           else % special case where either u or v has single value
@@ -694,13 +698,22 @@ classdef ADI
         end
         end
 
-
+        %--------------------------------------------------------------------------
+        function J = outerprod(M, J1)
+        if isempty(J1)
+            J = cell(size(J1));
+            return;
+        end
+        M = sparse(M);
+        J = cellfun(@(j) M * j, J1, 'UniformOutput', false);
+        end
+        
         %--------------------------------------------------------------------------
 
         function J = mtimesJac(M, J1)
         J = cell(1, numel(J1));
         for k = 1:numel(J)
-            J{k} = sparse(M)*J1{k};
+            J{k} = M*J1{k};
         end
         end
 
