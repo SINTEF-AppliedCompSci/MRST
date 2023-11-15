@@ -128,7 +128,7 @@ modelVE = CO2VEBlackOilTypeModel(Gt, rockVE, fluidVE);
 
 initStateVE.pressure = pfun(Gt.cells.z);
 initStateVE.s = repmat([1, 0], Gt.cells.num, 1);
-initStateVE.sGmax = initStateVE.s;
+initStateVE.sGmax = initStateVE.s(:,2);
 
 open_faces_VE = find(Gt.faces.centroids(:,1) == max(Gt.faces.centroids(:,1)));
 bc_cells_VE = sum(Gt.faces.neighbors(open_faces_VE,:), 2);
@@ -140,7 +140,7 @@ WVE = convertwellsVE(W, G, Gt, rockVE);
 
 scheduleVE.control = struct('W', WVE, 'bc', bcVE);
 scheduleVE.control(2) = struct('W', WVE, 'bc', bcVE);
-%scheduleVE.control(2).W.val = 0;
+scheduleVE.control(2).W.val = 0;
 scheduleVE.step = schedule.step;
                       
 % run VE simulation
@@ -149,8 +149,10 @@ scheduleVE.step = schedule.step;
 % Reconstruct 3D solution
 satVE3D = {};
 for i = 1:numel(statesVE)
-    s = statesVE{i}.s;
+    s = statesVE{i}.s(:,2);
     smax = statesVE{i}.sGmax;
     [h, hmax] = upscaledSat2height(s, smax, Gt, 'resSat', [0, 0]); % @@
-    satVE3D = [satVE3D, {height3Sat(h, hmax, Gt, 0, 0)}]; % @@
+    satVE3D = [satVE3D, {height2Sat(h, hmax, Gt, 0, 0)}]; % @@
 end
+
+plotToolbar(G, satVE3D); view(0,0);

@@ -39,12 +39,12 @@ function fluid = addVERelpermSharpInterface(fluid, Gt, rock, varargin)
     % @@ Add permeability according to chosen model
     if strcmpi(opt.type, 'simple')
         fluid.krG = @(sg, p, varargin) krG_simple(h_hmax(sg, varargin{:}), Gt, fluid, rock, krg, krH_lost);
-        fluid.krW = @(sg, p, varargin) krW_simple(h_hmax(sg, varargin{:}), Gt, fluid, rock, krw, krH_lost);
+        fluid.krW = @(sw, p, varargin) krW_simple(h_hmax(1-sw, varargin{:}), Gt, fluid, rock, krw, krH_lost);
     else
         fluid.krG = @(sg, p, varargin) ...
             krG_integrated(h_hmax(sg, varargin), Gt, fluid, rock, perm3D, krg, krH_lost);
-        fluid.krW = @(sg, p, varargin) ...
-            krW_integrated(h_hmax(sg, varargin), Gt, fluid, rock, perm3D, krw, krH_lost, perm_H);
+        fluid.krW = @(sw, p, varargin) ...
+            krW_integrated(h_hmax(1-sw, varargin), Gt, fluid, rock, perm3D, krw, krH_lost, perm_H);
     end        
     
     % @@ Add capillary pressure
