@@ -67,6 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    switch kw
       % Keywords related to individual wells
       case 'COMPDAT' , w = readCompDat (fid, w);
+      case 'BCPROP'  , w = readBCPROP  (fid, w);  
       case 'COMPSEGS', w = readCompSegs(fid, w);
       case 'WCONHIST', w = readWConHist(fid, w);
       case 'WCONINJ' , w = readWConInj (fid, w);
@@ -152,6 +153,18 @@ function w = readWellSpec(fid, w)
 
       w.WELSPECS = WellSpec;
    end
+end
+%--------------------------------------------------------------------------
+function w = readBCPROP(fid, w)
+    tmpl = { '1', 'FREE', 'WATER', '1', '1', '1','FIXED','1', '1', '1','1', '1', '1','1', '1', '1'};
+    numeric  = [1,4:6,8:numel(tmpl)];
+    data = readDefaultedKW(fid, tmpl);  clear tmpl
+    data = toDouble(data, numeric);
+    kw = 'BCPROP';
+    if ~isfield(w, kw), 
+        w.(kw) = cell([0, 12]); 
+    end
+    w.(kw) = [w.(kw); data];
 end
 
 %--------------------------------------------------------------------------

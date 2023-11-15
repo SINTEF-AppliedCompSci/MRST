@@ -73,6 +73,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             equil = readDefaultedKW(fid, tmpl, 'NRec', ntequil);
             sln.(kw) = cellfun(to_double, equil);                clear tmpl
 
+          case 'STREQUIL'
+            tmpl(1 : 9) = { '0' };
+            %tmpl(  10  ) = { '1' };
+
+            equilstress = readDefaultedKW(fid, tmpl, 'NRec', ntequil);
+            sln.(kw) = cellfun(to_double, equilstress);                clear tmpl  
          case 'FIELDSEP'
             templ = {'NaN', 'NaN', 'NaN', '0', '0', '0', '0', '0', 'NaN', 'NaN'};
             sln.(kw) = readDefaultedKW(fid, templ);
@@ -90,7 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             sln.(kw) = data;
 
-         case { 'PBVD', 'PDVD', 'RSVD', 'RVVD' }
+         case { 'PBVD', 'PDVD', 'RSVD', 'RVVD','RTEMPVD' }
             for reg = 1 : ntequil
                s             = readRecordString(fid);
                sln.(kw){reg} = reshape(to_double(s), 2, []) .';
