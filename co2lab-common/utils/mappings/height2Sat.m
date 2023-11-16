@@ -1,6 +1,7 @@
 function s = height2Sat(h, hmax, Gt, sw, sg)
-%Convert from height to (fine scale) saturation
-%
+% Convert from height to (fine scale) saturation, assuming a sharp-interface
+% approximation (negligible capillary pressure).
+% 
 % SYNOPSIS:
 %   s = height2Sat(sol, Gt, fluid)
 %

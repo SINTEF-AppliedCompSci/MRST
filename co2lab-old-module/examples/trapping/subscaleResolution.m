@@ -16,7 +16,7 @@
 % resolution when simulating long-term migration because coarsening may
 % have a large impact on the trapped CO2 volumes.
 
-mrstModule add co2lab
+mrstModule add co2lab-common co2-spillpoint deckformat
 %% Load data and create grids
 fprintf('Constructing Sleipner model...');
 datapath = getDatasetPath('sleipner');
