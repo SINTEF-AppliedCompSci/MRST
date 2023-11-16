@@ -94,7 +94,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                  opt.pvol_columns, opt.tol);
     else 
         % Capillary pressure function provided - we assume a general models
-        assert nargout > 3 % dh not currently supported for general model
+        assert(nargout < 3) % dh not currently supported for general model
         [h, h_max] = capillary_case(S, S_max, Gt, opt.pcWG, opt.p, ...
                                     opt.rhoW, opt.rhoG);
     end

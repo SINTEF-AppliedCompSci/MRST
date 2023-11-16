@@ -424,48 +424,6 @@ end
 
 % ----------------------------------------------------------------------------
 
-function fluid = setup_integrated_fluid(fluid, Gt, rock, residual, krmax)
-
-% Sharp interface; vertical variations in rock properties taken into account
-    
-    for i = 1:2
-        if krmax(i) < 0
-            krmax(i) = 1 - residual(3-i);
-        end
-    end
-    
-    fluid = addVERelpermIntegratedFluid(fluid         , ...
-                                        'Gt'          , Gt          , ...
-                                        'rock'        , rock        , ...
-                                        'kr_pressure' , true        , ...
-                                        'krw'         , krmax(1)    , ...
-                                        'krg'         , krmax(2)    , ...
-                                        'res_water'   , residual(1) , ...
-                                        'res_gas'     , residual(2));
-end
-
-% ----------------------------------------------------------------------------
-
-function fluid = make_sharp_interface_fluid(fluid, Gt, residual, krmax, top_trap, surf_topo)
-
-% Sharp interface; rock considered vertically uniform; caprock rugosity
-% influences relperm.  
-   for i = 1:2
-      if krmax(i) < 0
-         krmax(i) = 1 - residual(3-i);
-      end
-   end
-   fluid = addVERelperm(fluid       , Gt          , ...
-                        'res_water' , residual(1) , ...
-                        'res_gas'   , residual(2) , ...
-                        'krw'       , krmax(1)    , ...
-                        'krg'       , krmax(2)    , ...
-                        'top_trap'  , top_trap    , ...
-                        'surf_topo' , surf_topo);
-end
-
-% ----------------------------------------------------------------------------
-
 function fluid = make_lin_cap_fluid(fluid, Gt, residual)
 
    % A model using a linear capillary fringe.  Rock considered vertically
@@ -611,4 +569,3 @@ function res = ifelse(cond, yes, no)
         res = no;
     end
 end
-
