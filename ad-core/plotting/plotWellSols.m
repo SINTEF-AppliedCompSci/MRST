@@ -419,7 +419,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 
                 if doCsum
-                    d = cumtrapz(x*xunit, active_step.*d);
+                    d = cumsum(xunit*diff([0;x(:)]).*active_step.*d);
                 end
                 d(~active_step, :) = nan;
 
