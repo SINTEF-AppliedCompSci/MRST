@@ -156,10 +156,18 @@ if opt.outputSimGrid
     if isfield(init, 'AQUIFERN')
         Gs.cells.aquifer = init.AQUIFERN.values;
     end
-    Gs.cells.DX    = convertFrom(init.DX.values(eMap), u.length);
-    Gs.cells.DY    = convertFrom(init.DY.values(eMap), u.length);
-    Gs.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
-    Gs.cells.PORV   = convertFrom(init.PORV.values(actNum), u.resvolume);
+    if isfield(init, 'DX')
+        Gs.cells.DX    = convertFrom(init.DX.values(eMap), u.length);
+    end
+    if isfield(init, 'DY')
+        Gs.cells.DY    = convertFrom(init.DY.values(eMap), u.length);
+    end
+    if isfield(init, 'DZ')
+        Gs.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
+    end
+    if isfield(init, 'PORV')
+        Gs.cells.PORV   = convertFrom(init.PORV.values(actNum), u.resvolume);
+    end
     dispif(mrstVerbose, 'done\n')
     G = {G, Gs};
 end
