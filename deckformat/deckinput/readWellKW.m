@@ -941,9 +941,11 @@ function table = appendSpec(table, kw, data, wells)
    if ~isempty(data) && ~all(ismember(data(:,1), wells))
       unknown = data(~ismember(data(:,1), wells), 1);
       u = sprintf(' ''%s''', unknown{:});
-      error(msgid('Well:Unknown'), ...
+      warning(msgid('Well:Unknown'), ...
            ['Well control specified in undeclared wells:%s.\n', ...
-            'Attempted coup d''état foiled.'], u);
+            'Check input to verify that well was declared using', ...
+            ' WELSPECS.'], u);
+      return
    end
 
    % Exclude any previous records for these wells.  They were likely copied
