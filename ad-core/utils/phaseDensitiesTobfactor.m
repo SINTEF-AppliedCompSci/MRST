@@ -24,12 +24,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     b = rho;
     
     for i = 1:numPh
-        factor = rhoS(i);
+        if iscell(rhoS)
+            factor = rhoS{i};
+        else
+            factor = rhoS(i);
+        end
+
         if ~isempty(dissolved)
             for j = 1:numPh
                 r_ph = dissolved{j}{i};
                 if ~isempty(r_ph)
-                    factor = factor + rhoS(j).*r_ph;
+                    rhoSj = rhoS(j);
+                    if iscell(rhoSj)
+                        rhoSj = rhoS{j};
+                    end
+                    factor = factor + rhoSj.*r_ph;
                 end
             end
         end
