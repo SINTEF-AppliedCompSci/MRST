@@ -191,6 +191,8 @@ end
                 
             flux_dis = model.getProp(state, 'DissolvedFlux');
 
+            % compute the maximum amount of CO2 that can be absorbed in the
+            % current situation over the next timestep.
             max_demand = (co2dis_max - co2dis0) / dt; 
             max_demand = model.operators.AccDiv(max_demand, flux_dis);
             
