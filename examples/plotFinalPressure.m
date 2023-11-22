@@ -36,6 +36,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         axis tight equal
         colorbar
         title([name, ' at endtime'])
+    else
+        unstructuredContour(G, states{end}.pressure, 100);
+        title(name)
     end
 
 end
