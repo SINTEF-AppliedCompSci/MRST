@@ -160,6 +160,17 @@ view(0,0); axis tight;
 figure; plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states{200}.s(j==48 & i>18 & i < 60,2)); 
 view(0,0); axis tight;
 
+%% Trapping inventory
+Gt = topSurfaceGrid(G);
+ta = trapAnalysis(Gt, false);
+for i = 1:numel(states)
+    [S, Smax] = finescale2upscaledSat(states{i}.s(:,2), srw, src, Gt, rock.poro);
+    [h, hmax] = upscaledSat2height(S, Smax, Gt, 'resSat', [srw, src]);
+end
+
+
+
+
 %%
 % <html>
 % <p><font size="-1">
