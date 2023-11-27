@@ -78,7 +78,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     other.surface_pressure  = opt.surface_pressure;
     other.btype             = opt.btype;
     other.rock = rock2D;
-    other.dh = dh;
+    other.dh = [];
     other.residual = [fluid.res_water, fluid.res_gas];
     other.ref_temp = seainfo.seafloor_temp + 273.15;
     other.ref_depth = seainfo.seafloor_depth;

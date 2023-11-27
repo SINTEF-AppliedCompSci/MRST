@@ -1,0 +1,60 @@
+function reports = makeReports3D(G, states, rock, fluid, schedule, res_water, res_gas)
+
+% This function is a wrapper that calls 'makeReports' on a result from a 3D
+% simulation. It takes the result of a simulation ('states', a cell array of
+% states for each timestep), and returns a corresponding structure array of
+% 'reports'.  The prepared report contains each timestep state, but also
+% other information such as the computed plume heights and the trapping state
+% of the CO2.
+%
+% Reports are needed as input to generate inventory plots using
+% 'plotTrappingDistribution'. 
+% 
+% Currently, only rate controlled wells are supported (not pressure-controlled).
+% 
+% SYNOPSIS:
+%   function reports = makeReports3D(G, states, rock, fluid, schedule, traps,
+%   res_water, res_gas)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   G         - 3D simulation grid used in the simulation
+%   states    - result from the 3D simulation (cell array of states, including
+%               initial state)
+%   rock      - rock object used in the simulation
+%   fluid     - fluid object used in the simulation
+%   schedule  - schedule used in the simulation (NB: only rate controlled
+%               wells supported at present)
+%   res_water - residual water saturation
+%   res_gas   - residual co2 saturation
+%
+% RETURNS:
+%   reports - a structure array of 'reports', one per timestep in the 
+%             simulation.
+%
+% SEE ALSO:
+%   `plotTrappingDistribution`, `makeReports`
+
+    % convert information to VE, and call `makeReports`
+    Gt = topSurfaceGrid(G);
+    rock2D = averageRock(rock, Gt);
+    ta = trapAnalysis(Gt, false);
+    statesVE = states2VE(states, Gt, fluid, rock.poro);
+    
+    fluidVE.res_water = res_water;
+    fluidVE.res_gas = res_gas;
+    fluidVE.rhoGS = fluid.rhoGS;
+    fluidVE.rhoWS = fluid.rhoWS;
+    fluidVE.rhoG = @(p, varargin) fluid.bG(p, varargin{:}) * fluidVE.rhoGS;
+    fluidVE.bG = fluid.bG;
+    fluidVE.bW = fluid.bW;
+
+    reports = makeReports(Gt, statesVE, rock2D, fluidVE, schedule, ta, []);
+    
+    % add-in original 3D states
+    for i=1:numel(states)
+        reports(i).sol3D = states{i};
+    end
+    
+end

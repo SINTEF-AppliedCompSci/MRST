@@ -130,14 +130,14 @@ schedule.control(2) = struct('W', W, 'bc', bc);
 schedule.control(2).W.val = 0;
 
 % Specifying length of simulation timesteps
-schedule.step.val = [repmat(year, 100, 1); ...
-                     repmat(10*year, 100, 1)];
+schedule.step.val = [repmat(year, 50, 1); ...
+                     repmat(10*year, 95, 1)];
 
 % Specifying which control to use for each timestep.
 % The first 100 timesteps will use control 1, the last 100
 % timesteps will use control 2.
-schedule.step.control = [ones(100, 1); ...
-                         ones(100, 1) * 2];
+schedule.step.control = [ones(50, 1); ...
+                         ones(95, 1) * 2];
 
 %% Model
 
@@ -154,22 +154,19 @@ set(gcf, 'position', [531   337   923   356]); axis tight;
 
 % vertical plot
 [i j k] = ind2sub(G.cartDims, G.cells.indexMap);
-figure; plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states{100}.s(j==48 & i>18 & i < 60,2)); 
+figure; 
+plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states{100}.s(j==48 & i>18 & i < 60,2)); 
 view(0,0); axis tight;
 
-figure; plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states{200}.s(j==48 & i>18 & i < 60,2)); 
+figure; 
+plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states{200}.s(j==48 & i>18 & i < 60,2)); 
 view(0,0); axis tight;
 
 %% Trapping inventory
-Gt = topSurfaceGrid(G);
-ta = trapAnalysis(Gt, false);
-for i = 1:numel(states)
-    [S, Smax] = finescale2upscaledSat(states{i}.s(:,2), srw, src, Gt, rock.poro);
-    [h, hmax] = upscaledSat2height(S, Smax, Gt, 'resSat', [srw, src]);
-end
+reports = makeReports3D(G, [{initState}; states], rock, fluid, schedule, srw, src);
 
-
-
+h1 = figure; plot(1); ax = get(h1, 'currentaxes');
+plotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
 
 %%
 % <html>

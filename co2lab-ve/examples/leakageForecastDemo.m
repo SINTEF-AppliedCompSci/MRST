@@ -177,7 +177,7 @@ end
 
 % Plotting Ma on top of trapping inventory
 reports = makeReports(Gt, [{initState}; states], rock2D, fluid, ...
-                    schedule, [fluid.res_water, fluid.res_gas], ta, []);
+                    schedule, ta, []);
 h = figure;
 plot(1);
 ax = get(h,'currentaxes');

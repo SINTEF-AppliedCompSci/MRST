@@ -1,4 +1,4 @@
-function reports = makeReports(Gt, states, rock, fluid, schedule, residual, traps, dh)
+function reports = makeReports(Gt, states, rock, fluid, schedule, traps, dh)
 %
 % This function takes the results of a simulation ('states', a cell array of
 % states for each timestep), and returns a corresponding structure array of
@@ -12,7 +12,7 @@ function reports = makeReports(Gt, states, rock, fluid, schedule, residual, trap
 % Currently, only rate controlled wells are supported (not pressure-controlled).
 % 
 % SYNOPSIS:
-%   function reports = makeReports(Gt, states, rock, fluid, schedule, residual, traps, dh)
+%   function reports = makeReports(Gt, states, rock, fluid, schedule, traps, dh)
 %
 % DESCRIPTION:
 %
@@ -24,7 +24,6 @@ function reports = makeReports(Gt, states, rock, fluid, schedule, residual, trap
 %   fluid    - fluid object used in the simulation
 %   schedule - schedule used in the simulation (NB: only rate controlled
 %              wells supported at present)
-%   residual - residual saturations, on the form [s_water, s_co2]
 %   traps    - trapping structure (from trapAnalysis of Gt)
 %   dh       - subscale trapping capacity (empty, or one value per grid cell
 %              of Gt)
@@ -57,10 +56,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    assert( numel(states) == numel(schedule.step.val)+1 , ...
        'Ensure the initial state has been included in the varargin ''states''.')
-   
+
    for i = 1:numel(states)
 
-      [h, h_max] = compute_plume_height(Gt, states{i}, residual(1), residual(2));
+      [h, h_max] = compute_plume_height(Gt, states{i}, fluid.res_water, fluid.res_gas);
 
       if i == 1
          % initial state can contain non-zero co2 saturations (or heights)

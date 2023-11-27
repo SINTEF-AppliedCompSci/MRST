@@ -41,12 +41,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     %% Make Initial and Optimized Reports
     reports_init  = makeReports(Gt, {other.initState, init.states{:}}, ...
                                     other.rock, other.fluid, init.schedule, ...
-                                    other.residual, other.ta, []);
+                                    other.ta, []);
 
 
     reports_optim = makeReports(Gt, {other.initState, optim.states{:}}, ...
                                 other.rock, other.fluid, optim.schedule, ...
-                                other.residual, other.ta, []);
+                                other.ta, []);
 
     %% Plot co2 saturation
     % NB: 'totalCO2' will plot tons of mass of CO2 per lateral square meter
