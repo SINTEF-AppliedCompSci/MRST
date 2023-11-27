@@ -1,6 +1,6 @@
 function selectedResultsMultiplot(Gt, reports, plot_steps, varargin)
 
-    % background variables can be: h|h_max|pressure|rs|sGmax|s|smax|totalCO2
+    % background variables can be: h|h_max|pressure|rs|sGmax|s|totalCO2
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
