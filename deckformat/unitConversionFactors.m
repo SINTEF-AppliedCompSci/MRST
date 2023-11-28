@@ -58,7 +58,7 @@ end
 
 function u = generalConversionFactors(u_in, u_out)
 u = u_out;
-flds = setdiff(fieldnames(u_in), {'tempoffset'});
+flds = setdiff(fieldnames(u_in), {'tempoffset','si'});
 for k = 1:numel(flds)
     fld = flds{k};
     u.(fld) = u_in.(fld)/u_out.(fld);
@@ -206,7 +206,9 @@ switch nm
             'trans'       , 1, ...
             'rockcond'    , 1, ...
             'volumheatcapacity', 1, ...
-            'massheatcapacity' , 1);
+            'massheatcapacity' , 1,...
+            'si'   , 1,...
+            'ymodule', 1);
     otherwise
         error('Input unit system ''%s'' unknown, must be either METRIC, FIELD, LAB, PVT_M, or SI.', upper(nm));
 end
