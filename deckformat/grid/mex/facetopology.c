@@ -225,6 +225,7 @@ void findconnections(int n, int *pts[4],
     int i,j=0;
     int intersect[4];
     int *tmp;
+    int zn;
     /* for (i=0; i<2*n; work[i++]=-1); */
 
     for (i = 0; i < 4; i++) { intersect[i] = -1; }
@@ -276,8 +277,20 @@ void findconnections(int n, int *pts[4],
                             *f++ = a2[i];
 
                             /* avoid duplicating nodes in pinched faces  */
-                            if (a2[i+1] != a2[i]) { *f++ = a2[i+1]; }
-                            if (a1[i+1] != a1[i]) { *f++ = a1[i+1]; }
+                            if (a2[i+1] != a2[i]) {
+                                assert(a2[i+1]>a2[i]);
+                                for(zn = a2[i]+1; zn<=a2[i+1]; ++zn){
+                                    *f++ = zn;
+                                }
+                                /* *f++ = a2[i+1];*/
+                            }
+                            if (a1[i+1] != a1[i]) {
+                                assert(a1[i+1]>a1[i]);
+                                for(zn = a1[i+1]; zn>a1[i]; --zn){
+                                    *f++ = zn;
+                                }
+                                /* *f++ = a1[i+1];*/
+                            }
 
                             out->face_ptr[++out->number_of_faces] = f - out->face_nodes;
 
