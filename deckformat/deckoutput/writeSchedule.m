@@ -173,7 +173,11 @@ if isfield(SCHEDULE, 'control')
             fprintf(fid_inc, f.string, regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
             fprintf(fid_inc, '/\n\n');
         end
-        bcprop = SCHEDULE.control(cstep).BCPROP;
+
+        bcprop=[];
+        if(isfield(SCHEDULE.control(cstep),'BCPROP'))
+            bcprop = SCHEDULE.control(cstep).BCPROP;
+        end
         if ~isempty(bcprop) 
             bcprop = replace_default(bcprop(:, 1:16)).';
             fprintf(fid_inc,'%s\n',upper('bcprop'));
