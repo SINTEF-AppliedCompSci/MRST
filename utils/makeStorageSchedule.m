@@ -38,8 +38,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         chargeIx(tmp) = true;
     end
     
-    [WCharge   , dtCharge   ] = makeChargeStage(W, chargeIx, opt);
-    [WDischarge, dtDischarge] = makeDischargeStage(W, chargeIx, opt);
+    limits = defineLimits(opt);
+    
+    [WCharge   , dtCharge   ] = makeChargeStage(W, chargeIx, limits, opt);
+    [WDischarge, dtDischarge] = makeDischargeStage(W, chargeIx, limits, opt);
     
     schedule = simpleSchedule(1);
     schedule.control(1).W = WCharge;
@@ -55,12 +57,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 %-------------------------------------------------------------------------%
-function [W, dt] = makeChargeStage(W, chargeIx, opt)
+function limits = defineLimits(opt)
+
+    limits = struct('bhp', opt.bhpLim(2));
+
+end
+%-------------------------------------------------------------------------%
+
+%-------------------------------------------------------------------------%
+function [W, dt] = makeChargeStage(W, chargeIx, limits, opt)
     
     injectors = chargeIx;
     [W(injectors).type] = deal('rate');
-    [W(injectors).val ] = deal(opt.rate(1));
+    [W(injectors).val ] = deal(opt.rate(1)/nnz(injectors));
     [W(injectors).sign] = deal(1);
+    [W(injectors).lims] = deal(limits);
 
     [W(~injectors).type] = deal('bhp');
     [W(~injectors).val ] = deal(opt.bhpLim(1));
@@ -74,7 +85,7 @@ end
 %-------------------------------------------------------------------------%
 
 %-------------------------------------------------------------------------%
-function [W, dt] = makeDischargeStage(W, chargeIx, opt)
+function [W, dt] = makeDischargeStage(W, chargeIx, limits, opt)
 
     if opt.reverseDischarge
         injectors = ~chargeIx;
@@ -83,8 +94,9 @@ function [W, dt] = makeDischargeStage(W, chargeIx, opt)
     end
     
     [W(injectors).type] = deal('rate');
-    [W(injectors).val ] = deal(opt.rate(2));
+    [W(injectors).val ] = deal(opt.rate(2)/nnz(injectors));
     [W(injectors).sign] = deal(1);
+    [W(injectors).lims] = deal(limits);
 
     [W(~injectors).type] = deal('bhp');
     [W(~injectors).val ] = deal(opt.bhpLim(1));
