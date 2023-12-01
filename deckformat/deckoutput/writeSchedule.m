@@ -173,7 +173,22 @@ if isfield(SCHEDULE, 'control')
             fprintf(fid_inc, f.string, regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
             fprintf(fid_inc, '/\n\n');
         end
-        
+
+        bcprop=[];
+        if(isfield(SCHEDULE.control(cstep),'BCPROP'))
+            bcprop = SCHEDULE.control(cstep).BCPROP;
+        end
+        if ~isempty(bcprop) 
+            bcprop = replace_default(bcprop(:, 1:16)).';
+            fprintf(fid_inc,'%s\n',upper('bcprop'));
+            % WCONPROD       1        2          3           4    5      6      7           8       9       10      11      12      13      14      15      16                
+            %                nm       bc       fluid       orat  wrat   grat   mechbc       dirx    diry    dirz    dipsx   dispy   dipz    s_xx    s_yy    s_zz  
+            fmt = getFmtStr(f.int, f.string, f.string, f.sci, f.sci, f.sci, f.string,    f.int,  f.int,  f.int,  f.sci,  f.sci,  f.sci,  f.sci,  f.sci,  f.sci,'/');
+            s = sprintf(fmt, bcprop{:});
+            fprintf(fid_inc, f.string, regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
+            fprintf(fid_inc, '/\n\n');
+        end
+
         
         if writeTSTEP
             ind = SCHEDULE.step.control == cstep;
