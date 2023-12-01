@@ -53,7 +53,7 @@ for i = 1:numel(states2)
     drawnow(), pause(0.05);
 end
 
-%% Setup 3: heat for the first 500 years only, inject mass durin heating
+%% Setup 3: heat for the first 500 years only, inject mass during heating
 setup3   = TestCase('convection_geothermal', 'timeHeat', 500*year, 'massInjection', true);
 problem3 = setup3.getPackedSimulationProblem();
 simulatePackedProblem(problem3, 'restartStep', 1);
