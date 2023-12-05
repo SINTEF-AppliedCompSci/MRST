@@ -77,7 +77,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function varargout = krG(sg, p, H, fluid, opt, varargin)
+function varargout = krG(sg, p, fluid, H, opt, varargin)
     loc_opt = struct('sGmax', []);
     loc_opt = merge_options(loc_opt, varargin{:});
     if isempty(loc_opt.sGmax)

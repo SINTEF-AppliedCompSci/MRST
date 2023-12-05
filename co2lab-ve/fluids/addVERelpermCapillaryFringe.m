@@ -1,14 +1,276 @@
-function fluid = addVERelpermCapillaryFringe(fluid, Gt, rock, invPc3D, kr3D, varargin)
+function fluid = addVERelpermCapillaryFringe(fluid, Gt, rock2D, invPc3D, kr3D, varargin)
 
     % type can be 'linear cap.', 'S table', 'P-scaled table' or 'P-K-scaled table'.
     opt = struct('type', 'P-scaled table', 'samples' 2000);
     opt = merge_options(opt, varargin{:});
 
-    % create sampled tables
-    table_water = ;
-    table_co2 = ;
-    
-    % create fluid and return
-    fluid = tabulatedVERelperm(table_water, table_co2);
+    % Warn user if data doesn't fulfill the assumptions for the model he/she
+    % has chosen
+    issue_warnings(opt.type, fluid, Gt, rock2D);
 
+    % Determine upper bounds for sampled tables
+    Pmax = determine_upper_cap_press_limit(fluid, Gt, invPc3D);
+    drho_surf = fluid.rhoWS - fluid.rhoGS;
+    
+    switch opt.type
+      case 'linear cap.'
+      case 'S table'
+        table = make_CO2_table_h_based(invPc3D, kr3D, Gt, samples, Pmax, drho_surf);
+        fluid.pcWG = @(sg, p, varargin) pcWG_htable(sg, p, table, fluid, Gt.cells.H, varargin{:});
+        fluid.krG = @(sg, p, varargin) krG_htable(sg, p, table, fluid, Gt.cells.H, varargin{:});
+        fluid.krW = @(sw, p, varargin) krW_simple(sw, p, fluid, varargin{:});
+      case 'P-scaled table'
+        table = make_CO2_table_p_based(invPc3D, kr3D, Gt, samples, Pmax, drho_surf);
+        fluid.pcWG = @(sg, p, varargin) pcWG_ptable(sg, p, table, fluid, Gt.cells.H, varargin{:});
+        fluid.krG = @(sg, p, varargin) krG_ptable(sg, p, table, fluid, Gt.cells.H, varargin{:})
+        fluid.krW = @(sw, p, varargin) krW_simple(sw, p, fluid, varargin{:});
+      case 'P-K-scaled table'
+        kscale = sqrt(rock.poro ./ (rock.perm)) * fluid.surface_tension;
+        table = make_CO2_table_p_based(invPc3D, kr3D, Gt, samples, Pmax / kscale, drho_surf);
+        fluid.pcWG = @(sg, p, varargin) ...
+            pcWG_ptable(sg, p, table, fluid, Gt.cells.H, 'kscale', kscale, varargin{:});
+        fluid.krG = @(sg, p, varargin) ...
+            krG_ptable(sg, p, table, fluid, Gt.cells.H, 'kscale', kscale, varargin{:});
+        fluid.krW = @(sw, p, varargin) krW_simple(sw, p, fluid, varargin{:});
+      otherwise
+        error('Unknown VE relperm model');
+    end
 end
+
+% ----------------------------------------------------------------------------
+function kr = krW_simple(sw, p, fluid, H, varargin)
+% For the time being, this is a crude approximation built on a sharp interface
+% assumption.  A more accurate approach would use sampled tables for water as well.
+        
+    opt = merge_options(struct('sGmax', 1-sw), varargin{:});
+    
+    sg = free_sg(1-sw, opt.sGmax, fluid.res_water, fluid.res_gas);
+    
+    sw_eff = sw - (sg_free./(1-opt.res_water)) .* opt.res_water;
+    sw_eff(sw_eff<0) = 0; % Should not logically happen, but just in case
+    
+    kr = sw_eff;
+    
+end
+
+% ----------------------------------------------------------------------------
+function kr = krG_ptable(sg, p, table, fluid, H, varargin)
+    opt = merge_options(struct('sGmax', sg, 'kscale', 1), varargin{:});
+    
+    drho = fluid.rhoW(p) - fluid.rhoG(p);
+    sg = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas);
+    
+    [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table) ./ opt.kscale;
+    
+    kr = interpTable(table.SP, table.krP, SP);
+    
+    if any(H_trunc)
+        % adjust for truncated plumes
+
+        p_trunc = H_trunc .* drho .* norm(gravity);
+        kr_trunc = interpTable(table.p, table.krP, p_trunc);
+        kr = kr - kr_trunc;
+    end
+    
+    kr = kr ./ (H .* drho .* norm(gravity));
+    
+end
+
+% ----------------------------------------------------------------------------
+function pc = pcWG_ptable(sg, p, table, fluid, H, varargin)
+    opt = merge_options(struct('sGmax', sg, 'kscale', 1), varargin{:});    
+    
+    drho = fluid.rhoW(p) - fluid.rhoG(p);
+    sg = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas);
+
+    SP = compute_untruncated_SP(H, drho, sg, table) ./ opt.kscale;
+    
+    pc = interpTable(table.SP, table.p, SP) .* opt.kscale;
+    
+end
+
+% ----------------------------------------------------------------------------
+function [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table)
+
+    MAX_ITER = 200; % should be largely enough 
+    TOL = max(H) / 1000; % should be more than precise enough
+
+    drho_g = drho * norm(gravity);
+    dP_aquifer = H .* drho_g;
+    
+    SP = sg .* dP_aquifer;
+    
+    % compute the full height of the plume represented by SP
+    p = interpTable(table.SP, table.p, SP);
+    H_fullplume = p ./ drho_g;
+    
+    x = max(H_fullplume - H, 0); % how much the full plume extends below aquifer bottom
+    trunc_ind = x > 0;
+    H_trunc = 0 * H;
+    
+    if any(trunc_ind)
+        disp('Truncated columns present'); % @@ This line can be commented out.
+        % there were columns with truncated plumes.  For these columns, compute the
+        % value of SP that corresponds to a full, untruncated column.
+        
+        % determine local variables that only relate to truncated columns
+        x_loc = x(trunc_ind);
+        drho_g_loc = drho_g(trunc_ind);
+        SP_loc = SP(trunc_ind);
+        H_loc = H(trunc_ind);
+        
+        % iterative search for solution
+        for iter = 1:MAX_ITER
+            p_trunc = x_loc .* drho_g_loc;
+            SP_trunc = interpTable(table.p, tableSP, p_trunc);
+            SP_full_loc = SP_loc + SP_trunc;
+            p_full_loc = interpTable(table.SP, table.p, SP_full_loc);
+            H_full_loc = p_full_loc ./ drho_g_loc;
+            x_loc_new = max(H_full_loc - H_loc);
+            dxmax = max(abs(x_loc_new - x_loc));
+            if dxmax < tol
+                break
+            else
+                x_loc = x_loc_new;
+            end
+        end
+        if dxmax > TOL
+            warning('Did not converge when computing untruncated SP');
+        end
+        SP(trunc_ind) = SP_full_loc;
+        H_trunc(trunc_ind) = x_loc; % truncated heights
+    end
+end
+
+% ----------------------------------------------------------------------------
+function pc = pcWG_htable(sg, p, table, fluid, H, varargin)
+% note that this function is strictly valid only for constant H and incompressible fluid
+
+    opt = merge_options(struct('sGmax', sg), varargin{:});
+
+    SH = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas) .* H;
+    h = interpTable(table.SH, table.h, SH);
+
+    drho = fluid.rhoWS - fluid.rhoGS;
+    pc = h .* drho * norm(gravity);
+end
+
+% ----------------------------------------------------------------------------
+function kr = krG_htable(sg, p, table, fluid, H, varargin)
+    opt = merge_options(struct('sGmax', sg), varargin{:});
+    
+    SH = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas) .* H;
+    assert(all(SH ./ H <= 1));
+    
+    gh = interpTable(table.SH, table.h, SH); % h corresponding to our SH
+    kr = interpTable(table.h, table.krH, gh) / H; % averaged relperm corresponding to our SH
+end
+
+
+% ----------------------------------------------------------------------------
+function issue_warnings(type, fluid, Gt, rock)
+    
+    switch type
+      case 'S table'
+        if max(Gt.cells.H) > min(Gt.cells.H);
+            warning(['Provided grid breaks chosen relperm model (S table) ' ...
+                     'assumption of constant aquifer thickness.']);
+        end
+        if fluid.rhoG(1e5) ~= fluid.rhoG(1e6) % test if fluid compresses
+            warning(['Provided fluid breaks chosen relperm model (S table) ' ...
+                     'assumption of incompressible fluid.']);
+        end
+      case 'P-scaled table'
+        if max(rock.poro) ~= min(rock.poro)
+            warning(['The ''P-scaled table'' relperm model is used, which ' ...
+                     'assumes the same capillary pressure function ' ...
+                     'everywhere.  However, provided rock properties are ' ...
+                     'heterogeneous.  Consider using the k-scaled model.']);
+        end
+      case {'P-K-scaled table', 'linear cap.'}
+        % nothing 
+      otherwise
+        error('Unknown VE relperm model.');
+    end
+end
+
+% ----------------------------------------------------------------------------
+function Pmax = determine_upper_cap_press_limit(fluid, Gt, invPc3D)
+    dp = 1 * Pascal;
+    max_dp = 2 * mega * Pascal; % we do not foresee upscaled capillary pressures
+                                % reaching higher than this in practice.
+    s = invPc3D(dp);
+    tol = 1e-3;
+    while (s < max_dp) && (invPc3D(dp) > fluid.res_water + tol)
+        dp = dp * 2;
+    end
+    
+    % Density difference at surface (or reference) level. Expected to generally
+    % decrease in depth, so this serves as an upper estimate of density
+    % difference.
+    drho = fluid.rhoWS - fluid.rhoGS; 
+                                      
+    % maximum drop in capillary pressure along vertical direction in aquifer
+    max_cap_drop = max(Gt.cells.H) * drho * norm(gravity);
+    
+    % ensures that a cap. pressure of 'Pmax' at caprock level is enough to yield a
+    % fully saturated vertical column of CO2 even at the thickest point of the
+    % aquifer
+    Pmax = dp + max_cap_drop; 
+end
+
+% ----------------------------------------------------------------------------
+function table = make_CO2_table_h_based(invPc3D, kr3D, Gt, samples, Pmax, drho_surf)
+    
+    Hmax = Pmax / drho_surf / norm(gravity); % NB: using h directly is only strictly
+                                             % valid in the incompresssible case
+    h = linspace(0, Hmax, samples);
+    dh = h(2) - h(1);
+    
+    % fine scale saturation and relperm at vertical % distance 'h' from the plume tip
+    sw_h = invPc3D(h * drho_surf * norm(gravity));  % water saturation (fine-scale)
+    sg_h = 1 - swh;                                 % CO2 saturation (fine-scale)
+    kr_h = kr3D(sg_h);
+    
+    % vertical integrated values
+    SH  = (cumsum(sg_h) - sg_h / 2) * dh;
+    krH = (cumsum(kr_h) - kr_h / 2) * dh;
+    
+    table.SH  = truncate_at_aquifer_bottom(SH, h, max(Gt.cells.H));
+    table.krH = truncate_at_aquifer_bottom(krH, h, max(Gt.cells.H));
+    table.h = h;
+end
+
+% ----------------------------------------------------------------------------
+function table = make_CO2_table_p_based(invPc3D, kr3D, Gt, samples, Pmax, drho_surf)
+    
+    p = linspace(0, Pmax, samples);
+    dp = p(2) - p(1);
+    
+    % fine scale saturation and relperm at vertical position with capillary pressure 'p'
+    sw_p = opt.invPc3D(p);
+    sg_p = 1 - sw_p;
+    kr_p = opt.kr3D(sg_p);
+    
+    % vertical integrated values
+    table.SP  = (cumsum(sg_p) - sg_p / 2) * dp;
+    table.krP = (cumsum(kr_p) - kr_p / 2) * dp;
+    table.p   = p;
+    
+end
+
+% ----------------------------------------------------------------------------
+function vec_truncated = truncate_at_aquifer_bottom(vec, h, H)
+    
+    truncate = h > H;
+    
+    % 'chop off' the (theoratical) part of the plume that extends below aquifer
+    % bottom
+    vec(trunctate) = vec(truncate) - interpTable(h, vec, h(truncate) - H);
+end
+
+% ----------------------------------------------------------------------------
+function makeWaterTable()
+    
+end
+
