@@ -14,6 +14,7 @@ function fluid = addVERelpermCapillaryFringe(fluid, Gt, rock2D, invPc3D, kr3D, v
     
     switch opt.type
       case 'linear cap.'
+        error('linear cap. unimplemented.'); % @@@@@
       case 'S table'
         table = make_CO2_table_h_based(invPc3D, kr3D, Gt, samples, Pmax, drho_surf);
         fluid.pcWG = @(sg, p, varargin) pcWG_htable(sg, p, table, fluid, Gt.cells.H, varargin{:});
@@ -35,6 +36,10 @@ function fluid = addVERelpermCapillaryFringe(fluid, Gt, rock2D, invPc3D, kr3D, v
       otherwise
         error('Unknown VE relperm model');
     end
+    
+    % add fine-scale functions to fluid object
+    fluid.invPc3D = invPc3D;
+    fluid.kr3D = kr3D;
 end
 
 % ----------------------------------------------------------------------------
@@ -268,9 +273,3 @@ function vec_truncated = truncate_at_aquifer_bottom(vec, h, H)
     % bottom
     vec(trunctate) = vec(truncate) - interpTable(h, vec, h(truncate) - H);
 end
-
-% ----------------------------------------------------------------------------
-function makeWaterTable()
-    
-end
-

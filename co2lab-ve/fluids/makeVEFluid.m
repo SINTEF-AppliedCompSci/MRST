@@ -7,8 +7,6 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %
 % DESCRIPTION:
 %
-%
-%
 % PARAMETERS:
 %   Gt            - Underlying top-surface grid with which the fluid object
 %                   will be used.
@@ -26,20 +24,30 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %                                                   with integration of vertical
 %                                                   heterogeneities, yielding
 %                                                   nonlinear relperm curves.
-%                   - 'linear cap.' : Linear capillary fringe model with
-%                                     Brooks-Corey type relative
-%                                     permeability and endpoint scaling.
-%                   - 'S table' : capillary fringe model based on sampled
-%                                 tables in the upscaled saturation parameter.
 %                   - 'P-scaled table' : capillary fringe model based on sampled
 %                                        tables in the upscaled capillary
 %                                        pressure parameter.
-%                   - 'P-K-scaled table' : capillary fringe model basd on
+%                   - 'P-K-scaled table' : capillary fringe model based on
 %                                          sampled tables in the upscaled
 %                                          capillary pressure parameter, and
 %                                          taking varations in permeability
 %                                          into account through a Leverett
 %                                          J-function relationship.
+%                   - 'S table' : capillary fringe model based on sampled
+%                                 tables in the upscaled saturation
+%                                 parameter.  Only valid for aquifers with
+%                                 constant height, and is provided here
+%                                 mainly for reference purposes.
+%                   The three capillary fringe models come with the following 
+%                   limitations:
+%                   - vertical rock heterogeneity is assumed
+%                   - they do not combine with upscaled caprock rugosity (see
+%                   'rugosity' parameter further down).
+%                   If you choose to use a capillary fringe model, you also
+%                   need to specify the fine-scale permeability ('kr3D') and
+%                   inverse capillary ('invPc3D') functions.  See further
+%                   down for details on how to specify these parameters.
+%                   
 %                   A description of the different models can be found in the
 %                   paper "Fully-Implicit Simulation of Vertical-Equilibrium
 %                   Models with Hysteresis and Capillary Fringe" (Nilsen et
@@ -113,8 +121,8 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %                component) and CO2 (second component). Default will be set
 %                to one minus the residual saturation of the opposite phase,
 %                consistent with a fine-scale linear relative permeability
-%                curve. This value is only relevant for the 'sharp
-%                interface' relperm models.
+%                curve. This value is only relevant for the sharp interface
+%                relperm models, i.e. those with no capillary fringe.
 %  dissolution - True or false, depending on whether or not to include CO2
 %                dissolution into brine in the model.
 %  dis_rate    - If dissolution is active, this option describes the
@@ -129,22 +137,41 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %              grid, representing the upscaled structural trapping potential
 %              within the cell.  It is given as a length, which expresses
 %              the thickness of the "accretion layer" representing the
-%              effect of the subscale traps.
-%     
-% Optional arguments related to models for relative permeability and capillary
-% pressure.  Relperm parameters are relevant for relperm-models 'S-table',
-% 'P-scaled table', or 'P-K-scaled table'.
+%              effect of the subscale traps.  Rugosity can be used with the
+%              sharp interface relperm models, but does not combine with the
+%              capillary fringe models (in which case it is ignored).
+%  
+% If a capillary fringe model is chosen, you also need to specify the
+% fine-scale relative permeabilities and capillary pressure.  This is done
+% with the following arguments:
+% kr3D - CO2 relperm curve.  Either specified as a function handle (function
+%        of saturation), or as scalar exponent of a Brooks-Corey type relperm
+%        curve, i.e. the 'beta' in a function like kr = max(s-src, 0).^beta,
+%        where 'src' is the residual CO2 saturation.  Default value is 3
+%        (cubic relperm curve).
+% invPc3D - Inverse capillary pressure function used for computing the
+%           capillary fringe saturation profile.  Either specified as a
+%           function handle (saturation as a function of capillary pressure),
+%           or as the scalar pair [C, alpha], which respectively represent
+%           the scaling factor and the exponent for an inverse Brooks-Corey 
+%           capillary pressure curve, 
+%           i.e. sw = max( (C ./ (p + C)).^(1 / alpha), srw), where 'srw' is
+%           the residual water saturation.
+%           Note that if the 'P-K-Scaled Table' relperm model is chosen, then
+%           the function specified by 'invPc3D' represents the inverse of the
+%           Everett J-function, which will be properly scaled to produce the
+%           inverse capillary pressure based on the rock properties of each
+%           vertical grid column.  
+%           The default value of this parameter is [0.4, 0.5].
+% surface_tension - This parameter is used when the 'P-K-Scaled Table'
+%                   relperm model is chosen.  It represents the fluid surface
+%                   tension, multiplied by the cosine of the contact angle,
+%                   and is used along with rock properties to compute the
+%                   multiplicative factor that converts the Everett
+%                   J-function into a (rock property dependent) capillary
+%                   pressure.  If any other relperm model is chosen, this
+%                   variable is ignored.  Default value is 0.03.
 %
-%  C               - scaling factor in Brooks-Corey type capillary pressure curve
-%  alpha           - exponent used in Brooks-Corey type capillary pressure curve
-%  beta            - exponent of Brooks-Corey type relperm curve
-%  surface_tension - surface tension used in 'P-K-scaled table'
-%  invPc3D         - inverse Pc function to use for computing capillary
-%                    fringe.  If empt, a Brooks-Corey type curve will be
-%                    constructed using 'C' and 'alpha' above.
-%  kr3D            - CO2 relperm curve.  If empty, a Brooks-Corey type
-%                    relperm curve with exponent 'beta' will be created.
-%   
 % Optional arguments related the rock matrix
 %
 %  pvMult_p_ref - Reference pressure for pore volume multiplier (default: 10 MPa)
@@ -176,8 +203,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %           * pvMult(p)    - pore volume multiplier function
 %
 % EXAMPLE:
-%   The example script 'runStandardModel' (found under
-%   'examples/publication_code/paper2') provides an example on how this
+%   The example script 'exampleVE' provides an example on how this
 %   function is used.
 %
 %{
@@ -235,27 +261,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    switch relperm_model
      case 'sharp_interface_simple'
        fluid = addVERelpermSharpInterface(fluid, Gt, rock, ...
-                                          'krw', krw, ...
-                                          'krg', krg, ...
                                           'dh', opt.rugosity, ...
                                           'type', 'simple');
      case 'sharp_interface_integrated'
        fluid = addVERelpermSharpInterface(fluid, Gt, rock, ...
-                                          'krw', krw, ...
-                                          'krg', krg, ...
                                           'dh', opt.rugosity, ...
                                           'type', 'integrated');
-     case 'linear cap.'
-       fluid = make_lin_cap_fluid(fluid, Gt, opt.residual);
-     case 'S table'
-       fluid = make_s_table_fluid(fluid, Gt, opt.residual, C, opt.alpha, ...
-                                  opt.beta, opt.invPc3D, opt.kr3D);
-     case 'P-scaled table'
-       fluid = make_p_scaled_fluid(fluid, Gt, opt.residual, C, opt.alpha, ...
-                                   opt.beta, opt.invPc3D, opt.kr3D);
-     case 'P-K-scaled table'
-       fluid = make_p_k_scaled_fluid(fluid, Gt, rock, opt.residual, C,  opt.alpha, ...
-                                     opt.beta, opt.invPc3D, opt.kr3D);
+     case {'S table', 'P-scaled table', 'P-K-scaled table'}
+       invPc3D = ;
+       kr3D = ;
+       fluid = addVERelpermCapillaryFringe(fluid, Gt, rock, invPc3D, kr3D, ...
+                                           'type', relperm_model);
      otherwise
        error([type, ': no such fluid case.']);
    end
@@ -340,18 +356,10 @@ function opt = default_options()
    opt.rugosity = 0;
    
    % Parameters used for relperms and capillary pressures based on table
-   % lookup (i.e. 'S-table', 'P-scaled table' and 'P-K-scaled table)
-   opt.C               = 0.4;   % scaling factor in Brooks-Corey type capillary pressure curve
-   opt.alpha           = 0.5;   % Exponent used in Brooks-Corey type capillary pressure curve
-   opt.beta            = 3;     % Exponent of Brooks-Corey type relperm curve
    opt.surface_tension = 30e-3; % Surface tension used in 'P-K-scaled table'
-   opt.invPc3D         = [];    % Inverse Pc function to use for computing
-                                % capillary fringe.  If empty, a Brooks-Corey
-                                % type curve will be constructed using 'C', and
-                                % 'alpha' above.
-   opt.kr3D            = [];    % CO2 relperm curve.  If empty, Brooks-Corey
-                                % type relperm curve with exponent 'beta'
-                                % will be created.
+   opt.kr3D = 3;                % fine-scale relative permeability
+   opt.invPc3D = [0.4, 0.5];    % Inverse fine-scale capillary pressure function
+   
    % Various parameters
    opt.pvMult_p_ref    = 100 * barsa;  % reference pressure for pore volume multiplier
    opt.pvMult_fac      = 1e-5 / barsa; % pore volume compressibility
@@ -419,145 +427,6 @@ function fun = as_function_of_p(val)
 
    assert(isnumeric(val) && isscalar(val));
    fun = @(p, varargin) p * 0 + val;
-
-end
-
-% ----------------------------------------------------------------------------
-
-function fluid = make_lin_cap_fluid(fluid, Gt, residual)
-
-   % A model using a linear capillary fringe.  Rock considered vertically
-   % uniform; no impact from caprock rugosity.
-
-   % Local constants used:
-   beta = 2;
-   fac  = 0.2;
-   g    = norm(gravity);
-   drho = fluid.rhoWS - fluid.rhoGS;
-
-   fluid = addVERelpermCapLinear(fluid, ...
-                                 fac * g * max(Gt.cells.H) * drho , ...
-                                 'res_water'   , residual(1)      , ...
-                                 'res_gas'     , residual(2)      , ...
-                                 'beta'        , beta             , ...
-                                 'H'           , Gt.cells.H       , ...
-                                 'kr_pressure' , true);
-end
-
-% ----------------------------------------------------------------------------
-
-function fluid = make_s_table_fluid(fluid, Gt, residual, C, alpha, beta, ...
-                                    invPc3D, kr3D)
-
-   % Exact relationships
-
-   % Local constants used
-   drho    = fluid.rhoWS - fluid.rhoGS;
-   samples = 1000;
-   tabSw   = linspace(0, 1, 100)';
-   tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []);
-   
-   % Establish fine-scale functions
-   if isempty(invPc3D)
-      invPc3D = @(p) max((C ./ (p + C)).^(1 / alpha) , residual(1));
-   end
-   if isempty(kr3D)
-      kr3D = @(s) s.^beta;
-   end
-
-   table_co2_1d = makeVEtables('invPc3D'    , invPc3D , ...
-                               'is_kscaled' , false   , ...
-                               'kr3D'       , kr3D    , ...
-                               'drho'       , drho    , ...
-                               'Gt'         , Gt      , ...
-                               'samples'    , samples);
-
-   fluid = addVERelperm1DTables(fluid , ...
-        'res_water'   , residual(1)   , ...
-        'res_gas'     , residual(2)   , ...
-        'height'      , Gt.cells.H    , ...
-        'table_co2'   , table_co2_1d  , ...
-        'table_water' , tabW);
-end
-
-% ----------------------------------------------------------------------------
-
-function fluid = make_p_scaled_fluid(fluid, Gt, residual, C, alpha, beta, ...
-                                     invPc3D, kr3D)
-
-   % Integral transformed from dz to dp
-
-   % Local constants used
-   drho    = fluid.rhoWS - fluid.rhoGS;
-   samples = 2000;
-   tabSw   = linspace(0, 1, 100)';
-   tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []);
-
-   
-   % Establish fine-scale functions
-   if isempty(invPc3D)
-      invPc3D = @(p) max((C ./ (p + C)).^(1 / alpha) , residual(1));
-   end
-   if isempty(kr3D)
-      kr3D = @(s) s.^beta;
-   end
-   
-   table_co2_1d = makeVEtables('invPc3D'    , invPc3D , ...
-                               'is_kscaled' , false   , ...
-                               'kr3D'       , kr3D    , ...
-                               'drho'       , drho    , ...
-                               'Gt'         , Gt      , ...
-                               'samples'    , samples);
-
-   fluid = addVERelperm1DTablesPressure(fluid , ...
-       'res_water'   , residual(1)            , ...
-       'res_gas'     , residual(2)            , ...
-       'height'      , Gt.cells.H             , ...
-       'table_co2'   , table_co2_1d           , ...
-       'table_water' , tabW                   , ...
-       'kr_pressure' , true);
- end
-
-% ----------------------------------------------------------------------------
-
-function fluid = make_p_k_scaled_fluid(fluid, Gt, rock, residual, C, alpha, beta, ...
-                                       invPc3D, kr3D)
-
-   % Integral transformed from dz to dp, and using Leverett's J-function
-
-   % Local constants used
-   kscale = sqrt(rock.poro ./ (rock.perm)) * fluid.surface_tension;
-   drho    = fluid.rhoWS - fluid.rhoGS;
-   samples = 2000;
-   tabSw   = linspace(0, 1, 100)';
-   tabW    = struct('S', 1 - tabSw, 'kr', tabSw, 'h', []);
-
-   C = max(C ./ kscale);
-   
-   % Establish fine-scale functions
-   if isempty(invPc3D)
-      invPc3D = @(p) max((C ./ (p + C)).^(1 / alpha) , residual(1));
-   end
-   if isempty(kr3D)
-      kr3D = @(s) s.^beta;
-   end
-   
-   table_co2_1d = makeVEtables('invPc3D'    , invPc3D , ...
-                               'is_kscaled' , true    , ...
-                               'kr3D'       , kr3D    , ...
-                               'drho'       , drho    , ...
-                               'Gt'         , Gt      , ...
-                               'samples'    , samples , ...
-                               'kscale'     , kscale);
-
-   fluid = addVERelperm1DTablesPressure(fluid , ...
-       'res_water'   , residual(1)            , ...
-       'res_gas'     , residual(2)            , ...
-       'height'      , Gt.cells.H             , ...
-       'table_co2'   , table_co2_1d           , ...
-       'table_water' , tabW                   , ...
-       'rock'        , rock                   , ...  % @@ full 3D rock?
-       'kr_pressure' , true);
 
 end
 

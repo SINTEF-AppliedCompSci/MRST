@@ -47,7 +47,7 @@ function fluid = addVERelpermSharpInterface(fluid, Gt, rock, varargin)
     
     % Add capillary pressure
     fluid.pcWG = @(sg, p, varargin) pcWG(sg, p, fluid, Gt, poro3D, pvol_columns, varargin{:});
-    fluid.invP3D = @(p) invPc3D(p, fluid.res_water);    
+    fluid.invPc3D = @(p) invPc3D(p, fluid.res_water);    
     
 end
 
