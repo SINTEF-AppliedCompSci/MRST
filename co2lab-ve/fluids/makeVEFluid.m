@@ -155,8 +155,10 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %           or as the scalar pair [C, alpha], which respectively represent
 %           the scaling factor and the exponent for an inverse Brooks-Corey 
 %           capillary pressure curve, 
-%           i.e. sw = max( (C ./ (p + C)).^(1 / alpha), srw), where 'srw' is
-%           the residual water saturation.
+%           i.e. sw = max( (C* ./ (p + C*)).^(1 / alpha), srw), where 'srw' is
+%           the residual water saturation, and C* equals C scaled by the
+%           factor max(Gt.cells.H) * norm(gravity) * (wat_rho_ref - CO2_rho_ref).
+% 
 %           Note that if the 'P-K-Scaled Table' relperm model is chosen, then
 %           the function specified by 'invPc3D' represents the inverse of the
 %           Everett J-function, which will be properly scaled to produce the
@@ -252,8 +254,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    %% adding type-specific modifications
    fluid.surface_tension = opt.surface_tension;
-   drho = fluid.rhoWS - fluid.rhoGS;
-   C = opt.C * norm(gravity) * max(Gt.cells.H) * drho;
 
    krw = ifelse(opt.krmax(1) < 0, 1 - opt.residual(2), opt.krmax(1));
    krg = ifelse(opt.krmax(2) < 0, 1 - opt.residual(1), opt.krmax(2));
@@ -268,10 +268,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                           'dh', opt.rugosity, ...
                                           'type', 'integrated');
      case {'S table', 'P-scaled table', 'P-K-scaled table'}
-       invPc3D = ;
-       kr3D = ;
-       fluid = addVERelpermCapillaryFringe(fluid, Gt, rock, invPc3D, kr3D, ...
-                                           'type', relperm_model);
+       fun3D = setup_fine_scale_functions(opt.invPc3D, opt.kr3D, fluid, Gt);
+       fluid = addVERelpermCapillaryFringe(fluid, Gt, rock, fun3D.invPc3D, ...
+                                           fun3D.kr3D, 'type', relperm_model);
      otherwise
        error([type, ': no such fluid case.']);
    end
@@ -294,6 +293,43 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       fluid.transMult = @(p) opt.transMult(int_ix);
    end
    
+end
+
+% ----------------------------------------------------------------------------
+function fun3D = setup_fine_scale_functions(invPc3D, kr3D, fluid, Gt)
+
+    drho = fluid.rhoWS - fluid.rhoGS;
+   C = opt.C * norm(gravity) * max(Gt.cells.H) * drho;
+
+    
+   % setup fine-scale CO2 relperm function
+    if isnumeric(kr3D)
+        assert(isscalar(kr3D)); % should be a single number
+        % define a simple Corey
+        beta = kr3D; % a scalar exponent was provided
+        kr3D = @(s) max(s - fluid.res_gas, 0) .^ beta;
+    end
+    assert(isa(kr3D, 'function_handle'));
+    if kr3D(fluid.res_gas/2) > 0
+        warning(['Provided fine-scale relperm function for CO2 inconsistent ' ...
+                 'with value provided for residual saturation.']);
+    end
+    
+    fun3D.kr3D = kr3D;
+    % setup fine-scale inverse capillary pressure function
+    if isnumeric(invPc3D)
+        assert(numel(invPc3D) == 2); % [C, alpha]
+
+        drho = fluid.rhoWS - fluid.rhoGS;
+        Hmax = max(Gt.cells.H);
+        [C, a] = deal(invPc3D(1), invPc3D(2));
+        C = C * norm(gravity) * Hmax * drho;
+        
+        invPc3D = @(p) min( (C ./ (p + C)).^(1 / a), fluid.res_water);
+
+    end
+    assert(isa(invPc3D, 'function_handle'));
+        
 end
 
 % ============================================================================
