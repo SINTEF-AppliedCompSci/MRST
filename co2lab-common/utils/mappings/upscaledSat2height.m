@@ -44,7 +44,9 @@ function [h, h_max, dh] = upscaledSat2height(S, S_max, Gt, varargin)
 %                - pcWG(S, p, S_max) - upscaled capillary pressure as a
 %                                      function of upscaled saturation,
 %                                      current pressure and max. upscaled
-%                                      saturation.
+%                                      saturation.  This function will be
+%                                      available from the fluid object if a
+%                                      capillary fringe model is used.
 %                - rhoW(p)           - density of water [oil] phase, as a
 %                                      function of pressure.
 %                - rhoG(p)           - density of CO2 [gas] phase, as a

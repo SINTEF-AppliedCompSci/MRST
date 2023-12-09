@@ -299,13 +299,13 @@ end
 function fun3D = setup_fine_scale_functions(invPc3D, kr3D, fluid, Gt)
 
     drho = fluid.rhoWS - fluid.rhoGS;
-   C = opt.C * norm(gravity) * max(Gt.cells.H) * drho;
-
+    C = opt.C * norm(gravity) * max(Gt.cells.H) * drho;
     
-   % setup fine-scale CO2 relperm function
+    
+    % setup fine-scale CO2 relperm function
     if isnumeric(kr3D)
         assert(isscalar(kr3D)); % should be a single number
-        % define a simple Corey
+                                % define a simple Corey
         beta = kr3D; % a scalar exponent was provided
         kr3D = @(s) max(s - fluid.res_gas, 0) .^ beta;
     end
@@ -319,17 +319,17 @@ function fun3D = setup_fine_scale_functions(invPc3D, kr3D, fluid, Gt)
     % setup fine-scale inverse capillary pressure function
     if isnumeric(invPc3D)
         assert(numel(invPc3D) == 2); % [C, alpha]
-
+        
         drho = fluid.rhoWS - fluid.rhoGS;
         Hmax = max(Gt.cells.H);
         [C, a] = deal(invPc3D(1), invPc3D(2));
         C = C * norm(gravity) * Hmax * drho;
         
         invPc3D = @(p) min( (C ./ (p + C)).^(1 / a), fluid.res_water);
-
+        
     end
     assert(isa(invPc3D, 'function_handle'));
-        
+    
 end
 
 % ============================================================================
