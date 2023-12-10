@@ -23,4 +23,35 @@ function plot_saturation_profile(s, seff, smax, G)
     plot(smax(1:last_ix), zvals(1:last_ix), 'linewidth', 2, 'color', 'r');
     set(gca, 'ydir', 'reverse')
 
+    xlabel('Saturation');
+    ylabel('Vertial depth');
+    
+    
+    %% in-graph annotations
+    ylim = get(gca, 'ylim');
+    % smax 
+    z1 = zvals(last_ix);
+    z2 = zvals(find(seff == 0, true, 'first'));
+    zmid = (z1+z2)/2;
+    xend = interpTable(zvals, smax, zmid);
+    [X, Y] = dsxy2figxy_new([0.0, xend], ylim(2) - [zmid, zmid]);
+    annotation('doublearrow', X, Y);
+    text(xend/2 - 0.03, zmid + 1.1, 's_{max}', 'fontsize', 12);
+    
+    % s reidual
+    zmid = 0.25 * z1 + 0.75 * z2;
+    xend = interpTable(zvals, s, zmid);
+    [X, Y] = dsxy2figxy_new([0.0, xend], ylim(2) - [zmid, zmid]);
+    annotation('doublearrow', X, Y);
+    text(xend/2 - 0.03, zmid + 1.1, 's_{n, r}', 'fontsize', 12);
+    
+    % s effective
+    zmid = 0.5 * z2;
+    xend = interpTable(zvals, s, zmid);
+    xstart = interpTable(zvals, s - seff, zmid);
+    [X, Y] = dsxy2figxy_new([xstart, xend], ylim(2) - [zmid, zmid]);
+    annotation('doublearrow', X, Y);
+    text(xend/2 - 0.03, zmid + 1.1, 's_{eff}', 'fontsize', 12);
+    
+    
 end

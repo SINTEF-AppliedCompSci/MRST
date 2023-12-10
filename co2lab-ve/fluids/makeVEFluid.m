@@ -295,13 +295,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       int_ix = ~any(Gt.faces.neighbors==0, 2);
       fluid.transMult = @(p) opt.transMult(int_ix);
    end
-   
 end
 
 % ----------------------------------------------------------------------------
 function fun3D = setup_fine_scale_functions(invPc3D, kr3D, fluid, Gt)
 
-    drho = fluid.rhoWS - fluid.rhoGS;
     
     % setup fine-scale CO2 relperm function
     if isempty(kr3D)
