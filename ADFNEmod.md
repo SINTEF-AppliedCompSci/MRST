@@ -59,4 +59,5 @@ The changes needed in the DFN.m code are summarized below:
             
                   -sin(dps(i)),0,cos(dps(i)),0;0,0,0,1];
                   
-                           
+
+  * After making these changes, move the ADFNE folder into the shale module, then right-click the "shale" module and add the folder and its subfolders to the path.
