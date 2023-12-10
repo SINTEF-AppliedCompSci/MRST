@@ -1,4 +1,4 @@
-function s = height2Sat(h, hmax, Gt, sw, sg, varargin)
+function [s, smax, seff] = height2Sat(h, hmax, Gt, sw, sg, varargin)
 % Convert from height to (fine scale) saturation.  By default, a sharp-interface
 % approximation is assumed.  If a capillary fringe model should be used, the
 % function needs to be provided with the optional arguments 'invPc3D', 'rhoW'
@@ -35,8 +35,13 @@ function s = height2Sat(h, hmax, Gt, sw, sg, varargin)
 %                           model is called for, i.e. 'invPc3D' provided.
 %
 % RETURNS:
-%   s - Saturation - one value for each cell in the underlying 3D model.
-%   Corresponds to state.s for the 3D problem.
+%   s - Fine scale saturation, one value for each cell in the underlying 3D model.
+%       Corresponds to state.s for the 3D problem.
+%   smax - Maximum historical value of fine-scale saturation, one value per
+%          3D cell.  smax >= s.
+%   seff - "Effective" fine scale saturation, i.e. the part of fine-scale
+%          saturation that is not considered 'residually trapped', and
+%          contributes to flow.  seff <= s <= smax
 %
 % SEE ALSO:
 %   `accumulateVertically`, `integrateVertically`
@@ -63,41 +68,43 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(struct('invPc3D', [], 'rhoW', [], 'rhoG', []), varargin{:});
     
     if isempty(opt.invPc3D)
-        s = sharp_interface_h2s(h, hmax, Gt, sw, sg);
+        [s, smax, seff] = sharp_interface_h2s(h, hmax, Gt, sw, sg);
     else
-        s = cap_fringe_h2s(h, hmax, Gt, sw, sg, opt.invPc3D, rhoW, rhoG);
+        assert(~isempty(opt.rhoW) && ~isempty(opt.rhoG));
+        [s, smax, seff] = cap_fringe_h2s(h, hmax, Gt, sw, sg, opt.invPc3D, opt.rhoW, opt.rhoG);
     end
 end
 
 % ----------------------------------------------------------------------------
-function s = cap_fringe_h2s(h, hmax, Gt, sw, sg, invPc3D, rhoW, rhoG)
+function [s, smax, seff] = cap_fringe_h2s(h, hmax, Gt, sw, sg, invPc3D, rhoW, rhoG)
     
     % endpoint scaling factor
     C = sg / (1 - sw);
     
     % remap upscaled variables to fine-scale grid
     remap = @(x, ixs) x(ixs);
-    to_finescale = @(var) remap(rldecode(var, diff(Gt.cells.columnPos)), Gt.colums.cells);
+    to_finescale = @(var) remap(rldecode(var, diff(Gt.cells.columnPos)), Gt.columns.cells);
     
     h_all = to_finescale(h);
     hmax_all = to_finescale(hmax);
     drho_all = to_finescale(rhoW - rhoG);
     
     % compute capillary pressure and take inverse to get effective and max saturations
-    s_eff = invPc3D(max(h_all - Gt.parent.cells.centroids(:, 3), 0) .* drho_all * norm(gravity));
-    smax =  invPc3D(max(hmax_all - Gt.parent.cells.centroids(:, 3), 0) .* drho_all * norm(gravity));
+    seff = 1 - invPc3D(max(h_all - Gt.parent.cells.centroids(:, 3), 0) .* drho_all * norm(gravity));
+    smax =  1 - invPc3D(max(hmax_all - Gt.parent.cells.centroids(:, 3), 0) .* drho_all * norm(gravity));
     
-    % combine s_eff and smax to get current fine-scale saturation
-    s = (1 - C) * s_eff + C * smax;
+    % combine seff and smax to get current fine-scale saturation
+    s = (1 - C) * seff + C * smax;
     
 end
 
 % ----------------------------------------------------------------------------
-function s = sharp_interface_h2s(h, hmax, Gt, sw, sg)
+function [s, smax, seff] = sharp_interface_h2s(h, hmax, Gt, sw, sg)
     
-    s = zeros(numel(Gt.columns.cells),1);
+    [s, seff] = deal(zeros(numel(Gt.columns.cells),1));
+    
     % n: number of completely filled cells
-    % t: fill degree for columns single partially filled cell
+    % t: fill degree for the column's single partially filled cell
     [n, t] = fillDegree(h, Gt); %
     
     % number of cells in each column
@@ -113,9 +120,12 @@ function s = sharp_interface_h2s(h, hmax, Gt, sw, sg)
     
     % completely filled cells
     s(Gt.columns.cells(f>0)) = 1*(1-sw);
+    seff(Gt.columns.cells(f>0)) = 1-sw -sg;
     
     %partially filled cells
     s(Gt.columns.cells(f==0)) = t(n<nc)*(1-sw);
+    seff(Gt.columns.cells(f==0)) = t(n<nc)*(1-sw-sg);
+    smax = s;
     
     if sg > 0 && any(hmax > h)
         % %hysteresis:
@@ -124,22 +134,27 @@ function s = sharp_interface_h2s(h, hmax, Gt, sw, sg)
         % remove all cells where hmax - h == 0 and leave only the fraction that is
         % residual co2 in cells that have both residual and free co2
         ix = find(n_sr == n);
-        t_sr(ix) = max(t_sr(ix) - t(ix),0);
+        t_sr(ix) = max(t_sr(ix) - t(ix), 0);
         
         ix2 = n_sr - n >= 1;
         f_sr = rldecode(n_sr, nc) - cellNoInCol + 1;
         
         % cells with residual saturation in the whole cell
-        s(Gt.columns.cells(f_sr>0 & f<0)) = sg;
+        ix_tmp = (Gt.columns.cells(f_sr>0 & f<0));
+        s(ix_tmp) = sg;
+        smax(ix_tmp) = 1-sw;
         
         % cells with residual saturation in bottom part of a cell and free co2 on top
-        currSat = s(Gt.columns.cells(f_sr>0 &f ==0));
-        s(Gt.columns.cells(f_sr>0 & f==0)) = currSat+(1-t(ix2))*sg;
+        ix_tmp = Gt.columns.cells(f_sr>0 & f==0);
+        currSat = s(ix_tmp);
+        s(ix_tmp) = currSat+(1-t(ix2))*sg;
+        smax(ix_tmp) = 1-sw;
         
         % cells with possible residual saturation in part of the cell and water in the bottom
-        currSat = s(Gt.columns.cells(f_sr==0));
-        s(Gt.columns.cells(f_sr==0)) = currSat + t_sr(n_sr<nc)*sg;
-        
+        ix_tmp = Gt.columns.cells(f_sr==0);
+        currSat = s(ix_tmp);
+        s(ix_tmp) = currSat + t_sr(n_sr<nc)*sg;
+        smax(ix_tmp) = currSat + t_sr(n_sr<nc) * (1-sw);
     end
 end
 

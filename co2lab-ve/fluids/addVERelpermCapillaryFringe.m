@@ -1,7 +1,7 @@
 function fluid = addVERelpermCapillaryFringe(fluid, Gt, rock2D, invPc3D, kr3D, varargin)
 
     % type can be 'linear cap.', 'S table', 'P-scaled table' or 'P-K-scaled table'.
-    opt = struct('type', 'P-scaled table', 'samples' 2000);
+    opt = struct('type', 'P-scaled table', 'samples', 2000);
     opt = merge_options(opt, varargin{:});
 
     % Warn user if data doesn't fulfill the assumptions for the model he/she
@@ -16,18 +16,18 @@ function fluid = addVERelpermCapillaryFringe(fluid, Gt, rock2D, invPc3D, kr3D, v
       case 'linear cap.'
         error('linear cap. unimplemented.'); % @@@@@
       case 'S table'
-        table = make_CO2_table_h_based(invPc3D, kr3D, Gt, samples, Pmax, drho_surf);
+        table = make_CO2_table_h_based(invPc3D, kr3D, Gt, opt.samples, Pmax, drho_surf);
         fluid.pcWG = @(sg, p, varargin) pcWG_htable(sg, p, table, fluid, Gt.cells.H, varargin{:});
         fluid.krG = @(sg, p, varargin) krG_htable(sg, p, table, fluid, Gt.cells.H, varargin{:});
         fluid.krW = @(sw, p, varargin) krW_simple(sw, p, fluid, varargin{:});
       case 'P-scaled table'
-        table = make_CO2_table_p_based(invPc3D, kr3D, Gt, samples, Pmax, drho_surf);
+        table = make_CO2_table_p_based(invPc3D, kr3D, Gt, opt.samples, Pmax, drho_surf);
         fluid.pcWG = @(sg, p, varargin) pcWG_ptable(sg, p, table, fluid, Gt.cells.H, varargin{:});
         fluid.krG = @(sg, p, varargin) krG_ptable(sg, p, table, fluid, Gt.cells.H, varargin{:})
         fluid.krW = @(sw, p, varargin) krW_simple(sw, p, fluid, varargin{:});
       case 'P-K-scaled table'
         kscale = sqrt(rock.poro ./ (rock.perm)) * fluid.surface_tension;
-        table = make_CO2_table_p_based(invPc3D, kr3D, Gt, samples, Pmax / kscale, drho_surf);
+        table = make_CO2_table_p_based(invPc3D, kr3D, Gt, opt.samples, Pmax / kscale, drho_surf);
         fluid.pcWG = @(sg, p, varargin) ...
             pcWG_ptable(sg, p, table, fluid, Gt.cells.H, 'kscale', kscale, varargin{:});
         fluid.krG = @(sg, p, varargin) ...
@@ -65,9 +65,9 @@ function kr = krG_ptable(sg, p, table, fluid, H, varargin)
     drho = fluid.rhoW(p) - fluid.rhoG(p);
     sg = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas);
     
-    [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table) ./ opt.kscale;
+    [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table);
     
-    kr = interpTable(table.SP, table.krP, SP);
+    kr = interpTable(table.SP, table.krP, SP ./ opt.kscale);
     
     if any(H_trunc)
         % adjust for truncated plumes
@@ -97,8 +97,6 @@ end
 % ----------------------------------------------------------------------------
 function [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table)
 
-    MAX_ITER = 200; % should be largely enough 
-    TOL = max(H) / 1000; % should be more than precise enough
 
     drho_g = drho * norm(gravity);
     dP_aquifer = H .* drho_g;
@@ -114,7 +112,7 @@ function [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table)
     H_trunc = 0 * H;
     
     if any(trunc_ind)
-        disp('Truncated columns present'); % @@ This line can be commented out.
+        %disp('Truncated columns present'); % @@ This line can be commented out.
         % there were columns with truncated plumes.  For these columns, compute the
         % value of SP that corresponds to a full, untruncated column.
         
@@ -123,27 +121,33 @@ function [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table)
         drho_g_loc = drho_g(trunc_ind);
         SP_loc = SP(trunc_ind);
         H_loc = H(trunc_ind);
+
+        % determine capillary pressure, 'pb', at aquifer bottom
+        f = @(pb)   interpTable(table.p, table.SP,  pb) + SP_loc -  interpTable(table.p, table.SP, pb + drho_g_loc .* H_loc);
+        df = @(pb) dinterpTable(table.p, table.SP,  pb) - dinterpTable(table.p, table.SP, pb + drho_g_loc .* H_loc); 
         
-        % iterative search for solution
+        MAX_ITER = 2000; % should be largely enough 
+        TOL = 1e-3 * max(dP_aquifer);
+
+        pb = x_loc .* drho_g_loc; % initial guess
+        
         for iter = 1:MAX_ITER
-            p_trunc = x_loc .* drho_g_loc;
-            SP_trunc = interpTable(table.p, tableSP, p_trunc);
-            SP_full_loc = SP_loc + SP_trunc;
-            p_full_loc = interpTable(table.SP, table.p, SP_full_loc);
-            H_full_loc = p_full_loc ./ drho_g_loc;
-            x_loc_new = max(H_full_loc - H_loc);
-            dxmax = max(abs(x_loc_new - x_loc));
-            if dxmax < tol
-                break
+            res = f(pb);
+            if any(res > TOL)
+                ixs = res > TOL;
+                pb(ixs) = pb(ixs) - res(ixs) / df(pb(ixs)); % apply Newton
             else
-                x_loc = x_loc_new;
+                % all bottom capillary pressures are within tolerance
+                break;
             end
         end
-        if dxmax > TOL
+        if any(res > TOL)
             warning('Did not converge when computing untruncated SP');
         end
-        SP(trunc_ind) = SP_full_loc;
-        H_trunc(trunc_ind) = x_loc; % truncated heights
+
+        SP(trunc_ind) = SP_loc + interpTable(table.p, table.SP, pb);
+        H_trunc(trunc_ind) = pb ./ drho_g_loc;
+        
     end
 end
 
@@ -253,9 +257,9 @@ function table = make_CO2_table_p_based(invPc3D, kr3D, Gt, samples, Pmax, drho_s
     dp = p(2) - p(1);
     
     % fine scale saturation and relperm at vertical position with capillary pressure 'p'
-    sw_p = opt.invPc3D(p);
+    sw_p = invPc3D(p);
     sg_p = 1 - sw_p;
-    kr_p = opt.kr3D(sg_p);
+    kr_p = kr3D(sg_p);
     
     % vertical integrated values
     table.SP  = (cumsum(sg_p) - sg_p / 2) * dp;

@@ -147,8 +147,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 % kr3D - CO2 relperm curve.  Either specified as a function handle (function
 %        of saturation), or as scalar exponent of a Brooks-Corey type relperm
 %        curve, i.e. the 'beta' in a function like kr = max(s-src, 0).^beta,
-%        where 'src' is the residual CO2 saturation.  Default value is 3
-%        (cubic relperm curve).
+%        where 'src' is the residual CO2 saturation.  Default is 3 (cubic relperm).
 % invPc3D - Inverse capillary pressure function used for computing the
 %           capillary fringe saturation profile.  Either specified as a
 %           function handle (saturation as a function of capillary pressure),
@@ -262,10 +261,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      case 'sharp_interface_simple'
        fluid = addVERelpermSharpInterface(fluid, Gt, rock, ...
                                           'dh', opt.rugosity, ...
+                                          'krw', krw, ...
+                                          'krg', krg, ...
                                           'type', 'simple');
      case 'sharp_interface_integrated'
        fluid = addVERelpermSharpInterface(fluid, Gt, rock, ...
                                           'dh', opt.rugosity, ...
+                                          'krw', krw, ...
+                                          'krg', krg, ...
                                           'type', 'integrated');
      case {'S table', 'P-scaled table', 'P-K-scaled table'}
        fun3D = setup_fine_scale_functions(opt.invPc3D, opt.kr3D, fluid, Gt);
@@ -299,10 +302,11 @@ end
 function fun3D = setup_fine_scale_functions(invPc3D, kr3D, fluid, Gt)
 
     drho = fluid.rhoWS - fluid.rhoGS;
-    C = opt.C * norm(gravity) * max(Gt.cells.H) * drho;
-    
     
     % setup fine-scale CO2 relperm function
+    if isempty(kr3D)
+        kr3D = 3; % default value (but cannot be set directly in default_options)
+    end
     if isnumeric(kr3D)
         assert(isscalar(kr3D)); % should be a single number
                                 % define a simple Corey
@@ -325,11 +329,11 @@ function fun3D = setup_fine_scale_functions(invPc3D, kr3D, fluid, Gt)
         [C, a] = deal(invPc3D(1), invPc3D(2));
         C = C * norm(gravity) * Hmax * drho;
         
-        invPc3D = @(p) min( (C ./ (p + C)).^(1 / a), fluid.res_water);
+        invPc3D = @(p) max( (C ./ (p + C)).^(1 / a), fluid.res_water);
         
     end
     assert(isa(invPc3D, 'function_handle'));
-    
+    fun3D.invPc3D = invPc3D;
 end
 
 % ============================================================================
@@ -393,7 +397,10 @@ function opt = default_options()
    
    % Parameters used for relperms and capillary pressures based on table
    opt.surface_tension = 30e-3; % Surface tension used in 'P-K-scaled table'
-   opt.kr3D = 3;                % fine-scale relative permeability
+   opt.kr3D = [];                % fine-scale relative permeability (scalar
+                                 % or function handle).  Since types of the
+                                 % two options differ, it cannot be set as a
+                                 % default here.
    opt.invPc3D = [0.4, 0.5];    % Inverse fine-scale capillary pressure function
    
    % Various parameters
