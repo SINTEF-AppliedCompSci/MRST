@@ -175,12 +175,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 varargout{1} = SETTINGS;
             else
                 checkSetting(SETTINGS, sarg);
-                setting =  SETTINGS.(sarg);
-                if isfield(setting, 'value') || isprop(setting, 'value')
-                    varargout{1} = setting.value;
+                setting = SETTINGS.(sarg);
+                if ischar(setting) || isstring(setting)
+                    out = setting;
+                elseif isfield(setting, 'value') || isprop(setting, 'value')
+                    out = setting.value;
                 else
-                    varargout{1} = setting;
+                    out = setting;
                 end
+                varargout{1} = out;
 
                 if nargout > 1
                     varargout{2} = setting;
