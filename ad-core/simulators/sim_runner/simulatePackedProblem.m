@@ -57,13 +57,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isstruct(problems)
         problems = {problems};
     end
-    
+
     assert(iscell(problems));
-    
+
     np = numel(problems);
     opt = struct('checkTooMany'   , true  , ...
                  'continueOnError', np > 1, ...
- 		 'plot'           , false , ...
+                 'plot'           , false , ...
                  'restartStep'    , nan);
     opt = merge_options(opt, varargin{:});
 
@@ -74,7 +74,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Unpack base case
         nls = problem.SimulatorSetup.NonLinearSolver;
         doMinisteps = problem.SimulatorSetup.OutputMinisteps;
-        
+
         state_handler = problem.OutputHandlers.states;
         wellSol_handler = problem.OutputHandlers.wellSols;
         report_handler = problem.OutputHandlers.reports;
@@ -85,13 +85,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 problem.BaseName, problem.Name);
         secondLine = sprintf(' Description: "%s"',...
                 problem.Description);
-        
+
         n1 = numel(firstLine);
         n2 = numel(secondLine);
         len = max(n1, n2);
-        
+
         lim = [repmat('*', 1, len+4), '\n'];
-        
+
         if i > 1
             fprintf('\n')
         end
@@ -134,7 +134,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 mrstModule('reset', problem.Modules{:});
             end
         end
-        
+
         status(i).Message = msg;
         status(i).WallTime = toc(timer);
         status(i).RestartIndex = restartStep;
@@ -149,7 +149,7 @@ function [state0, model, schedule, restart, outoffset, msg] = getRestart(problem
     model = problem.SimulatorSetup.model;
     state0 = problem.SimulatorSetup.state0;
     T = cumsum(schedule.step.val);
-    
+
     state_handler = problem.OutputHandlers.states;
     doMinisteps = problem.SimulatorSetup.OutputMinisteps;
     nstep = numel(schedule.step.val);
