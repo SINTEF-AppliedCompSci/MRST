@@ -132,7 +132,7 @@ assert (size(perm,1) == G.cells.num, ...
 %
 cf = double(G.cells.faces(:,1));
 
-if opt.verbose,
+if opt.verbose
    fprintf('Computing cell inner products ...\t\t')
    t0 = tic;
 else
@@ -166,8 +166,8 @@ if computeInverseIP, val_invip = zeros([sizVec, 1]); end
 ix = 0; ix2 = 0;
 
 % Compute half-face transmissibilities from face transmissibilities.
-if ~isempty(opt.facetrans),
-   if ~all(opt.facetrans(:,2) > 0),
+if ~isempty(opt.facetrans)
+   if ~all(opt.facetrans(:,2) > 0)
       dispif(opt.verbose, ...
              '\n\tAll face transmissibilities should be positive.\n\t\t\t');
    end
@@ -184,7 +184,7 @@ end
 % Main loop -- Compute BI and/or B for each cell in model -----------------
 %
 
-for k = 1 : G.cells.num,
+for k = 1 : G.cells.num
    nF  = dimProd(k);
    pR  = ix  + 1 : ix  + nF;   % half-face indices
    pR2 = ix2 + 1 : ix2 + nF^2;
@@ -197,14 +197,14 @@ for k = 1 : G.cells.num,
    N = outNormals(pR,:);
 
    % Compute inner product if caller specified 'mixed' method.
-   if computeIP,
+   if computeIP
       val_ip(pR2)    = ip(a, v, K, C, N, false) + diag(hft(pR));
    end
 
    % Compute inverse inner product if caller specified 'hybrid' method.
-   if computeInverseIP,
+   if computeInverseIP
       this_ip = ip(a, v, K, C, N, true);
-      if any(hft(pR)),
+      if any(hft(pR))
          val_invip(pR2) = inv( inv(this_ip) + diag(hft(pR)) );
       else
          val_invip(pR2) = this_ip;
@@ -223,24 +223,24 @@ tocif(opt.verbose, t0);
 [ind1, ind2] = blockDiagIndex(dimProd, dimProd);
 
 clear areas dimProd centVecs outNormals perm
-if opt.verbose,
+if opt.verbose
    fprintf('Assembling global inner product matrix ...\t')
    t0 = tic;
 else
    t0 = [];
 end
 
-if computeIP,
+if computeIP
    n    = size(G.cells.faces, 1);
    S.B  = sparse(ind1, ind2, val_ip,    n, n);
 end
-if computeInverseIP,
+if computeInverseIP
    n    = size(G.cells.faces, 1);
    S.BI = sparse(ind1, ind2, val_invip, n, n);
 end
 tocif(opt.verbose, t0)
 
-if opt.verbose && computeIP && computeInverseIP,
+if opt.verbose && computeIP && computeInverseIP
    fprintf('Max error in inverse = %g\n', ...
            norm(S.BI*S.B - speye(size(G.cells.faces,1)), inf));
 end
@@ -251,7 +251,6 @@ end
 S.ip    = ipname;
 S.type  = systemType;
 
-
 %--------------------------------------------------------------------------
 % Individual inner product implementations
 %--------------------------------------------------------------------------
@@ -261,7 +260,7 @@ function W = ip_simple(a, v, K, C, N, computeInverseIP)
 
 t = 6 * sum(diag(K)) / size(K,2);
 
-if computeInverseIP,
+if computeInverseIP
    Q  = orth(bsxfun(@times, C, a));
    U  = eye(length(a)) - Q*Q';
    d  = diag(a);
@@ -280,7 +279,7 @@ function W = ip_qfamily(a, v, K, C, N, computeInverseIP, t)
 
 W = N * K * N';
 
-if computeInverseIP,
+if computeInverseIP
    Q  = orth(C);
    U  = eye(length(a)) - Q*Q';
    d  = diag(diag(W));
@@ -298,7 +297,7 @@ function W = ip_tpf(a, v, K, C, N, computeInverseIP) %#ok
 td = sum(C .* (N*K), 2) ./ sum(C.*C, 2);
 %c2=sum(C.*C, 2);
 %td = (sum(C .* (K*C'), 2)./c2).*(sum(C .* N, 2) ./ c2);
-if computeInverseIP,
+if computeInverseIP
    W = diag(abs(td));
 else
    W = diag(1 ./ abs(td));
@@ -341,23 +340,25 @@ if ~computeInverseIP, W = inv(W); end
 %--------------------------------------------------------------------------
 % Other private utility functions below.
 %--------------------------------------------------------------------------
+
 function [areas, centVecs, outNormals] = primitives(G, cf, cellno, sgn)
 
 areas      = G.faces.areas    (cf  );
 centVecs   = G.faces.centroids(cf,:) - G.cells.centroids(cellno,:);
 outNormals = bsxfun(@times, G.faces.normals(cf,:), sgn);
 
+%--------------------------------------------------------------------------
 
 function [Type, ipfun, ipName, IP, invIP] = setup(opt)
 
 ipName  = opt.InnerProduct;
 Type    = opt.Type;
 
-switch lower(Type),
+switch lower(Type)
    case 'hybrid',         [invIP, IP] = deal(true , false);
    case {'mixed','tpfa'}, [invIP, IP] = deal(false, true );
    case 'comp_hybrid',    [invIP, IP] = deal(true , true );
-   otherwise,
+   otherwise
       error(id('SystemType:Unknown'), ...
             'Unkown system type ''%s''.', Type);
 end
@@ -365,18 +366,18 @@ end
 ipNames = {'ip_simple', 'ip_tpf', 'ip_quasitpf', 'ip_rt', ...
            'ip_quasirt', 'ip_qfamily'};
 
-if ~any(strcmp(ipName, ipNames)),
+if ~any(strcmp(ipName, ipNames))
    error(id('InnerProduct:Unknown'), ...
          'Unknown inner product ''%s''.', ipName);
 end
 
-if opt.verbose && strcmp(ipName, 'ip_rt'),
+if opt.verbose && strcmp(ipName, 'ip_rt')
    disp(['NOTE: The mixed MFEM inner product is only valid for', ...
          ' Cartesian grids as given by cartGrid.'])
 end
 
 dispif(opt.verbose, 'Using inner product: ''%s''.\n', ipName);
-switch lower(ipName),
+switch lower(ipName)
    case 'ip_simple'   , ipfun = @ip_simple;
    case 'ip_tpf'      , ipfun = @ip_tpf;
    case 'ip_quasitpf' , ipfun = @ip_quasitpf;
@@ -384,7 +385,7 @@ switch lower(ipName),
    case 'ip_quasirt'  , ipfun = @(varargin) ip_qfamily(varargin{:}, 6);
    case 'ip_qfamily'  , ipfun = ...
                         @(varargin) ip_qfamily(varargin{:}, opt.qparam);
-   otherwise,
+   otherwise
       % Can't happen.  'ipName' is already verified.
       error(id('InnerProduct:Unknown'), ...
             'Unknown inner product ''%s''.', ipName);
