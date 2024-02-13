@@ -33,6 +33,7 @@ classdef SummaryViewer < handle
         selector
         optionSelector
         smry
+        casePaths
         layout = struct('menuWidth', 240, 'subItemWidth', 150)
         markerOrder = {'none', 'x', 'o', 's', 'd'};
         lineStyleOrder = {'-', '--', '-.', ':'};
@@ -62,7 +63,7 @@ classdef SummaryViewer < handle
     
     methods
         function d = SummaryViewer(varargin)
-            [d.smry, d.caseNames]= handleInput(varargin);
+            [d.smry, d.caseNames, d.casePaths]= handleInput(varargin);
             if isempty(d.smry{1}), return; end
             d.caseSelection = (1:numel(d.smry))';
             d.Figure = figure('Name', 'main');
@@ -263,6 +264,19 @@ classdef SummaryViewer < handle
                 legend(h(ix), lstr, 'Interpreter', 'none', 'FontName', 'FixedWidth', 'FontWeight', 'bold');
                 title(d.Axes.Legend, ltitle);
                 xtickangle(ax, 30)
+                if numel(d.selector.curProps) == 1 && strcmp(d.selector.curProps{1}, 'WMCTL')
+                    d.Axes.YLim = [-1, 8];
+                    d.Axes.YTick = (0:7);
+                    ax.YTickLabels = {'SHUT/STOP', 'ORAT', 'WRAT', 'GRAT', 'LRAT', 'RESV', 'THP', 'BHP'};
+                    ytickangle(ax, 60)
+                    d.keepAxesLims = false;
+                else
+                    d.Axes.YTickMode = 'auto';
+                    d.Axes.YTickLabelMode = 'auto';
+                    d.Axes.YLimMode = 'auto';
+                    ytickangle(ax, 0)
+                    d.keepAxesLims = true;
+                end
             end
         end
         
@@ -277,11 +291,13 @@ classdef SummaryViewer < handle
                        5.5*d.optionSelector.titleHeight;
             end
             d.optionSelector.Position = [5, 10, mw, optH];
-            d.selector.Position = [5, optH + 15, mw, fpos(4)-optH - 20];
-            d.Axes.Position     = [mw + 50, 50, fpos(3)-mw-75, fpos(4)-75];
+            d.selector.Position = max(0, [5, optH + 15, mw, fpos(4)-optH - 20]);
+            d.Axes.Position     = max(0, [mw + 50, 50, fpos(3)-mw-75, fpos(4)-75]);
         end
-        
+
         %------------------------------------------------------------------        
+       
+        
 %         function updateOptions(d, varargin)
 %             d.caseNames      = d.optionSelector.caseNames;
 %             d.caseSelection  = d.optionSelector.caseSelection;
@@ -421,7 +437,7 @@ end
 
 %--------------------------------------------------------------------------
 %--------------------------------------------------------------------------
-function [smry, names] = handleInput(varargin)
+function [smry, names, paths] = handleInput(varargin)
 if nargin == 0 || isempty(varargin{1})
     smry = selectSummaryFiles();
 else
@@ -430,13 +446,26 @@ end
 if ~iscell(smry)
     smry = {smry};
 end
-names = applyFunction(@(k)sprintf('Case %k', k), (1:numel(smry)));
+[names, paths] = deal([]);
+hasFolderNames = false;
+if ischar(smry{1}) && strcmp(smry{1}, 'folder')
+    [smry, names] = selectFolder();
+    hasFolderNames = true;
+end
+if all(cellfun(@ischar, smry))
+    paths = smry;
+end
 for k = 1:numel(smry)
     if ischar(smry{k})
         [pth, nm] = fileparts(smry{k});
-        names{k} = nm;
+        if ~hasFolderNames
+            names{k} = nm; %#ok
+        end
         smry{k} = readEclipseSummaryUnFmt(fullfile(pth, nm));
     end
+end
+if isempty(names)
+    names = applyFunction(@(k)sprintf('Case %k', k), (1:numel(smry)));
 end
 opt = struct('caseNames', {names});
 opt = merge_options(opt, varargin{2:end});
@@ -583,6 +612,32 @@ function copyToFig(src, event, ax) %#ok
     set(ax, 'OuterPosition', [0 0 1 1],'Position',[.13 .11 .775 .815])
     set(get(gca,'Children'),'HitTest','on');
 end
+
+% -----------------------------------------------------------------
+function [inp, names] = selectFolder()
+[inp, names] = deal([]);
+pth = uigetdir(pwd,'Select parent folder for (multiple) summary cases');
+if ~isnumeric(pth)
+    sub = dir(fullfile(pth, '*', '*.SMSPEC'));
+    if ~isempty(sub)
+        names = applyFunction(@(x)fullfile(filepartsname(x.folder), filepartsname(x.name)), sub);
+        inp = applyFunction(@(x)fullfile(x.folder, x.name), sub);
+        [names, inp] = deal(reshape(names, 1, []), reshape(inp, 1, []));
+    end
+    if numel(sub)>5
+        ix = listdlg('ListString', names, 'ListSize', [300, 800]);%[300, max(250, 20*numel(sub))]);
+        [names, inp] = deal(names(ix), inp(ix));
+    end
+end
+end
+
+% -----------------------------------------------------------------
+function nm = filepartsname(pth)
+    [~, nm] = fileparts(pth);
+end
+
+% -----------------------------------------------------------------
+
 
 
 %{
