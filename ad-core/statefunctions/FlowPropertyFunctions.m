@@ -34,7 +34,11 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                 krarg = {};
             end
             % Relative permeability
-            kr = BaseRelativePermeability(model, sat, scalearg{:}, krarg{:});
+            if isfield(model.fluid, 'krHyst')
+                kr = HystereticRelativePermeability(model, sat, scalearg{:}, krarg{:});
+            else
+                kr = BaseRelativePermeability(model, sat, scalearg{:}, krarg{:});
+            end
             props = props.setStateFunction('RelativePermeability', kr);
             
             % Capillary pressure
