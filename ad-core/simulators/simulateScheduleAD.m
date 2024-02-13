@@ -312,9 +312,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         % Apply control logic
         if ~isempty(opt.controlLogicFn)
-            [schedule, report, isAltered] = opt.controlLogicFn(state, schedule, report, i);
+            [state, schedule, report, isAltered] = opt.controlLogicFn(state, schedule, report, i);
             if isAltered
                 prevControl = nan; 
+                substates{end} = state;
             end
         end
         

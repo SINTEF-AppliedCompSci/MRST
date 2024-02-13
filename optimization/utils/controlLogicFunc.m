@@ -1,4 +1,4 @@
-function [schedule, report, isAltered] = controlLogicFunc(state, schedule, report, cnum, varargin)
+function [state, schedule, report, isAltered] = controlLogicFunc(state, schedule, report, cnum, varargin)
 %Undocumented Utility Function
 
 %{
