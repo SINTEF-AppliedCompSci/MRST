@@ -247,7 +247,7 @@ if k==0 % No polygon is given. Assume rectangular box given by pdims
 	dy = pdims(2)/ceil(pdims(2)/celldim(2));
 	vx = 0:dx:pdims(1);
 	vy = 0:dy:pdims(2);
-    polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(1); 0, pdims(2)];
+    polyBdr = [0, 0; pdims(1), 0; pdims(1), pdims(2); 0, pdims(2)];
 elseif k<3
 	error('Polygon must have at least 3 edges.');
 else
