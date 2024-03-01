@@ -5,7 +5,7 @@ function [s, smax, seff] = height2Sat(h, hmax, Gt, sw, sg, varargin)
 % and 'rhoG'.
 % 
 % SYNOPSIS:
-%   s = height2Sat(sol, Gt, fluid)
+%   s = height2Sat(h, hmax, Gt, sw, wg, varargin)
 %
 % PARAMETERS:
 %   h - CO2 plume thickness.  One scalar value for each column in the
@@ -76,22 +76,30 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 end
 
 % ----------------------------------------------------------------------------
+function result = remap(vals, ixs)
+    result = zeros(numel(vals), 1);
+    result(ixs) = vals;
+end
+
+% ----------------------------------------------------------------------------
 function [s, smax, seff] = cap_fringe_h2s(h, hmax, Gt, sw, sg, invPc3D, rhoW, rhoG)
     
     % endpoint scaling factor
     C = sg / (1 - sw);
     
     % remap upscaled variables to fine-scale grid
-    remap = @(x, ixs) x(ixs);
+    %remap = @(x, ixs) x(ixs);
     to_finescale = @(var) remap(rldecode(var, diff(Gt.cells.columnPos)), Gt.columns.cells);
     
-    h_all = to_finescale(h);
-    hmax_all = to_finescale(hmax);
+    iface_depth_all = to_finescale(h + Gt.cells.z);
+    iface_depth_max_all = to_finescale(hmax + Gt.cells.z);
     drho_all = to_finescale(rhoW - rhoG);
     
+    celltops = Gt.parent.cells.centroids(:,3) - remap(Gt.columns.dz, Gt.columns.cells) / 2;
+    
     % compute capillary pressure and take inverse to get effective and max saturations
-    seff = 1 - invPc3D(max(h_all - Gt.parent.cells.centroids(:, 3), 0) .* drho_all * norm(gravity));
-    smax =  1 - invPc3D(max(hmax_all - Gt.parent.cells.centroids(:, 3), 0) .* drho_all * norm(gravity));
+    seff = 1 - invPc3D(max(iface_depth_all - celltops, 0) .* drho_all * norm(gravity));
+    smax =  1 - invPc3D(max(iface_depth_max_all - celltops, 0) .* drho_all * norm(gravity));
     
     % combine seff and smax to get current fine-scale saturation
     s = (1 - C) * seff + C * smax;

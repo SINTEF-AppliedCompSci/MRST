@@ -18,8 +18,8 @@ function [h, h_max, dh] = upscaledSat2height(S, S_max, Gt, varargin)
 % additional argument through `varargin` (see below).
 %
 % PARAMETERS:
-%   S        - Upscaled present saturation
-%   S_max    - Upscaled, historically maximum, saturation
+%   S        - Upscaled present CO2 saturation
+%   S_max    - Upscaled, historically maximum CO2 saturation
 %   Gt       - Top-surface grid in question
 %   varargin - Additional parameters (key, value), depending of conversion model:
 %              * If a _sharp interface model_  is assumed, then the function 

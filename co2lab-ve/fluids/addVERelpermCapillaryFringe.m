@@ -47,11 +47,14 @@ function kr = krW_simple(sw, fluid, varargin)
 % For the time being, this is a crude approximation built on a sharp interface
 % assumption.  A more accurate approach would use sampled tables for water as well.
         
-    opt = merge_options(struct('sGmax', 1-sw), varargin{:});
-    
+    opt = merge_options(struct('sGmax', []), varargin{:});
+    if isempty(opt.sGmax)
+        opt.sGmax = 1-sw; 
+    end
+        
     sg = free_sg(1-sw, opt.sGmax, fluid.res_water, fluid.res_gas);
     
-    sw_eff = sw - (sg./(1-opt.res_water)) .* opt.res_water;
+    sw_eff = sw - (sg./(1-fluid.res_water)) .* fluid.res_water;
     sw_eff(sw_eff<0) = 0; % Should not logically happen, but just in case
     
     kr = sw_eff;
@@ -60,7 +63,10 @@ end
 
 % ----------------------------------------------------------------------------
 function kr = krG_ptable(sg, p, table, fluid, H, varargin)
-    opt = merge_options(struct('sGmax', sg, 'kscale', 1), varargin{:});
+    opt = merge_options(struct('sGmax', [], 'kscale', 1), varargin{:});
+    if isempty(opt.sGmax)
+        opt.sGmax = sg;
+    end
     
     drho = fluid.rhoW(p) - fluid.rhoG(p);
     sg = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas);
@@ -83,7 +89,10 @@ end
 
 % ----------------------------------------------------------------------------
 function pc = pcWG_ptable(sg, p, table, fluid, H, varargin)
-    opt = merge_options(struct('sGmax', sg, 'kscale', 1), varargin{:});    
+    opt = merge_options(struct('sGmax', [], 'kscale', 1), varargin{:});    
+    if isempty(opt.sGmax)
+        opt.sGmax = sg;
+    end
     
     drho = fluid.rhoW(p) - fluid.rhoG(p);
     sg = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas);
@@ -157,7 +166,10 @@ end
 function pc = pcWG_htable(sg, table, fluid, H, varargin)
 % note that this function is strictly valid only for constant H and incompressible fluid
 
-    opt = merge_options(struct('sGmax', sg), varargin{:});
+    opt = merge_options(struct('sGmax', []), varargin{:});
+    if isempty(opt.sGmax)
+        opt.sGmax = sg;
+    end
 
     SH = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas) .* H;
     h = interpTable(table.SH, table.h, SH);
@@ -168,7 +180,10 @@ end
 
 % ----------------------------------------------------------------------------
 function kr = krG_htable(sg, table, fluid, H, varargin)
-    opt = merge_options(struct('sGmax', sg), varargin{:});
+    opt = merge_options(struct('sGmax', []), varargin{:});
+    if isempty(opt.sGmax)
+        opt.sGmax = sg;
+    end
     
     SH = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas) .* H;
     assert(all(SH ./ H <= 1));

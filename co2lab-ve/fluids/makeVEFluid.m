@@ -274,6 +274,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        fun3D = setup_fine_scale_functions(opt.invPc3D, opt.kr3D, fluid, Gt);
        fluid = addVERelpermCapillaryFringe(fluid, Gt, rock, fun3D.invPc3D, ...
                                            fun3D.kr3D, 'type', relperm_model);
+       if isfield(fun3D, 'pc3D')
+           % the fine-scale capillary function (of sw) is given.  Store it
+           % for reference.
+           fluid.pc3D = fun3D.pc3D;
+       end
      otherwise
        error([type, ': no such fluid case.']);
    end
@@ -328,6 +333,10 @@ function fun3D = setup_fine_scale_functions(invPc3D, kr3D, fluid, Gt)
         C = C * norm(gravity) * Hmax * drho;
         
         invPc3D = @(p) max( (C ./ (p + C)).^(1 / a), fluid.res_water);
+        
+        % we store the corresponding fine-scale capillary function too, for
+        % reference (though it is not used in the VE simulation)
+        fun3D.pc3D = @(sw) C .* (1./max(sw, fluid.res_water).^a - 1);
         
     end
     assert(isa(invPc3D, 'function_handle'));
