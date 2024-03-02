@@ -1,9 +1,13 @@
-function [G, G_VE, states3D, states_VE, sat_VE3D, timing, wellcell] = sloping_aquifer(varargin)
+function [G, states_3D, G_VE, states_VE, sat_VE3D, timing, wellcell] = sloping_aquifer(varargin)
 
 gravity on
 
 options.cross_sectional = true;
 options.zres = 10;
+options.srw = 0;
+options.srg = 0;
+options.cap_fringe = false;
+options.skip_3D = false;
 
 options = merge_options(options, varargin{:});
 
@@ -24,7 +28,6 @@ G = make_testgrid([xres, yres, zres], ... % x, y and z resolution
                   5, 0.04, 1000, ... % bend, slope and depth
                   [0.5, 0.3, 20;     % trap 1 x-position, width and size
                    0.75, 0.2, 10]);  % trap 2 x-position, width and size
-
 
 %% Set up the rest of the simulation input data
 
@@ -66,6 +69,11 @@ fluid = initSimpleADIFluid('phases', 'WG'           , ...
                            'cR'  , cf_rock          , ...
                            'n'   , [2 2]); % quadratic relperm curves
 
+% Adjust relperm curves to account for residual saturation
+krG_orig = fluid.krG;
+fluid.krW = @(s) fluid.krW(max((s-options.srw)./(1-options.srw), 0));
+fluid.krG = @(s) fluid.krG(max((s-options.srg)./(1-options.srg), 0));
+
 % identify injection cell
 well_ix = ceil(xres/8); % towards the left side in x-direction
 well_iy = ceil(2*yres/5); % slightly off-center in y direction
@@ -104,7 +112,13 @@ schedule = simple_injection_migration_schedule(W, bc, inj_period, inj_steps, ...
 [G_VE, G] = topSurfaceGrid(G);
 rock_VE = averageRock(rock, G_VE);
 [C, alpha] = deal(0.4, 0.5); % to specify capillary pressure, if we use fringe
-fluid_VE = makeVEFluid(G_VE, rock_VE, 'P-scaled table', ...
+relperm_model = 'sharp_interface_simple';
+if options.cap_fringe
+    relperm_model = 'P-scaled table';
+end
+    
+krmax = [fluid.krW(1-options.srg), fluid.krG(1-options.srw)]; 
+fluid_VE = makeVEFluid(G_VE, rock_VE, relperm_model, ...
                        'co2_mu_ref', muco2, ...
                        'wat_mu_ref', muw, ...
                        'co2_rho_ref', rhoc, ...
@@ -113,28 +127,26 @@ fluid_VE = makeVEFluid(G_VE, rock_VE, 'P-scaled table', ...
                        'wat_rho_pvt', [cf_wat, p_ref], ...
                        'pvMult_p_ref', p_ref, ...
                        'pvMult_fac', cf_rock, ...
-                       'invPc3D', [C, alpha], ...
-                       'kr3D', fluid.krG);
-
-% fluid_VE = makeVEFluid(G_VE, rock_VE, 'sharp_interface_simple', ...
-%                        'co2_mu_ref', muco2, ...
-%                        'wat_mu_ref', muw, ...
-%                        'co2_rho_ref', rhoc, ...
-%                        'wat_rho_ref', rhow, ...
-%                        'co2_rho_pvt', [cf_co2, p_ref], ...
-%                        'wat_rho_pvt', [cf_wat, p_ref], ...
-%                        'pvMult_p_ref', p_ref, ...
-%                        'pvMult_fac', cf_rock, ...
-%                        'kr3D', fluid.krG);
-
+                       'residual', [options.srw, options.srg], ...
+                       'krmax', krmax, ...        % only relevant if sharp interface
+                       'invPc3D', [C, alpha], ... % only relevant if cap. fringe 
+                       'kr3D', krG_orig ...       % only relevant if cap.fringe
+                       );
 
 %% Simulate injection in 3D
-fluid.pcWG = @(sG) fluid_VE.pc3D(1-sG);
-model = TwoPhaseWaterGasModel(G, rock, fluid, 0, 0, 'verbose', true);
+if options.cap_fringe
+    fluid.pcWG = @(sG) fluid_VE.pc3D(1-sG);
+end
 
-tic;
-[wellSol3D, states3D] = simulateScheduleAD(initState, model, schedule);
-timing.sim3D = toc;
+if ~options.skip_3D
+    model = TwoPhaseWaterGasModel(G, rock, fluid, 0, 0, 'verbose', true);
+    
+    tic;
+    [wellSol3D, states_3D] = simulateScheduleAD(initState, model, schedule);
+    timing.sim3D = toc;
+else
+    states_3D = {}
+end
 
 
 %% Simulate injection in VE
@@ -157,6 +169,12 @@ tic;
 timing.simVE = toc;
 
 sat_VE3D = {};
+invpc = []; % if reconstructing saturation in a sharp interface setting, do
+            % not provide an inverse capillary pressure function.
+if options.cap_fringe
+    invpc = fluid_VE.invPc3D;
+end
+
 for i = 1:numel(states_VE)
     s = states_VE{i}.s(:,2);
     smax = states_VE{i}.sGmax;
@@ -166,14 +184,10 @@ for i = 1:numel(states_VE)
                                     'pcWG', fluid_VE.pcWG, ...
                                     'rhoW', fluid_VE.rhoW, ...
                                     'rhoG', fluid_VE.rhoG, 'p', p);
-    i
-    max(h)
-    max(h_max)
     sat_VE3D = [sat_VE3D, {height2Sat(h, h_max, G_VE, ...
                                       fluid_VE.res_water, fluid_VE.res_gas, ...
-                                      'invPc3D', fluid_VE.invPc3D, ...
+                                      'invPc3D', invpc, ...
                                       'rhoW', fluid_VE.rhoW(p), ...
                                       'rhoG', fluid_VE.rhoG(p))}];
-    max(sat_VE3D{end})
 end
 
