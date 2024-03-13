@@ -227,6 +227,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
    opt = merge_options(default_options(), varargin{:});
+   if isempty(opt.invPc3D)
+       opt.invPc3D = [0.4, 0.5];    
+   end
+
    fluid = []; % construct fluid from empty object
 
    %% Adding density and viscosity properties
@@ -408,7 +412,14 @@ function opt = default_options()
                                  % or function handle).  Since types of the
                                  % two options differ, it cannot be set as a
                                  % default here.
-   opt.invPc3D = [0.4, 0.5];    % Inverse fine-scale capillary pressure function
+   opt.invPc3D = []; % Inverse fine-scale capillary pressure function.  This
+                     % is specified either directly as a function handle, or
+                     % as the scalar pair [C, alpha], which represent
+                     % the scaling factor and the exponent for an inverse 
+                     % Brooks-Corey capillary pressure curve.   Since the
+                     % data type is different in the two cases, we cannot set 
+                     % the default directly here, but have to set it after
+                     % the call to merge_options in the main function.n
    
    % Various parameters
    opt.pvMult_p_ref    = 100 * barsa;  % reference pressure for pore volume multiplier

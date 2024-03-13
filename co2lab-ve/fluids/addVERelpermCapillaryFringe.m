@@ -75,7 +75,7 @@ function kr = krG_ptable(sg, p, table, fluid, H, varargin)
     
     kr = interpTable(table.SP, table.krP, SP ./ opt.kscale);
     
-    if any(H_trunc)
+    if any(value(H_trunc))
         % adjust for truncated plumes
 
         p_trunc = H_trunc .* drho .* norm(gravity);
@@ -119,6 +119,9 @@ function [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table)
     x = max(H_fullplume - H, 0); % how much the full plume extends below aquifer bottom
     trunc_ind = x > 0;
     H_trunc = 0 * H;
+    if isa(sg, 'ADI')
+        H_trunc = double2ADI(H_trunc, sg);
+    end
     
     if any(trunc_ind)
         %disp('Truncated columns present'); % @@ This line can be commented out.
@@ -134,8 +137,8 @@ function [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table)
         % determine capillary pressure, 'pb', at aquifer bottom
         f = @(pb) interpTable(table.p, table.SP,  pb) + SP_loc - ...
                   interpTable(table.p, table.SP, pb + drho_g_loc .* H_loc);
-        df = @(pb) dinterpTable(table.p, table.SP,  pb) - ...
-                   dinterpTable(table.p, table.SP, pb + drho_g_loc .* H_loc); 
+        df = @(pb, ixs) dinterpTable(table.p, table.SP,  value(pb(ixs))) - ...
+                   dinterpTable(table.p, table.SP, value(pb(ixs) + drho_g_loc(ixs) .* H_loc(ixs))); 
         
         MAX_ITER = 2000; % should be largely enough 
         TOL = 1e-3 * max(dP_aquifer);
@@ -146,7 +149,7 @@ function [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table)
             res = f(pb);
             if any(res > TOL)
                 ixs = res > TOL;
-                pb(ixs) = pb(ixs) - res(ixs) / df(pb(ixs)); % apply Newton
+                pb(ixs) = pb(ixs) - res(ixs) ./ df(pb, ixs); % apply Newton
             else
                 % all bottom capillary pressures are within tolerance
                 break;
@@ -277,6 +280,15 @@ function table = make_CO2_table_p_based(invPc3D, kr3D, samples, Pmax)
     sw_p = invPc3D(p);
     sg_p = 1 - sw_p;
     kr_p = kr3D(sg_p);
+    
+    % With nonzero entry pressure, more than one of the first saturation
+    % values will likely be zero.  To ensure an invertible function, we
+    % smooth this part.
+    last_zero_s = find(sg_p == 0, 1, 'last');
+    SMOOTH_FAC = 0.1;
+    if last_zero_s > 1
+        sg_p(1:last_zero_s) = linspace(0, SMOOTH_FAC * sg_p(last_zero_s + 1), last_zero_s);
+    end
     
     % vertical integrated values
     table.SP  = (cumsum(sg_p) - sg_p / 2) * dp;
