@@ -74,42 +74,41 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %   co2_rho_ref - Reference density value for CO2 (used in black-oil formulation)
 %   wat_rho_ref - Reference density value for water (used in black-oil formulation)
 %   co2_rho_pvt - Compressibility model for CO2.  Possibilities are:
-%                 * empty array ([]) - CO2 considered incompressible (uses
-%                                      value for `co2_rho_ref`)
-%                 * [cw, p_ref]      - constant compressibility.  `cw` is the
-%                                      (scalar) compressibility, `p_ref` the
-%                                      (scalar) reference pressure.
-%                 * [pm, pM, tm, tM] - Interpolate from a sampled table that
-%                                      covers the pressure interval [pm, pM] and
-%                                      the temperature interval [tm, tM].
-%                 The default option is number 3 on the above list.  A
-%                 sampled table corresponding to the default values of
-%                 `pm`/`pM` and `tm`/`tM` is provided with CO2lab.  Other
-%                 tables can be generated with CoolProps.
+%                 (1) empty array ([]) - CO2 considered incompressible (uses
+%                                        value for `co2_rho_ref`)
+%                 (2) [cw, p_ref]      - constant compressibility.  `cw` is the
+%                                        (scalar) compressibility, `p_ref` the
+%                                        (scalar) reference pressure.
+%                 (3) [pm, pM, tm, tM] - Interpolate from a sampled table that
+%                                        covers the pressure interval [pm, pM] and
+%                                        the temperature interval [tm, tM].
+%                 The default option is (3) above.  A sampled table
+%                 corresponding to the default values of `pm`/`pM` and
+%                 `tm`/`tM`  is provided with CO2lab.  Other tables can be
+%                 generated on the fly (requires `CoolProp` installed).
+% 
 %   wat_rho_pvt - Same as `co2_rho_pvt`, but for water/brine.
 %   co2_mu_ref  - Reference viscosity for CO2
 %   wat_mu_ref  - Reference viscosity for water
 %   co2_mu_pvt  - Viscosity model for CO2.  Possibilities are:
-%                 * empty array ([]) - CO2 viscosity considered constant
-%                                      (uses value for `co2_mu_ref`)
-%                 * [c, p_ref]       - Pressure-dependent viscosity with
-%                                      constant coefficient (analog to
-%                                      constant compressibility).  `c` is the
-%                                      scalar coefficient, whereas `p_ref` is
-%                                      the reference pressure.
-%                 * [pm, pM, tm, tM] - Interpolate from a sampled table that
-%                                      covers the pressure interval [pm, pM]
-%                                      and the temperature interval [tm, tM].
+%                 (1) empty array ([]) - CO2 viscosity considered constant
+%                                        (uses value for `co2_mu_ref`)
+%                 (2) [c, p_ref]       - Pressure-dependent viscosity with
+%                                        constant coefficient (analog to
+%                                        constant compressibility).  `c` is the
+%                                        scalar coefficient, whereas `p_ref` is
+%                                        the reference pressure.
+%                 (3) [pm, pM, tm, tM] - Interpolate from a sampled table that
+%                                        covers the pressure interval [pm, pM]
+%                                        and the temperature interval [tm, tM].
 %                 The default option is the first on the above list,
-%                 i.e. constant viscostiy.
+%                 i.e. constant viscosity.
 %   wat_mu_pvt  - Same as `co2_mu_pvt`, but for water/brine.
 % 
 % Optional arguments related to sampled property tables:
-%   p_range / t_range - Each of these fields should be on the form [min, max], 
-%                       descibing the pressure and temperature range for
-%                       which the sampled property table should be generated.
 %   pnum / tnum       - Number of (equidistant) samples for pressure and
 %                       temperature when generating sampled property tables.
+%                       (Default value is 800 for both).
 %
 % Optional arguments related to residual saturation and dissolution 
 % 
