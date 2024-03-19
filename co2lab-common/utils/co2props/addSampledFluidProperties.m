@@ -43,12 +43,12 @@ function fluid = addSampledFluidProperties(fluid, shortname, varargin)
 %                          which property functions to include, on the form:
 %                          [density, viscosity, enthalpy, conductivity]
 %
-%               * fixedT - If empty (default), the returned properties will be
+%               * reservoirT - If empty (default), the returned properties will be
 %                          functions of pressure AND temperature.  If
-%                          'fixedT' is a value (or vector of values), the
+%                          'reservoirT' is a value (or vector of values), the
 %                          returned properties will be functions of pressure
 %                          only, with temperature consided constant and equal
-%                          to the value(s) provided in 'fixedT'.
+%                          to the value(s) provided in 'reservoirT'.
 %
 %               * 'assert_in_range':   If 'true', throw an error if user tried
 %                                      to extrapolate outside valid range.
@@ -95,7 +95,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    opt.pnum   = 800; % number of pressure samples
    opt.tnum   = 800; % number of temperature samples
    opt.props  = [true false false false]; % which props to include [rho, mu, h, lambda]
-   opt.fixedT = [];
+   opt.reservoirT = [];
    opt.assert_in_range = false;
    opt.nan_outside_range = false;
    opt.include_derivatives = false;
@@ -114,7 +114,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Add density, viscosity and enthalpy properties
    if opt.props(1)
-      [f, fdp, fdt] = load_property(opt, 'D', fluidname, opt.fixedT, ...
+      [f, fdp, fdt] = load_property(opt, 'D', fluidname, opt.reservoirT, ...
                                     opt.assert_in_range, opt.nan_outside_range);
       fname = ['rho', shortname];
       
@@ -124,7 +124,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
    if opt.props(2)
-      [f, fdp, fdt] = load_property(opt, 'V', fluidname, opt.fixedT, ...
+      [f, fdp, fdt] = load_property(opt, 'V', fluidname, opt.reservoirT, ...
                                     opt.assert_in_range, opt.nan_outside_range); 
       
       fname = ['mu', shortname];
@@ -136,7 +136,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                  
    end
    if opt.props(3)
-      [f, fdp, fdt] = load_property(opt, 'H', fluidname, opt.fixedT, ...
+      [f, fdp, fdt] = load_property(opt, 'H', fluidname, opt.reservoirT, ...
                                     opt.assert_in_range, opt.nan_outside_range); 
       
       fname = ['h', shortname];
@@ -153,7 +153,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
    end
    if (numel(opt.props) > 3 && opt.props(4))
-      [f, fdp, fdt] = load_property(opt, 'L', fluidname, opt.fixedT, ...
+      [f, fdp, fdt] = load_property(opt, 'L', fluidname, opt.reservoirT, ...
                                     opt.assert_in_range, opt.nan_outside_range); 
       fname = ['lambda', shortname];
       
@@ -166,7 +166,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [fun, fun_dp, fun_dt] = load_property(opt, pname, fluidname, fixedT, assert_in_range, nan_outside)
+function [fun, fun_dp, fun_dt] = load_property(opt, pname, fluidname, reservoirT, assert_in_range, nan_outside)
 
    tabledir = [fileparts(mfilename('fullpath')) '/sampled_tables/'];
    fname = [tabledir, propFilename(opt.pspan, opt.tspan, opt.pnum, opt.tnum, fluidname, pname)];
@@ -202,11 +202,11 @@ function [fun, fun_dp, fun_dt] = load_property(opt, pname, fluidname, fixedT, as
    fun_dp = obj.([pname, 'DP']);
    fun_dt = obj.([pname, 'DT']);
 
-   if ~isempty(fixedT)
+   if ~isempty(reservoirT)
       % Temperature should be considered fixed -> property becomes function
       % of pressure only.
-      fun = @(p) fun(p, fixedT);
-      fun_dp = @(p) fun_dp(p, fixedT);
+      fun = @(p) fun(p, reservoirT);
+      fun_dp = @(p) fun_dp(p, reservoirT);
       fun_dt = []; 
    end
 

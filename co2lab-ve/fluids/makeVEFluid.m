@@ -66,10 +66,17 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 % Optional arguments related to the type of compressibility and viscosity
 % model used
 % 
-%   fixedT      - If left empty, fluid properties will depend on pressure and
-%                 temperature.  If set to a scalar, this will be considered
-%                 the constant temperature of the simulated system, and fluid
-%                 properties will only depend on pressure.
+%   reservoirT  - Reservoir temperature.  Used in the computation of fluid 
+%                 properties when sampled tables are used (cf. `co2_rho_pvt`,
+%                 `co2_mu_pvt`, `wat_rho_pvt` and `wat_mu_pvt` below).  
+%                 If sampled tables are not used for fluid properties, then 
+%                 the value of `reservoirT` will have no effect.  
+%                 This option can be set to a scalar value (one single
+%                 temperature for the whole reservoir), or a vector of values
+%                 (one value per cell).  The latter is useful when there is a
+%                 range of temperatures in the reservoir, e.g. a large
+%                 sloping reservoir in the presence of a geothermal gradient.
+%                 Default value is 30 degrees C (303.15 degrees Kelvin).
 %  
 %   co2_rho_ref - Reference density value for CO2 (used in black-oil formulation)
 %   wat_rho_ref - Reference density value for water (used in black-oil formulation)
@@ -86,6 +93,9 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %                 corresponding to the default values of `pm`/`pM` and
 %                 `tm`/`tM`  is provided with CO2lab.  Other tables can be
 %                 generated on the fly (requires `CoolProp` installed).
+%                 If you use a sampled table, make sure that it covers all
+%                 the pressures that might be reached, and all temperatures
+%                 encountered in `reservoirT`.
 % 
 %   wat_rho_pvt - Same as `co2_rho_pvt`, but for water/brine.
 %   co2_mu_ref  - Reference viscosity for CO2
@@ -102,7 +112,10 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %                                        covers the pressure interval [pm, pM]
 %                                        and the temperature interval [tm, tM].
 %                 The default option is the first on the above list,
-%                 i.e. constant viscosity.
+%                 i.e. constant viscosity. If you use a sampled table, make
+%                 sure that it covers all the pressures that might be reached,
+%                 and all temperatures encountered in `reservoirT`.
+%
 %   wat_mu_pvt  - Same as `co2_mu_pvt`, but for water/brine.
 % 
 % Optional arguments related to sampled property tables:
@@ -236,15 +249,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Adding viscosity
    fluid = include_property(fluid, 'G', 'mu' , opt.co2_mu_ref,  opt.co2_mu_pvt ...
-                            , opt.fixedT, opt.pnum, opt.tnum);
+                            , opt.reservoirT, opt.pnum, opt.tnum);
    fluid = include_property(fluid, 'W', 'mu' , opt.wat_mu_ref,  opt.wat_mu_pvt ...
-                            , opt.fixedT, opt.pnum, opt.tnum);
+                            , opt.reservoirT, opt.pnum, opt.tnum);
 
    % Adding density
    fluid = include_property(fluid, 'G', 'rho', opt.co2_rho_ref, opt.co2_rho_pvt, ...
-                            opt.fixedT, opt.pnum, opt.tnum);   
+                            opt.reservoirT, opt.pnum, opt.tnum);   
    fluid = include_property(fluid, 'W', 'rho', opt.wat_rho_ref, opt.wat_rho_pvt, ...
-                            opt.fixedT, opt.pnum, opt.tnum);
+                            opt.reservoirT, opt.pnum, opt.tnum);
 
    % Add density functions of the black-oil formulation type
    fluid = include_BO_form(fluid, 'G', opt.co2_rho_ref);
@@ -351,9 +364,12 @@ end
 function opt = default_options()
 
    % Whether to include temperature as an argument in property functions
-   opt.fixedT = []; % value of constant temperature field, or empty (if
-                    % temperature should be an argument to the property
-                    % functions.
+   opt.reservoirT = 273.15 + 30; % (constant) reservoir temperature.  Can be specified
+                             % as a scalar giving the same temperature for
+                             % the whole reservoir, or as a vector with one
+                             % temperature per gridcell (useful to model
+                             % varying temperature in a sloping aquifer due
+                             % to the thermal gradient.
 
    % Density of CO2 and brine
    opt.co2_rho_ref   =  760 * kilogram / meter^3; % Reference rho for CO2
@@ -454,7 +470,7 @@ end
 % ----------------------------------------------------------------------------
 
 function fluid = include_property(fluid, shortname, propname, prop_ref, prop_pvt, ...
-                                  fixedT, pnum, tnum)
+                                  reservoirT, pnum, tnum)
    if isempty(prop_pvt)
       % use constant property (based on reference property).  Whether it is a
       % function of P only, or of both P and T, is irrelevant here.
@@ -477,7 +493,7 @@ function fluid = include_property(fluid, shortname, propname, prop_ref, prop_pvt
                                         'props',  [strcmpi(propname, 'rho'), ...
                                                    strcmpi(propname, 'mu'),  ...
                                                    strcmpi(propname, 'h')], ...
-                                        'fixedT', fixedT);
+                                        'reservoirT', reservoirT);
    end
 end
 
