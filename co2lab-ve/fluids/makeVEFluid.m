@@ -8,9 +8,9 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 % DESCRIPTION:
 %
 % PARAMETERS:
-%   Gt            - Underlying top-surface grid with which the fluid object
-%                   will be used.
-%   rock          - Object holding the vertically-averaged (i.e. not 3D) rock
+%   Gt            - Underlying top-surface (vertically averaged, 2D) grid with 
+%                   which the fluid object will be used.
+%   rock          - Object holding the vertically-averaged (i.e. 2D) rock
 %                   properties associated with Gt. Can be obtained from the
 %                   corresponding 3D rock structure using the `averageRock` 
 %                   function in co2lab-common.
