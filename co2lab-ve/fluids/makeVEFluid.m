@@ -10,9 +10,10 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 % PARAMETERS:
 %   Gt            - Underlying top-surface grid with which the fluid object
 %                   will be used.
-%   rock          - Object holding the vertically-averaged rock properties of
-%                   Gt (can be obtained from a normal rock structure using
-%                   the 'averageRock' function in CO2lab).
+%   rock          - Object holding the vertically-averaged (i.e. not 3D) rock
+%                   properties associated with Gt. Can be obtained from the
+%                   corresponding 3D rock structure using the `averageRock` 
+%                   function in co2lab-common.
 %   relperm_model - Text string used to specify one of several possible
 %                   models for computing upscaled permeabilities.  Options
 %                   are:
@@ -272,6 +273,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    krw = ifelse(opt.krmax(1) < 0, 1 - opt.residual(2), opt.krmax(1));
    krg = ifelse(opt.krmax(2) < 0, 1 - opt.residual(1), opt.krmax(2));
+
+   fluid.relperm_model = relperm_model;
    
    switch relperm_model
      case 'sharp_interface_simple'

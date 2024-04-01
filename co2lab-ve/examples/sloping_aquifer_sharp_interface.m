@@ -1,5 +1,5 @@
 %% Load modules, turn on gravity and set utility functions
-mrstModule add co2lab ad-core ad-props ad-blackoil
+mrstModule add co2lab-common co2lab-ve ad-core ad-props ad-blackoil
 gravity on;
 
 view_side = @() view(0,0);

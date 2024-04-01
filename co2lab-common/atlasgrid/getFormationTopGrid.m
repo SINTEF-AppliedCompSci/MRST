@@ -1,4 +1,4 @@
-function [Gt, rock2D, petrodata] = getFormationTopGrid(formation,coarsening_level)
+function [Gt, rock2D, petrodata] = getFormationTopGrid(formation, coarsening_level, varargin)
 % Load the formation grid at a given coarsening level
 %
 % SYNOPSIS:
@@ -11,6 +11,8 @@ function [Gt, rock2D, petrodata] = getFormationTopGrid(formation,coarsening_leve
 %   coarsening_level - Coarsening factor.  If set to 1, a grid with
 %                      approximately one cell per datapoint is produced.
 %
+% OPTIONAL PARAMETERS:
+%   vertical_layers - The number of internal layers in the 3D parent grid (default is 1)
 % RETURNS:
 %   Gt      - top surface grid
 %   rock2D  - rock structure. Formed using averages contained in petrodata,
@@ -37,13 +39,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-
+    opt = struct('vertical_layers', 1);
+    opt = merge_options(opt, varargin{:});
+    
     moduleCheck('libgeometry');
     [grdecl dataset petroinfo] = ...
         getAtlasGrid(formation, 'coarsening', coarsening_level);%#ok
     
     assert(~isempty(grdecl), ...
         'Empty grdecl returned. Check the spelling of the formation name. Also ensure you have downloaded the dataset.')
+
+    % Inserting additional vertical layers if requested
+    if opt.vertical_layers > 1
+        grdecl{1} = refineGrdecl(grdecl{1}, [1,1, opt.vertical_layers]);
+    end
     
     % Computing the top-surface grid
     G = processGRDECL(grdecl{1});
