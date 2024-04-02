@@ -28,7 +28,7 @@
 % The last mentioned function requires that you have built the solver in
 % the src/VEmex directory.
 
-mrstModule add co2lab mimetic
+mrstModule add co2lab-common co2lab-spillpoint co2lab-legacy mimetic
 %% Display header
 clc
 disp('================================================================');

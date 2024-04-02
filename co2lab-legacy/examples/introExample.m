@@ -20,7 +20,7 @@
 % can be used for simulation by traditional black-oil solvers like those
 % implemented in the AD-OO framework.
 
-mrstModule add co2lab incomp
+mrstModule add co2lab-common co2lab-legacy incomp
 
 %% Background
 % We start with the multiphase version of Darcy's law:
@@ -105,7 +105,7 @@ rock2d = averageRock(rock, Gts);
 % Note that the top-surface grid is modified with an extra field that
 % defines a function handle to how to calculate the gravity contribution.
 % This is the part which is VE spesific.
-Gts.grav_pressure
+Gts.grav_pressure;
 
 
 %% Define boundary conditions, source terms, and fluid properties
@@ -191,7 +191,7 @@ clear tmp
 tmp.fluid = initSimpleVEFluid_s('mu', mu, 'rho', rho, ...
                                 'height', Gts.cells.H, 'sr', [sr, sw]);
 tmp.sol   = initResSolVE_s(Gts, 0, [1 0]);
-tmp.sol.twophaseJacobian
+tmp.sol.twophaseJacobian;
 
 % Set up wells, boundary conditions and source terms
 [tmp.W, tmp.bc, tmp.src] = deal(W_s, bc_s, src_s);

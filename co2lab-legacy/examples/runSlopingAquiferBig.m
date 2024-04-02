@@ -12,7 +12,7 @@
 % * processgrid (replaces processGRDECL)
 % * mcomputegeometry (replaces computeGeometry)
 
-mrstModule add co2lab
+mrstModule add co2lab-common co2lab-spillpoint co2lab-legacy
 %% Write header
 clc;
 disp('================================================================');

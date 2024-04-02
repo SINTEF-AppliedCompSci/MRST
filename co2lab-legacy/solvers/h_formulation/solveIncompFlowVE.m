@@ -155,7 +155,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       [A, b, dF, dC] = build_system(state, g, s, opt.wells, ...
                                     opt.bc, opt.src, fluid, rock, opt);
 
-      solver   = pick_solver(g, s, dF, dC);
+      solver   = pick_solver(g, s, dF, dC, opt);
       x        = solver(A, b);
 
       state = pack_solution(state, g, s, x{1:3}, opt);
@@ -288,7 +288,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function solver = pick_solver(g, s, dF, dC)
+function solver = pick_solver(g, s, dF, dC, opt)
    regul = ~any(dF);  % Set zero level if no prescribed pressure values.
 
    if ~any(strcmp(s.type, {'hybrid', 'comp_hybrid'}))

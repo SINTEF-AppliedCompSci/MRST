@@ -4,7 +4,7 @@
 % boundary conditions. CO2 is injected in the cell nearest to the Sleipner
 % field where CO2 injection is ongoing.
 
-mrstModule add co2lab incomp
+mrstModule add co2lab-common co2lab-spillpoint co2lab-legacy incomp
 
 %% Set up fluid properties and hydrostatic pressure
 % We define approximate hydrostatic pressure for a set of z values to use

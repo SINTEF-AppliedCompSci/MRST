@@ -10,7 +10,7 @@
 % simulate the migration of the CO2 in a post-injection period of 720
 % years.
 
-mrstModule add co2lab
+mrstModule add co2lab-common co2lab-spillpoint co2lab-legacy 
 
 %% Write header
 clear, clc;

@@ -13,7 +13,7 @@ function fluid = initSimpleVEFluid_s(varargin)
 %             with one value for each of the two fluid phases:
 %               - mu  -- Phase viscosities in units of Pa*s.
 %               - rho -- Phase densities in units of kilogram/meter^3.
-%               - sr  -- Phase residual saturation
+%               - sr  -- Phase residual saturation [res_gas, res_water]
 %               - height -- Height of all cells in the grid
 %
 % RETURNS:
@@ -58,7 +58,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 % $Date: 2012-01-30 11:41:03 +0100 (Mon, 30 Jan 2012) $
 % $Revision: 9020 $
 
-opt = struct('mu', [], 'rho', [],'sr', [],'height',[],'kwm',[1,1]);
+opt = struct('mu', [], 'rho', [],'sr', [0, 0],'height',[],'kwm',[1,1]);
 opt = merge_options(opt, varargin{:});
 g_top = struct('H',opt.height);
 
@@ -75,6 +75,8 @@ fluid = struct('properties', prop             , ...
                'saturation', @(x,varargin) x.s, ...%not used
                'relperm'   , @(s,state) kr(state),  ...
                'pc'        , @(state) pc(state),...
+               'res_gas'   , opt.sr(1), ...
+               'res_water' , opt.sr(2), ...
                'sat2height', @(state)   sat2height(state)); %,...
                %'invpc'     , @(pc)    pc_inv(pc),...
                % 's_max',1,...

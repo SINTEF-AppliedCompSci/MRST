@@ -13,7 +13,7 @@
 % <http://www.sintef.no/Projectweb/MatMorA/Downloads/Johansen/ MatMoRA
 % website>.
 
-mrstModule add co2lab mimetic
+mrstModule add co2lab-common co2lab-legacy mimetic
 
 %% Display header
 clc;
@@ -117,7 +117,7 @@ while t<T
       'bc', bcVE, 'wells', WVE);
 
    if cpp_accel
-        [sol.h, sol.h_max] = mtransportVE(sol, Gt, dT, rock, ...
+       [sol.h, sol.h_max] = mtransportVE(sol, Gt, dT, rock, ...
                                 fluidVE, 'bc', bcVE, 'wells', WVE, ...
                                'gravity', norm(gravity), 'verbose', false);
    else
