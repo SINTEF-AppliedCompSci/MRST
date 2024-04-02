@@ -58,41 +58,6 @@ function state = solveIncompFlowVE(state, g, s, rock, fluid, varargin)
 %            NOTE: This is a special purpose option for use by code which
 %            needs to modify the system of linear equations directly, e.g.,
 %            the 'adjoint' code.
-%
-%   Solver - Which solver mode function 'solveIncompFlowVE' should employ
-%            in assembling and solving the block system of linear equations.
-%            String.  Default value: Solver = 'hybrid'.
-%
-%            Supported values are:
-%              - 'hybrid' --
-%                   Assemble and solve hybrid system for interface
-%                   pressures.  System is eventually solved by Schur
-%                   complement reduction and back substitution.
-%
-%                   The system 'S' must in this case be assembled by
-%                   passing option pair ('Type','hybrid') or option pair
-%                   ('Type','comp_hybrid') to function 'computeMimeticIP'.
-%
-%              - 'mixed' --
-%                   Assemble and solve a hybrid system for interface
-%                   pressures, cell pressures and interface fluxes. System
-%                   is eventually reduced to a mixed system as per function
-%                   'mixedSymm'.
-%
-%                   The system 'S' must in this case be assembled by
-%                   passing option pair ('Type','mixed') or option pair
-%                   ('Type','comp_hybrid') to function 'computeMimeticIP'.
-%
-%              - 'tpfa' --
-%                   Assemble and solve a cell-centred system for cell
-%                   pressures.  Interface fluxes recovered through back
-%                   substitution.
-%
-%                   The system 'S' must in this case be assembled by
-%                   passing option pair ('Type','mixed') or option pair
-%                   ('Type','comp_hybrid') to function 'computeMimeticIP'.
-%
-%
 %   LinSolve -
 %            Handle to linear system solver software to which the fully
 %            assembled system of linear equations will be passed.  Assumed
@@ -172,7 +137,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 % $Revision: 9555 $
 
    opt = struct('bc', [], 'src', [], 'wells', [], 'rhs', [], ...
-                'Solver',       'hybrid',                    ...
                 'LinSolve',     @mldivide,                   ...
                 'MatrixOutput', false);
    opt = merge_options(opt, varargin{:});
@@ -191,7 +155,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       [A, b, dF, dC] = build_system(state, g, s, opt.wells, ...
                                     opt.bc, opt.src, fluid, rock, opt);
 
-      solver   = pick_solver(g, s, dF, dC, opt);
+      solver   = pick_solver(g, s, dF, dC);
       x        = solver(A, b);
 
       state = pack_solution(state, g, s, x{1:3}, opt);
@@ -297,8 +261,8 @@ function [A, b, dF, dC] = build_system(state, g, s, w, bc, src, fluid, rock, opt
    %    b{2} = g = [ gr   ;       ]  % No direct contr. to cells from wells
    %    b{3} = h = [ hr   ;    hw ]  % VERTCAT
    %
-   [Ar, br, dFr, dCr] = syscomp_res  (g, s, totmob, omega, fluid.pc, state, bc, src, opt);
-   [Aw, bw, dFw, dCw] = syscomp_wells(g, w, totmob, omega, fluid.pc, state, opt);
+   [Ar, br, dFr, dCr] = syscomp_res  (g, s, totmob, omega, fluid.pc, state, bc, src);
+   [Aw, bw, dFw, dCw] = syscomp_wells(g, w, totmob, omega, fluid.pc, state);
 
    A    = cell([1, 3]);           b    = cell([1, 3]);
    A{1} = blkdiag(Ar{1}, Aw{1});  b{1} = vertcat(br{1}, bw{1});
@@ -324,38 +288,16 @@ end
 
 %--------------------------------------------------------------------------
 
-function solver = pick_solver(g, s, dF, dC, opt)
+function solver = pick_solver(g, s, dF, dC)
    regul = ~any(dF);  % Set zero level if no prescribed pressure values.
 
-   switch lower(opt.Solver)
-      case 'hybrid'
-         if ~any(strcmp(s.type, {'hybrid', 'comp_hybrid'}))
-            error(id('SolverMode:Inconsistent'), ...
-                 ['Solver mode ''hybrid'' is incompatible with ', ...
-                  'linear system type ''%s''.'], s.type);
-         end
-         
-         solver = @solve_hybrid;
-%       case 'mixed',
-%          if ~any(strcmp(s.type, {'mixed', 'tpfa', 'comp_hybrid'})),
-%             error(id('SolverMode:Inconsistent'), ...
-%                  ['Solver mode ''mixed'' is incompatible with ', ...
-%                   'linear system type ''%s''.'], s.type);
-%          end
-%
-%          solver = @(A,b) solve_mixed(A, b, @mixedSymm);
-%       case 'tpfa',
-%          if ~any(strcmp(s.type, {'mixed', 'tpfa', 'comp_hybrid'})),
-%             error(id('SolverMode:Inconsistent'), ...
-%                  ['Solver mode ''tpfa'' is incompatible with ', ...
-%                   'linear system type ''%s''.'], s.type);
-%          end
-%
-%          solver = @(A,b) solve_mixed(A, b, @tpfSymm);
-       otherwise
-         error(id('SolverMode:NotSupported'), ...
-               'Solver mode ''%s'' is not supported.', opt.solver);
+   if ~any(strcmp(s.type, {'hybrid', 'comp_hybrid'}))
+       error(id('SolverMode:Inconsistent'), ...
+             ['Solver mode ''hybrid'' is incompatible with ', ...
+              'linear system type ''%s''.'], s.type);
    end
+         
+   solver = @solve_hybrid;
 
    % Specify prescribed pressures on 'Dirichlet' contacts.
    % Initialize facePressure as NaN since the variable is only computed for
@@ -371,25 +313,6 @@ function solver = pick_solver(g, s, dF, dC, opt)
                                      'LinSolve', opt.LinSolve);
       lam(~dF) = x{3};
       x{3}     = lam;
-   end
-
-   function x = solve_mixed(A, b, solver)
-      nF = neumann_faces(g, dF, opt);
-      cellNo = rldecode(1 : g.cells.num, diff(g.cells.facePos), 2) .';
-      sgn = 2*double(g.faces.neighbors(g.cells.faces(:,1), 1) == cellNo) - 1;
-
-      Do = oriented_mapping(s, sgn, opt);
-
-      A{3} = A{3}(:,nF);
-      b{3} = b{3}(  nF);
-      [x{1:4}] = solver(A{:}, b{:}, Do, 'Regularize', regul, ...
-                        'LinSolve', opt.LinSolve);
-
-      x{1}    = [faceFlux2cellFlux(g, x{1}(1 : g.faces.num)); ...
-                 x{1}(g.faces.num + 1 : end)];
-
-      lam(nF) = x{3};
-      x{3}    = lam;
    end
 end
 
@@ -422,26 +345,17 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, b, dF, dC] = syscomp_res(g, s, mob, omega, pc, state, bc, src, opt)
+function [A, b, dF, dC] = syscomp_res(g, s, mob, omega, pc, state, bc, src)
    A = cell([1, 3]);
 
    mob = spdiags(s.C * mob, 0, s.sizeB(1), s.sizeB(2));
 
-   if strcmpi(opt.Solver, 'hybrid')
-      if ~isfield(s, 'BI')
-         error(id('SolverMode:Inconsistent'), ...
-              ['Solver mode ''hybrid'' is incompatible with ', ...
-               'linear system type ''%s''.'], s.type);
-      end
-      A{1} = mob * s.BI;
-   else
-      if ~isfield(s, 'B')
-         error(id('SolverMode:Inconsistent'), ...
-              ['Solver mode ''%s'' is incompatible with ', ...
-               'linear system type ''%s''.'], opt.Solver, s.type);
-      end
-      A{1} = mob \ s.B;
+   if ~isfield(s, 'BI')
+       error(id('SolverMode:Inconsistent'), ...
+             ['Solver mode ''hybrid'' is incompatible with ', ...
+              'linear system type ''%s''.'], s.type);
    end
+   A{1} = mob * s.BI;
 
    A{2} = s.C;
    A{3} = s.D;
@@ -452,7 +366,7 @@ end
 
 %--------------------------------------------------------------------------
 
-function [A, b, dF, dC] = syscomp_wells(G, W, mob, omega,pc, state, opt)
+function [A, b, dF, dC] = syscomp_wells(G, W, mob, omega,pc, state)
    % Assume empty well structure by default...
    A  = cell([1, 3]);
    b  = cell([1, 2]);
@@ -467,7 +381,6 @@ function [A, b, dF, dC] = syscomp_wells(G, W, mob, omega,pc, state, opt)
 
       % Diagonal transmissibility matrix (inner product).
       v = mob(wc) .* vertcat(W.WI);
-      if ~strcmpi(opt.Solver, 'hybrid'), v = 1 ./ v; end
       A{1} = sparse(i, i, v, n, n); % == spdiags(v,0,n,n), but more direct.
 
       % Connection matrices {2} -> C and {3} -> D for all wells.
