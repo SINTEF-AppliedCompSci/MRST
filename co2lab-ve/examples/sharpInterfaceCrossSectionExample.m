@@ -34,6 +34,7 @@ show_plots = true;
 % resolution and slope, and with a large structural trap towards the right side.
 G = make_testgrid([xres, 1, zres], [L, 1, H], 5, 0.02, 2000, [0.6, 900, 30]);
 
+[xfac, GFine] = deal(1, []);
 if rugosity
     % we need a high-resolution grid to capture the high-frequency caprock oscillations
     xfac = 12;

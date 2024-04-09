@@ -9,7 +9,7 @@
 % or not defined is removed, giving a GRDECL file defining the intersection
 % of these datasets.
 
-mrstModule add co2lab-common
+mrstModule add co2lab-common co2lab-spillpoint
 
 
 %% Example: Utsira formation
