@@ -13,7 +13,7 @@ view_oblique = @() view(-13, 2);
 % fraction of the time used to simulate the 3D model.  We simulate on a 
 % section of a synthetic, sloping aquifer model.
 
-% Compare cross-sections, with low vertical resolution (5)
+%% Compare cross-sections, with low vertical resolution (5)
 [G5, states5, G5_VE, states5_VE, sat5_VE_converted_3D, timing5, wellcell5] = ...
     sloping_aquifer('cross_sectional', true, 'zres', 5);
 
@@ -36,7 +36,7 @@ subplot(2,1,2); plotCellData(G5, sat5_VE_converted_3D{end}); view_side();
 set_fig_standardformat(fig, {'CO2 saturation, last timestep, 3D', ...
                        'CO2 saturation, last timestep, VE'});
 
-% compare cross-sections, using higher vertical resolution (15)
+%% compare cross-sections, using higher vertical resolution (15)
 [G15, states15, G15_VE, states15_VE, sat15_VE_converted_3D, timing15, wellcell15] = ...
     sloping_aquifer('cross_sectional', true, 'zres', 15);
 
@@ -58,7 +58,7 @@ subplot(2,1,2); plotCellData(G40, sat40_VE_converted_3D{end}, 'edgealpha', 0.2);
 set_fig_standardformat(fig, {'CO2 saturation, last timestep, 3D', ...
                        'CO2 saturation, last timestep, VE'});
 
-% compare cross-sections, for extremely high vertical resolution (140)
+%% compare cross-sections, for extremely high vertical resolution (140)
 [G140, states140, G140_VE, states140_VE, sat140_VE_converted_3D, timing140, wellcell140] = ...
     sloping_aquifer('cross_sectional', true, 'zres', 140);
 
