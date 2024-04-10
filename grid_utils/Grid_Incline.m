@@ -3,7 +3,7 @@ function [Grid] = Grid_Incline(Lx,Ly,Nx,Ny,iangle)
 %   iangle - internal inclined angle
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
