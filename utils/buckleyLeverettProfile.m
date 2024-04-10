@@ -2,7 +2,7 @@ function [s, f, fv, fg] = buckleyLeverettProfile(varargin)
     % Get analytical Buckely-Leverett solution for a simple Riemann problem
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
