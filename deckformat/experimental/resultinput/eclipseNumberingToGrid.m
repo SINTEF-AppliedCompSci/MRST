@@ -3,7 +3,7 @@ function g_value = eclipseNumberingToGrid(G,e_value,grdecl)
 %refSol = eclipseOutput2Sol(G,output,grdecl)
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
