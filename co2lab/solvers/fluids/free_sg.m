@@ -25,7 +25,7 @@ function fsg = free_sg(sg, sGmax, opt)
 % RETURNS:
 %   fsg - the free part of the present saturation (fsg <= sg)
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

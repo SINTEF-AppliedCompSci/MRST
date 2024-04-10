@@ -5,7 +5,7 @@ function obj = pressureAtCells(model, states, schedule,cells,pstep, varargin)
 % plim is a cell array.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

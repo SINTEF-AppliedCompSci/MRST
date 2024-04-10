@@ -2,7 +2,7 @@ function colorizeRegion(h, Gt, field, color, varargin)
 % Colorize area described by positive value for field
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

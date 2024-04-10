@@ -9,7 +9,7 @@ function [perc_of_plim_reach, perc_of_Pover_reach, cinxMax, cinxViolated] = ...
 % cinxMax   - cell index where maximum percentage of plim reached
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

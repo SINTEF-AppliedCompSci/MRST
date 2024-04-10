@@ -3,7 +3,7 @@ function tops = topCellOfTrap(Gt, ta)
 % (in case ta.tops is not indexed properly according to trap number)
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
