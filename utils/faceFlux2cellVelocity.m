@@ -16,7 +16,7 @@ function v = faceFlux2cellVelocity(G, faceFlux)
 %   `cellFlux2faceFlux`, `faceFlux2cellFlux`.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

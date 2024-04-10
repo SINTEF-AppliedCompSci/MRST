@@ -11,7 +11,7 @@ function b = barsa()
 %   b - Numerical value, in units of Pascal (Pa), of a pressure of one bar.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

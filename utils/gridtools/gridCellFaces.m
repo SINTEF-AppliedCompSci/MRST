@@ -16,7 +16,7 @@ function [cf, p] = gridCellFaces(G, c)
 %          positions `p(i):p(i+1)-1` in `n`
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
