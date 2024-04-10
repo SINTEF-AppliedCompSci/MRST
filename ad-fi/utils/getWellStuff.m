@@ -2,7 +2,7 @@ function [Tw, dzw, Rw, wc, perf2well, pInx, iInxW, iInxO] = getWellStuff(W)
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -59,7 +59,7 @@ function [problem, state] = equationsBlackOil(state0, state, model, dt, drivingF
 %   equationsOilWater, ThreePhaseBlackOilModel
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -33,7 +33,7 @@ function [model, states, initState] = runNorneExample(varargin)
 %     * 'water'     : water model is used for the fluid
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

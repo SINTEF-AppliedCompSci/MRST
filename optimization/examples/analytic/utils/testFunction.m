@@ -3,7 +3,7 @@ function [z, dz] = testFunction(x,y, varargin)
 %      z(x,y) = ((x-x0)/rx)^2 + ((y-y0)/ry)^2
 % possibly rotated by angle th around (x0,y0)
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

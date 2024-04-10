@@ -8,7 +8,7 @@ function pW_local = getWaterPressureFromHeight(pt, t, B, b, h, pW, g, rhow, rhog
     % magnitude and rhow/rhog the water and gas densities.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

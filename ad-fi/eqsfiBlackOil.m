@@ -2,7 +2,7 @@ function [eqs, state, hst] = eqsfiBlackOil(state0, state, dt, G, W, system, f, v
 % Generate equations for a Black Oil system (oil, water and gas with gas dissolved in oil).
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

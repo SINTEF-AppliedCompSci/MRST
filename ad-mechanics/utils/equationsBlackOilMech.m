@@ -35,7 +35,7 @@ function [eqs, names, types, state] = equationsBlackOilMech(state0, st0, p, sW, 
 %   state - Some field related to well control of the state variables may be updated.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

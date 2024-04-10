@@ -4,7 +4,7 @@ function h = combineEquations(varargin)
 % a part of the ADI class. This is the fallback for doubles.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
