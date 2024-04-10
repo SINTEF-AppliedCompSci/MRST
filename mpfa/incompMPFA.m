@@ -91,7 +91,7 @@ function state = incompMPFA(state, G, mpfaT, fluid, varargin)
 % SEE ALSO: 
 % `private/incompMPFAlegacy`, `private/incompMPFATensorAssembly`
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

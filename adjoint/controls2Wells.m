@@ -6,7 +6,7 @@ function [A_N, b_N, A_D, b_D] = controls2Wells(W, schedule, controls)
 % where u^n is the set of controll variables at step n
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

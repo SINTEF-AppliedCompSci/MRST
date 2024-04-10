@@ -27,7 +27,7 @@ function tensor = face_node_tensor(G, fname, nname, varargin)
 %  fnt = face_node_tensor(G, 'face', 'node')
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
