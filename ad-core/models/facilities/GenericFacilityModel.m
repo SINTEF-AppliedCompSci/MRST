@@ -1,7 +1,7 @@
 classdef GenericFacilityModel < FacilityModel
     properties
         T = 288.15; % Metric standard conditions
-        pressure = 101.325*kilo*Pascal; % Metric standard pressure
+        pressure = 1*atm; % Metric standard pressure
         SeparatorGroup
         outputFluxes = true;
         doPostUpdate
