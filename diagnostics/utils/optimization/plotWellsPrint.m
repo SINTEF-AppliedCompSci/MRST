@@ -2,7 +2,7 @@ function plotWellsPrint(G, W, D)
 % Plots wells as simple colored circles. Helper for diagnostics examples.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
