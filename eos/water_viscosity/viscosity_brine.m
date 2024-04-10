@@ -16,7 +16,7 @@ function muB = viscosity_brine(p, t, c)
 %   'density_pure_water', 'viscosity_pure_water', 'density_brine'
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
