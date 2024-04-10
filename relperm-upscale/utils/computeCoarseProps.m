@@ -2,7 +2,7 @@ function states = computeCoarseProps(model, model_f, states, schedule, schedule_
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
