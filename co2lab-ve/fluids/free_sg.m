@@ -1,5 +1,7 @@
 function fsg = free_sg(sg, sGmax, rw, rn)
-% Determine the mobile part of present saturation.
+% Determine the mobile part of present saturation, for a hysteretic model
+% with (potentially) a capillary fringe.  Homogeneous rock properties are 
+% assumed. 
 % 
 % SYNOPSIS:
 %   function fsg = free_sg(sg, sGmax, opt)
@@ -11,7 +13,7 @@ function fsg = free_sg(sg, sGmax, rw, rn)
 % the CO2 that will be able to evacuate, e.g. excluding anything already
 % residually trapped, or that will be left as residuall yrapped.
 %
-% As an example, for sharp-interface models (no capillary fringe), the
+% As an example, for sharp-interface models (no capillary fringe), 
 % the free saturation can be thought of the part of the CO2 saturation 
 % that is within the mobile plume (as opposed to the residual saturation
 % in the inebibided zone), and that is not part of what will be left behind 
@@ -35,7 +37,7 @@ function fsg = free_sg(sg, sGmax, rw, rn)
 %   sg    - present saturation
 %   sGmax - historically maximum saturation
 %   rw    - residual water saturation ('wetting saturation')
-%   rn    - residual gas saturaiton   ('nonwetting saturation')
+%   rn    - residual gas saturation   ('nonwetting saturation')
 % RETURNS:
 %   fsg - the free part of the present saturation (fsg <= sg)
 %{
