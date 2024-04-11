@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       assert (iscellstr(varargin), 'All parameters must be strings.');
 
       cmd  = varargin{1};
-      mods = varargin(2 : end);
+      mods = expand_name_alias(varargin{2 : end});
 
       switch lower(cmd)
          case 'add'
@@ -176,6 +176,45 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             mfilename, ' <command> [module list]  or\n\t', ...
             'mods = ', mfilename]);
    end
+end
+
+%--------------------------------------------------------------------------
+
+function mods = expand_name_alias(varargin)
+   mods = reshape(varargin, 1, []);
+   aliases = get_module_aliases();
+
+   % Aliases vary across rows, module names vary across columns.
+   [ia, ja] = ...
+      find(strcmp(repmat(reshape(aliases(:,1), [], 1), ...
+                         [1, numel(mods)]), ...
+                  repmat(mods, [size(aliases, 1), 1])));
+
+   if isempty(ia)
+      % No alias name requested.  Module list is just the regular input
+      % list ('mods') so nothing to do here.
+      return
+   end
+
+   % At least one alias name requested in 'mods'.  Match corresponding
+   % pattern(s) against registered module names.
+
+   regmod = mrstPath();
+
+   % Registered modules vary across rows.  Alias pattern vary across
+   % columns.
+   alias_match = regexp(repmat(regmod, [1, numel(ia)]), ...
+                        repmat(reshape(aliases(ia, 2), 1, []), ...
+                               [numel(regmod), 1]));
+
+   [imatch, jmatch] = find(~ cellfun('isempty', alias_match));
+
+   pos = accumarray(ja(jmatch) + 1, 1, [numel(mods) + 1, 1], [], 1);
+   pos = cumsum(pos);
+
+   % Replace alias name with its expanded module list.
+   mods = rldecode(mods, diff(pos), 2);
+   mods(mcolon(pos(ja), pos(ja + 1) - 1)) = regmod(imatch);
 end
 
 %--------------------------------------------------------------------------
@@ -327,6 +366,20 @@ function pth = path_search(mods)
 
       pth = regexprep(pth, '^~/', [getenv('HOME'), filesep]);
    end
+end
+
+%--------------------------------------------------------------------------
+
+function aliases = get_module_aliases()
+   % Aliases is an M-by-2 cell array of character vectors
+   %
+   % First column is the module name alias (simple string)
+   %
+   % Second column is a pattern matching the modules corresponding to that
+   % alias.  This should normally be an anchored regular expression.
+   aliases = { ...
+      'co2lab', '^co2lab-.*$'; ...
+   };
 end
 
 %--------------------------------------------------------------------------
