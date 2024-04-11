@@ -73,7 +73,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % scale saturation we should use what we already got.
         s(full3dind) = sol.s(g_coupled.cells.region3D);
         if ~isempty(opt.Rock)
-           h = sat2height(s, g_top, opt.Rock);
+            h = upscaledSat2height(s, s, Gt, 'poro', opt.Rock.poro); % @@ still untested
+            % h = sat2height(s, g_top, opt.Rock);
         end
         
    elseif isfield(fluid, 'sat2height')

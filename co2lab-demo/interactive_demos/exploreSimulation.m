@@ -21,7 +21,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
    
    gravity on;
-   mrstModule add ad-core co2lab;
+   mrstModule add ad-core co2lab-common co2lab-ve co2lab-spillpoint
+
 
    rhoCref = 760 * kilogram / meter ^3; % an (arbitrary) reference density
    
@@ -166,7 +167,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                               'surf_topo'     , topo                                       , ...
                               'top_trap'      , dh);
                               
-      model     = CO2VEBlackOilTypeModelNew(var.Gt, var.rock2D, fluid);
+      model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
       schedule  = setup_schedule();
       if isempty(schedule)
          return; % something went wrong

@@ -1,4 +1,4 @@
-% INTERACTIVE_TOOLS
+% INTERACTIVE_DEMOS
 %
 % Files
 %   exploreCapacity     - opt - structure containing variables that can be overridden by user at

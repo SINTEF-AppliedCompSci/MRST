@@ -25,6 +25,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
    gravity on;
+   mrstModule add ad-core co2lab-common co2lab-ve co2lab-spillpoint
+   
    % Initializing 'opt'
    rhoCref = 760 * kilogram / meter ^3;
    

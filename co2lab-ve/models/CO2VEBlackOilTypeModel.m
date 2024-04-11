@@ -61,21 +61,17 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
             for i = 1:numel(acc)
                 eqs{i} = model.operators.AccDiv(acc{i}, flux{i});
             end
-
+            pv = model.getProp(state, 'PoreVolume');
+            b  = model.getProp(state, 'ShrinkageFactors');
+            [bW, bG] = deal(b{:});
+            
             if model.hasDissolution()
-                
-                pv = model.getProp(state, 'PoreVolume');
-                b  = model.getProp(state, 'ShrinkageFactors');
 
                 [co2dis, co2dis0] = deal(model.dissolvedCO2Mass(state), ...
                                          model.dissolvedCO2Mass(state0));
                 
                 acc_dis = (co2dis - co2dis0) / dt;
-                
-                [bW, bG] = deal(b{:});
-                
                 flux_dis = model.getProp(state, 'DissolvedFlux');
-                
                 eq_dis = model.operators.AccDiv(acc_dis, flux_dis);
                 
                 if model.hasRateDrivenDissolution()
@@ -107,7 +103,8 @@ classdef CO2VEBlackOilTypeModel < ReservoirModel & GenericReservoirModel
                 names = [names, {'hysteresis'}];
                 types = [types, {'cell'}];
 
-                fac = (1 - model.fluid.res_water) ./ model.fluid.res_gas ./ pv ./ model.fluid.rhoGS ./ bG;
+                fac = (1 - model.fluid.res_water) ./ model.fluid.res_gas ./ ...
+                      pv ./ model.fluid.rhoGS ./ bG;
                 eqs = [eqs, { sGmax - max(sGmax0 - s_depletion .* dt .* fac, sG) }];
                 
             end
