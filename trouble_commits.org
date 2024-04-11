@@ -1,0 +1,7 @@
+* TODO commit c7aa18e681ad0875a62a536eaf630cfbedec6193
+- /odd folder inneholder mye eksperimentell doktorgradskode og noen store samplede filer
+* TODO commit 25a05c0c308378e20bea9803a9afd18681e85644
+- to .mat-filer lastet opp under test_cases/odd.
+* TODO commit a426710a843fd8f6203155f19a2c1d96c7fc40c3
+- flytting av /deprecated til /private/deprecated
+
