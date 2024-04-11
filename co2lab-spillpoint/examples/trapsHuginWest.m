@@ -2,6 +2,7 @@
 % This formation has the largest difference in the trap volumes. We extract
 % a subset in the south of the model and compare the traps computed by the
 % node-based and the cell-based algorithms
+mrstModule add co2lab-common co2lab-spillpoint co2lab-legacy co2lab-demo
 mrstModule add libgeometry deckformat coarsegrid
 grdecl = getAtlasGrid('Huginfmwest');
 try

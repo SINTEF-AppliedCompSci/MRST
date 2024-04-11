@@ -275,7 +275,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    krg = ifelse(opt.krmax(2) < 0, 1 - opt.residual(1), opt.krmax(2));
 
    fluid.relperm_model = relperm_model;
-   
+   relperm_model
    switch relperm_model
      case 'sharp_interface_simple'
        fluid = addVERelpermSharpInterface(fluid, Gt, rock, ...
@@ -437,7 +437,7 @@ function opt = default_options()
                      % Brooks-Corey capillary pressure curve.   Since the
                      % data type is different in the two cases, we cannot set 
                      % the default directly here, but have to set it after
-                     % the call to merge_options in the main function.n
+                     % the call to merge_options in the main function.
    
    % Various parameters
    opt.pvMult_p_ref    = 100 * barsa;  % reference pressure for pore volume multiplier

@@ -11,11 +11,12 @@
 % (ii) a model of a somewhat larger region derived from the CO2 Storage
 % Atlas for the Norwegian North Sea.
 
-mrstModule add co2lab libgeometry deckformat coarsegrid matlab_bgl
+mrstModule add co2lab-common co2lab-spillpoint co2lab-demo
+mrstModule add libgeometry deckformat coarsegrid matlab_bgl
 
 %% Load NPD data: sector model
 try
-   jdir = fullfile(mrstPath('co2lab'), 'data', 'johansen');
+   jdir = fullfile(mrstDataDirectory, 'Johansen');
    sector = 'NPD5';
    sector = fullfile(jdir, sector);
    grdecl = readGRDECL([sector '.grdecl']);
@@ -46,7 +47,7 @@ d = sqrt(sum(bsxfun(@minus, Gts.cells.centroids, wcent(1:2)).^2, 2));
 
 %% Load NPD data: full-field model
 try
-   jdir = fullfile(mrstPath('co2lab'), 'data', 'johansen');
+   jdir = fullfile(mrstDataDirectory, 'Johansen');
    sector = 'FULLFIELD_IMAXJMAX';
    sector = fullfile(jdir, sector);
    grdecl = readGRDECL([sector '.GRDECL']);

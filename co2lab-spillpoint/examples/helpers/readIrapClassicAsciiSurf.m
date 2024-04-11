@@ -17,7 +17,7 @@ function [x, y, Z, angle] = readIrapClassicAsciiSurf(filename)
 %   angle  - Grid angle
 %
 % EXAMPLE:
-%    fname = fullfile(mrstPath('co2lab'), 'data', 'igems', ...
+%    fname = fullfile(mrstDataDirectory, 'igems', ...
 %                      'surfaces', 'flatNP1', '1_flatNP1.irap');
 %    [x, y, Z, angle] = readIrapClassicAsciiSurf(fname);
 %    surf(x,y,Z);

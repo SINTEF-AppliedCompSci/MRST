@@ -61,7 +61,6 @@ coarse = opt.coarse;
 
 subset = false;
 if isempty(opt.dir)
-   %result_dir = fullfile(mrstPath('co2lab'), 'data', 'igems');
    info = getDatasetInfo('IGEMSsurfaces');
    if i == 1 && ~exist(fullfile(mrstDataDirectory(), info.name), 'dir')
        file_dir = fullfile(getDatasetPath('IGEMSsample'), 'one_of_each');

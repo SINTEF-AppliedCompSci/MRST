@@ -125,7 +125,7 @@ deck.SCHEDULE.step.val     = deck.SCHEDULE.step.val;
 deck.SCHEDULE.step.control = ones(nsteps,1);
 
 % % write deck to file
-% datadir = fullfile(mrstPath('co2lab','data','decks');
+% datadir = fullfile(mrstPath('co2lab-common','data','decks');
 % if ~isdir(datadir)
 %    mkdir(datadir);
 % end

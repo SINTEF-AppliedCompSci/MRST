@@ -35,7 +35,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
 try
    disp(' -> Reading SlopingAquifer.mat');
-   datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
+   datadir = fullfile(mrstPath('co2lab-common'), 'data', 'mat');
    load(fullfile(datadir,'SlopingAquifer'));
    return
 catch %#ok<*CTCH>

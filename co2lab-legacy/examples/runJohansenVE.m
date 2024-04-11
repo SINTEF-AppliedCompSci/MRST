@@ -84,7 +84,7 @@ try
    cpp_accel = true;
 catch me
    disp('mex-file for C++ acceleration not found');
-   disp(['See ', fullfile(mrstPath('co2lab'),'ve','VEmex','README'),...
+   disp(['See ', fullfile(mrstPath('co2lab-legacy'),'solvers', 'VEmex','README'),...
       ' for building instructions']);
    disp('Using matlab ve-transport');
    cpp_accel = false;

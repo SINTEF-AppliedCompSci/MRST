@@ -40,7 +40,7 @@ if nargin<1, usemex=true; end
 fname = 'slopingAquiferBig.mat';
 try
    disp([' -> Reading ' fname]);
-   datadir = fullfile(mrstPath('co2lab'), 'data', 'mat');
+   datadir = fullfile(mrstPath('co2lab-common'), 'data', 'mat');
    load(fullfile(datadir, fname));
    return;
 catch %#ok<*CTCH>
@@ -48,19 +48,9 @@ catch %#ok<*CTCH>
 end
 
 %% Read the IGEMS data file
-try
-   idir = fullfile(mrstPath('co2lab'), 'data', 'igems');
-   imodel = 'IGEMS.GRDECL';
-   fprintf('    Reading %s\n', imodel);
-   grdecl = readGRDECL(fullfile(idir, imodel));
-catch
-   disp(' -> Download data from: http://www.sintef.no/Projectweb/MRST/');
-   disp(['    Putting data in ', idir]);
-   untar('https://www.sintef.no/project/MRST/IGEMS.tar.gz',...
-      fullfile(mrstPath('co2lab'), 'data'));
-   grdecl = readGRDECL(fullfile(idir, imodel));
-end
-
+imodel = 'IGEMS.GRDECL';
+fprintf('    Reading %s\n', imodel);
+grdecl = readGRDECL(fullfile(getDatasetPath('IGEMSsample'), imodel));
 
 %% Process 3D grid and compute geometry
 % First, we map from left-hand to right-hand coordinate system. 
