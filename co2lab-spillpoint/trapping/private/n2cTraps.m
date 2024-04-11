@@ -291,15 +291,15 @@ function cell_rivers = project_rivers_to_cells(Gt, edge_rivers)
     assert(unique(diff(Gt.faces.nodePos)) == 2); 
                                                  
     % one row per edge, giving its end node indices (in ascending order)
-    enodes_sorted = sort(reshape(Gt.faces.nodes, 2, []), 1, 'ascend')';
+    enodes_sorted = sort(reshape(double(Gt.faces.nodes), 2, []), 1) .';
     enodes_lookup = sparse(enodes_sorted(:,1), enodes_sorted(:,2), ...
                            1:Gt.faces.num, nnum, nnum);
     
     % make tables with the diagonals of each cell (needed in case the river
     % goes diagonally across a cell)
     cellnodes = activeCellNodes(Gt)';
-    diag1 = sort([cellnodes(:,1), cellnodes(:,4)], 2, 'ascend');
-    diag2 = sort([cellnodes(:,2), cellnodes(:,3)], 2, 'ascend');
+    diag1 = sort([cellnodes(:,1), cellnodes(:,4)], 2);
+    diag2 = sort([cellnodes(:,2), cellnodes(:,3)], 2);
     diag_lookup = sparse(diag1(:,1), diag1(:,2), (1:Gt.cells.num)', nnum, nnum) + ...
                   sparse(diag2(:,1), diag2(:,2), (1:Gt.cells.num)', nnum, nnum);
     
