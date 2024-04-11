@@ -1,0 +1,51 @@
+function statesVE = states2VE(states3D, Gt, fluid, poro3D)
+
+    sGmax = zeros(Gt.cells.num, 1);
+    statesVE = cell(numel(states3D), 1);
+    
+    for i = 1:numel(states3D)
+    
+        state = states3D{i};
+        sg = finescale2upscaledSat(state.s(:,2), Gt, poro3D);
+        p  = finescale2upscaledPressure(state.pressure, Gt, fluid);
+        
+        sGmax = max(sGmax, sg);
+        
+        sVE.pressure = p;
+        sVE.s = [1-sg, sg];
+        sVE.sGmax = sGmax;
+        statesVE{i} = sVE;
+    end
+    
+end
+
+% ----------------------------------------------------------------------------
+function S = finescale2upscaledSat(sg, Gt, poro)
+
+    cix = Gt.columns.cells;
+    pvol = poro(cix) .* Gt.parent.cells.volumes(cix);
+    gvol = pvol .* sg(cix);
+    
+    cmap = rldecode((1:Gt.cells.num)', diff(Gt.cells.columnPos));
+    col_pvol = accumarray(cmap, pvol);
+    col_gvol = accumarray(cmap, gvol);
+    
+    S = col_gvol ./ col_pvol; % volume of gas in a column as a fraction of
+                              % the total porevolume of the column
+end
+
+% ----------------------------------------------------------------------------
+function P = finescale2upscaledPressure(p, Gt, fluid)
+ 
+    % index of uppermost cell in each column
+    cells_upper = Gt.columns.cells(Gt.cells.columnPos(1:end-1));
+    
+    p_upper = p(cells_upper);
+    
+    dz_upper = Gt.columns.dz(cells_upper);
+    
+    rho = fluid.rhoWS .* fluid.bW(p_upper);
+    
+    P = p_upper - rho .* dz_upper/2 * norm(gravity());
+    
+end
