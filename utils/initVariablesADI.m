@@ -1,13 +1,13 @@
 function varargout = initVariablesADI(varargin)
-% Initialize a set of automatic differentiation variables
+%Initialize Set of Automatic Differentiation Variables
 %
 % SYNOPSIS:
-%  a            = initVariablesADI(a);
-%  [a, b, c, d] = initVariablesADI(a, b, c, d);
+%   a           = initVariablesADI(a)
+%  [a, b, c, d] = initVariablesADI(a, b, c, d)
 %
 % PARAMETERS:
 %   varargin - Any number of variables in either column vector format or as
-%              scalars. These variables will be instantiate as ADI objects
+%              scalars. These variables will be instantiated as ADI objects
 %              containing both a .val field and a .jac jacobian. These
 %              variables will start with identity jacobians with regards to
 %              themselves and zero jacobians with regards to the other
@@ -20,27 +20,27 @@ function varargout = initVariablesADI(varargin)
 %              Newton-like nonlinear solvers.
 %
 % EXAMPLE:
-%        x = 1;
-%        y = 5;
-%        [x, y] = initVariablesADI(x, y)
+%   x = 1;
+%   y = 5;
+%   [x, y] = initVariablesADI(x, y)
 %
-%        This gives x.jac ->  {[1]  [0]} and y.jac ->  {[0]  [1]}.
+%   % This gives x.jac ->  {[1]  [0]} and y.jac ->  {[0]  [1]}.
+%   %
+%   % If we compute z = x .* y.^2 we get
 %
-%        If we compute z = x.*y.^2 we get
+%   z.val = 25 (as is expected),
+%   z.jac{1} = d(x*y^2)/dx = y^2 = 5^2 = 25
+%   z.jac{2} = d(x*y^2)/dy = 2*x*y = 2*1*5 = 10;
 %
-%        z.val = 25 (as is expected),
-%        z.jac{1} = d(x*y^2)/dx = y^2 = 5^2 = 25
-%        z.jac{2} = d(x*y^2)/dy = 2*x*y = 2*1*5 = 10;
-%
-%        Note that as this is meant for vector operations, the
-%        element-wise operations should be used (.* instead of *) even when
-%        dealing with scalars.
+%   % Note that as this is meant for vector operations, the per element
+%   % operations should be used (.* instead of *) even when dealing with
+%   % scalars.
 %
 % RETURNS:
 %   varargout - The same variables as inputted, as ADI objects.
 %
 % SEE ALSO:
-%   `ADI`
+%   `ADI`.
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
@@ -61,7 +61,6 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
    assert (nargin == nargout, ...
           ['Number of output variables must equal the number ', ...
            'of input variables.']);
@@ -70,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    n         = nargin;
    varargout = cell([1, n]);
 
-   for i = 1 : n,
+   for i = 1 : n
       j = [ 1 : (i - 1), (i + 1) : n ];
 
       nrows  = numvals(i);
