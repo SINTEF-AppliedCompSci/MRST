@@ -2,6 +2,25 @@ function plotObsAndSim(Gt, obs, sim, varargin)
 % Plot simulated and observed plume thicknesses
 % obs and sim are cell arrays containing plume thicknesses (heights) "h"
 
+%{
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     assert(numel(sim) == 12) % 12 for 1999-2010
     assert(numel(obs) == 12)
 
@@ -52,5 +71,4 @@ function plotObsAndSim(Gt, obs, sim, varargin)
     title('observed')
     myplotGrid(Gt);
     myplotCellData(Gt, obs{12}.h, Tol); colormap(jet); axis equal tight off; colorbar
-
 end
