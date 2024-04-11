@@ -3,7 +3,7 @@
 % their connections can be used to define a good guess of injector
 % placements. That is, we will consider the problem of determining where N
 % wells should be placed to optimize the potential for structural trapping.
-mrstModule add co2lab;
+mrstModule add co2lab-common co2lab-spillpoint;
 
 %% Extract a subset of the Utsira formation for analysis
 coarsefactor = 2;

@@ -24,7 +24,7 @@
 % Link: <http://www.nr.no/nb/IGEMS>
 % Data description: <http://files.nr.no/igems/data.pdf>
 
-mrstModule add co2lab
+mrstModule add co2lab-common co2lab-spillpoint
 %% Read and prepare grid structure
 % The project developed both full 3D grid saved in the ECLIPSE format and
 % surfaces saved in the IRAP formate.  The ECLIPSE files are huge (588 MB)

@@ -50,8 +50,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if any(strcmp(G.type, 'topSurfaceGrid'))
             resSol.twophaseJacobian = @twophaseJacobianWithVE_s;
         else
+            error('initResSolVE on 3D grids not currently supported.');
             % TODO: figure out region3D option
-            resSol.twophaseJacobian = @twophaseJacobianWithVE_coupled;
+            % resSol.twophaseJacobian = @twophaseJacobianWithVE_coupled;
         end
     end
 end

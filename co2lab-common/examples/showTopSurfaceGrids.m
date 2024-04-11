@@ -3,7 +3,7 @@
 % <matlab:help('topSurfaceGrid') top-surface grids>, showing how to
 % construct them, and discussing some of the data structure.
 
-mrstModule add co2lab
+mrstModule add co2lab-common
 %% A simple 3D example: removing unconnected cells
 % We make a simple 3x3x3 Cartesian model with two cut-outs, one
 % vertical and one horizontal. The grid is specified in a left-hand system
