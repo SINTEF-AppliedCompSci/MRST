@@ -70,8 +70,8 @@ set_fig_standardformat(fig, {'CO2 saturation, last timestep, 3D', ...
                        'CO2 saturation, last timestep, VE'});
 
 % Compare runtimes
-fprintf('Runtime for the 3D simulation: %4.2f seconds.\n', timing.sim3D);
-fprintf('Runtime for the VE simulation: %4.2f seconds.\n', timing.simVE);
+fprintf('Runtime for the 3D simulation: %4.2f seconds.\n', timing140.sim3D);
+fprintf('Runtime for the VE simulation: %4.2f seconds.\n', timing140.simVE);
 
 % compare curves
 states3D = {states5, states15, states140};
