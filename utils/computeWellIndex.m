@@ -66,6 +66,11 @@ end
 function [d1, d2, ell, k1, k2] = ...
       connection_dimensions(G, rock, cells, radius, opt)
    [dx, dy, dz] = geometric_dimensions(G, cells, opt);
+
+   assert (all(all([dx, dy, dz] > 0.0)), ...
+          ['All cell extents must be positive.  Possible failure ', ...
+           'to detect/handle left-handed coordinate systems.']);
+
    k = extract_permeability(G, rock, cells);
 
    welldir = lower(opt.Dir);
