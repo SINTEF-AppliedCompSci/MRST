@@ -209,7 +209,8 @@ function mods = expand_name_alias(varargin)
 
    [imatch, jmatch] = find(~ cellfun('isempty', alias_match));
 
-   pos = accumarray(ja(jmatch) + 1, 1, [numel(mods) + 1, 1], [], 1);
+   pos = accumarray(reshape(ja(jmatch) + 1, [], 1), 1, ...
+                    [numel(mods) + 1, 1], [], 1);
    pos = cumsum(pos);
 
    % Replace alias name with its expanded module list.
