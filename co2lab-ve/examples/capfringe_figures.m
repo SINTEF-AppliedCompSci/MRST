@@ -3,6 +3,7 @@
 % - saturation vs. depth
 % - relperm as fct. of upscaled saturation
 % - capillary pressure as fct. of upscaled saturation
+mrstModule add co2lab-common co2lab-ve
 
 gravity on
 %% Make grid
