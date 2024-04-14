@@ -113,7 +113,12 @@ legend({'MRST', 'ECLIPSE', 'Jutul'})
 %% Plot all three simulators interactively
 [ws_e, T_e] = convertSummaryToWellSols(smry, 'field');
 plotWellSols({ws, ws_m, ws_e}, {T, T, T_e}, 'datasetnames', {'Jutul', 'MRST', 'ECLIPSE'})
-
+%% Parse and simulate case directly in JutulDarcy
+% We can also use the fact that JutulDarcy contains a parser for DATA files
+% to run the DATA file directly. The advantage is that the parser and grid
+% processing in JutulDarcy is a lot faster than that of MRST for larger
+% cases. The output can still be read in the standard MRST format.
+[ws_parsed, states_parsed] = simulateDataFileJutul(deck_path);
 %% Copyright Notice
 %
 % <html>

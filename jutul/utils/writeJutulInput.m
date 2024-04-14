@@ -71,7 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     assert(isfolder(opt.path))
     pth = writeToJutul(opt.path, name, state0, model, schedule, opt.extra, other, opt.reduce);
     if opt.printcmd
-        fprintf('Case written. To simulate, call:\n\n\tusing JutulDarcy\n\tsimulate_mrst_case("%s", write_mrst = true);\n\n', pth)
+        fprintf('Case written. To simulate, call:\n\n\tusing JutulDarcy\n\tsimulate_mrst_case(raw"%s", write_mrst = true);\n\n', pth)
     end
 end
 
