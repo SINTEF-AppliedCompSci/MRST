@@ -83,7 +83,7 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
     % Make sure everything is prepped as if we were running a simulation.
     model = model.validateModel();
     grav = norm(model.gravity) > 0;
-    if ~grav
+    if ~grav && size(G.cells.centroids, 2) == 3
         G.cells.centroids(:, 3) = 0;
     end
     schedule = model.validateSchedule(schedule);
