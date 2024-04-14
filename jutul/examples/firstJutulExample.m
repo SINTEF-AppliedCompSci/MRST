@@ -27,16 +27,31 @@ if ~exist('name', 'var')
     name = 'qfs_wo';
 end
 %%
+gravity reset on
 switch name
     case 'qfs_wo'
         setup = qfs_wo();
     case 'spe10_layer'
         setup = spe10_wo('layers', 1);
+    case 'spe10_tarbert'
+        setup = spe10_wo('layers', 1:35);
+    case 'spe10'
+        setup = spe10_wo();
     case 'fractures_compositional'
         setup = fractures_compositional();
         % Jutul has built-in separator support. We set up a single
         % separator with conditions that match the default in the other
         % simulator.
+        setup.model.AutoDiffBackend = AutoDiffBackend();
+        s  = EOSSeparator('pressure', 101325.0, 'T', 288.15);
+        sg = SeparatorGroup(s);
+        sg.mode = 'moles';
+        setup.model.FacilityModel.SeparatorGroup = sg;
+    case 'compositional_1d'
+        [state0, model, schedule, ref] = setupSimpleCompositionalExample(false);
+        model = model.validateModel();
+        schedule = model.validateSchedule(schedule);
+        setup = struct('state0', state0, 'model', model, 'schedule', schedule);
         setup.model.AutoDiffBackend = AutoDiffBackend();
         s  = EOSSeparator('pressure', 101325.0, 'T', 288.15);
         sg = SeparatorGroup(s);
@@ -51,11 +66,11 @@ end
 %% Write case to disk and output Jutul command
 % The routine will write the MRST setup to disk in a *.mat file and then
 % output a command you can paste into an existing Julia session that
-% already has JutulDarcy preloaded. Once the resulting simulation is
+% already has JutulDarcy installed. Once the resulting simulation is
 % finished, you can hit the return button to continue execution in MATLAB.
 % Notice that the first time you run the simulation, it will take a long
 % time since Julia has to compile necessary code. Once compiled, however,
-% the simulation is fast.
+% the simulation is fast for all subsequent calls in that session.
 pth = writeJutulInput(state0, model, schedule, name);
 disp('Pausing - run the command in Julia and hit any key to continue')
 pause()
@@ -117,3 +132,4 @@ plotWellSols({ws, ws_m}, cumsum(schedule.step.val), 'datasetnames', {'Jutul', 'M
 % <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
 % </font></p>
 % </html>
+
