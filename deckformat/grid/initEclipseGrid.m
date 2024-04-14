@@ -170,6 +170,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        if isfield(deck.GRID, 'PORV')
            mask = mask & deck.GRID.PORV > 0;
        end
+       if isfield(deck.GRID, 'NTG')
+           mask = mask & deck.GRID.NTG > 0;
+       end
+       if isfield(deck.GRID, 'MULTPV')
+           mask = mask & deck.GRID.MULTPV > 0;
+       end
        for i = 1:numel(G)
            G(i) = extractSubgrid(G(i), mask(G(i).cells.indexMap));
        end
