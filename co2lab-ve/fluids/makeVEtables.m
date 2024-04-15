@@ -1,4 +1,6 @@
 function tables = makeVEtables(varargin)
+%Undocumented Utility Function
+
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -79,8 +81,7 @@ opt = struct('invPc3D'    , []    , ...
    tables.kr3D = @(s)    opt.kr3D(s);
 end
 
-% ----------------------------------------------------------------------------
-
+%--------------------------------------------------------------------------
 
 function [h, SH, krH] = cleanTables(h, SH, krH)
    [SH, ia] = unique(SH);

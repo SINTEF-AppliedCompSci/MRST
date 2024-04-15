@@ -1,15 +1,12 @@
-% FLUIDS
+% STATEFUNCTIONS
 %
 % Files
-%   addVERelperm1DTables         - Undocumented Utility Function
-%   addVERelperm1DTablesPressure - Undocumented Utility Function
-%   addVERelpermCapillaryFringe  - Undocumented Utility Function
-%   addVERelpermCapLinear        - VE relperm with linear capillary pressure
-%   addVERelpermSharpInterface   - If 'dh' is nonzero, caprock rugosity is modeled using the
-%   free_sg                      - Determine the mobile part of present saturation, for a hysteretic model
-%   ifcond                       - this function should be expanded
-%   makeVEFluid                  - Construct a VE fluid with properties specific to a chosen model
-%   makeVEtables                 - Undocumented Utility Function
+%   CO2Component              - 
+%   CO2VEBlackOilDensity      - 
+%   CO2VECapillaryPressure    - 
+%   CO2VEDissolvedFlux        - 
+%   CO2VERelativePermeability - 
+%   MiscibleWaterComponent    - 
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

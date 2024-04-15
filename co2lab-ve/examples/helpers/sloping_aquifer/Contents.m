@@ -1,15 +1,10 @@
-% FLUIDS
+% SLOPING_AQUIFER
 %
 % Files
-%   addVERelperm1DTables         - Undocumented Utility Function
-%   addVERelperm1DTablesPressure - Undocumented Utility Function
-%   addVERelpermCapillaryFringe  - Undocumented Utility Function
-%   addVERelpermCapLinear        - VE relperm with linear capillary pressure
-%   addVERelpermSharpInterface   - If 'dh' is nonzero, caprock rugosity is modeled using the
-%   free_sg                      - Determine the mobile part of present saturation, for a hysteretic model
-%   ifcond                       - this function should be expanded
-%   makeVEFluid                  - Construct a VE fluid with properties specific to a chosen model
-%   makeVEtables                 - Undocumented Utility Function
+%   make_testgrid                       - Creating base sloping surface with slight y curvature
+%   open_boundary_conditions            - Undocumented Utility Function
+%   set_fig_standardformat              - Undocumented Utility Function
+%   simple_injection_migration_schedule - Define simple, single-well injection and migration scenario
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

@@ -1,15 +1,10 @@
-% FLUIDS
+% INVENTORY
 %
 % Files
-%   addVERelperm1DTables         - Undocumented Utility Function
-%   addVERelperm1DTablesPressure - Undocumented Utility Function
-%   addVERelpermCapillaryFringe  - Undocumented Utility Function
-%   addVERelpermCapLinear        - VE relperm with linear capillary pressure
-%   addVERelpermSharpInterface   - If 'dh' is nonzero, caprock rugosity is modeled using the
-%   free_sg                      - Determine the mobile part of present saturation, for a hysteretic model
-%   ifcond                       - this function should be expanded
-%   makeVEFluid                  - Construct a VE fluid with properties specific to a chosen model
-%   makeVEtables                 - Undocumented Utility Function
+%   makeReports                   - This function takes the results of a simulation ('states', a cell array of
+%   makeReports3D                 - This function is a wrapper that calls 'makeReports' on a result from a 3D
+%   massTrappingDistributionVEADI - Compute the trapping status distribution of CO2 in each cell of a top-surface grid
+%   plotTrappingDistribution      - Generate Trapping Inventory Plot From Simulation Result
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

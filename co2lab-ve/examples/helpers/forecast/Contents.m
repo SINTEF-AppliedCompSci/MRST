@@ -7,6 +7,7 @@
 %   dippedPerturbedGrid        - Construct grid similar to one used in trappingExample1.m, with optional
 %   drawCellConnections3D      - Undocumented Utility Function
 %   getSeaInfo                 - Returns relevant info for a specified sea or formation in the Norwegian
+%   massAtInfinity             - Forecast amount of co2 (in kg) to remain in formation by time infinity.
 %   topCellOfTrap              - explicitly get top cells of each trap region
 
 %{
