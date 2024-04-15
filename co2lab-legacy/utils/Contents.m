@@ -1,11 +1,9 @@
-% S_FORMULATION
+% UTILS
 %
 % Files
-%   gravPressureVE_s         - Computes innerproduct of (face_centroid - cell_centroid) * g for each face
-%   initResSolVE_s           - Wrapper for initResSol which adds any extra properties needed by the
-%   initSimpleVEFluid_s      - Initialize incompressible two-phase fluid model for vertical average
-%   primitivesMimeticVE_s    - Internal helper for topSurfaceGrid. Used to override mimetic primitives
-%   twophaseJacobianWithVE_s - Residual and Jacobian of single point upwind solver for two-phase flow.
+%   invertVerticalFunction - Solve y(z)=f for piecewise linear, monotonically increasing function y.
+%   normalizeValuesVE      - Normalizes values for different VE grids and formulations.
+%   volumesVE              - SYNOPSIS:
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

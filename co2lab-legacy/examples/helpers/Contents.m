@@ -1,11 +1,11 @@
-% S_FORMULATION
+% HELPERS
 %
 % Files
-%   gravPressureVE_s         - Computes innerproduct of (face_centroid - cell_centroid) * g for each face
-%   initResSolVE_s           - Wrapper for initResSol which adds any extra properties needed by the
-%   initSimpleVEFluid_s      - Initialize incompressible two-phase fluid model for vertical average
-%   primitivesMimeticVE_s    - Internal helper for topSurfaceGrid. Used to override mimetic primitives
-%   twophaseJacobianWithVE_s - Residual and Jacobian of single point upwind solver for two-phase flow.
+%   grdeclSloping         - Make a GRDECL structure for simple corner-point grid, possibly faulted.
+%   makeSlopingAquifer    - Make an example model of a sloping aquifer with heterogeneous rock props
+%   makeSlopingAquiferBig - Make an VE model based upon a data set obtained from the IGEMS project
+%   sinusDeck             - Make a GRDECL structure for simple sloping sinus-formed reservoir.
+%   sinusDeckAdiVE        - Make a GRDECL structure for simple sloping sinus-formed reservoir.
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

@@ -1,11 +1,8 @@
-% S_FORMULATION
+% PLOTTING
 %
 % Files
-%   gravPressureVE_s         - Computes innerproduct of (face_centroid - cell_centroid) * g for each face
-%   initResSolVE_s           - Wrapper for initResSol which adds any extra properties needed by the
-%   initSimpleVEFluid_s      - Initialize incompressible two-phase fluid model for vertical average
-%   primitivesMimeticVE_s    - Internal helper for topSurfaceGrid. Used to override mimetic primitives
-%   twophaseJacobianWithVE_s - Residual and Jacobian of single point upwind solver for two-phase flow.
+%   plotPanelVE - Make a panel plot used in the examples of the VE module
+%   plotPlume   - Plot CO2 plume on logically Cartesian grid
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

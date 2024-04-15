@@ -4,6 +4,7 @@
 %   computeMimeticIPVE   - Compute mimetic inner product matrices.
 %   computePressureRHSVE - Compute right-hand side contributions to pressure linear system.
 %   explicitTransportVE  - Explicit single point upwind solver for two-phase flow using VE equations.
+%   initResSolVE         - Wrapper for initResSol which adds any extra properties needed by the
 %   initTransportVE      - Precompute values needed in explicitTransportVE.
 %   solveIncompFlowVE    - Solve incompressible flow problem (fluxes/pressures) for VE equation.
 
