@@ -1,4 +1,4 @@
-% Create example kr-Pc properties
+%% Create example CO2-brine kr-Pc properties as tables
 % Brooks-Corey type properties
 % Relative permeability
 np = 24;
@@ -45,7 +45,7 @@ t.reservoir = [sg1, krg1, krw1, pc1];
 t.caprock = [sg2, krg2, krw2, pc2];
 t.fault = [sg3, krg3, krw3, pc3];
 
-% Plots
+%% Plot relative permeabilities
 figure(1)
 subplot(1,3,1)
 hold on
@@ -81,7 +81,7 @@ xlim([0 1])
 ylim([0 1])
 grid on
 title('Fault')
-
+%% Plot capillary pressures
 figure(2)
 hold on
 plot((1-sg2), pc2*1e3, '-k')

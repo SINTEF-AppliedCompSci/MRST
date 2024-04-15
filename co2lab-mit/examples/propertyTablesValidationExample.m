@@ -10,7 +10,11 @@
 % Documentation on the functionality itself is provided within
 % pvtBrineWithCO2BlackOil.
 %
-%warning('off', 'all')              % disable warnings, use with caution
+% Note that the table generation produces warnings due to evaluation of
+% functions outside their strict range of validity. These are nothing to
+% worry about from a user's perspective, but we include the command for
+% disabling warnings in your current MATLAB session if needed:
+% warning('off', 'all')              % disable warnings, use with caution
 
 
 %% Comparison with Fig. 5 in Hassanzadeh et al. IJGGC (2008)
