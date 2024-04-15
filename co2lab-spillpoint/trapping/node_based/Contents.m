@@ -1,7 +1,7 @@
 % NODE_BASED
 %
 % Files
-%   computeNodeTraps - Compute tracks and spill regions for the 2D surface grid 'Gt'.  The
+%   computeNodeTraps - Compute traps and spill regions for the 2D surface grid 'Gt'.  The
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

@@ -1,14 +1,7 @@
-% TRAPPING
+% UTILS
 %
 % Files
-%   coarseningEffects      - Johansen formation: the effect of coarsening on trapping
-%   firstTrappingExample   - Trapping example
-%   optimizationExample    - Optimal injection points
-%   showTrapsInteractively - Interactive spill point analysis of top surface grids
-%   subscaleResolution     - Effects of scales structures on trapping capacity
-%   trappingIGEMS          - IGEMS Data Set
-%   trapsHuginWest         - Inspect the Hugin West Formation
-%   trapsJohansen          - Trapping on Johansen grids
+%   interactiveTrapping - Create an interactive figure showing trapping structure for a top surface grid
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

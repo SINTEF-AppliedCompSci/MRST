@@ -1,14 +1,8 @@
-% TRAPPING
+% HELPERS
 %
 % Files
-%   coarseningEffects      - Johansen formation: the effect of coarsening on trapping
-%   firstTrappingExample   - Trapping example
-%   optimizationExample    - Optimal injection points
-%   showTrapsInteractively - Interactive spill point analysis of top surface grids
-%   subscaleResolution     - Effects of scales structures on trapping capacity
-%   trappingIGEMS          - IGEMS Data Set
-%   trapsHuginWest         - Inspect the Hugin West Formation
-%   trapsJohansen          - Trapping on Johansen grids
+%   readIGEMSIRAP            - Read and process IGEMS .irap grids.
+%   readIrapClassicAsciiSurf - Read an .irap classic ASCII surface
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
