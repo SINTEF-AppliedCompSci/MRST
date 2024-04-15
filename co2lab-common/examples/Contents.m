@@ -1,9 +1,9 @@
-% GRID
+% EXAMPLES
 %
 % Files
-%   boundaryCellsSubGrid - Compute set of cells on the boundary of a subgrid
-%   computeGeometryVE_2D - Compute geometry of grid of top-surface grid so that the geometry is
-%   topSurfaceGrid       - Make a hybrid grid of the top surface of a 3D grid having a logical
+%   modelsFromAtlas     - Grid Models from the CO2 Storage Atlas
+%   showCO2atlas        - CO2 Storage Atlas: the Norwegian North Sea
+%   showTopSurfaceGrids - Top-Surface Grids
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

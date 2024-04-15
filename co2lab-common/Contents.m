@@ -1,9 +1,7 @@
-% GRID
+% CO2LAB-COMMON
 %
 % Files
-%   boundaryCellsSubGrid - Compute set of cells on the boundary of a subgrid
-%   computeGeometryVE_2D - Compute geometry of grid of top-surface grid so that the geometry is
-%   topSurfaceGrid       - Make a hybrid grid of the top surface of a 3D grid having a logical
+%   makeSleipnerVEmodel - Make a VE model based upon the Sleipner data set from ieaghg.org
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

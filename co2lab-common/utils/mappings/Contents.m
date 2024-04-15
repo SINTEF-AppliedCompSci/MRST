@@ -1,9 +1,12 @@
-% GRID
+% MAPPINGS
 %
 % Files
-%   boundaryCellsSubGrid - Compute set of cells on the boundary of a subgrid
-%   computeGeometryVE_2D - Compute geometry of grid of top-surface grid so that the geometry is
-%   topSurfaceGrid       - Make a hybrid grid of the top surface of a 3D grid having a logical
+%   height2Sat          - Convert from height to (fine scale) saturation.  By default, a sharp-interface
+%   integrateVertically - Compute integral of function, vertically per column.
+%   pVE_to_p3D          - Convert from upscaled pressure to fine-scale pressure.
+%   states2VE           - Undocumented Utility Function
+%   upscaledSat2height  - Compute upscaled height, based on upscaled saturation
+%   VEstates23D         - for the moment, only converts pressure and saturation
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

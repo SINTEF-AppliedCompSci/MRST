@@ -1,16 +1,8 @@
 % ATLASGRID
 %
 % Files
-%   contourAtlas            - Plot contour lines in 3D for height data
-%   convertAtlasTo3D        - Create GRDECL struct from CO2 storage atlas thickness/top data
-%   convertAtlasToStruct    - Create GRDECL struct from thickness/top data from the CO2 Storage Atlas 
-%   getAtlasGrid            - Get GRDECL grids and datasets for CO2 Atlas datasets
-%   getBarentsSeaNames      - Returns the formation names present in the Barents Sea.
-%   getNorthSeaNames        - Returns the formation names present in the North Sea.
-%   getNorwegianSeaNames    - Returns the formation names present in the Norwegian Sea.
-%   processAAIGrid          - Process aii grid meta data to a grid
-%   readAAIGrid             - Read AIIGrid from file.
-%   updateWithHeterogeneity - Update deck and petroinfo to include heterogeneous rock properties
+%   contourAtlas - Plot contour lines in 3D for height data
+%   getAtlasGrid - Get GRDECL grids and datasets for CO2 Atlas datasets
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

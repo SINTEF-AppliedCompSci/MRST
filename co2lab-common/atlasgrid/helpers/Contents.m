@@ -1,9 +1,14 @@
-% GRID
+% HELPERS
 %
 % Files
-%   boundaryCellsSubGrid - Compute set of cells on the boundary of a subgrid
-%   computeGeometryVE_2D - Compute geometry of grid of top-surface grid so that the geometry is
-%   topSurfaceGrid       - Make a hybrid grid of the top surface of a 3D grid having a logical
+%   convertAtlasTo3D        - Create GRDECL struct from CO2 storage atlas thickness/top data
+%   convertAtlasToStruct    - Create GRDECL struct from thickness/top data from the CO2 Storage Atlas 
+%   getBarentsSeaNames      - Returns the formation names present in the Barents Sea.
+%   getNorthSeaNames        - Returns the formation names present in the North Sea.
+%   getNorwegianSeaNames    - Returns the formation names present in the Norwegian Sea.
+%   readAAIGrid             - Read AIIGrid from file.
+%   refineInfo              - 
+%   updateWithHeterogeneity - Update deck and petroinfo to include heterogeneous rock properties
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

@@ -1,9 +1,12 @@
-% GRID
+% HELPERS
 %
 % Files
-%   boundaryCellsSubGrid - Compute set of cells on the boundary of a subgrid
-%   computeGeometryVE_2D - Compute geometry of grid of top-surface grid so that the geometry is
-%   topSurfaceGrid       - Make a hybrid grid of the top surface of a 3D grid having a logical
+%   colorizeRegion             - Colorize area described by positive value for field
+%   continuousCelldataFunction - Undocumented Utility Function
+%   drawContours               - Undocumented Utility Function
+%   drawSmoothField            - Undocumented Utility Function
+%   extractGridBoundaryNodes   - NB: It is assumed that there are no internal holes, i.e. that there is one
+%   interleave                 - Interleave the elements of two cell arrays
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

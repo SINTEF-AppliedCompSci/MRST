@@ -1,9 +1,10 @@
-% GRID
+% MISC
 %
 % Files
-%   boundaryCellsSubGrid - Compute set of cells on the boundary of a subgrid
-%   computeGeometryVE_2D - Compute geometry of grid of top-surface grid so that the geometry is
-%   topSurfaceGrid       - Make a hybrid grid of the top surface of a 3D grid having a logical
+%   getInventoryColors - Return colors used for plotting CO2 inventories (green to orange color)
+%   getValuesSPE134891 - Undocumented Utility Function
+%   makeJohansenVEgrid - Make a VE model based upon a data set of the Johansen formation
+%   moduleCheck        - Load specified modules unless already active
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

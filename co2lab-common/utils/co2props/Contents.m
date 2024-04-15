@@ -6,8 +6,9 @@
 %   CO2CriticalPoint          - Values from paper by Span % Wagner
 %   CO2props                  - Generate a set of CO2 property functions based on sampled data.
 %   CO2VaporPressure          - Compute the CO2 vapor pressure for a given temperature
-%   generatePropsTable        - Generates and saves a sampled table of fluid properties, using 'coolprops'.
-%   propFilename              - Standardized filename generator for a sampled table of a given property of
+%   generatePropsTable        - Generates and saves a sampled table of fluid properties, using `CoolProp`.
+%   include_BO_form           - Undocumented Utility Function
+%   propFilename              - Standardized filename generator for a sampled table of a given property
 %   SampledProp2D             - Create a structure with functions to interpolate a 2D sampled property and its
 
 %{

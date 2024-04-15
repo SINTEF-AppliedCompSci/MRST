@@ -1,9 +1,9 @@
-% GRID
+% UTILS
 %
 % Files
-%   boundaryCellsSubGrid - Compute set of cells on the boundary of a subgrid
-%   computeGeometryVE_2D - Compute geometry of grid of top-surface grid so that the geometry is
-%   topSurfaceGrid       - Make a hybrid grid of the top surface of a 3D grid having a logical
+%   averageRock - Average version of rock for use in vertical averaging
+%   ifelse      - Undocumented Utility Function
+%   userConsent - userConsent Ask user for his/her consent to a Y/N question
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
