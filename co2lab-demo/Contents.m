@@ -1,9 +1,8 @@
 % INTERACTIVE_DEMOS
 %
 % Files
-%   exploreCapacity     - opt - structure containing variables that can be overridden by user at
-%   exploreSimulation   - Undocumented Utility Function
-%   interactiveTrapping - Create an interactive figure showing trapping structure for a top surface grid
+%   exploreCapacity   - opt - structure containing variables that can be overridden by user at
+%   exploreSimulation - Undocumented Utility Function
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

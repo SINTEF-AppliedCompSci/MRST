@@ -2,6 +2,7 @@
 %
 % Files
 %   getMigrationTree - Recursively traverse and find the full migration tree
+%   migrateInjection - Run a simple injection scenario and visualize each time step
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
