@@ -10,7 +10,6 @@
 % Documentation on the functionality itself is provided within
 % pvtBrineWithCO2BlackOil.
 %
-clc, clear, close all
 %warning('off', 'all')              % disable warnings, use with caution
 
 

@@ -1,4 +1,6 @@
 function viscMixture = viscGasMixtD1993(x, M, mu)
+% SYNOPSIS:
+% viscMixture = viscGasMixtD1993(x, M, mu)
 %
 % DESCRIPTION:
 % Calculate the viscosity of a gas mixture following Davidson (1993).

@@ -1,4 +1,6 @@
 function [rho_brine, c_brine] = pvtBrineRoweChou1970(T, P, S)
+% SYNOPSIS:
+% [rho_brine, c_brine] = pvtBrineRoweChou1970(T, P, S)
 %
 % DESCRIPTION:
 % Calculate brine density and/or compressibility using Rowe and Chou's

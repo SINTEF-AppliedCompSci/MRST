@@ -1,4 +1,7 @@
 function [V_m, rhox, rho] = pvtCO2RK1949(T, P, varargin)
+% SYNOPSIS
+% [V_m, rhox, rho] = pvtCO2RK1949(T, P)
+% [V_m, rhox, rho] = pvtCO2RK1949(T, P, 'a_m', a_m, 'b_m', b_m)
 %
 % DESCRIPTION:
 % Calculate CO2 molar volume and density using Redlich and Kwong (1949)

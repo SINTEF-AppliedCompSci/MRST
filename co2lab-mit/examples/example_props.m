@@ -7,12 +7,15 @@
 %
 % NOTE: Documentation on the functionality itself is provided within
 % pvtBrineWithCO2BlackOil.
-% NOTE2: You may have to update the variable pth to reflect your data
-%        directory.
 %
-clear, close all
 
 %% Generate properties
+% Properties are based on functional relationships taken from the
+% literature. When tables are to be generated, these functions are
+% occasionally evaluated outside the strict range of validity suggested in
+% the papers to avoid somewhat arbitrary extrapolation when the tables are
+% used in a simulation. A warning will be issued when this occurs, but this
+% can safely be ignored.
 T = {'C', 80};                          % temperature
 P = {'MPa','mMn',[0.1, 60, 30]};        % pressure range
 S = {'ppm', 'brine', 10^5};             % salinity

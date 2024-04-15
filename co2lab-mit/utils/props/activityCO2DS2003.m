@@ -1,4 +1,6 @@
 function gamma_co2 = activityCO2DS2003(T, P, m_io)
+% SYNOPSIS:
+% gamma_co2 = activityCO2DS2003(T, P, m_io)
 %
 % DESCRIPTION:
 % Calculate a CO2 pseudo activity coefficient based on a virial expansion

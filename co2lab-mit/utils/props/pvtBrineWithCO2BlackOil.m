@@ -1,5 +1,7 @@
 function [t, rho_co2_s, rho_brine_s] = pvtBrineWithCO2BlackOil(T, P, S, ...
                                         saltVar, vapH2O, unsatVals, figs)
+% SYNOPSIS:
+% [t, rho_co2_s, rho_brine_s] = pvtBrineWithCO2BlackOil(T, P, S, saltVar, vapH2O, unsatVals, figs)
 %
 % Lluís Saló-Salgado (lsalo@mit.edu), September 2019
 % Updates:

@@ -1,4 +1,6 @@
 function rho_b = pvtBrineBW1992(T, P, w_nacl)
+% SYNOPSIS:
+% rho_b = pvtBrineBW1992(T, P, w_nacl)
 %
 % DESCRIPTION:
 % Calculate the brine (H2O + NaCl) density based on Batzle & Wang (1992).

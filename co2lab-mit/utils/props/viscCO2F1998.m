@@ -1,4 +1,6 @@
-function [mu] = viscCO2F1998(T, rho)
+function mu = viscCO2F1998(T, rho)
+% SYNOPSIS:
+% mu = viscCO2F1998(T, rho)
 %
 % DESCRIPTION:
 % Calculate CO2 viscosity from Vesovic et al., J Phys Chem Ref Data (1990) 

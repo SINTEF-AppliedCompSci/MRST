@@ -37,7 +37,7 @@ mrstVerbose on
 %% Output directory and options
 
 % Options
-plotFigs = false;
+plotFigs = true;
 mesh    = 'coarse';                           % 'coarse', 'medium', or 'fine'
 wellno  = 1;                                  % 1 or 2 injectors (TBD for 2)
 D       = 2e-11;                              % pseudo-molecular diffusivity (m^2/s)

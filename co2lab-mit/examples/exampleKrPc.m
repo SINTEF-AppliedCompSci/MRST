@@ -1,6 +1,5 @@
 % Create example kr-Pc properties
 % Brooks-Corey type properties
-
 % Relative permeability
 np = 24;
 % Reservoir
@@ -35,6 +34,7 @@ pc3 = pce3*(1-sg3).^(-1/lambda); pc3(1) = 0;
 % Generate tables for input to .DATA file
 hdrs = {'SGAS', 'KRG', 'KRW', 'PCOG'};
 vartyp  = cellstr(repmat('double', numel(hdrs), 1));
+clear t
 t.reservoir = table('Size', [np, 4], 'VariableTypes', vartyp, ...
                    'VariableNames', hdrs); 
 t.caprock = table('Size', [np, 4], 'VariableTypes', vartyp, ...

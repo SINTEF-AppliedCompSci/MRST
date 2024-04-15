@@ -1,4 +1,6 @@
 function mu_b_co2 = viscBrineCO2IC2012(T, P, m_nacl, w_co2)
+% SYNOPSIS
+% mu_b_co2 = viscBrineCO2IC2012(T, P, m_nacl, w_co2)
 %
 % DESCRIPTION:
 % Calculate the dynamic viscosity of a solution of H2O + NaCl (brine) with
