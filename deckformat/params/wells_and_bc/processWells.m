@@ -478,7 +478,7 @@ function W = process_wconhist(W, control, G, rock, c2a, well_id, p, opt)
           type = 'RESV_HISTORY';
         case 'bhp'
           val = control.WCONHIST{i, 10};
-
+          compi = [0, 1, 0];
         otherwise
           dispif(opt.Verbose && status, ...
                  ['Control mode ''%s'' unsupported for producer ', ...
