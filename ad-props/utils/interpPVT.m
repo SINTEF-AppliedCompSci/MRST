@@ -81,7 +81,9 @@ function [yi, dyidxi, dyidvi] = interpolate(T, xi, vi, sat, method, compDer, use
             % that this is somehow undersaturated.
             sat(value(xi) < T.sat.x(1)) = false;
             usat = ~sat;
-            [yi(sat), dyidxi(sat)] = interp1_internal(T.sat.x, T.sat.F, xi(sat), compDer, useMex);
+            if any(sat)
+                [yi(sat), dyidxi(sat)] = interp1_internal(T.sat.x, T.sat.F, xi(sat), compDer, useMex);
+            end
             if any(usat)
                 if compDer
                     [yi(usat), dyidxi(usat), dyidvi(usat)] = interp2DPVT_local(T, xi(usat), vi(usat), method, useMex);
