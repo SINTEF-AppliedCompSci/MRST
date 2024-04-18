@@ -217,6 +217,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Look for a particular module or set of modules.  The 'mods'
             % list is interpreted as a list of modules to search for.
 
+            mods = expand_name_alias(CACHE, mods);
             [pth, notfound] = search_modules(CACHE, mods);
 
             if nargout > 0
@@ -230,6 +231,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                elseif nargout == numel(mods)
 
                   [varargout{1:numel(mods)}] = lst{:};
+
+               else
+
+                  error('ModuleList:SizeMismatch', ...
+                       ['Path list of ''%d'' elements does match ', ...
+                        'module list of ''%d'' elements\n', ...
+                        '  -> Please use single-object return value ', ...
+                        'to capture all paths in alias-expanded list'], ...
+                        nargout, numel(mods));
 
                end
 
@@ -449,6 +459,13 @@ function [pth, notfound] = search_modules(cache, mods)
 
    notfound     = false([numel(mods), 1]);
    notfound(~j) = true;
+end
+
+%--------------------------------------------------------------------------
+
+function mods = expand_name_alias(cache, mods)
+   map  = cache_to_map(cache);
+   mods = mrstExpandModuleAlias(mods, map(:,1));
 end
 
 %--------------------------------------------------------------------------
