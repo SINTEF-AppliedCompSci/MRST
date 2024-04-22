@@ -1,4 +1,4 @@
-function reports = makeReports(Gt, states, rock, fluid, schedule, traps, dh)
+function reports = postprocessStates(Gt, states, rock, fluid, schedule, traps, dh)
 %
 % This function takes the results of a simulation ('states', a cell array of
 % states for each timestep), and returns a corresponding structure array of
@@ -12,7 +12,7 @@ function reports = makeReports(Gt, states, rock, fluid, schedule, traps, dh)
 % Currently, only rate controlled wells are supported (not pressure-controlled).
 % 
 % SYNOPSIS:
-%   function reports = makeReports(Gt, states, rock, fluid, schedule, traps, dh)
+%   function reports = postprocessStates(Gt, states, rock, fluid, schedule, traps, dh)
 %
 % DESCRIPTION:
 %

@@ -98,7 +98,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Plot the inventory in separate window
    h2 = figure; plot(1); ax = get(h2, 'currentaxes');
 
-   reports = makeReports(model.G, [{initState}; states], model.rock, model.fluid, schedule, ...
+   reports = postprocessStates(model.G, [{initState}; states], model.rock, model.fluid, schedule, ...
                          opt.trapstruct, opt.dh);
    plotTrappingDistribution(ax, reports, 'legend_location', 'northwest');
    fsize = 16;

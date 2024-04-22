@@ -1,7 +1,7 @@
 % MAPPINGS
 %
 % Files
-%   height2Sat          - Convert from height to (fine scale) saturation.  By default, a sharp-interface
+%   height2finescaleSat  - Convert from height to (fine scale) saturation.  By default, a sharp-interface
 %   integrateVertically - Compute integral of function, vertically per column.
 %   pVE_to_p3D          - Convert from upscaled pressure to fine-scale pressure.
 %   states2VE           - Undocumented Utility Function

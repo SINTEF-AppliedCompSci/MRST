@@ -1,11 +1,11 @@
-function [s, smax, seff] = height2Sat(h, hmax, Gt, sw, sg, varargin)
-% Convert from height to (fine scale) saturation.  By default, a sharp-interface
+function [s, smax, seff] = height2finescaleSat(h, hmax, Gt, sw, sg, varargin)
+% Convert from height to fine scale saturation.  By default, a sharp-interface
 % approximation is assumed.  If a capillary fringe model should be used, the
 % function needs to be provided with the optional arguments 'invPc3D', 'rhoW'
 % and 'rhoG'.
 % 
 % SYNOPSIS:
-%   s = height2Sat(h, hmax, Gt, sw, wg, varargin)
+%   s = height2finescaleSat(h, hmax, Gt, sw, wg, varargin)
 %
 % PARAMETERS:
 %   h - CO2 plume thickness.  One scalar value for each column in the

@@ -176,8 +176,8 @@ for i = 1:numel(states)
 end
 
 % Plotting Ma on top of trapping inventory
-reports = makeReports(Gt, [{initState}; states], rock2D, fluid, ...
-                    schedule, ta, []);
+reports = postprocessStates(Gt, [{initState}; states], rock2D, fluid, ...
+                            schedule, ta, []);
 h = figure;
 plot(1);
 ax = get(h,'currentaxes');

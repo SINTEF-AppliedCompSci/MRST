@@ -68,7 +68,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         h(colind) = h_tot(colind);
         
         % Find saturation based on the constructed height values
-        s = height2Sat(h, h, g_top, fluid.res_water, fluid.res_gas); 
+        s = height2finescaleSat(h, h, g_top, fluid.res_water, fluid.res_gas); 
         % However, in the parts of the grid where we already have a fine
         % scale saturation we should use what we already got.
         s(full3dind) = sol.s(g_coupled.cells.region3D);
@@ -82,10 +82,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Use top surface saturation to find height 
         [h, hmax] = fluid.sat2height(sol);
         % Fine scale saturation
-        s = height2Sat(h, hmax, g_top, fluid.res_water, fluid.res_gas);
+        s = height2finescaleSat(h, hmax, g_top, fluid.res_water, fluid.res_gas);
     elseif any(strcmpi(g_top.type, 'topsurfacegrid'))
         % We have a H fluid
-        s = height2Sat(sol.h, sol.hmax, g_top, fluid.res_water, fluid.res_gas);
+        s = height2finescaleSat(sol.h, sol.hmax, g_top, fluid.res_water, fluid.res_gas);
     end
     assert(numel(s)==numel(g_top.columns.cells));
     assert(numel(h)==g_top.cells.num);

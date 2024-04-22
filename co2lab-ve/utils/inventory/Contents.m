@@ -1,8 +1,8 @@
 % INVENTORY
 %
 % Files
-%   makeReports                   - This function takes the results of a simulation ('states', a cell array of
-%   makeReports3D                 - This function is a wrapper that calls 'makeReports' on a result from a 3D
+%   postprocessStates             - This function takes the results of a simulation ('states', a cell array of
+%   postprocessStates3D           - This function is a wrapper that calls 'postprocessStates' on a result from a 3D
 %   massTrappingDistributionVEADI - Compute the trapping status distribution of CO2 in each cell of a top-surface grid
 %   plotTrappingDistribution      - Generate Trapping Inventory Plot From Simulation Result
 

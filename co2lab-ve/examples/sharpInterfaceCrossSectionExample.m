@@ -255,7 +255,7 @@ for i = 1:numel(statesVE)
     s = statesVE{i}.s(:,2);
     smax = statesVE{i}.sGmax;
     [h, hmax] = upscaledSat2height(s, smax, Gt, 'resSat', smin); 
-    statesVE{i}.sg3D = height2Sat(h, hmax, Gt, smin(1), smin(2));
+    statesVE{i}.sg3D = height2finescaleSat(h, hmax, Gt, smin(1), smin(2));
     statesVE{i}.perm = rock.perm/darcy;
     statesVE{i}.poro = rock.poro;
 end

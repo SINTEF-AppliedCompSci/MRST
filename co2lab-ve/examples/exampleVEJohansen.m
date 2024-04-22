@@ -175,7 +175,7 @@ for i=1:numel(states)
                                     'rhoW', fluid.rhoW, ...
                                     'rhoG', fluid.rhoG, ...
                                     'p', states{100}.pressure); % @@@@ Why 100?
-    sat = height2Sat(h, h_max, Gt, fluid.res_water, fluid.res_gas);
+    sat = height2finescaleSat(h, h_max, Gt, fluid.res_water, fluid.res_gas);
     title(sprintf('Time: %4d yrs (%s)', time(i),ptxt{period(i)}));
     ix = sat>eps; if ~any(ix), continue; end
     hs = plotCellData(Gt.parent, sat, ix); drawnow
@@ -201,7 +201,7 @@ end
 % This model only has very small structural traps and residual trapping is
 % therefore the main mechanism.
 ta = trapAnalysis(Gt, false);
-reports = makeReports(Gt, states, model.rock, model.fluid, schedule, ta, []);
+reports = postprocessStates(Gt, states, model.rock, model.fluid, schedule, ta, []);
 
 h1 = figure; plot(1); ax = get(h1, 'currentaxes');
 plotTrappingDistribution(ax, reports, 'legend_location', 'northwest');

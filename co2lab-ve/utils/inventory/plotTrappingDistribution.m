@@ -2,7 +2,7 @@ function plotTrappingDistribution(ax, report, varargin)
 %Generate Trapping Inventory Plot From Simulation Result
 % 
 % The simulation results, i.e., the set of states, must be repackaged using
-% function `makeReports` prior to calling `plotTrappingDistribution`.
+% function `postprocessStates` prior to calling `plotTrappingDistribution`.
 %
 % SYNOPSIS:
 %   plotTrappingDistribution(report)
@@ -14,13 +14,13 @@ function plotTrappingDistribution(ax, report, varargin)
 %             function will plot into the current axes of a new figure if
 %             'ax' is not provided or if 'ax' is not a valid AXES handle.
 %
-%   report  - Simulation results, repackaged using function `makeReports`.
+%   report  - Simulation results, repackaged using function `postprocessStates`.
 %
 %   'pn'/pv - Optional argument pairs allowing to specify the location and
 %             orientation of the legend.
 %
 % SEE ALSO:
-%   `makeReports`, axes.
+%   `postprocessStates`, axes.
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
@@ -48,7 +48,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                all(isfield(ax, {'t', 'W', 'sol', 'masses'})), ...
               ['When not supplying an AXES, the first parameter must ', ...
                'be a simulation report structure created by function ', ...
-               '''makeReports''.']);
+               '''postprocessStates''.']);
 
        if nargin > 1
           assert (is_string(report), ...

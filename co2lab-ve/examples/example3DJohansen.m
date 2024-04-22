@@ -163,7 +163,7 @@ plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states{end}.s(j==48 & i>1
 view(0,0); axis tight;
 
 %% Trapping inventory
-reports = makeReports3D(G, [{initState}; states], rock, fluid, schedule, srw, src);
+reports = postprocessStates3D(G, [{initState}; states], rock, fluid, schedule, srw, src);
 
 h1 = figure; plot(1); ax = get(h1, 'currentaxes');
 plotTrappingDistribution(ax, reports, 'legend_location', 'northwest');

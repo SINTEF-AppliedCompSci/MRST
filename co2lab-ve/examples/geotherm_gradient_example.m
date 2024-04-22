@@ -186,8 +186,8 @@ set(gcf, 'position', [150, 150, 1600, 700]);
 
 % Compare inventories
 ta = trapAnalysis(Gt, false);
-reports_Tfield = makeReports(Gt, states_Tfield, model_Tfield.rock, fluids{1}, schedule, ta, []);
-reports_Tfixed = makeReports(Gt, states_Tfixed, model_Tfixed.rock, fluids{2}, schedule, ta, []);
+reports_Tfield = postprocessStates(Gt, states_Tfield, model_Tfield.rock, fluids{1}, schedule, ta, []);
+reports_Tfixed = postprocessStates(Gt, states_Tfixed, model_Tfixed.rock, fluids{2}, schedule, ta, []);
 h1 = figure(6); set(h1, 'position', [100 100 1600 700]);
 subplot(1,2,1); plot(1); ax = get(h1, 'currentaxes');
 plotTrappingDistribution(ax, reports_Tfield, 'legend_location', 'southeast');

@@ -1,6 +1,6 @@
-function reports = makeReports3D(G, states, rock, fluid, schedule, res_water, res_gas)
+function reports = postprocessStates3D(G, states, rock, fluid, schedule, res_water, res_gas)
 
-% This function is a wrapper that calls 'makeReports' on a result from a 3D
+% This function is a wrapper that calls 'postprocessStates' on a result from a 3D
 % simulation. It takes the result of a simulation ('states', a cell array of
 % states for each timestep), and returns a corresponding structure array of
 % 'reports'.  The prepared report contains each timestep state, but also
@@ -13,7 +13,7 @@ function reports = makeReports3D(G, states, rock, fluid, schedule, res_water, re
 % Currently, only rate controlled wells are supported (not pressure-controlled).
 % 
 % SYNOPSIS:
-%   function reports = makeReports3D(G, states, rock, fluid, schedule, traps,
+%   function reports = postprocessStates3D(G, states, rock, fluid, schedule, traps,
 %   res_water, res_gas)
 %
 % DESCRIPTION:
@@ -34,7 +34,7 @@ function reports = makeReports3D(G, states, rock, fluid, schedule, res_water, re
 %             simulation.
 %
 % SEE ALSO:
-%   `plotTrappingDistribution`, `makeReports`
+%   `plotTrappingDistribution`, `postprocessStates`
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
@@ -55,7 +55,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    % convert information to VE, and call `makeReports`
+    % convert information to VE, and call `postprocessStates`
     Gt = topSurfaceGrid(G);
     rock2D = averageRock(rock, Gt);
     ta = trapAnalysis(Gt, false);
@@ -69,7 +69,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fluidVE.bG = fluid.bG;
     fluidVE.bW = fluid.bW;
 
-    reports = makeReports(Gt, statesVE, rock2D, fluidVE, schedule, ta, []);
+    reports = postprocessStates(Gt, statesVE, rock2D, fluidVE, schedule, ta, []);
     
     % add-in original 3D states
     for i=1:numel(states)
