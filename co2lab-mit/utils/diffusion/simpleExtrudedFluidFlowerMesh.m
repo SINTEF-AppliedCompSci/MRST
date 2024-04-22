@@ -172,9 +172,10 @@ function mesh = simpleExtrudedFluidFlowerMesh(resolution, varargin)
         % (high permeability) structure.
         if opt.plot
             fig3D();
-            Ncompart = max(p);
             if strcmp(resolution, 'coarse')
                 lyrs = {[1 8], [2 9], [4 7], 3, 5, 6}; % to be modified on a grid to grid basis
+            elseif strcmp(resolution, 'medium')
+                lyrs = {[1 8], [2 9], [4 7], 3, 5, 6};
             elseif strcmp(resolution, 'fine')
                 lyrs = {[1 8], [2 9], [4 7], 3, 5, 6};
             end

@@ -1,7 +1,7 @@
-function [t, rho_co2_s, rho_brine_s] = pvtBrineWithCO2BlackOil(T, P, S, ...
+function [t, rho_co2_s, rho_brine_s, t2] = pvtBrineWithCO2BlackOil(T, P, S, ...
                                         saltVar, vapH2O, unsatVals, figs)
 % SYNOPSIS:
-% [t, rho_co2_s, rho_brine_s] = pvtBrineWithCO2BlackOil(T, P, S, saltVar, vapH2O, unsatVals, figs)
+% [t, rho_co2_s, rho_brine_s, t2] = pvtBrineWithCO2BlackOil(T, P, S, saltVar, vapH2O, unsatVals, figs)
 %
 % Lluís Saló-Salgado (lsalo@mit.edu), September 2019
 % Updates:
@@ -446,6 +446,8 @@ if unsatVals
                         'VariableTypes', vartyp.gas, 'VariableNames', hdrs2.gas);
     t2.aq       = table('Size',[n_tot, numel(hdrs2.aq)], ...
                     'VariableTypes', vartyp.aq, 'VariableNames', hdrs2.aq);
+else
+    t2 = [];
 end
 
 % Compute
