@@ -41,8 +41,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-deprecatedMessage('height2Sat', 'height2finescaleSat');    
-    
+deprecatedMessage('height2Sat', 'height2finescaleSat');
+
 if isfield(fluid, 'res_gas')
    % ADI-type fluid
    sr = fluid.res_gas;
@@ -102,4 +102,3 @@ if sr>0 &&any(sol.h_max>sol.h)
 
 end
 end
-

@@ -2,9 +2,9 @@ function reports = makeReports(Gt, states, rock, fluid, schedule, residual, trap
 %
 % This function does intermediate processing of simulation data in order to
 % generate inventory plots using 'plotTrappingDistribution'.
-% 
+%
 % Currently, only rate controlled wells are supported (not pressure-controlled).
-% 
+%
 % SYNOPSIS:
 %   function reports = makeReports(Gt, states, rock, fluid, schedule, residual, traps, dh)
 %
@@ -48,11 +48,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    deprecatedMessage('makeReports', 'postprocessStates');
-    
+
+   deprecatedMessage('makeReports', 'postprocessStates');
+
    assert( numel(states) == numel(schedule.step.val)+1 , ...
        'Ensure the initial state has been included in the varargin ''states''.')
-   
+
    for i = 1:numel(states)
 
       [h, h_max] = compute_plume_height(Gt, states{i}, residual(1), residual(2));
@@ -71,20 +72,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       else
          reports(i).t = sum(schedule.step.val(1:i-1)); %#ok
          reports(i).W = schedule.control(schedule.step.control(i-1)).W; %#ok
-         
+
          assert(all(cellfun(@(x) strcmpi(x, 'rate'), {reports(i).W.type})));
          tot_inj = tot_inj + sum([reports(i).W.val]) * schedule.step.val(i-1) * fluid.rhoGS;
       end
-      
+
       reports(i).sol       = states{i}; %#ok
       reports(i).sol.h     = h; %#ok
       reports(i).sol.h_max = h_max; %#ok
-      
+
       rs = 0;
       if isfield(states{i}, 'rs')
          rs = states{i}.rs;
       end
-      
+
       reports(i).masses    = massTrappingDistributionVEADI(Gt                   , ...
                                                         reports(i).sol.pressure , ...
                                                         reports(i).sol.s(:,2)   , ...
@@ -99,12 +100,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       leaked = tot_inj - sum(reports(i).masses);
       reports(i).masses = [reports(i).masses, leaked]; %#ok
    end
-   
+
 end
 % ----------------------------------------------------------------------------
 
 function [h, h_max] = compute_plume_height(Gt, state, sw, sr)
-    
+
     if isfield(state, 'sGmax')
        smax = state.sGmax; % we operate with dissolution
     else
