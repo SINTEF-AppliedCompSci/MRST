@@ -248,7 +248,17 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             L = state.L;
             Z_L = state.Z_L;
             Z_V = state.Z_V;
-            sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
+            propmodel = model.EOSModel.PropertyModel;
+            if isempty(propmodel.volumeShift)
+                volL = L.*Z_L;
+                volV = (1-L).*Z_V;
+            else
+                volL = L./propmodel.computeMolarDensity(model.EOSModel, state.pressure, state.x, Z_L, state.T, true);
+                volV = (1-L)./propmodel.computeMolarDensity(model.EOSModel, state.pressure, state.y, Z_V, state.T, false);
+            end
+            volT = volL + volV;
+            sL = volL./volT;
+
             void = 1;
             nph = model.getNumberOfPhases();
             if nph > 2
