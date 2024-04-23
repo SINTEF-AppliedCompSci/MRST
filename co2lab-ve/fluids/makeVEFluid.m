@@ -275,7 +275,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    krg = ifelse(opt.krmax(2) < 0, 1 - opt.residual(1), opt.krmax(2));
 
    fluid.relperm_model = relperm_model;
-   relperm_model
    switch relperm_model
      case 'sharp_interface_simple'
        fluid = addVERelpermSharpInterface(fluid, Gt, rock, ...

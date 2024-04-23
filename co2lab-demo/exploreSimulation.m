@@ -141,11 +141,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       use_trapping    = logical(get(opt_choices.subscale,    'value'));
       use_cap_fringe  = logical(get(opt_choices.cap_fringe,  'value'));
       
-      dh = [];
-      topo = 'smooth';
+      dh = 0;
       if use_trapping
          dh = computeToptraps(load(opt.subtrap_file), var.Gt, true);
-         topo = 'inf_rough';
       end
       
       % Set up input parameters
@@ -165,8 +163,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                               'dissolution'   , use_dissolution                         , ...
                               'dis_rate'      , opt.dis_rate                            , ...
                               'dis_max'       , opt.dis_max                             , ...
-                              'surf_topo'     , topo                                    , ...
-                              'top_trap'      , dh);
+                              'rugosity'      , dh);
                               
       model     = CO2VEBlackOilTypeModel(var.Gt, var.rock2D, fluid);
       schedule  = setup_schedule();

@@ -51,7 +51,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                                 
     % accretion layer (upper zone where horizontal permeability is considered zero, 
     % constituting a very simple model of the impact of caprock rugosity)
-    krH_lost = accretion_layer_perm(opt.dh, Gt, perm3D);
+    krH_lost = accretion_layer_perm(min(opt.dh, Gt.cells.H), Gt, perm3D);
         
     % Add permeability according to chosen model
     if strcmpi(opt.type, 'simple')
@@ -62,12 +62,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             krG_integrated(h_hmax(sg, varargin{:}), Gt, fluid, rock, perm3D, krg, krH_lost, perm_H);
         fluid.krW = @(sw, p, varargin) ...
             krW_integrated(h_hmax(1-sw, varargin{:}), Gt, fluid, rock, perm3D, krw, krH_lost, perm_H);
+    
     end        
     
     % Add capillary pressure
     fluid.pcWG = @(sg, p, varargin) pcWG(sg, p, fluid, Gt, poro3D, pvol_columns, varargin{:});
     fluid.invPc3D = @(p) invPc3D(p, fluid.res_water);    
-    
 end
 
 % ----------------------------------------------------------------------------
