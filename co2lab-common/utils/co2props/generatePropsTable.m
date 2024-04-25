@@ -71,7 +71,7 @@ function ensure_coolprops_available()
     % check if CoolProp package is installed
     if ~coolprop_available()
         try_install = userConsent(['The Python `CoolProp package was not found. ' ...
-                                   'Try to install with `pip`?']);
+                                   'Try to install with `pip`']);
         if try_install
             % try to install
             pe = pyenv();
