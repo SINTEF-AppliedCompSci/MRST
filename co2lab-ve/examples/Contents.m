@@ -7,13 +7,13 @@
 %   example3DJohansen                  - 3D, two-phase simulation of the Johansen formation
 %   exampleBlackOilAD                  - VE simulation in a standard black-oil solver
 %   exampleVEJohansen                  - VE Simulation of Point Injection into the Johansen Formation
-%   geotherm_gradient_example          - Geothermal gradient example
+%   geothermGradientExample            - Geothermal gradient example
 %   leakageForecastDemo                - Examples to demonstrate forecast of CO2 leakage and its application
 %   pressureLimitedExample             - Simple example of pressure-limited injection for CO2 storage
 %   sharpInterfaceCrossSectionExample  - 
-%   sloping_aquifer_residual_capillary - Load modules, turn on gravity and set utility functions
-%   sloping_aquifer_sharp_interface    - Load modules, turn on gravity and set utility functions
-%   synthetic_3D_example               - Basic 3D simulation of a two-phase water and gas system
+%   slopingAquiferResidualCapillary    - Load modules, turn on gravity and set utility functions
+%   slopingAquiferSharpInterface       - Load modules, turn on gravity and set utility functions
+%   synthetic3DExample                 - Basic 3D simulation of a two-phase water and gas system
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
