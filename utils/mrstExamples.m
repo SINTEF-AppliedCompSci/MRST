@@ -109,6 +109,18 @@ function varargin = parse_arguments(varargin)
       % Put core first in the module list
       varargin = [{ 'core' }; reshape(sort(mrstPath()), [], 1)];
    end
+   if any(strcmpi(varargin, 'co2lab'))
+      % List all modules that start with co2lab prefix
+      assert (nargin == 1, ...
+             ['Module designation ''co2lab'' must be ', ...
+              'only argument if present']);
+
+      paths = sort(mrstPath());
+      isCO2lab = cellfun(@(x) startsWith(x, 'co2lab'), paths);
+      % Put core first in the module list
+      varargin = reshape(paths(isCO2lab), [], 1);
+   end
+
 end
 
 %--------------------------------------------------------------------------
