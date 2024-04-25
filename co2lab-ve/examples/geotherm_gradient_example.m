@@ -144,6 +144,7 @@ boundary_cells = sum(Gt.faces.neighbors(boundary_faces,:), 2);
 bc = addBC([], boundary_faces, 'pressure', P_reservoir(boundary_cells));
 bc.sat = repmat([1, 0], numel(boundary_faces), 1);
 
+clear schedule
 schedule.control(1) = struct('W', W, 'bc', bc); % injection phase
 schedule.control(2) = struct('W', W, 'bc', bc); % migration phase
 schedule.control(2).W.val = 0; % no injection during migration phase
