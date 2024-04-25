@@ -168,29 +168,35 @@ end
 
 function [fun, fun_dp, fun_dt] = load_property(opt, pname, fluidname, reservoirT, assert_in_range, nan_outside)
 
-   tabledir = [fileparts(mfilename('fullpath')) '/sampled_tables/'];
-   fname = [tabledir, propFilename(opt.pspan, opt.tspan, opt.pnum, opt.tnum, fluidname, pname)];
+   tabledir = fullfile(fileparts(mfilename('fullpath')), 'sampled_tables');
+   propfname = propFilename(opt.pspan, opt.tspan, opt.pnum, opt.tnum, fluidname, pname);
+   fname_dataset = fullfile(getDatasetPath('co2lab_sampled_tables'), propfname);
 
-   if (exist(fname) ~= 2)%#ok
-      % data table not yet generated.  The following command will generate
-      % and save them. 
-      try
-         generatePropsTable(tabledir, fluidname, pname, opt.pspan, opt.tspan, opt.pnum, ...
-                            opt.tnum);
-      catch ME
-         if strcmp(ME.identifier, 'MATLAB:UndefinedFunction')
-            error(['Failed to generate property tables, as CoolProps could not ' ...
-                   'be found.  Make sure you have CoolProps installed with ' ...
-                   'the Matlab wrapper, and that the directory of the ' ...
-                   'corresponding ''PropsSI'' is in your Matlab search ' ...
-                   'path.']);
-         else
-            error(['Generating new property table failed due to an unknown ' ...
-                   'error.']);
-         end
-      end
+   if exist(fname_dataset) == 2 %#ok
+       % Exists in downloaded dataset
+       fname = fname_dataset;
+   else
+       fname = fullfile(tabledir, propfname);
+       if (exist(fname) ~= 2)%#ok
+          % data table not yet generated.  The following command will generate
+          % and save them. 
+          try
+             generatePropsTable(tabledir, fluidname, pname, opt.pspan, opt.tspan, opt.pnum, ...
+                                opt.tnum);
+          catch ME
+             if strcmp(ME.identifier, 'MATLAB:UndefinedFunction')
+                error(['Failed to generate property tables, as CoolProps could not ' ...
+                       'be found.  Make sure you have CoolProps installed with ' ...
+                       'the Matlab wrapper, and that the directory of the ' ...
+                       'corresponding ''PropsSI'' is in your Matlab search ' ...
+                       'path.']);
+             else
+                error(['Generating new property table failed due to an unknown ' ...
+                       'error.']);
+             end
+          end
+       end
    end
-
    % We here load the generated table, and construct an object with evaluator
    % functions
    obj = SampledProp2D(pname, fname, ...
