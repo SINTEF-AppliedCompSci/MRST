@@ -77,9 +77,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 %% 
-   opt.rhofile              = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_D.mat';
-   opt.mufile               = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_V.mat';
-   opt.hfile                = 'sampled_tables/CarbonDioxide_100000_400000000_278_524_800_800_H.mat';
+   dpth = getDatasetPath('co2lab_sampled_tables');
+   opt.rhofile              = fullfile(dpth, 'CarbonDioxide_100000_400000000_278_524_800_800_D.mat');
+   opt.mufile               = fullfile(dpth, 'CarbonDioxide_100000_400000000_278_524_800_800_V.mat');
+   opt.hfile                = fullfile(dpth, 'CarbonDioxide_100000_400000000_278_524_800_800_H.mat');
    opt.const_derivatives    = false;
    opt.assert               = true;
    opt.nan_outside_range    = true;
