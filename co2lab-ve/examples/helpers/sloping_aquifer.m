@@ -159,7 +159,7 @@ if options.cap_fringe
 end
 
 if ~options.skip_3D
-    model = TwoPhaseWaterGasModel(G, rock, fluid, 0, 0, 'verbose', true);
+    model = TwoPhaseWaterGasModel(G, rock, fluid, 0, 0);
     
     tic;
     [wellSol3D, states_3D] = simulateScheduleAD(initState, model, schedule);
