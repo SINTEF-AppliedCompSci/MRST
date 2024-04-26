@@ -249,7 +249,7 @@ classdef ThreePhaseCompositionalModel < ReservoirModel
             Z_L = state.Z_L;
             Z_V = state.Z_V;
             propmodel = model.EOSModel.PropertyModel;
-            if isempty(propmodel.volumeShift)
+            if isprop(propmodel, 'volumeShift') && isempty(propmodel.volumeShift)
                 volL = L.*Z_L;
                 volV = (1-L).*Z_V;
             else

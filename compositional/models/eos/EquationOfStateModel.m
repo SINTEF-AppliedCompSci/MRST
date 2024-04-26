@@ -916,7 +916,7 @@ classdef EquationOfStateModel < PhysicalModel
 
         function [sL, sV] = computeSaturations(model, p, T, rhoL, rhoV, x, y, L, Z_L, Z_V)
             propmodel = model.PropertyModel;
-            if isempty(propmodel.volumeShift)
+            if ~isprop(propmodel, 'volumeShift') || isempty(propmodel.volumeShift)
                 volL = L.*Z_L;
                 volV = (1-L).*Z_V;
             else
