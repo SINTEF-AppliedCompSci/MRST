@@ -216,8 +216,14 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
             end
             
             L = state.L;
-            volL = L.*Z_L;
-            volV = (1-L).*Z_V;
+            propmodel = model.EOSModel.PropertyModel;
+            if isempty(propmodel.volumeShift)
+                volL = L.*Z_L;
+                volV = (1-L).*Z_V;
+            else
+                volL = L./propmodel.computeMolarDensity(model.EOSModel, state.pressure, state.x, Z_L, state.T, true);
+                volV = (1-L)./propmodel.computeMolarDensity(model.EOSModel, state.pressure, state.y, Z_V, state.T, false);
+            end
             volT = volL + volV;
             sL = volL./volT;
             sV = volV./volT;
@@ -237,7 +243,7 @@ classdef GenericOverallCompositionModel < OverallCompositionCompositionalModel &
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

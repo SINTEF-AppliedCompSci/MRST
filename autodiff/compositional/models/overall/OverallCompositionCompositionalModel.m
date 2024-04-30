@@ -66,7 +66,7 @@ classdef OverallCompositionCompositionalModel < ThreePhaseCompositionalModel
             rhoV = model.PropertyModel.computeDensity(eos, p, y, Z_V, temp, false);
             report.t_density = toc(t2);
             
-            [sL, sV] = model.EOSModel.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
+            [sL, sV] = model.EOSModel.computeSaturations(p, temp, rhoL, rhoV, x, y, L, Z_L, Z_V);
             
             t3 = tic();
             if nargout > 6
@@ -176,7 +176,7 @@ end
 
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -2,7 +2,7 @@ function region = getInitializationRegionsCompositional(model, contacts, varargi
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -35,15 +35,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nPh = sum(actPh);
 
     rho = cell(1, nPh);
+    
+    cc = opt.cells(1);
 
     f = model.fluid;
     [satnum, pvtnum] = deal(1);
+    cc = opt.cells(1);
     if isfield(model.rock, 'regions')
         if isfield(model.rock.regions, 'pvt')
-            pvtnum = model.rock.regions.pvt(opt.cells);
+            pvtnum = model.rock.regions.pvt(cc);
         end
         if isfield(model.rock.regions, 'saturation')
-            satnum = model.rock.regions.saturation(opt.cells);
+            satnum = model.rock.regions.saturation(cc);
         end
     end
     [pc, pc_sign, pc_scale] = getEquilPC(model, satnum, opt.cells);

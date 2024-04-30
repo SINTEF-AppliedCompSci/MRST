@@ -34,7 +34,11 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                 krarg = {};
             end
             % Relative permeability
-            kr = BaseRelativePermeability(model, sat, scalearg{:}, krarg{:});
+            if isfield(model.fluid, 'krHyst')
+                kr = HystereticRelativePermeability(model, sat, scalearg{:}, krarg{:});
+            else
+                kr = BaseRelativePermeability(model, sat, scalearg{:}, krarg{:});
+            end
             props = props.setStateFunction('RelativePermeability', kr);
             
             % Capillary pressure
@@ -92,7 +96,7 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

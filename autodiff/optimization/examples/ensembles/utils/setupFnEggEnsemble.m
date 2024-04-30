@@ -2,7 +2,7 @@ function problem = setupFnEggEnsemble(seed, directory, subset)
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -65,9 +65,9 @@ problem.seed = seed;
 end
 
 
-function [schedule, report, isAltered] = exampleLogicFunc(state, schedule, report, cnum)
-[schedule, report, isAltered] = controlLogicFunc(state, schedule, report, cnum, ...
-                                                 'wcutLim', .95, ...
-                                                 'closeWellOnSignChange', true, ...
-                                                 'rateLim', .1/day);
+function [state, schedule, report, isAltered] = exampleLogicFunc(state, schedule, report, cnum)
+[state, schedule, report, isAltered] = controlLogicFunc(state, schedule, report, cnum, ...
+                                                        'wcutLim', .95, ...
+                                                        'closeWellOnSignChange', true, ...
+                                                        'rateLim', .1/day);
 end

@@ -2,7 +2,7 @@ function [eqs, bq, sol] = getWellContributionsBO(W, pBH, qs, p, rho, b, rs, m, s
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

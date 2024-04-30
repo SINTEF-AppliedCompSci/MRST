@@ -2,7 +2,7 @@ function [L, x, y, Z_L, Z_V, p, T] = getFlashTable(p_range, T_range, z, EOS)
 % Utility for getting meshgrid plots of flash results (e.g. for phase diagram)
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

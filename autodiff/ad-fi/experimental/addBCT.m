@@ -60,7 +60,7 @@ function bc = addBC(bc, f, t, v, varargin)
 %   pside, fluxside, addSource, addWell, solveIncompFlow, grid_structure.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

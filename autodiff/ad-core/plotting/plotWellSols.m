@@ -53,7 +53,7 @@ function varargout = plotWellSols(wellsols, varargin)
 %   `simulateScheduleAD`
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -419,7 +419,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 end
                 
                 if doCsum
-                    d = cumtrapz(x*xunit, active_step.*d);
+                    d = cumsum(xunit*diff([0;x(:)]).*active_step.*d);
                 end
                 d(~active_step, :) = nan;
 

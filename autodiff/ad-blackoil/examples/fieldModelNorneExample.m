@@ -1,11 +1,11 @@
 %% Example demonstrating how to run the Norne field model in MRST
-% Note: The example uses a custom well function, and MRST does not support
-% hysteresis. The model is read in as an EGRID and is initialized in MRST
+% Note: The example uses a custom well function. The model is read in as an
+% EGRID and is initialized in MRST.
 %
 % Norne is a real field model, released by Equinor and its partners. It is
 % a fairly complex blackoil model with rel. perm. scaling, threshold
 % pressures, many wells, historical resv controls and many other features
-% not normally seen in academic simulations.
+% not normally seen in academic simulations. 
 mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui linearsolvers
 %% Set up case
 gravity reset on
@@ -66,6 +66,8 @@ model.AutoDiffBackend.useMex = true;
 model.AutoDiffBackend.rowMajor = true;
 
 model = model.validateModel();
+% Uncomment this line to disable hysteresis:
+% model.FlowPropertyFunctions.RelativePermeability = BaseRelativePermeability(model, 'regions', model.rock.regions.imbibition);
 % Use the alternative more rigorous crossflow definition for component
 % fluxes
 xflow = WellComponentTotalVolumeBalanceCrossflow(model);
@@ -112,7 +114,7 @@ T_opm = cumsum(schedule.step.val);
 fname = 'Flow legacy (hysteresis)';
 wellSols = {ws, ws_opm};
 time = {T; T_opm};
-names = {'MRST (No hysteresis)', fname};
+names = {'MRST (hysteresis)', fname};
 
 try
     % Flow output - may not be present
@@ -213,7 +215,7 @@ axis tight
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

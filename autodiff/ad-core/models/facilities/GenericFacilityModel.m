@@ -1,7 +1,7 @@
 classdef GenericFacilityModel < FacilityModel
     properties
         T = 288.15; % Metric standard conditions
-        pressure = 101.325*kilo*Pascal; % Metric standard pressure
+        pressure = 1*atm; % Metric standard pressure
         SeparatorGroup
         outputFluxes = true;
         doPostUpdate
@@ -46,7 +46,7 @@ classdef GenericFacilityModel < FacilityModel
             % individual components' preference at different conditions
             [p, temp] = facility.getSurfaceConditions();
             surfaceDensity = fp.get(facility, state, 'InjectionSurfaceDensity');
-            nph = model.getNumberOfPhases();
+            nph = model.getNumberOfPhases(); 
             surfaceRates = cell(1, nph);
             [surfaceRates{:}] = deal(zeros(numelValue(cflux{1}), 1));
             for c = 1:numel(cflux)
@@ -661,7 +661,7 @@ classdef GenericFacilityModel < FacilityModel
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
