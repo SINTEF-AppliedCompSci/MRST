@@ -1,5 +1,5 @@
-function flux = computeFlux(G, u, T)
-%Undocumented Utility Function
+function plotFinalPressure(G, states, name)
+%Undocumented Helper Function
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
@@ -20,20 +20,25 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    dispif(mrstVerbose, 'computeFlux\n');
-    flux = zeros(numelValue(T{1}), 1);
-    s = getSampleAD(u, T{:});
-    if isa(s, 'ADI')
-        flux = double2ADI(flux, s);
+    figure
+    plotToolbar(G, states)
+    axis tight equal
+    colorbar
+    title(name)
+
+    if isfield('G', 'cartDims')
+        figure, hold on
+        plotCellData(G, states{end}.pressure, 'edgealpha', 0);
+        contour(reshape(G.cells.centroids(:, 1), G.cartDims), ...
+                reshape(G.cells.centroids(:, 2), G.cartDims), ...
+                reshape(states{end}.pressure, G.cartDims), ...
+                'linewidth', 1, 'color', 'k');
+        axis tight equal
+        colorbar
+        title([name, ' at endtime'])
+    else
+        unstructuredContour(G, states{end}.pressure, 100);
+        title(name)
     end
-    ind = all(G.faces.neighbors ~= 0, 2);
-    c1 = G.faces.neighbors(ind, 1);
-    c2 = G.faces.neighbors(ind, 2);
-    flux(ind) = T{1}(ind) .* u(c1) - T{2}(ind) .* u(c2);
 
-    c1 = max(G.faces.neighbors(~ind, :), [], 2);
-    flux(~ind) = T{1}(~ind) .* u(c1) - T{2}(~ind);
-
-    ind = G.faces.neighbors(:, 1) == 0;
-    flux(ind) = -flux(ind);
 end
