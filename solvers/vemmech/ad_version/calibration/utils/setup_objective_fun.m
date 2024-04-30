@@ -7,7 +7,7 @@ function [objfun, op_0, matchfun, ofun] = setup_objective_fun(G, data, bcfun, mf
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
