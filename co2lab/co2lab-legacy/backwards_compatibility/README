@@ -1,0 +1,6 @@
+The functions in this folder are provided to allow certain applications built on
+previous versions of mrst-co2lab to still run.  These functions are however
+deprecated and should not be used in new code:
+
+- Instead of the `makeReports` function, the `postprocessStates` function should be used in new code.
+- Instead of the `height2Sat` function, the `height2finescaleSat` function should be used in new code.

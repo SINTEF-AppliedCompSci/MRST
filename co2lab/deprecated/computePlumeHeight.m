@@ -2,7 +2,7 @@ function [h, h_max] = computePlumeHeight(Gt, state, sw, sr)
 % computing height corresponding to the current saturation state
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
