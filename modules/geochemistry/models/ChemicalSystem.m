@@ -602,11 +602,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             nS = numel(names);
             nM = model.nMC;
 
-            % make sure each secondary component name is distinct from the
-            % others and master components
+            % make sure each secondary component name is distinct from the others
             for i = 1 : nM
                 assert(~(sum(strcmpi(names{i},names)) > 1), 'Species names must be unique.');
-                assert(~(sum(strcmpi(names{i}, model.elementNames)) > 0), ['The chemical species ' '"' names{i} '" is a repeat of an element or surface functional group.']);
             end
 
             names = strrep(names, '(s)','');
@@ -778,7 +776,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % make sure input is a name value pair
             assert(rem(numel(reactions),2) == 0, 'Reaction and reaction constant must be given as a "key"/value pair.');
 
-            rxn = regexprep(reactions(1:2:end),'[\s]','');
+            rxn = regexprep(reactions(1:2:end),'[\s]*',' ');
 
             rxnK = reactions(2:2:end);
 
@@ -796,20 +794,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             [~, I] = sort(strlen, 2, 'descend');
 
             % make a copy of reactions
-            rxnsO= rxn;
+            rxnsO = rxn;
 
-            % rewrite reactions in terms of the master component index
-            % vectors
+            % rewrite reactions in terms of the master component index vectors
             for i = 1 : nRx;
                 for j = 1 : nC + nS + nG + nP
                     ind = I(j);
-                    [match,nomatch] = regexpi(rxn{i}, '(model\.Cind{\d})','match','split');
+                    [match, nomatch] = regexpi(rxn{i}, '(model\.Cind{\d})', 'match', 'split');
                     nomatch = strrep(lower(nomatch), lower(model.allComponentNames{ind}), ['model.Cind{' num2str(ind) '}']);
-                    rxn{i} = strjoin(nomatch,match);
+                    rxn{i} = strjoin(nomatch, match);
                 end
                 rxn{i} = strrep(rxn{i}, 'cind', 'Cind');
-                remain = regexpi(rxn{i}, '[^(model\.Cind{\d})+-/*\.\d(<->)]','once');
-                assert(isempty(remain),['The chemical reaction "' rxnsO{i} '" appears to contain a string combination that does not correspond to species. Ensure the species names contained in the reaction are consistent with those listed in secondaryComponents.']);
             end
             
             % check for <-> and handle it appropriately
