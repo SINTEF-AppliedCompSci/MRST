@@ -2,7 +2,7 @@ function N = findStreamlineNeighborshipCart(G)
 % Build (n x 2*d) -array of neighbors for each cell in (Cartesian) grid G.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

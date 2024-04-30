@@ -123,10 +123,6 @@ classdef UIItem < handle
             om = d.layout.params.outerMargins;
             newpos = val + [om(1), om(3), -(om(1)+om(2)), -(om(3)+om(4))];
             d.panel.Position = newpos;
-            ipos = d.panel.InnerPosition;
-            if ipos(end) == 0
-                d.panel.SizeChangedFcn();
-            end
             if ~isempty(d.dummyPanel)
                 dom     = d.layout.params.dummyOuterMargins;
                 if strcmp('top', d.dummyStack)
@@ -632,7 +628,7 @@ param = struct(...
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

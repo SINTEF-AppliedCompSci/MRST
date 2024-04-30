@@ -25,7 +25,7 @@ function [tau, sw, fsw, cumsw] = getSaturationFront(fluid, varargin)
 %  cumsw   - cummulative water volume corr to tau (cumsw(end)=1)
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

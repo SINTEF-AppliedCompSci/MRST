@@ -17,7 +17,7 @@ function fluid_incomp = convertToIncompFluid(model, varargin)
 %   rv       - rv value or vector (used only if state is empty)
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

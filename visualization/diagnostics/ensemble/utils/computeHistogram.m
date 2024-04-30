@@ -40,7 +40,7 @@ function h = computeHistogram(data,varargin)
 %                              N(end) is less than or equal to 1.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
