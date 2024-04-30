@@ -4,7 +4,7 @@ function deck = readPROPS(fid, dirname, deck)
 % Otherwise intentionally undocumented.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -53,15 +53,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             endboxKeyword;
             
          case 'EOS'
-            prp.(kw) = readDefaultedKW(fid, {'PR'}, 'NRec', nmeosr);
+            prp.(kw) = readDefaultedKW(fid, {'NaN'}, 'NRec', nmeosr);
 
          case 'EHYSTR'
-             nrec = 1; % This keyword has only 1 record independent of the
-                       % number of imbibition region
-             tmpl = {'0.1', '2', '1.0', '0.1', ....
+             tmpl = {'0.1', '2', '1.0', '0.1', ...
                      'BOTH', 'RETR', 'DRAIN', 'OIL', ...
                      'NO', 'NO', 'NO', '0.0', '0'};
-             data = readDefaultedKW(fid, tmpl, 'NRec', nrec);
+             data = readDefaultedRecord(fid, tmpl);
              numix = [1:4, 12, 13];
              prp.(kw) = data;
              prp.(kw)(numix) = num2cell(to_double(data(numix)));
@@ -69,6 +67,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'PRCORR'
             prp.PRCORR = true;
+            
+         case {'OMEGAA', 'OMEGAB'}
+             tmpl = repmat({'NaN'}, 1, ncomp);
+             data = readDefaultedKW(fid, tmpl, 'NRec', nmeosr); clear tmpl
+             prp.(kw) = to_double(data);
 
          case 'GRAVITY'
             tmpl     = { '45.5', '1.0', '0.7773' };
@@ -187,17 +190,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          case 'ROCKOPTS'
             tmpl = { 'PRESSURE', 'NOSTORE', 'PVTNUM', 'DEFLATION' };
-            prp.(kw) = readDefaultedKW(fid, tmpl, 'NRec', 1);    clear tmpl
+            prp.(kw) = readFixedNumRecords(fid, tmpl, 1);    clear tmpl
 
          case 'ROCK'
-            nrec = ntpvt;
-
-            if isfield(prp, 'ROCKOPTS')
-               nrec = ntrocc;
-            end
-
             tmpl(1:6) = { 'NaN' };
-            data      = readDefaultedKW(fid, tmpl, 'NRec', nrec);
+            nrec      = numRockRecords(deck.RUNSPEC, prp);
+            data      = readFixedNumRecords(fid, tmpl, nrec);
             prp.(kw)  = to_double(data);  clear tmpl nrec
 
          case 'SPECHEAT'
@@ -445,6 +443,58 @@ function [dims, ntsfun, ntpvt, ntmisc, ntrocc, ncomp, nequil, nmeosr] = ...
    end
    if isfield(deck.RUNSPEC, 'EQLDIMS')
       nequil = deck.RUNSPEC.EQLDIMS(1);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function ntrock = numRockRecords(runspec, props)
+% The number of records in ROCK depends on ROCKOPTS and TABDIMS
+%
+% 1. If TABDIMS does not exist, then the number of ROCK records is 1.
+%
+% 2. Otherwise, if ROCKOPTS is NOT present, then the number of ROCK records
+%    is NTPVT (= TABDIMS(2)).
+%
+% 3. Otherwise, the number of records depends on item 3 of ROCKOPTS
+%    a) If ROCKOPTS(3) = 'PVTNUM' (default), then the number of ROCK
+%       records is NTPVT.
+%    b) If ROCKOPTS(3) = 'SATNUM', then the number of ROCK records is
+%       NTSFUN (= TABDIMS(1)).
+%    c) If ROCKOPTS(3) = 'ROCKNUM', then the number of ROCK records is
+%       NTROCC (= TABDIMS(13)).
+%
+% Finally, if ROCKOPTS(3) = 'ROCKNUM', but NTROCC is defaulted (< 1), then
+% the number of ROCK records is NTPVT.
+
+   if ~isfield(runspec, 'TABDIMS')
+      ntrock = 1;
+   else
+      ntrock = numRockRecordsFromTabdims(runspec, props);
+   end
+end
+
+%--------------------------------------------------------------------------
+
+function ntrock = numRockRecordsFromTabdims(runspec, props)
+   ntpvt = runspec.TABDIMS(2);
+   if ~isfield(props, 'ROCKOPTS')
+      ntrock = ntpvt;
+      return
+   end
+
+   % ROCKOPTS exists.  Look at ROCKOPTS(3) to infer number of ROCK records
+   switch props.ROCKOPTS{3}
+      case 'PVTNUM'
+         ntrock = ntpvt;
+      case 'SATNUM'
+         ntrock = runspec.TABDIMS(1); % NTSFUN
+      case 'ROCKNUM'
+         ntrock = runspec.TABDIMS(13); % NTROCC
+         if ntrock < 1, ntrock = ntpvt; end % NTROCC default => NTPVT
+      otherwise
+         error('Unsupported:ROCKOPTS', ...
+               'NTROC mode ''%s'' is unsupported', props.ROCKOPTS{3});
    end
 end
 

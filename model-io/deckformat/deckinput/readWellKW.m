@@ -1,4 +1,4 @@
-function w  = readWellKW(fid, w, kw)
+function w  = readWellKW(fid, w, kw, varargin)
 %Read well definitions from an ECLIPSE Deck specification.
 %
 % SYNOPSIS:
@@ -29,7 +29,7 @@ function w  = readWellKW(fid, w, kw)
 %   `readEclipseDeck`, `processWells`.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -51,6 +51,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % are affecting the report settings there had better be some previously
    % defined wells.
    %
+   
+   ncomp = nan; if nargin > 3, ncomp = varargin{1}; end
+       
    no_well_ok = { ...
       'GRUPTREE', 'WELSPECS', ...
       'RPTSCHED', 'RPTRST', 'OUTSOL' ...
@@ -64,6 +67,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    switch kw
       % Keywords related to individual wells
       case 'COMPDAT' , w = readCompDat (fid, w);
+      case 'BCPROP'  , w = readBCPROP  (fid, w);  
       case 'COMPSEGS', w = readCompSegs(fid, w);
       case 'WCONHIST', w = readWConHist(fid, w);
       case 'WCONINJ' , w = readWConInj (fid, w);
@@ -81,6 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'WPIMULT' , w = readWPIMult (fid, w);
       case {'WELTARG', 'WELLTARG'}
          w = readWelTarg(fid, w);
+      case 'WINJGAS' , w = readWInjGas(fid, w);
 
       % -------------------------------------------------------------------
 
@@ -91,6 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       case 'GRUPNET' , w = readGrupNet (fid, w);
       case 'GRUPTREE', w = readGrupTree(fid, w);
       case 'WGRUPCON', w = readWGrupCon(fid, w);
+      case 'WELLSTRE', w = readWellStre(fid, w, ncomp);
 
       % -------------------------------------------------------------------
 
@@ -147,6 +153,18 @@ function w = readWellSpec(fid, w)
 
       w.WELSPECS = WellSpec;
    end
+end
+%--------------------------------------------------------------------------
+function w = readBCPROP(fid, w)
+    tmpl = { '1', 'FREE', 'WATER', '1', '1', '1','FIXED','1', '1', '1','1', '1', '1','1', '1', '1'};
+    numeric  = [1,4:6,8:numel(tmpl)];
+    data = readDefaultedKW(fid, tmpl);  clear tmpl
+    data = toDouble(data, numeric);
+    kw = 'BCPROP';
+    if ~isfield(w, kw), 
+        w.(kw) = cell([0, 12]); 
+    end
+    w.(kw) = [w.(kw); data];
 end
 
 %--------------------------------------------------------------------------
@@ -822,6 +840,37 @@ end
 
 %--------------------------------------------------------------------------
 
+function w = readWellStre(fid, w, ncomp)
+
+   %             1          2          ...      ncomp
+   template = [{'Default'}, repmat({'0.0'}, 1, ncomp)];
+   numeric  = 2:ncomp+1;
+
+   data = readDefaultedKW(fid, template);
+   data = toDouble(data, numeric);
+   
+   w.WELLSTRE = [w.WELLSTRE; data];
+
+end
+
+%--------------------------------------------------------------------------
+
+function w = readWInjGas(fid, w)
+
+   %            1          2          3          4          5
+   template = {'Default', 'Default', 'Default', 'Default', '0.0'};
+   numeric  = 5;
+
+   data = readDefaultedKW(fid, template);
+   
+   data = toDouble(data, numeric);
+   
+   w.WINJGAS = [w.WINJGAS; data];
+
+end
+
+%--------------------------------------------------------------------------
+
 function rptctrl = readReportControl(fid)
    rptctrl = regexprep(readRecordString(fid), ...
                        {'\s*=\s*', ''''}, {'=', ''});
@@ -905,9 +954,11 @@ function table = appendSpec(table, kw, data, wells)
    if ~isempty(data) && ~all(ismember(data(:,1), wells))
       unknown = data(~ismember(data(:,1), wells), 1);
       u = sprintf(' ''%s''', unknown{:});
-      error(msgid('Well:Unknown'), ...
+      warning(msgid('Well:Unknown'), ...
            ['Well control specified in undeclared wells:%s.\n', ...
-            'Attempted coup d''état foiled.'], u);
+            'Check input to verify that well was declared using', ...
+            ' WELSPECS.'], u);
+      return
    end
 
    % Exclude any previous records for these wells.  They were likely copied

@@ -2,7 +2,7 @@ function deck = readSOLUTION(fid, dirname, deck)
 % Read solution
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -73,6 +73,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             equil = readDefaultedKW(fid, tmpl, 'NRec', ntequil);
             sln.(kw) = cellfun(to_double, equil);                clear tmpl
 
+          case 'STREQUIL'
+            tmpl(1 : 9) = { '0' };
+            %tmpl(  10  ) = { '1' };
+
+            equilstress = readDefaultedKW(fid, tmpl, 'NRec', ntequil);
+            sln.(kw) = cellfun(to_double, equilstress);                clear tmpl  
          case 'FIELDSEP'
             templ = {'NaN', 'NaN', 'NaN', '0', '0', '0', '0', '0', 'NaN', 'NaN'};
             sln.(kw) = readDefaultedKW(fid, templ);
@@ -90,7 +96,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
             sln.(kw) = data;
 
-         case { 'PBVD', 'PDVD', 'RSVD', 'RVVD' }
+         case { 'PBVD', 'PDVD', 'RSVD', 'RVVD','RTEMPVD' }
             for reg = 1 : ntequil
                s             = readRecordString(fid);
                sln.(kw){reg} = reshape(to_double(s), 2, []) .';

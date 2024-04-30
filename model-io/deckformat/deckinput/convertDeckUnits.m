@@ -27,7 +27,7 @@ function deck = convertDeckUnits(deck, varargin)
 %   `readEclipseDeck`, `mrstVerbose`.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -91,7 +91,6 @@ else
     unitName = validUnitNames{occurance};
 end
 end
-
 
 %--------------------------------------------------------------------------
 
@@ -159,6 +158,16 @@ function grid = convertGRID(grid, u)
          case {'THCONR'}
             grid.(key) = convertFrom(grid.(key), u.rockcond);
 
+         case {'YMODULE'}
+            grid.(key) = convertFrom(grid.(key), u.ymodule);
+
+         case {'BIOTCOEF','POELCOEF','PRATIO'}
+           continue;
+
+         case {'THERMEXR','THELCOEF'}
+           warning([key, 'Has unit but o converstion for now']) 
+           continue;
+
          case {'PINCH', 'PINCHREG'}
             i    = [1, 3];
             data = convertFrom([ grid.(key){:,i} ], u.length);
@@ -187,7 +196,7 @@ function grid = convertGRID(grid, u)
                'MULTX'   , 'MULTX_'  , ...
                'MULTY'   , 'MULTY_'  , ...
                'MULTZ'   , 'MULTZ_'  , ...
-               'OPERNUM' , 'PINCHNUM','INIT'}
+               'OPERNUM' , 'PINCHNUM','INIT','BCCON'}
             continue;  % Pure scalars (no unit of measure)
 
          otherwise
@@ -424,7 +433,6 @@ function props = convertPROPS(props, u)
          case {'SOF2', 'SOF3', 'STONE', 'STONE1', 'STONE2', ...
                'SIMPLE', 'TLMIXPAR', 'PLMIXPAR', 'SHRATE', ...
                ...
-               'KRW'   , 'KRO'    , 'KRG'  ,           ...
                'SWL'   ,            'ISWL' ,           ...
                'SWLX'  , 'SWLX-'  , 'ISWLX', 'ISWLX-', ...
                'SWLY'  , 'SWLY-'  , 'ISWLY', 'ISWLY-', ...
@@ -517,6 +525,8 @@ function props = convertPROPS(props, u)
                'MISC', 'MSFN', 'SSFN', 'SCALECRS', ...
                ...
                'GRAVITY', ...
+               ...
+               'OMEGAA', 'OMEGAB', ...
                }
             continue;  % Dimensionless
 
@@ -557,6 +567,11 @@ function soln = convertSOLUTION(soln, u)
 
             unt        = unt(1 : size(soln.(key), 2));
             soln.(key) = convertFrom(soln.(key), unt);
+          case 'STREQUIL'                                %  7  8  9 10 11
+            unt = [repmat([u.length, u.press], [1, 3]), 1, 1, 1, 1, 1];
+
+            unt        = unt(1 : size(soln.(key), 2));
+            soln.(key) = convertFrom(soln.(key), unt);
 
          case 'FIELDSEP'
             unt = [1, u.temp, u.press, 1, 1, 1, 1, 1, u.temp, u.press];
@@ -585,12 +600,22 @@ function soln = convertSOLUTION(soln, u)
          case {'PBUB', 'PRESSURE'}
                soln.(key) = convertFrom(soln.(key), u.press);
 
+         case 'RTEMPVD'
+            for i = 1:numel(soln.(key))
+                d = soln.(key){i};
+                d(:, 2) = convertFrom(d(:, 2) + u.tempoffset, u.temp);
+                d(:, 1) = convertFrom(d(:, 1), u.length);
+                soln.(key){i} = d;
+            end
+
          case 'RSVD'
             unt = [u.length, u.gasvol_s/u.liqvol_s];
 
             for reg = 1 : numel(soln.(key))
                soln.(key){reg} = convertFrom(soln.(key){reg}, unt);
             end
+        
+         
 
          case 'RVVD'
             unt = [u.length, u.liqvol_s/u.gasvol_s];
@@ -720,8 +745,10 @@ function ctrl = convertControl(ctrl, u)
             end
 
          case {'GRUPTREE', 'WGRUPCON', 'VAPPARS', ...
-               'RPTSCHED', 'RPTRST', 'OUTSOL'}
+               'RPTSCHED', 'RPTRST', 'OUTSOL', 'WELLSTRE', 'WINJGAS'}
             continue; % No conversion necessary
+          case {'BCPROP'}
+              continue; %% some of the numbers may need conversion
 
          case 'GRUPNET'
             if ~isempty(ctrl.(key))

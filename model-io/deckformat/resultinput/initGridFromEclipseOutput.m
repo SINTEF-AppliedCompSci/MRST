@@ -1,31 +1,42 @@
 function [G, rock, N, T] = initGridFromEclipseOutput(init, grid, varargin)
-% Reads eclipse output files and converts to MRST-compatible datastructures
+%Initialise Grid and Rock Structures from ECLIPSE Result Files
 %
 % SYNOPSIS:
-%   [G, rock, N, T] = initGridFromEclipseOutput(init, grid, varargin)
+%   G               = initGridFromEclipseOutput(init, grid)
+%   G               = initGridFromEclipseOutput(init, grid, 'pn1', pv1 ...)
+%   [G, rock]       = initGridFromEclipseOutput(...)
+%   [G, rock, N, T] = initGridFromEclipseOutput(...)
 %
 % REQUIRED PARAMETERS:
-%   init    - structure obtained by reading INIT-file
-%   grid    - structure obtined by reading EGRID (or GRID) - file
+%   init    - Structure obtained by reading INIT file
+%   grid    - Structure obtined by reading EGRID (or GRID) file
 %
 % OPTIONAL PARAMETERS (supplied in 'key'/value pairs ('pn'/pv ...)):
-% outputSimGrid - if true, output minimal grid representing the eclipse
+% outputSimGrid - If true, output minimal grid representing the ECLIPSE
 %                 output ("topolgoy") suitable for computing TOF etc.,
 %                 but not for plotting. Output as second component of G.
-%                 Default is false
+%                 Default is false.
+%
 % RETURNS:
-% G     -   if outputSimGrid = false, standard MRST-grid
-%           if outputSimGrid = true, G(1) is standard MRST-grid, G(2) is
-%           simulation grid
-% rock  -   structure compatible with G if nargout < 5, compatible with Gs
-%           otherwise, but compatible with both unless special situations
-%           where e.g., an aquifer is represented in zero-volume cells
-% N, T  -   Neighbour + transmissiblity list typically not compatible with G,
-%           but with Gs
-% Gs    -   Minimal grid directly
+% G     -   If outputSimGrid = false, standard MRST grid structure.
+%           If outputSimGrid = true, a two-element cell-array of grid
+%           structures in which G{1} is the standard MRST grid and G{2} is
+%           a simulation grid.
+%
+% rock  -   Structure compatible with G if outputSimGrid=false, compatible
+%           with G{2} otherwise.  Compatible with both G{1} and G{2} unless
+%           special situations where e.g., an aquifer is represented in
+%           zero-volume cells.
+%
+% N, T  -   Neighbour and transmissiblity lists typically not compatible
+%           with the MRST visualisation grid G{1}, but rather with the
+%           simulation grid (graph) G{2}.
+%
+% SEE ALSO:
+%   readEclipseOutputFileUnFmt.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -156,10 +167,18 @@ if opt.outputSimGrid
     if isfield(init, 'AQUIFERN')
         Gs.cells.aquifer = init.AQUIFERN.values;
     end
-    Gs.cells.DX    = convertFrom(init.DX.values(eMap), u.length);
-    Gs.cells.DY    = convertFrom(init.DY.values(eMap), u.length);
-    Gs.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
-    Gs.cells.PORV   = convertFrom(init.PORV.values(actNum), u.resvolume);
+    if isfield(init, 'DX')
+        Gs.cells.DX    = convertFrom(init.DX.values(eMap), u.length);
+    end
+    if isfield(init, 'DY')
+        Gs.cells.DY    = convertFrom(init.DY.values(eMap), u.length);
+    end
+    if isfield(init, 'DZ')
+        Gs.cells.DZ    = convertFrom(init.DZ.values(eMap), u.length);
+    end
+    if isfield(init, 'PORV')
+        Gs.cells.PORV   = convertFrom(init.PORV.values(actNum), u.resvolume);
+    end
     dispif(mrstVerbose, 'done\n')
     G = {G, Gs};
 end

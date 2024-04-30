@@ -3,7 +3,7 @@ function deck = readGRID(fid, dirname, deck)
 % deck = readGRID(fid, dirname, deck)
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -112,6 +112,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             data     = readDefaultedRecord(fid, { 'METRES' });
             grd.(kw) = data{1};  clear data
 
+         case 'BCCON'
+            tmpl = { '1', '1', '1', '1', '1', '1','1', 'Z-'};;
+            data = readDefaultedKW(fid, tmpl);  clear tmpl
+            data(:, 1:end-1) = to_double(data(:, 1:end-1));
+            if ~isfield(grd, kw), grd.(kw) = cell([0, 8]); end
+            grd.(kw) = [grd.(kw); data];
+
          case 'MULTFLT'
             tmpl = { 'FaultName', '1.0', '1.0' };
             data = readDefaultedKW(fid, tmpl);  clear tmpl
@@ -186,6 +193,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'PERMYX', 'PERMY' , 'PERMYZ', ...
                'PERMZX', 'PERMZY', 'PERMZ' , ...
                'THCONR', ...
+               'PRATIO', 'YMODULE', 'BIOTCOEF', 'POELCOEF', 'THELCOEF', 'THERMEXR',...
                }
             if deck.RUNSPEC.DUALPORO
                grd = readGridBoxArrayDP(grd, fid, kw, nc);

@@ -27,7 +27,7 @@ function G = initEclipseGrid(deck, varargin)
 %   `readEclipseDeck`, `grid_structure`.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -169,6 +169,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        end
        if isfield(deck.GRID, 'PORV')
            mask = mask & deck.GRID.PORV > 0;
+       end
+       if isfield(deck.GRID, 'NTG')
+           mask = mask & deck.GRID.NTG > 0;
+       end
+       if isfield(deck.GRID, 'MULTPV')
+           mask = mask & deck.GRID.MULTPV > 0;
        end
        for i = 1:numel(G)
            G(i) = extractSubgrid(G(i), mask(G(i).cells.indexMap));

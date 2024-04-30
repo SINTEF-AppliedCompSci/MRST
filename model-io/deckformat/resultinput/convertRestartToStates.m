@@ -19,7 +19,7 @@ function [states, rstrt] = convertRestartToStates(fn, G, varargin)
 %                                 not correspond to file extension.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -166,6 +166,18 @@ for k = 1:numel(tr)
 
     if isfield(rstrt, 'PADS')
         states{k}.ads = rstrt.PADS{k};
+    end
+    
+    if isfield(rstrt, 'GAS_DEN')
+        states{k}.rho_gas = rstrt.GAS_DEN{k};
+    end
+    
+    if isfield(rstrt, 'OIL_DEN')
+        states{k}.rho_oil = rstrt.OIL_DEN{k};
+    end
+        
+    if isfield(rstrt, 'WAT_DEN')
+        states{k}.rho_water = rstrt.WAT_DEN{k};
     end
 
     % compositional features

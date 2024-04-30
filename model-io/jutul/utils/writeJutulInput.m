@@ -37,7 +37,7 @@ function pth = writeJutulInput(state0, model, schedule, varargin)
 %   readJutulOutput, runJutulOnDaemon, simulateScheduleJutul
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -71,7 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     assert(isfolder(opt.path))
     pth = writeToJutul(opt.path, name, state0, model, schedule, opt.extra, other, opt.reduce);
     if opt.printcmd
-        fprintf('Case written. To simulate, call:\n\n\tusing JutulDarcy\n\tsimulate_mrst_case("%s", write_mrst = true);\n\n', pth)
+        fprintf('Case written. To simulate, call:\n\n\tusing JutulDarcy\n\tsimulate_mrst_case(raw"%s", write_mrst = true);\n\n', pth)
     end
 end
 
@@ -83,7 +83,7 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
     % Make sure everything is prepped as if we were running a simulation.
     model = model.validateModel();
     grav = norm(model.gravity) > 0;
-    if ~grav
+    if ~grav && size(G.cells.centroids, 2) == 3
         G.cells.centroids(:, 3) = 0;
     end
     schedule = model.validateSchedule(schedule);
@@ -119,7 +119,7 @@ function pth = writeToJutul(folder_path, name, state0, model, schedule, extra, o
     pth = fullfile(folder_path, [name, '.mat']);
     jutul = struct();
     if reduce
-        keys = {'GRID', 'REGIONS', 'SOLUTION', 'SUMMARY', 'SCHEDULE', 'UnhandledKeywords'};
+        keys = {'GRID', 'REGIONS', 'SUMMARY', 'SCHEDULE', 'UnhandledKeywords'};
         for i = 1:numel(keys)
             deck = stripIfPresent(deck, keys{i});
         end

@@ -5,7 +5,7 @@ function deck = readRUNSPEC(fid, dirname, deck)
 
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -182,7 +182,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                'METRIC', 'FIELD', 'LAB', 'PVT-M', ...
                'WATER' , 'OIL'  , 'GAS', 'SOLVENT', ...
                'DISGAS', 'VAPOIL', 'BLACKOIL', ...
-               'POLYMER', 'SURFACT', 'BRINE', 'TEMP'}
+               'POLYMER', 'SURFACT', 'BRINE', 'TEMP','THERMAL','MECH'}
             rspec.(regexprep(kw, '\W', '_')) = true;
 
          case {'ECHO', 'NOECHO'}
