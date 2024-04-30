@@ -160,6 +160,9 @@ function p = getBoundaryPressure(model, propsRes, force, is_bc)
         end
         T  = propsRes.Tf(is_flux);
         dp = (-q./T + rhoMob.*dzbc)./totMob;
+        if ~isa(p, 'ADI') && isa(dp, 'ADI')
+            p = model.AutoDiffBackend.convertToAD(p, dp);
+        end
         p(is_flux) = p(is_flux) + dp;
     end
 end
@@ -186,7 +189,7 @@ function Xbc = getBoundaryMassFraction(model, bc)
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

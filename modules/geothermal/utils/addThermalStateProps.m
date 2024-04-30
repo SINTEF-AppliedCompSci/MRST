@@ -1,5 +1,5 @@
-function T = convertToCelcius(T)
-%Convert temperature from Kelvin to degrees Celcius
+function state = addThermalStateProps(state, varargin)
+%Add thermal properties to an existing state structure
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
@@ -20,6 +20,13 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    T = T - 273.15;
+    opt = struct('T', convertFromCelcius(20));
+    opt = merge_options(opt, varargin{:});
+    nc = length(state.pressure);
+    if size(opt.T, 1) < nc
+        opt.T = repmat(opt.T, nc, 1);
+    end
+    assert(numel(opt.T) == nc);
+    state.T = opt.T;
     
 end

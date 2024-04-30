@@ -1,4 +1,4 @@
-function setup = convertToReservoirWellbore(setup, varargin)
+function setup = convertToReservoirWellboreModel(setup, varargin)
 % Convert a setup with geothermal model to composite model with WellboreModel for wells
 %
 % SYNOPSIS:
@@ -16,7 +16,7 @@ function setup = convertToReservoirWellbore(setup, varargin)
 %           schedule have been converted to an instance of WellboreModel.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

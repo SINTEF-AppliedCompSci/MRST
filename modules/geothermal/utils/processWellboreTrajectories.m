@@ -32,7 +32,7 @@ function [W, Gsub] = processWellboreTrajectories(G, rock, coords, varargin)
 %   The WellboreModel is currently only compatible with GeothermalModel
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -139,6 +139,11 @@ function [opt, wellsGiven, varargin] = processInput(coords, opt, varargin)
         opt.refDepth = 0*meter;
         opt.names    = cellfun(@(n) sprintf('W%d', n), ...
                                 num2cell(1:nw), 'UniformOutput', false);
+    else
+        W = coords;
+        opt.radius   = arrayfun(@(W) W.r(1), W);
+        opt.names    = {W.name}';
+        opt.refDepth = [W.refDepth]';
     end
     [opt, varargin] = merge_options(opt, varargin{:});
 

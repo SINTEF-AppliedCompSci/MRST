@@ -6,7 +6,7 @@ function setup = convection_geothermal(varargin)
 %   setup = magmatic_intrusion_geothermal(fullSetup, 'pn1', pv1, ...)
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -92,6 +92,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     
     model = GeothermalModel(G, rock, fluid);
+    model.radiogenicHeatFluxDensity = 2.79*micro*watt/meter^3;
     
     top = find(G.faces.centroids(:,3) == 0);
     bc = addBC([], top, 'pressure', 1*atm, 'sat', 1);

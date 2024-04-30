@@ -1,26 +1,34 @@
-classdef ComponentPhaseMassFractionsBrine < StateFunction
-%Component mass fractions for brine
+classdef RadiogenicHeatSource < StateFunction
+%State function for heat influx due to radiogenic heat production
 
     properties
     end
     
     methods
         %-----------------------------------------------------------------%
-        function gp = ComponentPhaseMassFractionsBrine(model, varargin)
+        function gp = RadiogenicHeatSource(model, varargin)
             gp@StateFunction(model, varargin{:});
-            gp = gp.dependsOn({'ComponentPhaseMoleFractions'});
-            gp.label = 'X_{i,\alpha}';
+            gp = gp.dependsOn({'PoreVolume'});
+            rhoQh = model.radiogenicHeatFluxDensity;
+            assert(numel(rhoQh) == 1 || numel(rhoQh) == model.G.cells.num, ...
+                ['Radiogenic heat flux denisty must be specified ', ...
+                 'either as scalar, or one value per grid cell']);
+            assert(all(rhoQh > 0), ...
+                'Radiogenic heat flux density must be positive');
+            gp.label = 'Q_{h,rad}';
         end
-
+        
         %-----------------------------------------------------------------%
-        function mass = evaluateOnDomain(prop, model, state)
-            moles = prop.getEvaluatedDependencies(state, 'ComponentPhaseMoleFractions');
-            mass  = moles;
-            for i = 1:size(mass, 2)
-                mass(:, i) = model.getMassFraction(moles(:, i));
-            end
-        end
+        function qh = evaluateOnDomain(prop,model, state)
+            
+            pv    = prop.getEvaluatedDependencies(state, 'PoreVolume');
+            vol   = model.operators.vol - pv;
+            rhoQh = model.radiogenicHeatFluxDensity;
+            qh    = vol.*rhoQh;
+            
+        end       
     end
+    
 end
 
 %{
