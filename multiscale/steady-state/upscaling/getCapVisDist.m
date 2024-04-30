@@ -2,7 +2,7 @@ function [sW, sWcap] = getCapVisDist(block, pcVal, varargin)
 % Upscale two-way oil-water distribution
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

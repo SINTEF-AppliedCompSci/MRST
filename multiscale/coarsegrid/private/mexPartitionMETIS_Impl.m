@@ -32,7 +32,7 @@ function varargout = mexPartitionMETIS_Impl(varargin)
 %   `mexPartitionMETIS`.
 
 %{
-Copyright 2020-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2020-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

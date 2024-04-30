@@ -2,7 +2,7 @@ function A = getIncomp1PhMatrix(G, T, state, fluid)
 % Get TPFA-like incompressible system matrix via incompTPFA.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
