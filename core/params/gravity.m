@@ -82,7 +82,7 @@ function g = gravity(varargin)
 %   g = gravity()
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -142,7 +142,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                error(['%d-D String Theory is yet to be proven as a ', ...
                       'valid description of our world.'], numel(arg));
 
-             otherwise
+            otherwise
                error(msgid('foo:bar'), ...
                     ['This does not compute.\n',                ...
                      'Our three dimensional, visible physical', ...

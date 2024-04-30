@@ -99,6 +99,7 @@ classdef SparseTensor
         end
         
         function tensor = setFromTensorProd(tensor, vec, prod, varargin)
+            
             opts = struct('argindex', 1);            
             opts = merge_options(opts, varargin{:}); 
             argindex = opts.argindex;
@@ -320,7 +321,7 @@ classdef SparseTensor
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

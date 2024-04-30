@@ -50,7 +50,7 @@ function varargout = mrstModule(varargin)
 %   `mrstPath`.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       assert (iscellstr(varargin), 'All parameters must be strings.');
 
       cmd  = varargin{1};
-      mods = varargin(2 : end);
+      mods = mrstExpandModuleAlias(varargin(2 : end), mrstPath());
 
       switch lower(cmd)
          case 'add'
@@ -115,15 +115,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
 
          case 'reset'
-            munlock
-            MODLIST = clear_modules(MODLIST, BEHAVIOUR);
-
-            if ~ (isempty(mods) || all(cellfun(@isempty, mods)))
-               mods = deduplicate(cmd, mods);
-
-               mlock
-               MODLIST = add_modules(MODLIST, mods, BEHAVIOUR);
-            end
+            mrstModule clear
+            mrstModule('add', mods{:});
 
          case 'gui'
             moduleGUI();
@@ -162,8 +155,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
          otherwise
             error(msgid('Command:Unsupported'), ...
-                 ['Command word ''%s'' unsupported. Must be one of ', ...
-                  '''add'', ''clear'', ''list'', ''gui'', or ''reset''.'], cmd);
+                 ['Command word ''%s'' unsupported. Must ', ...
+                  'be one of ''add'', ''clear'', ''list'',', ...
+                  '''gui'', or ''reset''.'], cmd);
       end
 
    elseif nargout == 0
@@ -195,9 +189,9 @@ function mods = deduplicate(cmd, mods)
       return
    end
 
-   % If we get here, the list ist of input modules contains duplicates.
-   % Prune those (moderately expensive) and warn that we've altered the
-   % list (to preserve the *last* of each duplicated entry).
+   % If we get here, the list of input modules contains duplicates.  Prune
+   % those (moderately expensive) and warn that we've altered the list (to
+   % preserve the *last* of each duplicated entry).
 
    dup = umod(accumarray(iu, 1) > 1);
 

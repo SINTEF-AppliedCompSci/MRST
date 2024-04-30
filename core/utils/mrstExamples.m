@@ -48,7 +48,7 @@ function varargout = mrstExamples(varargin)
 %   `mrstModule`, `mrstPath`.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -124,7 +124,10 @@ end
 %--------------------------------------------------------------------------
 
 function allfiles = module_examples(mroot)
-   dirs = {fullfile(mroot, 'examples')};
+   if ~iscell(mroot), mroot = { mroot }; end
+
+   dirs = cellfun(@(r) fullfile(r, 'examples'), ...
+                  mroot, 'UniformOutput', false);
    ix   = 1;
    ndir = numel(dirs);
 
@@ -194,7 +197,8 @@ function [subdir, mpaths] = getSub(path)
     % files.
     filter = @(x) ~strcmpi(x.name(1), '.') && ...
                   ~strcmpi(x.name, 'contents.m') && ...
-                  ~(strcmpi(x.name, 'utils') && x.isdir) &&...
+                  ~(strcmpi(x.name, 'utils') && x.isdir) && ...
+                  ~(strcmpi(x.name, 'helpers') && x.isdir) && ...
                   (numel(x.name) > 2 || x.isdir);
     ok = arrayfun(filter, cand);
     cand = cand(ok);

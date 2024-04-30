@@ -40,7 +40,7 @@ function varargout = mrstSettings(verb, varargin)
 %
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -175,12 +175,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 varargout{1} = SETTINGS;
             else
                 checkSetting(SETTINGS, sarg);
-                setting =  SETTINGS.(sarg);
-                if ischar(setting)
-                    varargout{1} = setting;
+                setting = SETTINGS.(sarg);
+                if ischar(setting) || isstring(setting)
+                    out = setting;
+                elseif isfield(setting, 'value') || isprop(setting, 'value')
+                    out = setting.value;
                 else
-                    varargout{1} = setting.value;
+                    out = setting;
                 end
+                varargout{1} = out;
 
                 if nargout > 1
                     varargout{2} = setting;

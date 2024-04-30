@@ -131,7 +131,7 @@ function varargout = mrstPath(varargin)
 %   `ROOTDIR`, `isdir`, `filesep`, `fullfile`.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -217,6 +217,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             % Look for a particular module or set of modules.  The 'mods'
             % list is interpreted as a list of modules to search for.
 
+            mods = expand_name_alias(CACHE, mods);
             [pth, notfound] = search_modules(CACHE, mods);
 
             if nargout > 0
@@ -230,6 +231,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                elseif nargout == numel(mods)
 
                   [varargout{1:numel(mods)}] = lst{:};
+
+               else
+
+                  error('ModuleList:SizeMismatch', ...
+                       ['Path list of ''%d'' elements does match ', ...
+                        'module list of ''%d'' elements\n', ...
+                        '  -> Please use single-object return value ', ...
+                        'to capture all paths in alias-expanded list'], ...
+                        nargout, numel(mods));
 
                end
 
@@ -273,11 +283,7 @@ end
 %--------------------------------------------------------------------------
 
 function cache = register_root(cache, mods)
-   if exist('isfolder', 'builtin') || exist('isfolder', 'file')
-      i = cellfun(@isfolder, mods);
-   else
-      i = cellfun(@isdir, mods);
-   end
+   i = is_directory(mods);
    
    if ~ all(i)
       suffix = 'y';  if sum(~i) ~= 1, suffix = 'ies'; end
@@ -349,7 +355,7 @@ function cache = register_modules(cache, mods)
                reshape(mods(I, 2), [], 1), 'UniformOutput', false);
    t = reshape(t, size(mods, 1), []);
 
-   i = cellfun(@isdir, t);
+   i = is_directory(t);
    e = any(i, 2);
 
    if ~ all(e)
@@ -453,6 +459,13 @@ end
 
 %--------------------------------------------------------------------------
 
+function mods = expand_name_alias(cache, mods)
+   map  = cache_to_map(cache);
+   mods = mrstExpandModuleAlias(mods, map(:,1));
+end
+
+%--------------------------------------------------------------------------
+
 function map = cache_to_map(map)
    % Identity, no-op
 end
@@ -473,6 +486,16 @@ function [match_i, match_j] = look_for(reg, mods)
    match_i = i(matches);
    match_j = false([numel(mods), 1]);
    match_j(j(matches)) = true;
+end
+
+%--------------------------------------------------------------------------
+
+function i = is_directory(fs_element)
+   if exist('isfolder', 'builtin') || exist('isfolder', 'file')
+      i = cellfun(@isfolder, fs_element);
+   else
+      i = cellfun(@isdir, fs_element);
+   end
 end
 
 %--------------------------------------------------------------------------
