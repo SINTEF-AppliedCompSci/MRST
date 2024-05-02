@@ -23,6 +23,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('checkUnique', true, ...
                  'removeDuplicates', false);
     opt = merge_options(opt, varargin{:}); 
+
+    if nargin < 3 || isempty(fdnames)
+        fdnames1 = tbl1.fdnames;
+        fdnames2 = tbl2.fdnames;
+        assert(all(ismember(fdnames1, fdnames2)) && all(ismember(fdnames1, fdnames2)), 'not matching field names');
+        fdnames = fdnames1;
+    end
     
     inds1 = tbl1.gets(fdnames);
     inds2 = tbl2.gets(fdnames);
