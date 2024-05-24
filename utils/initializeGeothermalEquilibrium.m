@@ -127,7 +127,7 @@ function [p,T,sol] = solveODE(dpdz, dTdz, p0, T0, z, z0)
     assert(~(isempty(solUp) && isempty(solDown)), 'Something went wrong');
     % Evaluate in cells
     [p,T] = evaluateFn(solUp, solDown, z0, z);
-    sol   = @(z) evaluateFn(solUp, solDown, z);
+    sol   = @(z) evaluateFn(solUp, solDown, z0, z);
     
 end
 
