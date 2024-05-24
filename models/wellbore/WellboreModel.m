@@ -469,6 +469,7 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
             
+            state = model.applyLimits(state, drivingForces);
             % Get parent model equations
             [eqs, names, types, state] ...
                 = model.parentModel.getModelEquations(state0, state, dt, drivingForces);
@@ -526,7 +527,7 @@ classdef WellboreModel < WrapperModel
         % Equations imposing well control for each well
         
             % Get control types, targets, and mask for open wells
-            [type, target, compi, targetTemp, is_open] = model.getControls(drivingForces);
+            [type, target, compi, targetTemp, is_open] = model.getControls(state, drivingForces);
             
             % Convenient well and group indices
             nw = model.numWells();
@@ -633,14 +634,57 @@ classdef WellboreModel < WrapperModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function [type, target, compi, targetTemp, is_open] = getControls(model, drivingForces)
+        function [type, target, compi, targetTemp, is_open] = getControls(model, state, drivingForces)
             
             % Get driving forces and check that it's non-empty
             [wCtrl, gCtrl] = deal([]);
             hasWellCtrl  = isfield(drivingForces, 'W') && ~isempty(drivingForces.W);
             hasGroupCtrl = isfield(drivingForces, 'groups') && ~isempty(drivingForces.groups);
-            if hasWellCtrl , wCtrl = model.wells;  end
-            if hasGroupCtrl, gCtrl = model.groups; end
+            if hasWellCtrl , wCtrl = state.wells;  end
+            if hasGroupCtrl, gCtrl = state.groups; end
+            if isempty(wCtrl) && isempty(gCtrl), return; end
+        
+            nw = model.numWells();
+            ng = model.numGroups();
+            
+            nph = model.getNumberOfPhases;
+            compi = ones(1, nph)./nph;
+            ctrl0 = struct('type', 'none', 'val' , nan, ...
+                'compi', compi, 'T', nan, 'status', true);
+            if ~hasWellCtrl , wCtrl = repmat(ctrl0, nw, 1); end
+            if ~hasGroupCtrl, gCtrl = repmat(ctrl0, ng, 1); end
+        
+            target = [vertcat(wCtrl.val); vertcat(gCtrl.val)];
+            type   = vertcat({wCtrl.type}', {gCtrl.type}');
+            compi  = [vertcat(wCtrl.compi); vertcat(gCtrl.compi)];
+            
+            targetTemp = [];
+            if model.thermal
+                targetTemp = [vertcat(wCtrl.T); vertcat(gCtrl.T)];
+            end
+            
+            % Wells that are open to flow
+            is_open = vertcat(wCtrl.status, gCtrl.status);
+            
+        end
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function state = applyLimits(model, state, drivingForces)
+        % Update solution variables and wellSol based on the well limits.
+        % If limits have been reached, this function will attempt to
+        % re-initialize the values and change the controls so that the next
+        % step keeps within the prescribed ranges.
+        
+        
+            if ~isfield(state, 'wells'), state.wells = model.wells; end
+            if ~isfield(state, 'groups'), state.groups = model.groups; end
+            % Get driving forces and check that it's non-empty
+            [wCtrl, gCtrl] = deal([]);
+            hasWellCtrl  = isfield(drivingForces, 'W') && ~isempty(drivingForces.W);
+            hasGroupCtrl = isfield(drivingForces, 'groups') && ~isempty(drivingForces.groups);
+            if hasWellCtrl , wCtrl = state.wells;  end
+            if hasGroupCtrl, gCtrl = state.groups; end
             if isempty(wCtrl) && isempty(gCtrl), return; end
         
             nw = model.numWells();
@@ -665,85 +709,55 @@ classdef WellboreModel < WrapperModel
             % Wells that are open to flow
             is_open = vertcat(wCtrl.status, gCtrl.status);
             
-        end
-        %-----------------------------------------------------------------%
-        
-        %-----------------------------------------------------------------%
-        function model = applyLimits(model, state)
-        % Update solution variables and wellSol based on the well limits.
-        % If limits have been reached, this function will attempt to
-        % re-initialize the values and change the controls so that the next
-        % step keeps within the prescribed ranges.
-        
-            withinLimits = true;
-            is_open      = model.getActiveWells();
-            % Check if we can change controls, and return if not
-            if ~any(model.allowCtrlSwitching), return; end
-            % Check if any wells are open, and return if not
-            if ~any(is_open), return; end
-            
             limits = model.getLimits();
             
-            [bhp, qs] = model.getProps(state, 'BottomholePressure', 'SurfaceRate');
-            qsTot = sum(cell2mat(qs), 2);
-            is_inj = qsTot > 0;
+            % Convenient well and group indices
+            nw = model.numWells();
+            ng = model.numGroups();
+            [iic, iif] = model.getInletSegments();
             
+            [bhp, rhoS, Qt] = model.getProps(state, ...
+                'BottomholePressure', 'SurfaceDensity', 'qt');
+            qs = Qt./rhoS{1}(iic);
+            is_inj = vertcat(model.wells.sign) > 0;
             
-            % Injectors have three possible limits:
-            % bhp:  Upper limit on pressure.
-            % rate: Upper limit on total surface rate.
-            % vrat: Lower limit on total surface rate.
-            flags_inj = [bhp   > limits.bhp, ...
-                         qsTot > limits.rate, ...
-                         qsTot < limits.vrat];
-                  
-            % Producers have several possible limits:
-            % bhp:  Lower limit on pressure.
-            % orat: Lower limit on surface oil rate
-            % lrat: Lower limit on surface liquid (water + oil) rate
-            % grat: Lower limit on surface gas rate
-            % wrat: Lower limit on surface water rate
-            % vrat: Upper limit on total volumetric surface rate
-            qsm  = zeros(model.numWells() + model.numGroups(), 3);
-            qsm(:, model.getActivePhases()) = cell2mat(qs);
-            flags_prod = [bhp               < limits.bhp , ...
-                          qsm(:,2)          < limits.orat, ...
-                          sum(qsm(:,1:2),2) < limits.lrat, ...
-                          qsm(:,3)          < limits.grat, ...
-                          qsm(:,1)          < limits.wrat, ...
-                          sum(qsm, 2)       > limits.vrat];
+            lims = [limits.bhp, limits.rate];
+            vals = [value(bhp), value(qs)  ];
+            d    = vals - lims;
+            
+            flags = false(nw + ng, 2);
+            flags( is_inj,:) = d( is_inj,:) > 0;
+            flags(~is_inj,:) = d(~is_inj,:) < 0;
                 
             % limits we need to check (all others than w.type):
-            types = [{model.wells.type}, {model.groups.type}]';
+            
             modes = fieldnames(limits)';
-            chkInx = cellfun(@(t) strcmpi(t,modes), types, 'UniformOutput', false);
-            vltInx = find(flags(chkInx), 1);
-            if ~isempty(vltInx)
-                withinLimits = false;
-                modes  = modes(chkInx);
-                switchMode = modes{vltInx};
-                fprintf('Well %s: Control mode changed from %s to %s.\n', wellSol.name, wellSol.type, switchMode);
-                wellSol.type = switchMode;
-                wellSol.val  = limits.(switchMode);
+            check = cellfun(@(t) ~strcmpi(t,modes), type, 'UniformOutput', false);
+            check = cell2mat(check);
+            
+            violate       = flags & check;
+            has_violation = any(violate, 2);
+            
+            modes = repmat(modes, nw + ng, 1);
+            type(has_violation)   = modes(violate);
+            target(has_violation) = lims(violate);
+            
+            for i = 1:nw
+                if has_violation(i)
+                    fprintf('Well %s: Control mode changed from %s to %s.\n', ...
+                        model.wells(i).name, state.wells(i).type, type{i});
+                end
+                state.wells(i).type = type{i};
+                state.wells(i).val  = target(i);
+                state.wells(i).T    = targetTemp(i);
             end
-
-            if ~withinLimits
-                v  = wellSol.val;
-                switch wellSol.type
-                    case 'bhp'
-                        wellSol.bhp = bhp;
-                    case 'rate'
-                        for ix = 1:numel(phases)
-                            wellSol.(['q', phases(ix), 's']) = v*well.W.compi(ix);
-                        end
-                    case 'orat'
-                        wellSol.qOs = v;
-                    case 'wrat'
-                        wellSol.qWs = v;
-                    case 'grat'
-                        wellSol.qGs = v;
-                end % No good guess for qOs, etc...
+            
+            for i = nw + (1:ng)
+                state.groups(i).type = type{i};
+                state.groups(i).val  = target(i);
+                state.groups(i).T    = targetTemp(i);
             end
+            
         end
 
         %-----------------------------------------------------------------%
@@ -758,7 +772,7 @@ classdef WellboreModel < WrapperModel
                 limits.(type{:}) = facility.val;
             end
             
-            modes = {'bhp', 'rate', 'orat', 'lrat', 'grat', 'wrat', 'vrat'};
+            modes = {'bhp', 'rate'};
             modes = setdiff(modes, facility.type);
             missing = modes(~isfield(limits, modes));
             
@@ -766,7 +780,7 @@ classdef WellboreModel < WrapperModel
             if sgn == 0, sgn = 1; end
             val = sgn.*inf;
             for f = missing
-                v = val; if strcmpi(f, 'vrat'), v = -v; end
+                v = val; %if strcmpi(f, 'vrat'), v = -v; end
                 limits = setfield(limits, f{:}, v);
             end
             facility.lims = limits;
@@ -825,6 +839,8 @@ classdef WellboreModel < WrapperModel
                 qh        = model.parentModel.getProp(state, 'HeatFlux');
                 state.effect = model.parentModel.operators.groupSum(qh(iif));
             end
+            
+            state = rmfield(state, {'wells', 'groups'});
 
             if ~model.thermal, return; end
             
@@ -997,6 +1013,12 @@ classdef WellboreModel < WrapperModel
             limits = cell2struct(values, names, 2);
             
         end            
+        %-----------------------------------------------------------------%
+        
+        %-----------------------------------------------------------------%
+        function types = getTypes(model)
+            types = {model.wells.types};
+        end
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
