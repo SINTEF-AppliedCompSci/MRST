@@ -753,9 +753,9 @@ classdef WellboreModel < WrapperModel
             end
             
             for i = nw + (1:ng)
-                state.groups(i).type = type{i};
-                state.groups(i).val  = target(i);
-                state.groups(i).T    = targetTemp(i);
+                state.groups(i-nw).type = type{i};
+                state.groups(i-nw).val  = target(i);
+                state.groups(i-nw).T    = targetTemp(i);
             end
             
         end
