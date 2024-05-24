@@ -172,11 +172,12 @@ function Tbc = getBoundaryTemperature(model, propsRes, force)
     Tbc = model.AutoDiffBackend.convertToAD(force.T, propsRes.pressure);
     is_Hflux = ~isnan(force.Hflux);
     if any(is_Hflux)
-        ThR = propsRes.Thr;
-        ThF = propsRes.Thf;
-        T = propsRes.T;
-        dT            = force.Hflux(is_Hflux)./(ThR(is_Hflux) + ThF(is_Hflux));
-        Tbc(is_Hflux) = T(is_Hflux) + dT;
+        ThR = propsRes.Thr(is_Hflux);
+        ThF = propsRes.Thf(is_Hflux);
+        Q   = force.Hflux(is_Hflux);
+        T   = propsRes.T(is_Hflux);
+        dT  = Q./(ThR + ThF);
+        Tbc(is_Hflux) = T + dT;
     end
 end
 
