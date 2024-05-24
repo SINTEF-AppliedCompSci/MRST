@@ -56,7 +56,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     wellSols   = cell(n,1);
     wellNames  = {model.submodels.(wbname).wells.name};
-    groupNames = {model.submodels.(wbname).groups.name};
+    groupNames = {};
+    if model.submodels.(wbname).numGroups > 0
+        groupNames = {model.submodels.(wbname).groups.name};
+    end
     
     nw = model.submodels.(wbname).numWells();
     ng = model.submodels.(wbname).numGroups();
