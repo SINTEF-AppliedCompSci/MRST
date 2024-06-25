@@ -64,8 +64,6 @@ fluid = initDeckADIFluid(deck);
 rock.regions.saturation = ones(G.cells.num, 1); % 1 saturation region
 if krhyst == 1
     fluid.krHyst = 2;   % imbibition regions where hysteresis is active  
-    minSat = 0.02;      % saturation threshold for hysteresis activation
-    fluid = addScanKr(fluid, rock.regions.imbibition, minSat);
 else
     % no hysteresis
     fluid = rmfield(fluid, 'krHyst');
