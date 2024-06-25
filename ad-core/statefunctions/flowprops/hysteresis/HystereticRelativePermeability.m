@@ -86,18 +86,27 @@ classdef HystereticRelativePermeability < BaseRelativePermeability
                 regions = model.rock.regions.imbibition;
                 [sample, isAD] = getSampleAD(s, sMax);
                 kr = zeros(numel(regions), 1);
-                if isAD
-                    kr = prop.AutoDiffBackend.convertToAD(kr, sample);
-                end
-                for reg = 1:numel(unique(regions))
-                    idCells = regions == reg + (min(regions)-1);
-                    isRegi  = f.krHyst == reg + (min(regions)-1);
-                    if any(isRegi)
+                if f.krHyst == 1  % hysteresis active for all cells
+                    fni = cell(1, nregi);
+                    for reg = 1:nregi
                         kriVars =  {prop.sg_max(reg), prop.sg_min(reg), f.krG{reg}, f.krG{reg+nregi}, prop.sg_tmax(reg)};
-                        fni = @(sg, sgi) scanRelPerm(sg, sgi, kriVars, prop.minSat, f.ehystr);
-                        kr(idCells) = evaluateFunctionCellSubsetReg(prop, fni, regions, s(idCells), sMax(idCells));
-                    else
-                        kr(idCells) = evaluateFunctionCellSubsetReg(prop, fn{reg}, regions, s(idCells));
+                        fni{reg}  = @(sg, sgi) scanRelPerm(sg, sgi, kriVars, prop.minSat, f.ehystr);
+                    end
+                    kr = evaluateFunctionCellSubsetReg(prop, fni, regions, s, sMax);
+                else
+                    if isAD
+                        kr = prop.AutoDiffBackend.convertToAD(kr, sample);
+                    end
+                    for reg = 1:numel(unique(regions))
+                        idCells = regions == reg + (min(regions)-1);
+                        isRegi  = f.krHyst == reg + (min(regions)-1);
+                        if any(isRegi)
+                            kriVars =  {prop.sg_max(reg), prop.sg_min(reg), f.krG{reg}, f.krG{reg+nregi}, prop.sg_tmax(reg)};
+                            fni = @(sg, sgi) scanRelPerm(sg, sgi, kriVars, prop.minSat, f.ehystr);
+                            kr(idCells) = evaluateFunctionCellSubsetReg(prop, fni, regions, s(idCells), sMax(idCells));
+                        else
+                            kr(idCells) = evaluateFunctionCellSubsetReg(prop, fn{reg}, regions, s(idCells));
+                        end
                     end
                 end
                 %______________________________________________________________
