@@ -132,9 +132,8 @@ fluid   = makeVEFluid(Gt, rock2D, 'P-scaled table'    , ...
 % period of 950 years using time steps of 10 years.
 
 % hydrostatic pressure conditions for open boundary faces
-p_bc     = Gt.faces.z(bcIxVE) * rhow * g(3);
-bc2D     = addBC([], bcIxVE, 'pressure', p_bc); 
-bc2D.sat = repmat([1 0], numel(bcIxVE), 1);
+p_bc = Gt.faces.z(bcIxVE) * rhow * g(3);
+bc2D = addBC([], bcIxVE, 'pressure', p_bc, 'sat', [1, 0]); 
 
 % Setting up two copies of the well and boundary specifications. 
 % Modifying the well in the second copy to have a zero flow rate.
