@@ -71,10 +71,14 @@ faceEdges = reshape(Gt.faces.nodes,2,[])';
 z = (Gt.nodes.z(faceEdges(:,2))+ Gt.nodes.z(faceEdges(:,1)))/2;
 Gt.faces.z = z;
 
-cell_corners = cellNodes(Gt);
-zsum = accumarray(cell_corners(:,1), Gt.nodes.z(cell_corners(:,end)));
-znum = accumarray(cell_corners(:,1), 1);
-Gt.cells.z = zsum ./ znum; % @@ OK when more than 4 corners?
+% The following should already have been computed, and the lines below might
+% make the z-value worse (it ought to be completely coinciding with top surface
+% of 3D grid, which the commented-out modification below does not assure)
+
+% cell_corners = cellNodes(Gt);
+% zsum = accumarray(cell_corners(:,1), Gt.nodes.z(cell_corners(:,end)));
+% znum = accumarray(cell_corners(:,1), 1);
+% Gt.cells.z = zsum ./ znum; % @@ OK when more than 4 corners?
 
 %Gt.type = [Gt.parent.type, mfilename];
 Gt.type = [type, mfilename]; % @@ Was there a reason for refering to the

@@ -147,7 +147,7 @@ model = TwoPhaseWaterGasModel(G, rock, fluid, 0, 0);
 [wellSol, states] = simulateScheduleAD(initState, model, schedule);
 
 %% Plot results
-figure; plotCellData(G, states{100}.s(:,2)); view(-63, 68); colorbar; 
+figure; plotCellData(G, states{50}.s(:,2)); view(-63, 68); colorbar; 
 set(gcf, 'position', [531   337   923   356]); axis tight;
 figure; plotCellData(G, states{end}.s(:,2)); view(-63, 68); colorbar; 
 set(gcf, 'position', [531   337   923   356]); axis tight;
@@ -155,7 +155,7 @@ set(gcf, 'position', [531   337   923   356]); axis tight;
 % vertical plot
 [i j k] = ind2sub(G.cartDims, G.cells.indexMap);
 figure; 
-plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states{100}.s(j==48 & i>18 & i < 60,2)); 
+plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states{50}.s(j==48 & i>18 & i < 60,2)); 
 view(0,0); axis tight;
 
 figure; 
