@@ -98,8 +98,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         h_sub  = min(dh, h);
         hm_sub = min(dh, h_max);
     end
-    h_eff  = h - h_sub;
-    hm_eff = h_max - hm_sub;
+    h_eff  = min(h - h_sub, Gt.cells.H); 
+    hm_eff = min(h_max - hm_sub, Gt.cells.H);
     
     % this requires that the fluid has a sharp interface relperm of normal type    
     hdift     = max(min(zt, hm_eff) - min(zt, h_eff),0);    % trapped part of h_max-h
