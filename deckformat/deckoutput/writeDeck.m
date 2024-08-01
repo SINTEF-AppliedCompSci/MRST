@@ -119,7 +119,6 @@ fprintf(fid, dashedline);
 
 dump_props(fid, directory, deck, formats);
 
-
 %--- REGIONS --------------------------------------------------------------
 if(isfield(deck,'REGIONS'))
     fprintf(fid, dashedline);
@@ -358,28 +357,6 @@ for fld = reshape(fieldnames(deck.PROPS), 1, [])
     end
 end
 end
-
-% %--------------------------------------------------------------------------
-% function dump_rtempvd(fid, dirname, deck, f)
-%     fld = {'RTEMPVD'};
-% 
-%     values = {deck.RTEMPVD};
-% 
-%     for regn = 1:numel(values)
-%         values{regn}(isnan(values{regn})) = 0;
-%     end
-%     if iscellstr(values)
-%         dump_vector(fid,dirname, lower(fld{1}), getFmtStr(f.string), values);
-%     else
-%         fmt = getFmtStr(f.sci, size(values{1}, 2));
-%         dump_multiple(fid, dirname, lower(fld{1}), fmt, values);
-%     end
-% end
-% 
-
-
-%--------------------------------------------------------------------------
-
 
 function values = convertValuesToCell(values)
 if ~iscell(values)
