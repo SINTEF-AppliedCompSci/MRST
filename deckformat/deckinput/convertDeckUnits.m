@@ -617,13 +617,6 @@ function soln = convertSOLUTION(soln, u)
         
          
 
-         case 'RTEMPVD'
-            unt = [u.length, u.temp];
-            
-            for reg = 1 : numel(soln.(key))
-               soln.(key){reg} = convertFrom(soln.(key){reg}, unt);
-            end            
-
          case 'RVVD'
             unt = [u.length, u.liqvol_s/u.gasvol_s];
 

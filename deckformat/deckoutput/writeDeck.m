@@ -183,7 +183,7 @@ if(isfield(deck.RUNSPEC,'WELLDIMS'))
     fmt = getFmtStr(f.int, numel(v)); 
     dump_vector(fid,dirname, 'welldims', fmt, v, false);
 end
-flds={'OIL','WATER','GAS','DISGAS','VAPOIL','CO2STORE','METRIC','NOGRAV','FIELD','UNIFOUT','FMTOUT','TEMP','THERMAL','MECH'};
+flds={'OIL','WATER','GAS','DISGAS','VAPOIL','CO2STOR','METRIC','NOGRAV','FIELD','UNIFOUT','FMTOUT','TEMP','THERMAL','MECH'};
 for i=1:numel(flds)
     fld = flds{i};
     if(isfield(deck.RUNSPEC, fld))

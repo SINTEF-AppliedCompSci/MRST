@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mscript xmlns:mwsh="http://www.mathworks.com/namespace/mcode/v1/syntaxhighlight.dtd">
+   <version>9.5</version>
+   <release>2018b</release>
+   <date>2020-06-03</date>
+   <cell>
+      <count>1</count>
+      <steptitle>Read/convert ECLIPSE output and visualize using interactive diagnostics</steptitle>
+      <text>
+         <p>This example reads ECLIPSE unformatted output files from a simulation based on the SPE-9 benchmark. The data is converted to MRST grid and soluion structures and used as input to the interactive diagnostics functionality.</p>
+      </text>
+      <mcode>mrstModule add mrst-gui ad-core diagnostics
+
+if ~ makeSPE9OutputAvailable
+   error('SPE9Download:Failure', ...
+         'Failed to download ECLIPSE output for SPE-9 benchmark case');
+end
+
+prefix = fullfile(getDatasetPath('spe9'), 'Simulation-Output', 'SPE9_CP');</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">mrstModule <mwsh:strings xml:space="preserve">add</mwsh:strings> <mwsh:strings xml:space="preserve">mrst-gui</mwsh:strings> <mwsh:strings xml:space="preserve">ad-core</mwsh:strings> <mwsh:strings xml:space="preserve">diagnostics</mwsh:strings>
+
+<mwsh:keywords xml:space="preserve">if</mwsh:keywords> ~ makeSPE9OutputAvailable
+   error(<mwsh:strings xml:space="preserve">'SPE9Download:Failure'</mwsh:strings>, <mwsh:keywords xml:space="preserve">...</mwsh:keywords>
+         <mwsh:strings xml:space="preserve">'Failed to download ECLIPSE output for SPE-9 benchmark case'</mwsh:strings>);
+<mwsh:keywords xml:space="preserve">end</mwsh:keywords>
+
+prefix = fullfile(getDatasetPath(<mwsh:strings xml:space="preserve">'spe9'</mwsh:strings>), <mwsh:strings xml:space="preserve">'Simulation-Output'</mwsh:strings>, <mwsh:strings xml:space="preserve">'SPE9_CP'</mwsh:strings>);</mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>1</mcode-count>
+      <cellOutputTarget>1</cellOutputTarget>
+   </cell>
+   <cell>
+      <count>2</count>
+      <steptitle>Read INIT/EGRID-files and construct MRST-grid</steptitle>
+      <mcode>init = readEclipseOutputFileUnFmt([prefix, '.INIT']);
+egrid = readEclipseOutputFileUnFmt([prefix, '.EGRID']);
+[G, rock] = eclOut2mrst(init, egrid);
+G = computeGeometry(G);</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">init = readEclipseOutputFileUnFmt([prefix, <mwsh:strings xml:space="preserve">'.INIT'</mwsh:strings>]);
+egrid = readEclipseOutputFileUnFmt([prefix, <mwsh:strings xml:space="preserve">'.EGRID'</mwsh:strings>]);
+[G, rock] = eclOut2mrst(init, egrid);
+G = computeGeometry(G);</mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>2</mcode-count>
+      <cellOutputTarget>2</cellOutputTarget>
+   </cell>
+   <cell>
+      <count>3</count>
+      <steptitle>Read restart step 10 and convert to mrst-state</steptitle>
+      <mcode>step = 10;
+states = convertRestartToStates(prefix, G, 'steps', 10);
+state = states{1};</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">step = 10;
+states = convertRestartToStates(prefix, G, <mwsh:strings xml:space="preserve">'steps'</mwsh:strings>, 10);
+state = states{1};</mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>3</mcode-count>
+      <cellOutputTarget>3</cellOutputTarget>
+   </cell>
+   <cell>
+      <count>4</count>
+      <steptitle>Set up a compatible well structure (W)</steptitle>
+      <text>
+         <p>The wellSol-field of state contains sufficient data to work as a well-struct (W).</p>
+      </text>
+      <mcode>W = state.wellSol;</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">W = state.wellSol;</mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>4</mcode-count>
+      <cellOutputTarget>4</cellOutputTarget>
+   </cell>
+   <cell>
+      <count>5</count>
+      <text>
+         <p>If flux field is not given in ECLIPSE restart (as here), the converted state will not contain fluxes either. In this case, interactiveDiagnostics will need to solve an incompressible pressure equation in order to reconstruct a reasonable flux field. We therefore need to adjust <tt>W</tt> such that its control settings are compatible with the incompressible solvers. Here we set <tt>W(1)</tt> (the injector) to be controlled by bottom-hole pressure target (BHP), and <tt>W(2:end)</tt> (the producers) to be controlled by rate. We set the rate values to the reservoir volume rates computed by ECLIPSE (resv).</p>
+      </text>
+      <mcode>[W(1).type, W(1).val] = deal('bhp', W(1).bhp);
+for wnum = 2:numel(W)
+    [W(wnum).type, W(wnum).val] = deal('rate', W(wnum).resv);
+end</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">[W(1).type, W(1).val] = deal(<mwsh:strings xml:space="preserve">'bhp'</mwsh:strings>, W(1).bhp);
+<mwsh:keywords xml:space="preserve">for</mwsh:keywords> wnum = 2:numel(W)
+    [W(wnum).type, W(wnum).val] = deal(<mwsh:strings xml:space="preserve">'rate'</mwsh:strings>, W(wnum).resv);
+<mwsh:keywords xml:space="preserve">end</mwsh:keywords></mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>5</mcode-count>
+      <cellOutputTarget>5</cellOutputTarget>
+   </cell>
+   <cell>
+      <count>6</count>
+      <steptitle>Run Interactive diagnostics</steptitle>
+      <mcode>close all, interactiveDiagnostics(G, rock, W, 'state', state);
+figure(1), daspect([1, 1, 0.3]), view([1, -0.5, 1])</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">close <mwsh:strings xml:space="preserve">all</mwsh:strings>, interactiveDiagnostics(G, rock, W, <mwsh:strings xml:space="preserve">'state'</mwsh:strings>, state);
+figure(1), daspect([1, 1, 0.3]), view([1, -0.5, 1])</mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>6</mcode-count>
+      <cellOutputTarget>6</cellOutputTarget>
+      <mcodeoutput class="codeoutput">New state encountered, computing diagnostics...
+Warning: Inconsistent Number of Phases.  Using 1 Phase (=min([3, 1, 1])). 
+</mcodeoutput>
+      <img src="diagnosticsFromEclipseOutput_01.png"/>
+      <img src="diagnosticsFromEclipseOutput_02.png"/>
+   </cell>
+   <cell>
+      <count>7</count>
+      <text>
+         <p>
+            <html text="&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;Copyright 2009-2020 SINTEF Digital, Mathematics &amp; Cybernetics.&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;MRST is free software: you can redistribute it and/or modify&#xA;it under the terms of the GNU General Public License as published by&#xA;the Free Software Foundation, either version 3 of the License, or&#xA;(at your option) any later version.&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;MRST is distributed in the hope that it will be useful,&#xA;but WITHOUT ANY WARRANTY; without even the implied warranty of&#xA;MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the&#xA;GNU General Public License for more details.&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;You should have received a copy of the GNU General Public License&#xA;along with MRST.  If not, see&#xA;&lt;a href=&#34;http://www.gnu.org/licenses/&#34;&gt;http://www.gnu.org/licenses&lt;/a&gt;.&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;">
+&lt;p&gt;&lt;font size="-1"&gt;
+Copyright 2009-2020 SINTEF Digital, Mathematics &amp; Cybernetics.
+&lt;/font&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font size="-1"&gt;
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+&lt;/font&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font size="-1"&gt;
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+&lt;/font&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font size="-1"&gt;
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+&lt;/font&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font size="-1"&gt;
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see
+&lt;a href="http://www.gnu.org/licenses/"&gt;http://www.gnu.org/licenses&lt;/a&gt;.
+&lt;/font&gt;&lt;/p&gt;
+</html>
+         </p>
+      </text>
+      <cellOutputTarget>7</cellOutputTarget>
+   </cell>
+   <originalCode>%% Read/convert ECLIPSE output and visualize using interactive diagnostics
+% This example reads ECLIPSE unformatted output files from a simulation
+% based on the SPE-9 benchmark. The data is converted to MRST grid and
+% soluion structures and used as input to the interactive diagnostics
+% functionality.
+
+mrstModule add mrst-gui ad-core diagnostics
+
+if ~ makeSPE9OutputAvailable
+   error('SPE9Download:Failure', ...
+         'Failed to download ECLIPSE output for SPE-9 benchmark case');
+end
+
+prefix = fullfile(getDatasetPath('spe9'), 'Simulation-Output', 'SPE9_CP');
+
+%% Read INIT/EGRID-files and construct MRST-grid
+init = readEclipseOutputFileUnFmt([prefix, '.INIT']);
+egrid = readEclipseOutputFileUnFmt([prefix, '.EGRID']);
+[G, rock] = eclOut2mrst(init, egrid);
+G = computeGeometry(G);
+
+%% Read restart step 10 and convert to mrst-state
+step = 10;
+states = convertRestartToStates(prefix, G, 'steps', 10);
+state = states{1};
+
+%% Set up a compatible well structure (W)
+% The wellSol-field of state contains sufficient data to work as a
+% well-struct (W).
+W = state.wellSol;
+
+%%
+% If flux field is not given in ECLIPSE restart (as here), the converted
+% state will not contain fluxes either. In this case,
+% interactiveDiagnostics will need to solve an incompressible pressure
+% equation in order to reconstruct a reasonable flux field. We therefore
+% need to adjust |W| such that its control settings are compatible with the
+% incompressible solvers. Here we set |W(1)| (the injector) to be
+% controlled by bottom-hole pressure target (BHP), and |W(2:end)| (the
+% producers) to be controlled by rate. We set the rate values to the
+% reservoir volume rates computed by ECLIPSE (resv).
+
+[W(1).type, W(1).val] = deal('bhp', W(1).bhp);
+for wnum = 2:numel(W)
+    [W(wnum).type, W(wnum).val] = deal('rate', W(wnum).resv);
+end
+
+%% Run Interactive diagnostics
+close all, interactiveDiagnostics(G, rock, W, 'state', state);
+figure(1), daspect([1, 1, 0.3]), view([1, -0.5, 1])
+
+%%
+% &lt;html&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% Copyright 2009-2020 SINTEF Digital, Mathematics &amp; Cybernetics.
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% &lt;a href="http://www.gnu.org/licenses/"&gt;http://www.gnu.org/licenses&lt;/a&gt;.
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;/html&gt;
+</originalCode>
+   <m-file>diagnosticsFromEclipseOutput</m-file>
+   <filename>/home/francesca/mrst-bitbucket/mrst-model-io/deckformat/examples/diagnosticsFromEclipseOutput.m</filename>
+   <outputdir>/home/francesca/mrst-bitbucket/mrst-model-io/deckformat/examples/html</outputdir>
+</mscript>

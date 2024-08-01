@@ -1,0 +1,289 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mscript xmlns:mwsh="http://www.mathworks.com/namespace/mcode/v1/syntaxhighlight.dtd">
+   <version>9.5</version>
+   <release>2018b</release>
+   <date>2020-06-03</date>
+   <cell>
+      <count>1</count>
+      <steptitle>Write ELCIPSE/OPM-type deck to files</steptitle>
+      <text>
+         <p>This example demonstrates the use of model2deck/writeDeck to create/wtite ECLIPSE/OPM-type input-decks from deck-structures and/or MRST-models</p>
+      </text>
+      <mcode>mrstModule add ad-core
+
+mrstVerbose true</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">mrstModule <mwsh:strings xml:space="preserve">add</mwsh:strings> <mwsh:strings xml:space="preserve">ad-core</mwsh:strings>
+
+mrstVerbose <mwsh:strings xml:space="preserve">true</mwsh:strings></mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>1</mcode-count>
+      <cellOutputTarget>1</cellOutputTarget>
+   </cell>
+   <cell>
+      <count>2</count>
+      <steptitle>Read and write deck for SPE1</steptitle>
+      <mcode>pth = getDatasetPath('spe1');
+fn  = fullfile(pth, 'BENCH_SPE1.DATA');
+deck_orig = convertDeckUnits( readEclipseDeck(fn));
+
+% write a new deck using metric units and list newly created files
+outpth = fullfile(mrstDataDirectory(), 'SPE1_METRIC') ;
+writeDeck(deck_orig, outpth, 'unit', 'metric');
+fprintf('\nContents of %s:\n', outpth)
+dir(outpth)</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">pth = getDatasetPath(<mwsh:strings xml:space="preserve">'spe1'</mwsh:strings>);
+fn  = fullfile(pth, <mwsh:strings xml:space="preserve">'BENCH_SPE1.DATA'</mwsh:strings>);
+deck_orig = convertDeckUnits( readEclipseDeck(fn));
+
+<mwsh:comments xml:space="preserve">% write a new deck using metric units and list newly created files</mwsh:comments>
+outpth = fullfile(mrstDataDirectory(), <mwsh:strings xml:space="preserve">'SPE1_METRIC'</mwsh:strings>) ;
+writeDeck(deck_orig, outpth, <mwsh:strings xml:space="preserve">'unit'</mwsh:strings>, <mwsh:strings xml:space="preserve">'metric'</mwsh:strings>);
+fprintf(<mwsh:strings xml:space="preserve">'\nContents of %s:\n'</mwsh:strings>, outpth)
+dir(outpth)</mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>2</mcode-count>
+      <cellOutputTarget>2</cellOutputTarget>
+      <mcodeoutput class="codeoutput">No converter needed in section 'REGIONS'.
+No converter needed in section 'SUMMARY'.
+No converter needed in section 'PCUNIT'.
+No converter needed in section 'REGIONS'.
+No converter needed in section 'SUMMARY'.
+No converter needed in section 'PCUNIT'.
+
+
+...</mcodeoutput>
+   </cell>
+   <cell>
+      <count>3</count>
+      <steptitle>Read new deck and print contents of DATA-file</steptitle>
+      <mcode>fn_new = fullfile(outpth, 'SPE1_METRIC.DATA');
+deck_new = convertDeckUnits( readEclipseDeck(fn_new));
+% view contents of newly created of DATA-file
+mstat = get(0, 'more');
+more('on');
+type(fn_new);
+more(mstat);</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">fn_new = fullfile(outpth, <mwsh:strings xml:space="preserve">'SPE1_METRIC.DATA'</mwsh:strings>);
+deck_new = convertDeckUnits( readEclipseDeck(fn_new));
+<mwsh:comments xml:space="preserve">% view contents of newly created of DATA-file</mwsh:comments>
+mstat = get(0, <mwsh:strings xml:space="preserve">'more'</mwsh:strings>);
+more(<mwsh:strings xml:space="preserve">'on'</mwsh:strings>);
+type(fn_new);
+more(mstat);</mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>3</mcode-count>
+      <cellOutputTarget>3</cellOutputTarget>
+      <mcodeoutput class="codeoutput">No converter needed in section 'REGIONS'.
+No converter needed in section 'SUMMARY'.
+No converter needed in section 'PCUNIT'.
+
+---------------------------------------------------------
+---                                                   ---
+---           M   M   RRRR     SSSS   TTTTT           ---
+---           MM MM   R   R   S         T             ---
+...</mcodeoutput>
+   </cell>
+   <cell>
+      <count>4</count>
+      <steptitle>Check that the two decks indeed produce the same results</steptitle>
+      <mcode>[initState, model, schedule] = initEclipseProblemAD(deck_orig);
+ws1 = simulateScheduleAD(initState, model, schedule);
+[initState2, model2, schedule2] = initEclipseProblemAD(deck_new);
+ws2 = simulateScheduleAD(initState2, model2, schedule2);
+
+plotWellSols({ws1, ws2}, {cumsum(schedule.step.val), cumsum(schedule2.step.val)}, ...
+             'datasetnames', {'Original deck', 'Generated deck'});</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">[initState, model, schedule] = initEclipseProblemAD(deck_orig);
+ws1 = simulateScheduleAD(initState, model, schedule);
+[initState2, model2, schedule2] = initEclipseProblemAD(deck_new);
+ws2 = simulateScheduleAD(initState2, model2, schedule2);
+
+plotWellSols({ws1, ws2}, {cumsum(schedule.step.val), cumsum(schedule2.step.val)}, <mwsh:keywords xml:space="preserve">...</mwsh:keywords>
+             <mwsh:strings xml:space="preserve">'datasetnames'</mwsh:strings>, {<mwsh:strings xml:space="preserve">'Original deck'</mwsh:strings>, <mwsh:strings xml:space="preserve">'Generated deck'</mwsh:strings>});</mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>4</mcode-count>
+      <cellOutputTarget>4</cellOutputTarget>
+      <mcodeoutput class="codeoutput">No converter needed in section 'REGIONS'.
+No converter needed in section 'SUMMARY'.
+No converter needed in section 'PCUNIT'.
+Adding 200 artificial cells at top/bottom
+
+Processing regular i-faces
+ Found 550 new regular faces
+Elapsed time is 0.001122 seconds.
+...</mcodeoutput>
+      <img src="testWriteDeck_01.png"/>
+   </cell>
+   <cell>
+      <count>5</count>
+      <steptitle>Create deck from MRST-model</steptitle>
+      <text>
+         <p>Create a second deck directly from the MRST model. The grid is represented as 1D with all connections given as NNCs and all transmissibilities of the 1D-grid set to zero</p>
+         <p>The function model2deck does not support converting fluid-structures to PROPS, so this is copied from the original deck</p>
+      </text>
+      <mcode>deck_mrst = model2Deck(model, schedule, 'deck', deck_orig);
+% view contents of GRID-section
+fprintf('\nContents of GRID-section:\n')
+disp(deck_mrst.GRID)
+% view contents of EDIT-section
+fprintf('Contents of EDIT-section:\n')
+disp(deck_mrst.EDIT)
+
+% As above, deck_mrst can written to files by writeDeck and run with other
+% appropriate simulators. MRST does currently not support initializing a
+% model based on such a deck due to lack of required geometry information
+% (likely to change soon)</mcode>
+      <mcode-xmlized>
+         <mwsh:code xml:space="preserve">deck_mrst = model2Deck(model, schedule, <mwsh:strings xml:space="preserve">'deck'</mwsh:strings>, deck_orig);
+<mwsh:comments xml:space="preserve">% view contents of GRID-section</mwsh:comments>
+fprintf(<mwsh:strings xml:space="preserve">'\nContents of GRID-section:\n'</mwsh:strings>)
+disp(deck_mrst.GRID)
+<mwsh:comments xml:space="preserve">% view contents of EDIT-section</mwsh:comments>
+fprintf(<mwsh:strings xml:space="preserve">'Contents of EDIT-section:\n'</mwsh:strings>)
+disp(deck_mrst.EDIT)
+
+<mwsh:comments xml:space="preserve">% As above, deck_mrst can written to files by writeDeck and run with other</mwsh:comments>
+<mwsh:comments xml:space="preserve">% appropriate simulators. MRST does currently not support initializing a</mwsh:comments>
+<mwsh:comments xml:space="preserve">% model based on such a deck due to lack of required geometry information</mwsh:comments>
+<mwsh:comments xml:space="preserve">% (likely to change soon)</mwsh:comments></mwsh:code>
+      </mcode-xmlized>
+      <mcode-count>5</mcode-count>
+      <cellOutputTarget>5</cellOutputTarget>
+      <mcodeoutput class="codeoutput">No converter needed in section 'REGIONS'.
+No converter needed in section 'SUMMARY'.
+No converter needed in section 'PCUNIT'.
+No converter needed in section 'EDIT'.
+No converter needed in section 'REGIONS'.
+No converter needed in section 'SUMMARY'.
+No converter needed in section 'PCUNIT'.
+
+...</mcodeoutput>
+   </cell>
+   <cell>
+      <count>6</count>
+      <steptitle>Copyright Notice</steptitle>
+      <text>
+         <p>
+            <html text="&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;Copyright 2009-2020 SINTEF Digital, Mathematics &amp; Cybernetics.&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;MRST is free software: you can redistribute it and/or modify&#xA;it under the terms of the GNU General Public License as published by&#xA;the Free Software Foundation, either version 3 of the License, or&#xA;(at your option) any later version.&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;MRST is distributed in the hope that it will be useful,&#xA;but WITHOUT ANY WARRANTY; without even the implied warranty of&#xA;MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the&#xA;GNU General Public License for more details.&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;&lt;p&gt;&lt;font size=&#34;-1&#34;&gt;&#xA;You should have received a copy of the GNU General Public License&#xA;along with MRST.  If not, see&#xA;&lt;a href=&#34;http://www.gnu.org/licenses/&#34;&gt;http://www.gnu.org/licenses&lt;/a&gt;.&#xA;&lt;/font&gt;&lt;/p&gt;&#xA;">
+&lt;p&gt;&lt;font size="-1"&gt;
+Copyright 2009-2020 SINTEF Digital, Mathematics &amp; Cybernetics.
+&lt;/font&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font size="-1"&gt;
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+&lt;/font&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font size="-1"&gt;
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+&lt;/font&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font size="-1"&gt;
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+&lt;/font&gt;&lt;/p&gt;
+&lt;p&gt;&lt;font size="-1"&gt;
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see
+&lt;a href="http://www.gnu.org/licenses/"&gt;http://www.gnu.org/licenses&lt;/a&gt;.
+&lt;/font&gt;&lt;/p&gt;
+</html>
+         </p>
+      </text>
+      <cellOutputTarget>6</cellOutputTarget>
+   </cell>
+   <originalCode>%% Write ELCIPSE/OPM-type deck to files
+% This example demonstrates the use of model2deck/writeDeck to create/wtite 
+% ECLIPSE/OPM-type input-decks from deck-structures and/or MRST-models
+
+mrstModule add ad-core
+
+mrstVerbose true 
+
+%% Read and write deck for SPE1
+pth = getDatasetPath('spe1');
+fn  = fullfile(pth, 'BENCH_SPE1.DATA');
+deck_orig = convertDeckUnits( readEclipseDeck(fn));
+
+% write a new deck using metric units and list newly created files
+outpth = fullfile(mrstDataDirectory(), 'SPE1_METRIC') ;
+writeDeck(deck_orig, outpth, 'unit', 'metric');
+fprintf('\nContents of %s:\n', outpth)
+dir(outpth)
+
+%% Read new deck and print contents of DATA-file
+fn_new = fullfile(outpth, 'SPE1_METRIC.DATA');
+deck_new = convertDeckUnits( readEclipseDeck(fn_new));
+% view contents of newly created of DATA-file
+mstat = get(0, 'more');
+more('on');
+type(fn_new); 
+more(mstat);
+
+%% Check that the two decks indeed produce the same results
+[initState, model, schedule] = initEclipseProblemAD(deck_orig);
+ws1 = simulateScheduleAD(initState, model, schedule);
+[initState2, model2, schedule2] = initEclipseProblemAD(deck_new);
+ws2 = simulateScheduleAD(initState2, model2, schedule2);
+
+plotWellSols({ws1, ws2}, {cumsum(schedule.step.val), cumsum(schedule2.step.val)}, ...
+             'datasetnames', {'Original deck', 'Generated deck'});
+    
+%% Create deck from MRST-model        
+% Create a second deck directly from the MRST model. The grid is represented 
+% as 1D with all connections given as NNCs and all transmissibilities of
+% the 1D-grid set to zero
+%
+% The function model2deck does not support converting fluid-structures to
+% PROPS, so this is copied from the original deck
+
+deck_mrst = model2Deck(model, schedule, 'deck', deck_orig);
+% view contents of GRID-section
+fprintf('\nContents of GRID-section:\n')
+disp(deck_mrst.GRID)
+% view contents of EDIT-section
+fprintf('Contents of EDIT-section:\n')
+disp(deck_mrst.EDIT)
+
+% As above, deck_mrst can written to files by writeDeck and run with other
+% appropriate simulators. MRST does currently not support initializing a
+% model based on such a deck due to lack of required geometry information
+% (likely to change soon)
+
+%% Copyright Notice
+%
+% &lt;html&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% Copyright 2009-2020 SINTEF Digital, Mathematics &amp; Cybernetics.
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;p&gt;&lt;font size="-1"&gt;
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% &lt;a href="http://www.gnu.org/licenses/"&gt;http://www.gnu.org/licenses&lt;/a&gt;.
+% &lt;/font&gt;&lt;/p&gt;
+% &lt;/html&gt;
+</originalCode>
+   <m-file>testWriteDeck</m-file>
+   <filename>/home/francesca/mrst-bitbucket/mrst-model-io/deckformat/examples/testWriteDeck.m</filename>
+   <outputdir>/home/francesca/mrst-bitbucket/mrst-model-io/deckformat/examples/html</outputdir>
+</mscript>
