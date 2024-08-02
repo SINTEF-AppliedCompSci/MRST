@@ -48,8 +48,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('includeCaprock',false);
     
     opt = merge_options(opt, varargin{:});
-
-    fileID = fopen('SleipnerRefModel_GridLayers.txt');
+    
+    fileID = fopen(fullfile(fileparts(mfilename("fullpath")),'SleipnerRefModel_GridLayers.txt'));
     C = textscan(fileID,'%s\t%f');
     fclose(fileID);
     
