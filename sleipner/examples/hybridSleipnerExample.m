@@ -202,7 +202,7 @@ tic
 pVE = packSimulationProblem(state0VE, modelVE, scheduleVE, 'Sleipner2019VE');
 
 %% Simulate
-simulatePackedProblem(pVE);
+simulatePackedProblem(pVE, 'restartStep',1);
 
 %% Visualise results
 % First convert the VE results into results on the fine grid
