@@ -51,7 +51,7 @@ display(fluid)
 % fluids. All flow solvers in MRST automatically assume no-flow conditions
 % on all outer (and inner) boundaries if no other conditions are specified
 % explicitly.
-T = 10*year;
+T   = 10*year;
 pv  = sum(poreVolume(G,rock))/T;
 src = addSource([], 1, pv);
 src = addSource(src, G.cells.num, -pv);
