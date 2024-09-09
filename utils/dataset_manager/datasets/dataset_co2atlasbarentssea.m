@@ -2,7 +2,7 @@ function [info, present] = dataset_co2atlasbarentssea()
 % Info function for CO2lab dataset. Use getDatasetInfo or getAvailableDatasets for practical purposes.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

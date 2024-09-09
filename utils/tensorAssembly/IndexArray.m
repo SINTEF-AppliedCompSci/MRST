@@ -67,7 +67,11 @@ classdef IndexArray
                 tbl.inds    = inds;
             else
                 fdnames = opt.fdnames;
-                inds    = opt.inds;
+                if isempty(opt.inds)
+                    inds = ones(0, numel(fdnames));
+                else
+                    inds = opt.inds;
+                end
                 tbl     = tbl.setup(fdnames, inds);
                 tbl.parents = [];
             end
@@ -108,7 +112,11 @@ classdef IndexArray
             inds = tbl.inds;
             tblind = strcmp(fdname, fdnames);
             assert(~any(tblind), ['index array contains already field with that ' ...
-                                'name']);
+                                  'name']);
+            if size(ind, 1) == 1
+                ind = ind*ones(size(inds, 1), 1);
+            end
+            
             assert(size(inds, 1) == size(ind, 1), ['input size index does not ' ...
                                 'match in size']);
             
@@ -219,7 +227,7 @@ classdef IndexArray
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

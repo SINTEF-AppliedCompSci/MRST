@@ -58,7 +58,7 @@ function [K, L] = logNormLayers(N, varargin)
 %       k-indices=`L(i):L(i+1)-1`
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

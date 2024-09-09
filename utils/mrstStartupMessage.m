@@ -18,7 +18,7 @@ function mrstStartupMessage()
 %   `startup`, `mrstExamples`, `mrstModule`, `mrstPath`.
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -89,7 +89,7 @@ function printHeader(isDesktop)
         fprintf('the development version at commit %s\n', commit);
     else
         % User is using a specific release. Give a bit of extra output.
-        fprintf(['the release version 2023b. To download other ', ...
+        fprintf(['the release version 2024a. To download other ', ...
                  'versions of MRST\n', ...
                  'and view examples and relevant publications, ', ...
                  'please visit ']);
