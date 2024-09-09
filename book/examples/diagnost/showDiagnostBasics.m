@@ -107,10 +107,10 @@ n = 1; cmap=lines;
 pv = poreVolume(G,rock);
 leg = {};
 clf, hold on
-for i=1:numel(D.inj),
+for i=1:numel(D.inj)
     for p=1:numel(D.prod)
         I = (D.ipart==i) & (D.ppart==p);
-        if sum(I)==0, continue, end;
+        if sum(I)==0, continue, end
         [F,Phi] = computeFandPhi(pv(I),D.tof(I,:));
         plot(Phi(1:4:end),F(1:4:end),'.','Color',cmap(n,:));
         n = n+1;
