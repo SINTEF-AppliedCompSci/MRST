@@ -179,7 +179,7 @@ methods
     end
 
     function [model, state] = prepareTimestep(model, state, state0, dt, drivingForces)
-        if ~isempty(drivingForces.W)
+        if ~isempty(model.FacilityModel) && ~isempty(drivingForces.W)
             [model.FacilityModel, state] = model.FacilityModel.prepareTimestep(state, state0, dt, drivingForces);
             model.FacilityModel = model.FacilityModel.setReservoirModel(model);
         end
@@ -1712,7 +1712,7 @@ end
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

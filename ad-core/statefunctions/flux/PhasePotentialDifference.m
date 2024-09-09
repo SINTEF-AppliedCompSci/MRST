@@ -10,7 +10,7 @@ classdef PhasePotentialDifference < StateFunction
         function gp = PhasePotentialDifference(model, varargin)
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn('PressureGradient');
-            gp.hasGravity = norm(model.getGravityGradient(), inf) > 0;
+            gp.hasGravity = norm(value(model.getGravityGradient()), inf) > 0;
             if gp.hasGravity
                 gp = gp.dependsOn('GravityPotentialDifference');
             end
@@ -30,7 +30,7 @@ classdef PhasePotentialDifference < StateFunction
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

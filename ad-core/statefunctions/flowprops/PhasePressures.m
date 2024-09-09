@@ -27,8 +27,12 @@ classdef PhasePressures < StateFunction
             if prop.has_pc
                 pc = prop.getEvaluatedExternals(model, state, 'CapillaryPressure');
                 for i = 1:nph
-                    if ~isempty(pc{i})
-                        p_phase{i} = p_phase{i} + pc{i};
+                    if iscell(pc)
+                        if ~isempty(pc{i})
+                            p_phase{i} = p_phase{i} + pc{i};
+                        end
+                    else
+                        p_phase{i} = p_phase{i} + pc(:, i);
                     end
                 end
             end
@@ -37,7 +41,7 @@ classdef PhasePressures < StateFunction
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

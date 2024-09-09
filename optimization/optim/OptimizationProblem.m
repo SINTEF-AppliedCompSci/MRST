@@ -417,8 +417,10 @@ classdef OptimizationProblem < BaseEnsemble
                     'Not able to fetch initial guess');
                 us0 = p.iterationControls{1};
             end
-            assert(all(-sqrt(eps)<us0 & us0 < 1+sqrt(eps)), ...
-                'Initial guess is not within bounds');
+
+            if ~all(-sqrt(eps)<us0 & us0 < 1+sqrt(eps))
+                warning('Initial guess is not within bounds, largest relative violation: %f\n', max(max(us0-1),-min(us0)));
+            end
             opt = struct('optimizer',      'default', ...
                          'background',     false, ...
                          'maximize',       true,  ...
@@ -684,8 +686,8 @@ u = mat2cell(u, nparam, 1);
 % Create new setup, and set parameter values
 setup = problem.SimulatorSetup;
 % make sure to recreate discretizations
-setup.model.FlowDiscretization = [];
-setup.model.FlowPropertyFunctions = [];
+setup.model = setup.model.removeStateFunctionGroupings();
+
 for k = 1:numel(params)
     tmp   = params{k}.unscale(u{k});
     setup = params{k}.setParameter(setup, tmp);
@@ -854,7 +856,7 @@ end
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

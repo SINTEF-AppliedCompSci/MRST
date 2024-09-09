@@ -41,7 +41,7 @@ function [qSurf, BCTocellMap, BCcells, qRes] = getBoundaryConditionFluxesAD(mode
 %   addBC, pside, fluxside
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -237,7 +237,8 @@ for i = 1:nph
     if isa(totMob, 'ADI')
         sample = totMob;
     else
-        sample = pressure{1};
+        sample = getSampleAD(pressure{i}, mobF{i, 1}, mobF{i, 2}, T, rhoAvgF{i}, ...
+                                          bF{i, 1}, bF{i,2}, dzbc);
     end
     zeroAD = model.AutoDiffBackend.convertToAD(zeros(nbc, 1), sample);
     [q_s, q_r] = deal(zeroAD);

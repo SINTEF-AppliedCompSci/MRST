@@ -61,24 +61,16 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-assert(isa(setup.model,'GenericReservoirModel'),... 
+if isa(setup.model, 'ReservoirModel')
+    assert(isa(setup.model,'GenericReservoirModel'),... 
        'The model must be derived from GenericReservoirModel.')
-%assert(isa(param{1}, 'ModelParameter'), ...
-%        'Parameters must be initialized using ''ModelParameter''.')
+end
 
 opt = struct('LinearSolver',          [], ...
              'isScalar',            true, ...
              'accumulateResiduals',   [], ...
              'matchMap',              []);       
 opt = merge_options(opt, varargin{:});
-
-if mrstVerbose && setup.model.toleranceCNV >= 1e-3
-   fprintf(['The accuracy in the gradient depend on the',...
-            'acuracy on the CNV tolerance.\n',...
-            'For better accuracy set a lower value for '...
-            'model.toleranceCNV.'] )
-end
 
 if ~isempty(opt.LinearSolver)
     linsolve = opt.LinearSolver;
@@ -101,12 +93,13 @@ if any(isInitParam)
 end
 % validate simulation model:
 setup.model = validateModel(setup.model);
+setup.schedule = setup.model.validateSchedule(setup.schedule);
 
 % inititialize parameters to ADI
 [modelParam, scheduleParam] = initModelParametersADI(setup, param);
 % reset discretization/flow functions to account for AD-parameters
-modelParam.FlowDiscretization = [];
-modelParam.FlowPropertyFunctions = [];
+modelParam = modelParam.removeStateFunctionGroupings();
+        
 modelParam = validateModel(modelParam);
 
 nstep    = numel(setup.schedule.step.val);
@@ -115,21 +108,21 @@ getState = @(i) getStateFromInput(setup.schedule, states, setup.state0, i);
 if ~isempty(opt.accumulateResiduals) || ~opt.isScalar
     % allocate correct size of Lagrange multiplier matrix
     [colIx, nrow, ncol] = getColumnIndex(opt.accumulateResiduals, opt.matchMap, setup, states{end});
-    lambda = zeros(nrow, ncol);
+    lambdaVec = zeros(nrow, ncol);
 else
     colIx = repmat({nan}, [nstep, 1]);
-    lambda = [];
+    lambdaVec = [];
 end
 
 % run adjoint
 for step = nstep:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nstep - step + 1, nstep);
-    [lami, lambda]= setup.model.solveAdjoint(linsolve, getState, ...
-        getObjective, setup.schedule, lambda, step, 'colIx', colIx{step});
+    [lambda, lambdaVec]= setup.model.solveAdjoint(linsolve, getState, ...
+        getObjective, setup.schedule, lambdaVec, step, 'colIx', colIx{step});
     [eqdth, modelParam] = partialWRTparam(modelParam, getState, scheduleParam, step, param);
     result = 0;
-    for k = 1:numel(lami)
-        result = result + lami{k}'*eqdth{k};
+    for k = 1:numel(lambda)
+        result = result + lambda{k}'*eqdth{k};
     end
     result = result.jac;
     if numel(result) ~= numel(param) % might be the case for e.g., GenericAD
@@ -164,9 +157,9 @@ if any(isInitParam)
     for k = 1:numel(nms)
         kn = find(strcmp(nms{k}, varNms));
         assert(numel(kn)==1, 'Unable to match initial state parameter name %s\n', nms{k});
-        for nl = 1:numel(lami)
+        for nl = 1:numel(lambda)
             if isa(linProblem.equations{nl}, 'ADI')
-                sens.(nms{k}) = sens.(nms{k}) + linProblem.equations{nl}.jac{kn}'*lami{nl};
+                sens.(nms{k}) = sens.(nms{k}) + linProblem.equations{nl}.jac{kn}'*lambda{nl};
             end
         end
         if strcmp(initparam{k}.type, 'multiplier')

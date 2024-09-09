@@ -1,7 +1,7 @@
 classdef GenericFacilityModel < FacilityModel
     properties
         T = 288.15; % Metric standard conditions
-        pressure = 101.325*kilo*Pascal; % Metric standard pressure
+        pressure = 1*atm; % Metric standard pressure
         SeparatorGroup
         outputFluxes = true;
         doPostUpdate
@@ -46,7 +46,7 @@ classdef GenericFacilityModel < FacilityModel
             % individual components' preference at different conditions
             [p, temp] = facility.getSurfaceConditions();
             surfaceDensity = fp.get(facility, state, 'InjectionSurfaceDensity');
-            nph = model.getNumberOfPhases();
+            nph = model.getNumberOfPhases(); 
             surfaceRates = cell(1, nph);
             [surfaceRates{:}] = deal(zeros(numelValue(cflux{1}), 1));
             for c = 1:numel(cflux)
@@ -486,12 +486,20 @@ classdef GenericFacilityModel < FacilityModel
                             q_sl = wellSol.qSs;
                         end
                     end
-                    flags = [value(bhp) < lims.bhp,  ...
-                        q_o          < lims.orat, ...
-                        q_w + q_o    < lims.lrat, ...
-                        q_g + q_sl   < lims.grat, ...
-                        q_w          < lims.wrat, ...
-                        qs_t         > lims.vrat];
+                    if ~(strcmp(wellSol.type, 'vrat') && (lims.vrat == 0))
+                        flags = [value(bhp) < lims.bhp,  ...
+                            q_o          < lims.orat, ...
+                            q_w + q_o    < lims.lrat, ...
+                            q_g + q_sl   < lims.grat, ...
+                            q_w          < lims.wrat, ...
+                            qs_t         > lims.vrat];
+                    else
+                        % when vrat = 0, it serves as a "stop" if reservoir
+                        % pressure falls below bhp. When vrat = 0 is
+                        % active, bhp \approx reservoir pressure so if
+                        % bhp < lims.bhp, we can try to re-open
+                        flags = [value(bhp) > lims.bhp, false(1,5)];
+                    end
                 end
             else
                 modes = {};
@@ -661,7 +669,7 @@ classdef GenericFacilityModel < FacilityModel
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

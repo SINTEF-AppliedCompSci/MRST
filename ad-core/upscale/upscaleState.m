@@ -23,7 +23,7 @@ function state = upscaleState(coarsemodel, model, state)
 %   `upscaleSchedule`, `upscaleModelTPFA`
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -43,9 +43,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     p = coarsemodel.G.partition;
     CG = coarsemodel.G;
     
-    pvc = coarsemodel.operators.pv;
     pvf = model.operators.pv;
-    
+    pvc = accumarray(p, pvf, [max(p), 1]);
+
     counts = accumarray(p, 1);
     state_f = state;
     

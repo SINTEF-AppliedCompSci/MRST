@@ -50,7 +50,7 @@ function [src, bc] = computeSourcesAndBoundaryConditionsAD(model, pressure, s, m
 %   `ReservoirModel>addBoundaryConditionsAndSources`
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -148,7 +148,13 @@ function src = getContributionsStruct(force, q_s, b, rhoS, cells, dissolved, map
     
     srcMass = q_s;
     for i = 1:nPh
-        srcMass{i} = srcMass{i}.*rhoS(i);
+        rhoSi = rhoS(i);
+        if iscell(rhoSi)
+            rhoSi = rhoS{i};
+        end
+        if ~isempty(srcMass{i})
+            srcMass{i} = srcMass{i}.*rhoSi;
+        end
     end
     src = struct('phaseMass',   {srcMass}, ...
                  'phaseVolume', {q_r}, ...

@@ -89,12 +89,13 @@ title('Different regions (via rock)');
 % incorporate spatially varying functions.
 model = GenericBlackOilModel(G, rock, fluid, 'gas', false);
 model = model.validateModel();
-model.FlowPropertyFunctions.RelativePermeability.regions = reg;
-
+kr = model.FlowPropertyFunctions.RelativePermeability;
+kr = kr.setRegions(reg);
+model.FlowPropertyFunctions.RelativePermeability = kr;
 [~, states2] = simulateScheduleAD(state0, model, schedule);
 figure;
 plotToolbar(G, states2, 'startPlayBack', true, 'field', 's:1')
-title('Different regions (via rock)');
+title('Different regions (via state function)');
 %% Approach 3: Use input files
 % We do not demonstrate this in this example, but if you build your model
 % using inputs from the deckformat module, regions are automatically set up
@@ -102,7 +103,7 @@ title('Different regions (via rock)');
 
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

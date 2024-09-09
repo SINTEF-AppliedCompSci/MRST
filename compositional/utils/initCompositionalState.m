@@ -21,7 +21,7 @@ function state = initCompositionalState(model, p, T, s0, z0, eos)
 %
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -63,7 +63,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~report.StepReports{1}.Converged
         state = eos.updateAfterConvergence(state0, state, dt, struct());
     end
-    [sL, sV] = eos.computeSaturations(nan, nan, state.x, state.y, state.L, state.Z_L, state.Z_V);
+    [sL, sV] = eos.computeSaturations(state.pressure, state.T, nan, nan, state.x, state.y, state.L, state.Z_L, state.Z_V);
     sz = size(s0, 2);
     if size(s0, 1) == 1
         s0 = repmat(s0, G.cells.num, 1);

@@ -1,18 +1,22 @@
 %% Example demonstrating how to run the Norne field model in MRST
-% Note: The example uses a custom well function, and MRST does not support
-% hysteresis. The model is read in as an EGRID and is initialized in MRST
+% Note: The example uses a custom well function. The model is read in as an
+% EGRID and is initialized in MRST.
 %
 % Norne is a real field model, released by Equinor and its partners. It is
 % a fairly complex blackoil model with rel. perm. scaling, threshold
 % pressures, many wells, historical resv controls and many other features
-% not normally seen in academic simulations.
+% not normally seen in academic simulations. 
 mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui linearsolvers
 %% Set up case
 gravity reset on
 mrstVerbose on
 useMex = true;
-opm = mrstPath('opm-tests');
-[deck, output] = getDeckOPMData('norne', 'NORNE_ATW2013');
+
+pth = getDatasetPath('norne_field_model');
+opm = fullfile(pth,'opm-data');
+opm_tests = fullfile(pth,'opm-tests');
+
+[deck, output] = getNorneFieldDeckOPMData();
 %% Build model from EGRID/INIT files
 egrid = readEclipseOutputFileUnFmt([output.opm.location, '.EGRID']);
 init = readEclipseOutputFileUnFmt([output.opm.location, '.INIT']);
@@ -62,6 +66,8 @@ model.AutoDiffBackend.useMex = true;
 model.AutoDiffBackend.rowMajor = true;
 
 model = model.validateModel();
+% Uncomment this line to disable hysteresis:
+% model.FlowPropertyFunctions.RelativePermeability = BaseRelativePermeability(model, 'regions', model.rock.regions.imbibition);
 % Use the alternative more rigorous crossflow definition for component
 % fluxes
 xflow = WellComponentTotalVolumeBalanceCrossflow(model);
@@ -108,11 +114,11 @@ T_opm = cumsum(schedule.step.val);
 fname = 'Flow legacy (hysteresis)';
 wellSols = {ws, ws_opm};
 time = {T; T_opm};
-names = {'MRST (No hysteresis)', fname};
+names = {'MRST (hysteresis)', fname};
 
 try
     % Flow output - may not be present
-    pp = fullfile(mrstPath('opm-tests'), 'norne', 'NORNE_ATW2013');
+    pp = fullfile(opm_tests, 'norne', 'NORNE_ATW2013');
     states_newopm = convertRestartToStates(pp, model.G);
     [ws_opm, T_opm_new] = convertSummaryToWellSols(pp);
     fname = 'Flow (Hysteresis)';
@@ -124,18 +130,14 @@ catch
     % Output not found
 end
 
-ecl = fullfile(mrstPath('opm-tests'), 'norne', 'ECL.2014.2', 'NORNE_ATW2013');
+ecl = fullfile(opm_tests, 'norne', 'ECL.2014.2', 'NORNE_ATW2013');
 [ws_ecl, T_ecl] = convertSummaryToWellSols(ecl, 'metric');
 wellSols{end+1} = ws_ecl;
 time{end+1} = T_ecl;
 names{end+1} = 'Eclipse (Hysteresis)';
-fn = fullfile(mrstDataDirectory(), 'opm_smry_nohyst.mat');
+fn = fullfile(pth, 'opm_smry_nohyst.mat');
 
-if ~exist(fn, 'file')
-    url = 'https://www.sintef.no/contentassets/124f261f170947a6bc51dd76aea66129/opm_smry_nohyst.mat';
-    dfcn = mrstWebSave();
-    dfcn(fn, url);
-end
+
 smry = load(fn);
 smry = smry.smry;
 [ws_nohyst, T_nohyst] = convertSummaryToWellSols(smry, 'metric');
@@ -213,7 +215,7 @@ axis tight
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

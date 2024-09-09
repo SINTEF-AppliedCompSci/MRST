@@ -914,9 +914,17 @@ classdef EquationOfStateModel < PhysicalModel
             end
         end
 
-        function [sL, sV] = computeSaturations(model, rhoL, rhoV, x, y, L, Z_L, Z_V)
-            sL = L.*Z_L./(L.*Z_L + (1-L).*Z_V);
-            sV = (1-L).*Z_V./(L.*Z_L + (1-L).*Z_V);
+        function [sL, sV] = computeSaturations(model, p, T, rhoL, rhoV, x, y, L, Z_L, Z_V)
+            propmodel = model.PropertyModel;
+            if ~isprop(propmodel, 'volumeShift') || isempty(propmodel.volumeShift)
+                volL = L.*Z_L;
+                volV = (1-L).*Z_V;
+            else
+                volL = L./propmodel.computeMolarDensity(model, p, x, Z_L, T, true);
+                volV = (1-L)./propmodel.computeMolarDensity(model, p, y, Z_V, T, false);
+            end
+            sL = volL./(volL + volV);
+            sV = 1 - sL;
         end
         
         function frac = getMoleFraction(model, massfraction)
@@ -1253,7 +1261,7 @@ classdef EquationOfStateModel < PhysicalModel
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

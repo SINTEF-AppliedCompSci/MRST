@@ -37,6 +37,11 @@ classdef StateFunction
             error('Base class should not be evaluated')
         end
 
+        function prop = setRegions(prop, regions)
+            prop.isSingleRegion = isempty(regions) || numel(unique(regions)) == 1;
+            prop.regions = regions;
+        end
+
         function prop = dependsOn(prop, varargin)
             % Document dependencies and external dependencies
             prop = addPropertyDependence(prop, varargin{:});
@@ -247,7 +252,7 @@ classdef StateFunction
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -57,14 +57,14 @@ function [pts, pts_o] = getPoints(sgof, swcon)
     % Get OG-scaling
     pts_o = zeros(1, 4);
     pts_o(3) = 1;
-    ii = find(sgof(:,3) == 0, 1, 'first');
+    ii = find(sgof(:,3) <= eps, 1, 'first');
     pts_o(2) = 1 - sgof(ii,1) - swcon;
     % Maximum oil relperm
     pts_o(4) = sgof(1,3);
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
