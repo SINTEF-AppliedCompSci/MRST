@@ -590,7 +590,7 @@ classdef CompositeModel < PhysicalModel
         %-----------------------------------------------------------------%
         
         %-----------------------------------------------------------------%
-        function [lambda, lambdaVec, report] = solveAdjoint(model, solver, getState, getObj, schedule, gradient, stepNo, varargin)
+        function [gradient, lambdaVec, report] = solveAdjoint(model, solver, getState, getObj, schedule, gradient, stepNo, varargin)
             
             validforces = model.getValidDrivingForces();
             dt_steps = schedule.step.val;
