@@ -100,10 +100,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % Construction of the gradient operator
     %
 
-    % Construction of gradnodeface_op : nodefacecoltbl -> cellnodecolrowtbl
+    % Construction of gradnodeface_T : nodefacecoltbl -> cellnodecolrowtbl
     %
     % The nodefacecol part of the grad operator from nodefacecoltbl to cellnodecolrowtbl is obtained for any u in
-    % nodefacecoltbl by using v = prod.eval(g, u) where prod is defined below and this is how we set the correspinding
+    % nodefacecoltbl by using v = prod.eval(g, u) where prod is defined below and this is how we set the corresponding
     % tensor.
     %
     prod = TensorProd();
