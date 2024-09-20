@@ -66,7 +66,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     dt_final = time - sum(dt_init) - sum(dt_rem);
     % Less than to account for rounding errors leading to a very small
     % negative time-step.
-    if dt_final <= 0
+    if dt_final/dt_rem(end) <= 1e-6
+        dt_rem(end)=dt_rem(end)+dt_final;
         dt_final = [];
     end
     % Combined timesteps
