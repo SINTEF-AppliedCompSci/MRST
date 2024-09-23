@@ -278,6 +278,15 @@ classdef TensorProd
             
         end
 
+        function M = setupMatrix(prod, vals)
+
+            M = SparseTensor();
+            M = M.setFromTensorProd(vals, prod);
+            M = M.getMatrix();
+
+        end
+
+        
         function matrices = getMatrices(prod)
             
             dispind1 = prod.dispind1;
