@@ -453,16 +453,17 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     C1 = combCgradnodeface_T.getMatrix();
     C2 = combCgradcell_T.getMatrix();
-    
+
+    % The minus sign below come from the minus sign in - div(sigma) = f
     A11 = divnodeface_T*combCgradnodeface_T;
     A12 = divnodeface_T*combCgradcell_T;
     A21 = divcell_T*combCgradnodeface_T;
     A22 = divcell_T*combCgradcell_T;
 
-    A11 = A11.getMatrix();
-    A12 = A12.getMatrix();
-    A21 = A21.getMatrix();
-    A22 = A22.getMatrix();
+    A11 = -A11.getMatrix();
+    A12 = -A12.getMatrix();
+    A21 = -A21.getMatrix();
+    A22 = -A22.getMatrix();
 
     [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
     opt.invertBlocks = 'mex';
