@@ -229,27 +229,33 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         ind = 1;
         for i = 1 : 3
             for j = 1 : 2
+                addface = true;
                 if j == 1
-                    v = min(G.faces.centroids(:, i));
-                else
                     if i == 3
-                        % the top face is free,.
-                        break
+                        % The bottom face is free. (Note that for geological reservoir, bottom face corresponds to top face.)
+                        addface = false;
+                    else
+                        v = min(G.faces.centroids(:, i));
                     end
+                else
                     v = max(G.faces.centroids(:, i));
                 end
 
-                extfaces{ind} = find(abs(G.faces.centroids(:, i) - v) < 1e-5);
-                
-                n = numel(extfaces{ind});
+                if addface
+                    
+                    extfaces{ind} = find(abs(G.faces.centroids(:, i) - v) < 1e-5);
+                    
+                    n = numel(extfaces{ind});
 
-                linform = zeros(3, 1);
-                linform(i) = 1;
-                linforms{ind}    = repmat(linform, n, 1);
+                    linform = zeros(3, 1);
+                    linform(i) = 1;
+                    linforms{ind}    = repmat(linform, n, 1);
 
-                linformvals{ind} = zeros(n, 1);
+                    linformvals{ind} = zeros(n, 1);
 
-                ind = ind + 1;
+                    ind = ind + 1;
+                    
+                end
             end
         end
 
