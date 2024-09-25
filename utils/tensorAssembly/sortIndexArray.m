@@ -55,20 +55,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     inds = tbl.inds;
     inds = inds(:, fdind2);
     
-    inds = sortrows(inds);
-    fdnames = fds;
-    
+    [inds, order] = sortrows(inds);
     
     if opt.keepAllFields
-        warning('option not really tested yet!');
-        ofds = fieldnames(tbl);
-    
-        fdsToRemove = {fds{:}, 'num'};
-        for ifield = 1 : numel(fdsToRemove)
-            ofds = ofds(~strcmp(ofds, fdsToRemove{ifield}));
-        end
+
+        inds = tbl.inds(order, :);
         
-        fds = {fds{:}, ofds{:}};
+    else
+        
+        fdnames = fds;
+        
     end
 
     tbl.fdnames = fdnames;
