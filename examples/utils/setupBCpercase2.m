@@ -291,7 +291,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     bc.linform     = vertcat(linforms{:});
     bc.linformvals = vertcat(linformvals{:});
 
-    bc = setupFaceBC(bc, G, tbls);
+    bc = setupFaceBC2(bc, G, tbls);
 
     if isempty(force)
         force = zeros(cellvectbl.num, 1);

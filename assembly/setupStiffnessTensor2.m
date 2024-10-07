@@ -73,7 +73,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         diagtbl.vec2 = (1 : dim)';
         diagtbl = IndexArray(diagtbl);
 
-        gen = CrossIndexArrayGenerator
+        gen = CrossIndexArrayGenerator;
         gen.tbl1 = diagtbl;
         gen.tbl2 = diagtbl;
         gen.replacefds1 = {{'vec1', 'vec11'}, {'vec2', 'vec12'}};
