@@ -34,7 +34,15 @@ classdef FlowPropertyFunctions < StateFunctionGrouping
                 krarg = {};
             end
             % Relative permeability
-            if isfield(model.fluid, 'krHyst')
+            use_hyst = isfield(model.fluid, 'krHyst');
+            if use_hyst && isfield(model.fluid, 'ehystr')
+                hyst_type = model.fluid.ehystr{2};
+                use_hyst = hyst_type == 2;
+                if ~use_hyst
+                    warning(['EHYSTR second entry ', num2str(hyst_type), ' not supported, no hysteresis will be used'])
+                end
+            end
+            if use_hyst
                 kr = HystereticRelativePermeability(model, sat, scalearg{:}, krarg{:});
             else
                 kr = BaseRelativePermeability(model, sat, scalearg{:}, krarg{:});
