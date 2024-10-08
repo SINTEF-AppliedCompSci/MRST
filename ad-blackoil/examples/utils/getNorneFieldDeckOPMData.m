@@ -80,7 +80,7 @@ function output = getOutputEclipse(deck, fldr, caseName, unit)
 
     ws = convertSummaryToWellSols(smry_prefix, unit);
     try
-        states = convertRestartToStates(smry_prefix, G, 'use_opm', false, 'consistentWellSols', false);
+        states = convertRestartToStates(smry_prefix, G, 'consistentWellSols', false);
     catch e
         fprintf('Restartfiles not pressent. Reported error:\n %s\n',e.message);
         states=[];
