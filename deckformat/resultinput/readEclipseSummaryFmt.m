@@ -56,8 +56,7 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-
-   is_open_pre = fopen('all');
+   is_open_pre = listOpenedFiles();
 
    [dname, fp] = fileparts(prefix);
    if isempty(dname),
@@ -72,7 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                              @(fn) fopen(fn, 'rt'), ...
                              @readFieldFmt);
 
-   is_open_post = fopen('all');
+   is_open_post = listOpenedFiles();
 
    assert (all(size(is_open_pre) == size(is_open_post)) && ...
            all(is_open_pre == is_open_post),               ...
