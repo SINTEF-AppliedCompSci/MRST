@@ -244,11 +244,11 @@ if isfield(deck.GRID, 'COORD')
     zcorn = deck.GRID.ZCORN;
 elseif all(isfield(deck.GRID, {'DXV', 'DYV', 'DZV'}))
     [coord, zcorn] = block_centred_to_cpg(deck);
-    %grid_support = false;
-    %dump_vector(fid, dirname, 'dxv', getFmtStr(f.sci), deck.GRID.DXV);
-    %dump_vector(fid, dirname, 'dyv', getFmtStr(f.sci), deck.GRID.DYV);
-    %dump_vector(fid, dirname, 'dzv', getFmtStr(f.sci), deck.GRID.DZV);
-    %dump_vector(fid, dirname, 'tops', getFmtStr(f.sci), deck.GRID.TOPS);
+    grid_support = false;
+    dump_vector(fid, dirname, 'dxv', getFmtStr(f.sci), deck.GRID.DXV);
+    dump_vector(fid, dirname, 'dyv', getFmtStr(f.sci), deck.GRID.DYV);
+    dump_vector(fid, dirname, 'dzv', getFmtStr(f.sci), deck.GRID.DZV);
+    dump_vector(fid, dirname, 'tops', getFmtStr(f.sci), deck.GRID.TOPS);
 else
     grid_support = false;
     if all(isfield(deck.GRID, {'DX', 'DY', 'DZ'}))
