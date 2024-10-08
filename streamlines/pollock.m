@@ -285,11 +285,12 @@ function [pos, tof, xyz] = step(pos, flux, neighbors, nsubsteps)
    % value to indicate that the streamline has terminated.
    ind         = ind | all(~isfinite(T), 2);
    pos(~ind,1) = n(t(~ind));
-   dir (ind)   = nan;
+   % Set to 1, we will throw away this value afterwards
+   dir (ind)   = 1;
 
    % Change local coordinate when moving to new cell
    k = sub2ind(size(d), (1:size(dir,1))', dir);
-   k = k(~isnan(k));
+   k = k(~ind);
    pos(numel(dir) + k ) = 2-d(k);
 end
 
