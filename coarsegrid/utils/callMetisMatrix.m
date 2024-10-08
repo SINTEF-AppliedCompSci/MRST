@@ -113,15 +113,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          exist(fullfile(METISPATH, binname), 'file') == 2
 
        binname = fullfile(METISPATH, binname);
+
+       [st, attr, id] = fileattrib(binname);
+       if ~ st
+           error(id, 'METIS binary ''%s'': %s', binname, attr);
+       end
    end
 
-   [st, attr, id] = fileattrib(binname);
-   if ~ st
-       error(id, 'METIS binary ''%s'': %s', binname, attr);
-   end
-   if ~ attr.UserExecute
-       error('METIS binary ''%s'' is not executable', binname);
-   end
    vertnum = size(A, 1);
 
    [i, j, v] = find(A);
