@@ -78,40 +78,9 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     cellvec1212tbl         = tbls.cellvec1212tbl;
     cellnodevec1212tbl     = tbls.cellnodevec1212tbl;
     
-    cell_from_cellnode         = mappings.cell_from_cellnode;
-    node_from_cellnode         = mappings.node_from_cellnode;
-    cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
-    nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
-    
-    % Some shortcuts
-    c_num     = celltbl.num;
-    n_num     = nodetbl.num;
-    cnf_num   = cellnodefacetbl.num;
-    cnfc_num  = cellnodefacevectbl.num;
-    cn_num    = cellnodetbl.num;
-    cncr_num  = cellnodevec12tbl.num;
-    nf_num    = nodefacetbl.num;
-    nfc_num   = nodefacevectbl.num;
-    cnfcr_num = cellnodefacevec12tbl.num;
-    d_num     = vectbl.num;
-    cc2r2_num = cellvec1212tbl.num; %shortcut
-    c2r2_num  = vec1212tbl.num; %shortcut
-    
-    dim = vectbl.num;
-    
     % Construction of tensor g (as defined in paper eq 4.1.2)
     
     g = computeConsistentGradient2(G, eta, tbls, mappings, 'bcetazero', bcetazero);
-    
-    % Construction of the gradient operator
-    %
-
-    % Construction of gradnodeface_T : nodefacecoltbl -> cellnodevec12tbl
-    %
-    % The nodefacecol part of the grad operator from nodefacecoltbl to cellnodevec12tbl is obtained for any u in
-    % nodefacecoltbl by using v = prod.eval(g, u) where prod is defined below and this is how we set the corresponding
-    % tensor.
-    %
 
     gen = CrossIndexArrayGenerator();
     gen.tbl1 = cellnodefacevec12tbl;
@@ -261,13 +230,27 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
 
     A22 = map.eval(nCg);
 
-    [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
-    opt.invertBlocks = 'mex';
+    prod = TensorProd()
+    prod.tbl1 = nodeface12vec12tbl;
+    prod.tbl2 = nodefacevectbl;
+    prod.tbl3 = nodefacevectbl;
+    prod.replacefds1 = {{'faces1', 'faces'}, {'vec1', 'vec'}};
+    prod.replacefds2 = {{'faces', 'faces2'}, {'vec', 'vec2'}};
+    prod.mergefds = {'nodes'};
+    prod.reducefds = {'faces2', 'vec2'};
+    prod = prod.setup();
+
+    A11 = prod.setupMatrix(A11);
+    
+    [nodes, sz] = rlencode(nodefacevectbl.get('nodes'), 1);
+    opt.invertBlocks = 'm';
     bi = blockInverter(opt);
     invA11 = bi(A11, sz);
 
     % Matrix for boundary conditions
-    [D, bcvals] = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls);
+    [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls);
+
+    keyboard
     
     %
     % The divergence operator (integrated over the volume)
