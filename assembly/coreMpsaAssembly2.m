@@ -117,16 +117,16 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     map.mergefds = {'nodes'};
     map = map.setup();
     
-    nnodepercell = map.eval(ones(cellnodetbl.num, 1));
+    ncellpernode = map.eval(ones(cellnodetbl.num, 1));
 
-    switch dim
+    switch vectbl.num
       case 2
-        maxnnodepercell = 1;
+        maxncellpernode = 1;
       case 3
-        maxnnodepercell = 2;
+        maxncellpernode = 2;
     end
 
-    fixnodes = find(nnodepercell <= maxnnodepercell);
+    fixnodes = find(ncellpernode <= maxncellpernode);
     
     fixbc1 = 0.5*ones(nodetbl.num, 1);
     fixbc1(fixnodes) = 1;
@@ -143,7 +143,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     
     Cg1 = prod.eval(fixbc1, Cg);
 
-    coef = (1./nnodepercell).*fixbc2;
+    coef = (1./ncellpernode).*fixbc2;
 
     map = TensorMap();
     map.fromTbl = nodetbl;
@@ -180,8 +180,8 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     prod.tbl1        = cellnodefacevec122tbl;
     prod.tbl2        = cellnodefacevectbl;
     prod.tbl3        = cellnodeface12vec12tbl;
-    prod.replacefds1 = {{'vec11', 'vec1'}, {'vec12', 'redvec'}, {'faces', 'faces1'}};
-    prod.replacefds2 = {{'vec', 'redvec'}, {'faces', 'faces2'}};
+    prod.replacefds1 = {{'vec11', 'vec1'}, {'vec12', 'redvec'}, {'faces', 'faces2'}};
+    prod.replacefds2 = {{'vec', 'redvec'}, {'faces', 'faces1'}};
     prod.reducefds   = {'redvec'};
     prod.mergefds    = {'cells', 'nodes'};
     prod = prod.setup();
@@ -247,49 +247,49 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     bi = blockInverter(opt);
     invA11 = bi(A11, sz);
 
-    % Matrix for boundary conditions
-    [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls);
+    prod = TensorProd();
+    prod.tbl1 = cellnodefacevec12tbl;
+    prod.tbl2 = cellvectbl;
+    prod.tbl3 = nodefacevectbl;
+    prod.replacefds1 = {{'vec1', 'vec'}};
+    prod.replacefds2 = {{'vec', 'vec2'}};
+    prod.reducefds = {'cells', 'vec2'};
+    prod = prod.setup();
 
-    keyboard
-    
-    %
-    % The divergence operator (integrated over the volume)
-    % is given by 
-    %
-    %  div[c] = sum (m[f,s] u_[f,n,i] n[c,f,i])
-    %
-    % where u:solution, n:normal, m:area
-    % indices : c:cell, f:face, n:node.
-    
-    % The facetNormals are already weighted with respect to area
+    A12 = prod.setupMatrix(A12);
+
+    prod = TensorProd();
+    prod.tbl1 = cellnodefacevec12tbl;
+    prod.tbl2 = nodefacevectbl;
+    prod.tbl3 = cellvectbl;
+    prod.replacefds1 = {{'vec1', 'vec'}};
+    prod.replacefds2 = {{'vec', 'vec2'}};
+    prod.reducefds = {'nodes', 'faces', 'vec2'};
+    prod = prod.setup();
+
+    A21 = prod.setupMatrix(A12);
     
     prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = nodefacecoltbl;
-    prod.tbl3 = celltbl;
-    prod.reducefds = {'faces', 'nodes', 'coldim'};
-    % prod = prod.setup();
+    prod.tbl1 = cellvec12tbl;
+    prod.tbl2 = cellvectbl;
+    prod.tbl3 = cellvectbl;
+    prod.replacefds1 = {{'vec1', 'vec'}};
+    prod.replacefds2 = {{'vec', 'vec2'}};
+    prod.mergefds = {'cells'};
+    prod.reducefds = {'vec2'};
+    prod = prod.setup();
     
-    prod.pivottbl = cellnodefacecoltbl;
-    prod.dispind1 = (1 : cnfc_num)';
-    [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-    prod.dispind2 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
-    prod.dispind3 = cell_from_cellnode(cellnode_from_cellnodeface(i));
-    prod.issetup = true;
-    
-    div_T = SparseTensor;
-    div_T = div_T.setFromTensorProd(facetNormals, prod);
-    div = div_T.getMatrix();
+    A22 = prod.setupMatrix(A22);
+
+    % Matrix for boundary conditions
+    [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls);
     
     matrices = struct('A11'   , A11   , ...
                       'A12'   , A12   , ...
                       'A21'   , A21   , ...
                       'A22'   , A22   , ...
                       'D'     , D     , ...
-                      'invA11', invA11, ...
-                      'C1'    , C1    , ...
-                      'C2'    , C2    , ...
-                      'div'   , div);
+                      'invA11', invA11);
     
     extra = struct('g', g);
 end

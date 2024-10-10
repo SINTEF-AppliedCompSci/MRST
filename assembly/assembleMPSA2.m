@@ -112,8 +112,6 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     assembly = [];
     
-    return
-    
     extforce = loadstruct.extforce;
     force = loadstruct.force;
 
