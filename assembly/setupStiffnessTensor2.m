@@ -38,11 +38,42 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     constructiontypes = {'direct_lambda_mu_construction', ...
                         'general_voigt_construction'};
     % constructiontype = 'general_voigt_construction';
-    constructiontype = 'direct_lambda_mu_construction';
-
+    % constructiontype = 'direct_lambda_mu_construction';
+    constructiontype = 'using_change_of_basis';
+    
     switch constructiontype
-      case 'direct_lambda_mu_construction'
 
+      case 'using_change_of_basis'
+
+        assert(dim == 2, 'only for 2d at the moment!');
+        
+        mu     = unique(mu);
+        lambda = unique(lambda);
+
+        M = [1 0 0 0;
+             0 0 1 1;
+             0 0 1 -1;
+             0 1 0 0];
+
+        C = [(lambda + 2*mu), lambda         , 0   , 0;
+             lambda         , (lambda + 2*mu), 0   , 0;
+             0              , 0              , 2*mu, 0;
+             0              , 0              , 0   , 2*mu];
+
+        C = M*C*inv(M);
+
+        C = reshape(C', [], 1);
+        
+        map = TensorMap();
+        map.fromTbl = vec1212tbl;
+        map.toTbl = cellvec1212tbl;
+        map.mergefds = {'vec11', 'vec12', 'vec21', 'vec22'};
+        map = map.setup();
+
+        C = map.eval(C);
+        
+      case 'direct_lambda_mu_construction'
+        
         % see formula https://en.wikipedia.org/wiki/Hooke%27s_law
         clear mutbl
         mutbl.vec11 = vec12tbl.get('vec1');
@@ -58,7 +89,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         mutbl.vec21 = vec12tbl.get('vec2');
         mutbl2 = IndexArray(mutbl);
 
-        map = TensorMap()
+        map = TensorMap();
         map.fromTbl  = mutbl1;
         map.toTbl    = vec1212tbl;
         map.mergefds = {'vec11', 'vec12', 'vec21', 'vec22'};
@@ -66,7 +97,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
         mucoef1 = map.eval(ones(mutbl1.num, 1));
 
-        map = TensorMap()
+        map = TensorMap();
         map.fromTbl  = mutbl2;
         map.toTbl    = vec1212tbl;
         map.mergefds = {'vec11', 'vec12', 'vec21', 'vec22'};
