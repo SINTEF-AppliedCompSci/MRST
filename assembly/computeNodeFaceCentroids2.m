@@ -56,7 +56,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % Relative position of node-face points (in cellnodefacevectbl)
     cellnodefacecents = abscellnodefacecents - ccents;
     
-    cellnodefacecents = reshape(cellnodefacecents', [], 1);
+    cellnodefacecents    = reshape(cellnodefacecents', [], 1);
     abscellnodefacecents = reshape(abscellnodefacecents', [], 1);
 
     map = TensorMap();
