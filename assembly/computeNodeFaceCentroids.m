@@ -60,8 +60,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     abscellnodefacecents = reshape(abscellnodefacecents', [], 1);
 
     map = TensorMap();
-    map.fromTbl = cellnodefacecoltbl;
-    map.toTbl = nodefacecoltbl;
+    map.fromTbl  = cellnodefacecoltbl;
+    map.toTbl    = nodefacecoltbl;
     map.mergefds = {'nodes', 'faces', 'coldim'};
     map = map.setup();
     
