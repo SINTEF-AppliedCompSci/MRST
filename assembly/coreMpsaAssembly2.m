@@ -82,6 +82,46 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     
     g = computeConsistentGradient2(G, eta, tbls, mappings, 'bcetazero', bcetazero);
 
+    prod = TensorProd();
+    prod.tbl1 = cellnodefacevectbl;
+    prod.tbl2 = nodefacevectbl;
+    prod.tbl3 = cellnodevec12tbl;
+    prod.replacefds1 = {{'vec', 'vec1'}};
+    prod.replacefds2 = {{'vec', 'vec2'}};
+    prod.reducefds = {'faces'};
+    prod.mergefds = {'nodes'};
+    prod = prod.setup();
+    
+    gmat = prod.setupMatrix(g);
+
+    prod = TensorProd();
+    prod.tbl1 = cellvec1212tbl;
+    prod.tbl2 = cellnodevec12tbl;
+    prod.tbl3 = cellnodevec12tbl;
+    prod.replacefds1 = {{'vec11', 'vec1'}, {'vec12', 'vec2'}, {'vec21', 'redvec1'}, {'vec22', 'redvec2'}};
+    prod.replacefds2 = {{'vec1', 'redvec1'}, {'vec2', 'redvec2'}};
+    prod.reducefds = {'redvec1', 'redvec2'};
+    prod.mergefds = {'cells'};
+    prod = prod.setup();
+
+    Cmat = prod.setupMatrix(C);
+
+    facetNormals = computeFacetNormals2(G, cellnodefacetbl);
+    
+    prod = TensorProd();
+    prod.tbl1 = cellnodefacevectbl;
+    prod.tbl2 = cellnodevec12tbl;
+    prod.tbl3 = nodefacevectbl;
+    prod.replacefds1 = {{'vec', 'vec1'}};
+    prod.replacefds2 = {{'vec2', 'vec'}};
+    prod.reducefds = {'cells', 'vec1'};
+    prod.mergefds = {'nodes'};
+    prod = prod.setup();
+
+    divmat = prod.setupMatrix(facetNormals);
+
+    Cgmat = Cmat*gmat;
+    
     gen = CrossIndexArrayGenerator();
     gen.tbl1 = cellnodefacevec12tbl;
     gen.tbl2 = vectbl;
@@ -90,19 +130,30 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
 
     cellnodefacevec122tbl = gen.eval();
 
-    gen = CrossIndexArrayGenerator();
-    gen.tbl1 = nodefacevec12tbl;
-    gen.tbl2 = vectbl;
-    gen.replacefds1 = {{'vec1', 'vec11'}, {'vec2', 'vec12'}};
-    gen.replacefds2 = {{'vec', 'vec2'}};
+    tconv = TensorConvert;
+    tconv.fromTbl           = nodefacevectbl;
+    tconv.toTbl             = cellnodevec12tbl;
+    tconv.pivottbl          = cellnodefacevec122tbl;
+    tconv.replaceFromTblfds = {{'vec', 'vec2'}};
+    tconv.replaceToTblfds   = {{'vec1', 'vec11'}, {'vec2', 'vec12'}};
+    tconv = tconv.setup();
 
-    nodefacevec122tbl = gen.eval();
+    Cg2 = tconv.convert(Cgmat);
+
+    % gen = CrossIndexArrayGenerator();
+    % gen.tbl1 = nodefacevec12tbl;
+    % gen.tbl2 = vectbl;
+    % gen.replacefds1 = {{'vec1', 'vec11'}, {'vec2', 'vec12'}};
+    % gen.replacefds2 = {{'vec', 'vec2'}};
+
+    % nodefacevec122tbl = gen.eval();
     
     prod = TensorProd();
     prod.tbl1 = cellvec1212tbl;
     prod.tbl2 = cellnodefacevectbl;
     prod.tbl3 = cellnodefacevec122tbl;
     prod.replacefds1 = {{'vec22', 'vec2'}, {'vec21', 'redvec'}};
+    % prod.replacefds1 = {{'vec22', 'redvec'}, {'vec21', 'vec2'}};
     prod.replacefds2 = {{'vec', 'redvec'}};
     prod.reducefds   = {'redvec'};
     prod.mergefds    = {'cells'};
@@ -110,6 +161,43 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
 
     Cg = prod.eval(C, g);
 
+    prod = TensorProd();
+    prod.tbl1 = cellnodefacevec122tbl;
+    prod.tbl2 = nodefacevectbl;
+    prod.tbl3 = cellnodevec12tbl;
+    prod.replacefds1 = {{'vec2', 'redvec'}, {'vec11', 'vec1'}, {'vec12', 'vec2'}};
+    prod.replacefds2 = {{'vec', 'redvec'}};
+    prod.reducefds = {'faces', 'redvec'};
+    prod.mergefds = {'nodes'};
+    prod = prod.setup();
+
+    Cgmat2 = prod.setupMatrix(Cg);
+
+    prod = TensorProd();
+    prod.tbl1        = cellnodefacevec122tbl;
+    prod.tbl2        = cellnodefacevectbl;
+    prod.tbl3        = nodeface12vec12tbl;
+    prod.replacefds1 = {{'vec11', 'redvec'}, {'vec12', 'vec1'}, {'faces', 'faces2'}};
+    prod.replacefds2 = {{'vec', 'redvec'}, {'faces', 'faces1'}};
+    prod.reducefds   = {'redvec', 'cells'};
+    prod.mergefds    = {'nodes'};
+    prod = prod.setup();
+    
+    nCg1 = prod.eval(Cg, facetNormals);
+
+    prod = TensorProd();
+    prod.tbl1        = nodeface12vec12tbl;
+    prod.tbl2        = nodefacevectbl;
+    prod.tbl3        = nodefacevectbl;
+    prod.replacefds1 = {{'faces1', 'faces'}, {'vec1', 'vec'}};
+    prod.replacefds2 = {{'faces', 'faces2'}, {'vec', 'vec2'}};
+    prod.mergefds    = {'nodes'};
+    prod.reducefds   = {'faces2', 'vec2'};
+    prod = prod.setup();
+
+    A11 = prod.setupMatrix(nCg1);
+    
+    
     % Compute number of cell per node
     map = TensorMap();
     map.fromTbl = cellnodetbl;
@@ -152,20 +240,22 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     map = map.setup();
 
     coef = map.eval(coef);
-    
+
     prod = TensorProd();
     prod.tbl1 = cellnodetbl;
     prod.tbl2 = cellnodefacevec122tbl;
-    prod.tbl3 = nodefacevec122tbl;
     prod.reducefds = {'cells'};
     prod.mergefds = {'nodes'};
     prod = prod.setup();
+
+    nodefacevec122tbl = prod.tbl3;
     
     Cg2 = prod.eval(coef, Cg);
 
     map = TensorMap();
     map.fromTbl = nodefacevec122tbl;
     map.toTbl = cellnodefacevec122tbl;
+    map.replaceFromTblfds = {{'vec11', 'vec12', 'interchange'}};
     map.mergefds = {'nodes', 'faces', 'vec11', 'vec12', 'vec2'};
     map = map.setup();
     
@@ -179,17 +269,20 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     prod = TensorProd();
     prod.tbl1        = cellnodefacevec122tbl;
     prod.tbl2        = cellnodefacevectbl;
-    prod.tbl3        = cellnodeface12vec12tbl;
-    prod.replacefds1 = {{'vec11', 'vec1'}, {'vec12', 'redvec'}, {'faces', 'faces2'}};
+    prod.replacefds1 = {{'vec11', 'redvec'}, {'vec12', 'vec1'}, {'faces', 'faces2'}};
     prod.replacefds2 = {{'vec', 'redvec'}, {'faces', 'faces1'}};
     prod.reducefds   = {'redvec'};
     prod.mergefds    = {'cells', 'nodes'};
     prod = prod.setup();
 
+    cellnodeface12vec12tbl = prod.tbl3;
+    
     nCg = prod.eval(Cg, facetNormals);
-
+    
     % setup of A11
 
+    % nodeface12vec12tbl = projIndexArray(cellnodeface12vec12tbl, {'nodes', 'faces1', 'faces2', 'vec1', 'vec2'});
+    
     map = TensorMap();
     map.fromTbl  = cellnodeface12vec12tbl;
     map.toTbl    = nodeface12vec12tbl;
@@ -241,7 +334,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     prod = prod.setup();
 
     A11 = prod.setupMatrix(A11);
-    
+
     [nodes, sz] = rlencode(nodefacevectbl.get('nodes'), 1);
     opt.invertBlocks = 'm';
     bi = blockInverter(opt);
@@ -267,7 +360,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     prod.reducefds   = {'nodes', 'faces', 'vec2'};
     prod = prod.setup();
 
-    A21 = prod.setupMatrix(A12);
+    A21 = prod.setupMatrix(A21);
     
     prod = TensorProd();
     prod.tbl1        = cellvec12tbl;
