@@ -43,30 +43,46 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     switch constructiontype
       case 'direct_lambda_mu_construction'
 
+        % see formula https://en.wikipedia.org/wiki/Hooke%27s_law
+        clear mutbl
         mutbl.vec11 = vec12tbl.get('vec1');
         mutbl.vec21 = vec12tbl.get('vec1');
         mutbl.vec12 = vec12tbl.get('vec2');
         mutbl.vec22 = vec12tbl.get('vec2');
-        mutbl = IndexArray(mutbl);
+        mutbl1 = IndexArray(mutbl);
 
-        cellmutbl = crossIndexArray(celltbl, mutbl, {});
+        clear mutbl
+        mutbl.vec11 = vec12tbl.get('vec1');
+        mutbl.vec22 = vec12tbl.get('vec1');
+        mutbl.vec12 = vec12tbl.get('vec2');
+        mutbl.vec21 = vec12tbl.get('vec2');
+        mutbl2 = IndexArray(mutbl);
 
-        map = TensorMap();
-        map.fromTbl = celltbl;
-        map.toTbl = cellmutbl;
-        map.mergefds = {'cells'};
+        map = TensorMap()
+        map.fromTbl  = mutbl1;
+        map.toTbl    = vec1212tbl;
+        map.mergefds = {'vec11', 'vec12', 'vec21', 'vec22'};
         map = map.setup();
 
-        Cmu = map.eval(2*mu);
+        mucoef1 = map.eval(ones(mutbl1.num, 1));
 
-        map = TensorMap();
-        map.fromTbl = cellmutbl;
-        map.toTbl = cellvec1212tbl;
-        fds = {'vec11', 'vec12', 'vec21', 'vec22', 'cells'};
-        map.mergefds = fds;
+        map = TensorMap()
+        map.fromTbl  = mutbl2;
+        map.toTbl    = vec1212tbl;
+        map.mergefds = {'vec11', 'vec12', 'vec21', 'vec22'};
         map = map.setup();
 
-        Cmu = map.eval(Cmu);
+        mucoef2 = map.eval(ones(mutbl2.num, 1));
+
+        mucoef = (mucoef1 + mucoef2);
+
+        prod = TensorProd();
+        prod.tbl1 = celltbl;
+        prod.tbl2 = vec1212tbl;
+        prod.tbl3 = cellvec1212tbl;
+        prod = prod.setup();
+
+        Cmu = prod.eval(mu, mucoef);
 
         diagtbl.vec1 = (1 : dim)';
         diagtbl.vec2 = (1 : dim)';
