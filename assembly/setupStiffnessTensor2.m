@@ -21,9 +21,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    celltbl         =  tbls.celltbl;
-    vectbl          =  tbls.vectbl;
-    vec12tbl        =  tbls.vec12tbl;
+    celltbl        =  tbls.celltbl;
+    vectbl         =  tbls.vectbl;
+    vec12tbl       =  tbls.vec12tbl;
     cellvec1212tbl =  tbls.cellvec1212tbl;
     vec1212tbl     =  tbls.vec1212tbl;
     
@@ -34,7 +34,6 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     vdim = dim*(dim + 1)/2;
     avdim = dim*dim - vdim;
-
     
     constructiontypes = {'direct_lambda_mu_construction', ...
                         'general_voigt_construction'};
@@ -45,8 +44,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
       case 'direct_lambda_mu_construction'
 
         mutbl.vec11 = vec12tbl.get('vec1');
-        mutbl.vec12 = vec12tbl.get('vec1');
-        mutbl.vec21 = vec12tbl.get('vec2');
+        mutbl.vec21 = vec12tbl.get('vec1');
+        mutbl.vec12 = vec12tbl.get('vec2');
         mutbl.vec22 = vec12tbl.get('vec2');
         mutbl = IndexArray(mutbl);
 

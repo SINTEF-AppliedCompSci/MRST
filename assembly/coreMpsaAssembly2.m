@@ -191,8 +191,8 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     % setup of A11
 
     map = TensorMap();
-    map.fromTbl = cellnodeface12vec12tbl;
-    map.toTbl   = nodeface12vec12tbl;
+    map.fromTbl  = cellnodeface12vec12tbl;
+    map.toTbl    = nodeface12vec12tbl;
     map.mergefds = {'nodes', 'faces1', 'faces2', 'vec1', 'vec2'};
     map = map.setup();
 
@@ -201,10 +201,10 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     % setup of A12
 
     map = TensorMap();
-    map.fromTbl = cellnodeface12vec12tbl;
-    map.toTbl   = cellnodefacevec12tbl;
+    map.fromTbl           = cellnodeface12vec12tbl;
+    map.toTbl             = cellnodefacevec12tbl;
     map.replaceFromTblfds = {{'faces1', 'faces'}};
-    map.mergefds = {'cells', 'nodes', 'faces', 'vec1', 'vec2'};
+    map.mergefds          = {'cells', 'nodes', 'faces', 'vec1', 'vec2'};
     map = map.setup();
 
     A12 = map.eval(-nCg);
@@ -212,10 +212,10 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     % setup of A21
 
     map = TensorMap();
-    map.fromTbl = cellnodeface12vec12tbl;
-    map.toTbl   = cellnodefacevec12tbl;
+    map.fromTbl           = cellnodeface12vec12tbl;
+    map.toTbl             = cellnodefacevec12tbl;
     map.replaceFromTblfds = {{'faces2', 'faces'}};
-    map.mergefds = {'cells', 'nodes', 'faces', 'vec1', 'vec2'};
+    map.mergefds          = {'cells', 'nodes', 'faces', 'vec1', 'vec2'};
     map = map.setup();
 
     A21 = map.eval(-nCg);
@@ -223,21 +223,21 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     % setup of A22
 
     map = TensorMap();
-    map.fromTbl = cellnodeface12vec12tbl;
-    map.toTbl   = cellvec12tbl;
+    map.fromTbl  = cellnodeface12vec12tbl;
+    map.toTbl    = cellvec12tbl;
     map.mergefds = {'cells', 'vec1', 'vec2'};
     map = map.setup();
 
     A22 = map.eval(nCg);
 
-    prod = TensorProd()
-    prod.tbl1 = nodeface12vec12tbl;
-    prod.tbl2 = nodefacevectbl;
-    prod.tbl3 = nodefacevectbl;
+    prod = TensorProd();
+    prod.tbl1        = nodeface12vec12tbl;
+    prod.tbl2        = nodefacevectbl;
+    prod.tbl3        = nodefacevectbl;
     prod.replacefds1 = {{'faces1', 'faces'}, {'vec1', 'vec'}};
     prod.replacefds2 = {{'faces', 'faces2'}, {'vec', 'vec2'}};
-    prod.mergefds = {'nodes'};
-    prod.reducefds = {'faces2', 'vec2'};
+    prod.mergefds    = {'nodes'};
+    prod.reducefds   = {'faces2', 'vec2'};
     prod = prod.setup();
 
     A11 = prod.setupMatrix(A11);
@@ -248,35 +248,35 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     invA11 = bi(A11, sz);
 
     prod = TensorProd();
-    prod.tbl1 = cellnodefacevec12tbl;
-    prod.tbl2 = cellvectbl;
-    prod.tbl3 = nodefacevectbl;
+    prod.tbl1        = cellnodefacevec12tbl;
+    prod.tbl2        = cellvectbl;
+    prod.tbl3        = nodefacevectbl;
     prod.replacefds1 = {{'vec1', 'vec'}};
     prod.replacefds2 = {{'vec', 'vec2'}};
-    prod.reducefds = {'cells', 'vec2'};
+    prod.reducefds   = {'cells', 'vec2'};
     prod = prod.setup();
 
     A12 = prod.setupMatrix(A12);
 
     prod = TensorProd();
-    prod.tbl1 = cellnodefacevec12tbl;
-    prod.tbl2 = nodefacevectbl;
-    prod.tbl3 = cellvectbl;
+    prod.tbl1        = cellnodefacevec12tbl;
+    prod.tbl2        = nodefacevectbl;
+    prod.tbl3        = cellvectbl;
     prod.replacefds1 = {{'vec1', 'vec'}};
     prod.replacefds2 = {{'vec', 'vec2'}};
-    prod.reducefds = {'nodes', 'faces', 'vec2'};
+    prod.reducefds   = {'nodes', 'faces', 'vec2'};
     prod = prod.setup();
 
     A21 = prod.setupMatrix(A12);
     
     prod = TensorProd();
-    prod.tbl1 = cellvec12tbl;
-    prod.tbl2 = cellvectbl;
-    prod.tbl3 = cellvectbl;
+    prod.tbl1        = cellvec12tbl;
+    prod.tbl2        = cellvectbl;
+    prod.tbl3        = cellvectbl;
     prod.replacefds1 = {{'vec1', 'vec'}};
     prod.replacefds2 = {{'vec', 'vec2'}};
-    prod.mergefds = {'cells'};
-    prod.reducefds = {'vec2'};
+    prod.mergefds    = {'cells'};
+    prod.reducefds   = {'vec2'};
     prod = prod.setup();
     
     A22 = prod.setupMatrix(A22);
