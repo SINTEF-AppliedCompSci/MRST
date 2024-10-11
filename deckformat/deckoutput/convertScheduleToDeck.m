@@ -306,9 +306,11 @@ function WCONPROD = makeWCONPROD(WCONPROD_tmp,prodIx,W)
                     case 'lrat'
                         WCONPROD{pno,7} = abs(lims.(fnm));
                     case 'grup'
-                    % this may happen if inactive wells is not removed
+                    case 'vrat'
+                        % ignore
                     otherwise
-                        error('Not done');
+                        % this may happen if inactive wells is not removed
+                        error('Unsupported limit: %s', fnm);
                 end
             end
         end
@@ -362,8 +364,10 @@ function WCONHIST = makeWCONHIST(WCONHIST_tmp,prodIx,W)
                         WCONHIST{pno,6} = abs(lims.(fnm));
                     case 'wrat'
                         WCONHIST{pno,5} = abs(lims.(fnm));
+                    case 'vrat'
+                        % ignore
                     otherwise
-                        error('Not done');
+                        error('Unexpected limit: %s', fnm);
                 end
             end
         end
