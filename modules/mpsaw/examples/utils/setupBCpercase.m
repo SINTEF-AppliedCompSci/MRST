@@ -1,4 +1,4 @@
-function loadstruct = setupBCpercase(runcase, G, tbls, mappings)
+function loadstruct = setupBCpercase(runcase, G, tbls, mappings, extras)
 % Boundary conditions
 
 %{
@@ -29,6 +29,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     cellnodefacecoltbl = tbls.cellnodefacecoltbl;
     coltbl             = tbls.coltbl;
     cellcoltbl         = tbls.cellcoltbl;
+    celltbl            = tbls.celltbl;
     
     nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
     
@@ -47,9 +48,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                                       % in cellnodefacetbl.
     facetNormals = reshape(facetNormals', [], 1);
 
-    % no volumetric force
-    force = zeros(cellcoltbl.num, 1);
-    
+    % force and extforce will be set to zero if nothing is set otherwise
+    force    = [];
+    extforce = [];
     
     switch runcase
         
@@ -156,8 +157,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
             force = tblmap(force, coltbl, sourcetbl, {'coldim'});
             force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
+            
         end
-
+        
       case {'3d-linear', '3d-compaction'}
         switch runcase
           case '3d-linear'
@@ -222,8 +224,67 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         map = map.setup();
         extforce = map.eval(-extFacetNormals);
 
+      case '3d-gravity'
+
+        ind = 1;
+        for i = 1 : 3
+            for j = 1 : 2
+                addface = true;
+                if j == 1
+                    if i == 3
+                        % The bottom face is free. (Note that for geological reservoir, bottom face corresponds to top face.)
+                        addface = false;
+                    else
+                        v = min(G.faces.centroids(:, i));
+                    end
+                else
+                    v = max(G.faces.centroids(:, i));
+                end
+
+                if addface
+                    
+                    extfaces{ind} = find(abs(G.faces.centroids(:, i) - v) < 1e-5);
+                    
+                    n = numel(extfaces{ind});
+
+                    linform = zeros(3, 1);
+                    linform(i) = 1;
+                    linforms{ind}    = repmat(linform, n, 1);
+
+                    linformvals{ind} = zeros(n, 1);
+
+                    ind = ind + 1;
+                    
+                end
+            end
+        end
+
+        % for ind = 1 : numel(extfaces)
+        %     figure
+        %     plotGrid(G, 'facecolor', 'none');
+        %     plotFaces(G, extfaces{ind});
+        % end
+        
+        vols = G.cells.volumes;
+
+        ztbl.coldim = 3;
+        ztbl = IndexArray(ztbl);
+
+        cellztbl = crossIndexArray(celltbl, ztbl, {});
+
+        map = TensorMap();
+        map.fromTbl = cellztbl;
+        map.toTbl = cellcoltbl;
+        map.mergefds= {'cells', 'coldim'};
+        map = map.setup();
+
+        rho = extras.rho;
+        force = map.eval(rho*vols*10);
+        
       otherwise
+        
         error('runcase not recognized');
+        
     end
 
     bc.extfaces    = vertcat(extfaces{:});
@@ -232,7 +293,16 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     bc = setupFaceBC(bc, G, tbls);
 
-    loadstruct.bc = bc;
+    if isempty(force)
+        force = zeros(cellcoltbl.num, 1);
+    end
+
+    if isempty(extforce)
+        extforce = zeros(nodefacecoltbl.num, 1);
+    end
+    
+    loadstruct.bc       = bc;
     loadstruct.extforce = extforce;
-    loadstruct.force = force;
+    loadstruct.force    = force;
+    
 end
