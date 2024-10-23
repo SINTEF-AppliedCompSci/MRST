@@ -1,4 +1,4 @@
-classdef TensorMap 
+classdef TensorMap
 %
 %
 % SYNOPSIS:
@@ -194,7 +194,7 @@ classdef TensorMap
         
         function inds = getDispatchInd(map)
         % Compute dispatching indices: For an index i in map.toTbl gives the index number in map.fromTbl that will be sent to i
-        % by the mapping map
+        % by the mapping map. It requires that the constructed pivottbl coincides with toTbl.
             
             map = map.setup();
             

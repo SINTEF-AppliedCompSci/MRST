@@ -1063,7 +1063,7 @@ else
     % f(:,3)  -- A12 x B34  = p4 or p8
     % f(:,4)  -- A34 x B12  = p4 or p8
     f    = nan(n,4);
-    f(i) = b(1:size( find(i(:)) ))+size(points,1);
+    f(i) = b(1:numel(find(i(:))))+size(points,1);
 
     clear i
 
