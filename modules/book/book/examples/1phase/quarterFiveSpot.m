@@ -51,9 +51,10 @@ display(fluid)
 % fluids. All flow solvers in MRST automatically assume no-flow conditions
 % on all outer (and inner) boundaries if no other conditions are specified
 % explicitly.
-pv  = sum(poreVolume(G,rock))/(10*year);
-src = addSource([], 1, -pv);
-src = addSource(src, G.cells.num, pv);
+T   = 10*year;
+pv  = sum(poreVolume(G,rock))/T;
+src = addSource([], 1, pv);
+src = addSource(src, G.cells.num, -pv);
 display(src)
 
 %% Construct reservoir state object
@@ -107,7 +108,7 @@ clf,
 plotCellData(G, tof);
 plotGrid(G,src.cell,'FaceColor','w');
 axis equal tight;
-colormap(jet(16)); caxis([0,1]);
+colormap(jet(16)); caxis([0,T]);
 
 %% Visualize high-flow and stagnant regions
 % We can also compute the backward time-of-flight, i.e., the time it takes
