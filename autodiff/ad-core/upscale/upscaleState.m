@@ -43,9 +43,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     p = coarsemodel.G.partition;
     CG = coarsemodel.G;
     
-    pvc = coarsemodel.operators.pv;
     pvf = model.operators.pv;
-    
+    pvc = accumarray(p, pvf, [max(p), 1]);
+
     counts = accumarray(p, 1);
     state_f = state;
     

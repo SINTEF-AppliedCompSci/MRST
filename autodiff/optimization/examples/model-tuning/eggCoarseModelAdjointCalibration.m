@@ -47,12 +47,12 @@ modelCoarse.toleranceCNV = 1e-6;  % tighter tolerance to improve gradient accura
 
 %% Plot reference and coarse model grids with wells
 figure, subplot(1,2,1)
-plotGrid(modelRef.G, 'EdgeAlpha',.2); 
+plotCellData(modelRef.G, log10(modelRef.rock.perm(:,1)),'EdgeAlpha',.2); 
 title('Fine-scale grid (18553 cells)')
 plotWell(modelRef.G, Wref, 'Color', 'k', 'FontSize', 10);
 axis off tight, view(174,60), camlight headlight
 subplot(1,2,2)
-plotGrid(modelCoarse.G, 'EdgeAlpha',.8);
+plotCellData(modelCoarse.G, log10(modelCoarse.rock.perm(:,1)),'EdgeAlpha',.8);
 plotWell(modelRef.G, Wref, 'Color', 'k', 'FontSize', 10);
 axis off tight, view(174,60), camlight headlight
 title('Coarse-scale grid (33 cells)')
@@ -110,7 +110,7 @@ mismatchFn = @(model, states, schedule, states_ref, compDer, tstep, state) ...
 pvec = getScaledParameterVector(setup_init, parameters);
 objh = @(p) evaluateMatch(p, mismatchFn, setup_init, parameters, statesRef);
 % The calibration can be improved by taking a large number of iterations,
-% but here we set a limit of 30 iterations
+% but here we set a limit of 20 iterations
 [v1, p_opt1, history1] = unitBoxBFGS(pvec, objh, 'objChangeTol', 1e-5, ...
                                   'maxIt', 20, 'logPlot', true);
 
@@ -121,7 +121,7 @@ mismatchFn2 = @(model, states, schedule, states_ref, compDer, tstep, state) ...
         'state', state, 'from_states', false, 'mismatchSum', false);
 objh2 = @(p) evaluateMatchSummands(p, mismatchFn2, setup_init, parameters, statesRef);
 % The calibration can be improved by taking a large number of iterations,
-% but here we set a limit of 30 iterations
+% but here we set a limit of 20 iterations
 [v2, p_opt2, history2] = unitBoxLM(pvec, objh2, 'maxIt', 20);
 
 %% Compare convergence history
