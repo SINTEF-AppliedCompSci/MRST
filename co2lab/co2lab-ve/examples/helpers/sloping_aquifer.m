@@ -1,4 +1,4 @@
-function [G, states_3D, G_VE, states_VE, sat_VE3D, timing, wellcell] = sloping_aquifer(varargin)
+function [G, states_3D, G_VE, states_VE, sat_VE3D, timing, wellcell, model, model_VE] = sloping_aquifer(varargin)
 %Undocumented Utility Function
 
 %{
@@ -20,14 +20,20 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+mrstModule add static-modeling
 gravity on
 
 options.cross_sectional = true;
+options.heterogeneity = false;
+options.integrate_heterogeneity = true;
 options.zres = 10;
 options.srw = 0;
 options.srg = 0;
 options.cap_fringe = false;
 options.skip_3D = false;
+options.avg_perm = 400 * milli * darcy;
+options.avg_poro = 0.2;
+options.mass_injection_rate = 20 * kilo * 1e3 / year;
 
 options = merge_options(options, varargin{:});
 
@@ -51,13 +57,37 @@ G = make_testgrid([xres, yres, zres], ... % x, y and z resolution
 
 %% Set up the rest of the simulation input data
 
-poro = 0.2;
-perm = 400 * milli * darcy;
-N = G.cells.num;
-
 % define rock object, one value per gridcell
-rock.poro = repmat(poro, N, 1);
-rock.perm = repmat(perm, N, 1);
+if options.heterogeneity
+
+    structure_length_scale = 2000; 
+    scale = diag([xlen, ylen, zlen]);
+    scale = scale * diag([1 1 200]);% rock structure
+    res = [xres, yres, zres];
+    
+    if options.cross_sectional
+        scale(2,:) = [];
+        scale(:,2) = [];
+        res(2) = [];
+    end
+    
+    % compute an anisotropic Gaussian field to represent log-perm
+    logperm = GaussianProcessND(res, ...
+                 @(pt) exp(-sqrt(sum((pt * scale).^2, 2))/structure_length_scale));
+    
+    % compute permeability from its logarithm, and scale it to ensure exact
+    % average
+    perm = 10.^(logperm/3); % /5
+    perm = perm / mean(perm(:)) * options.avg_perm;
+    
+    % computing computing porosity using Cozeny-Karman relation
+    poro = poroFromPerm(perm, options.avg_poro, 1e-10);
+    rock = struct('perm', perm(:), 'poro', poro(:));
+else
+    N = G.cells.num;
+    rock.poro = repmat(options.avg_poro, N, 1);
+    rock.perm = repmat(options.avg_perm, N, 1);
+end
 
 % define initial state
 
@@ -102,7 +132,7 @@ well_iz = zres; % bottom in z-direction
 wellcell = sub2ind(G.cartDims, well_ix, well_iy, well_iz);
 
 % define injection well
-injection_rate = 20 * kilo * 1e3 / year / fluid.rhoGS;
+injection_rate = options.mass_injection_rate / fluid.rhoGS;
 
 W = addWell([], G, rock, wellcell, ...
             'refDepth', G.cells.centroids(wellcell, 3), ... % BHP reference depth
@@ -133,7 +163,9 @@ schedule = simple_injection_migration_schedule(W, bc, inj_period, inj_steps, ...
 rock_VE = averageRock(rock, G_VE);
 [C, alpha] = deal(0.4, 0.5); % to specify capillary pressure, if we use fringe
 relperm_model = 'sharp_interface_simple';
-if options.cap_fringe
+if options.heterogeneity && options.integrate_heterogeneity
+    relperm_model = 'sharp_interface_integrated';
+elseif options.cap_fringe
     relperm_model = 'P-scaled table';
 end
     
@@ -165,7 +197,8 @@ if ~options.skip_3D
     [wellSol3D, states_3D] = simulateScheduleAD(initState, model, schedule);
     timing.sim3D = toc;
 else
-    states_3D = {}
+    states_3D = {};
+    model = [];
 end
 
 
@@ -210,3 +243,9 @@ for i = 1:numel(states_VE)
                                                'rhoW', fluid_VE.rhoW(p), ...
                                                'rhoG', fluid_VE.rhoG(p))}];
 end
+
+%% Add rock object to grid to allow visualization outside the script
+% if options.heterogeneity
+%     G.rock = rock;
+%     G_VE.rock = rock_VE;
+% end

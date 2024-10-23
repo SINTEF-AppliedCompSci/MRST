@@ -91,19 +91,41 @@ function [s, smax, seff] = cap_fringe_h2s(h, hmax, Gt, sw, sg, invPc3D, rhoW, rh
     %remap = @(x, ixs) x(ixs);
     to_finescale = @(var) remap(rldecode(var, diff(Gt.cells.columnPos)), Gt.columns.cells);
     
-    iface_depth_all = to_finescale(h + Gt.cells.z);
+    iface_depth_all = to_finescale(h + Gt.cells.z); % depth of interface in the column
     iface_depth_max_all = to_finescale(hmax + Gt.cells.z);
     drho_all = to_finescale(rhoW - rhoG);
     
-    celltops = Gt.parent.cells.centroids(:,3) - remap(Gt.columns.dz, Gt.columns.cells) / 2;
+    celltops    = Gt.parent.cells.centroids(:,3) - remap(Gt.columns.dz, Gt.columns.cells) / 2; 
+    cellbottoms = Gt.parent.cells.centroids(:,3) + remap(Gt.columns.dz, Gt.columns.cells) / 2; 
     
     % compute capillary pressure and take inverse to get effective and max saturations
-    seff = 1 - invPc3D(max(iface_depth_all - celltops, 0) .* drho_all * norm(gravity));
-    smax =  1 - invPc3D(max(iface_depth_max_all - celltops, 0) .* drho_all * norm(gravity));
+    seff = compute_cell_saturations(celltops, cellbottoms, iface_depth_all, drho_all, invPc3D);
+    smax = compute_cell_saturations(celltops, cellbottoms, iface_depth_max_all, drho_all, invPc3D);
     
     % combine seff and smax to get current fine-scale saturation
     s = (1 - C) * seff + C * smax;
+end
+
+% ----------------------------------------------------------------------------
+function s = compute_cell_saturations(celltops, cellbottoms, iface_depth, drho, invPc3D)
+    % Compute cell saturation as an average of the cell saturations at a number of
+    % internal vertical levels inside the cell.
+        
+    N = 10; % internal subdivisions for reconstruction
+
+    s = zeros(numel(celltops), 1);
     
+    for i = 1:N
+        w = 1;
+        if i == 1 || i == N
+            w = 0.5; % simpson's rule
+        end
+        level = (celltops * (N-i) + cellbottoms * (i-1)) / (N-1); 
+        s_level = 1 - invPc3D(max(iface_depth - level, 0) .* drho .* norm(gravity));
+        
+        s = s + w * s_level;
+    end
+    s = s / (N-1);
 end
 
 % ----------------------------------------------------------------------------

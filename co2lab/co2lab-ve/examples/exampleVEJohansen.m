@@ -132,9 +132,8 @@ fluid   = makeVEFluid(Gt, rock2D, 'P-scaled table'    , ...
 % period of 950 years using time steps of 10 years.
 
 % hydrostatic pressure conditions for open boundary faces
-p_bc     = Gt.faces.z(bcIxVE) * rhow * g(3);
-bc2D     = addBC([], bcIxVE, 'pressure', p_bc); 
-bc2D.sat = repmat([1 0], numel(bcIxVE), 1);
+p_bc = Gt.faces.z(bcIxVE) * rhow * g(3);
+bc2D = addBC([], bcIxVE, 'pressure', p_bc, 'sat', [1, 0]); 
 
 % Setting up two copies of the well and boundary specifications. 
 % Modifying the well in the second copy to have a zero flow rate.
@@ -156,7 +155,7 @@ schedule.step.control = [ones(50, 1); ...
 model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
 [wellSol, states] = simulateScheduleAD(initState, model, schedule);
 states = [{initState}; states];
-
+ 
 %% Animate the plume migration over the whole simulation period
 clf
 oG = generateCoarseGrid(Gt.parent, ones(Gt.parent.cells.num,1));
@@ -181,6 +180,29 @@ for i=1:numel(states)
     hs = plotCellData(Gt.parent, sat, ix); drawnow
 end
 
+%% Reproduce plots from 3D example (example3DJohansen)
+
+% Convert all VE states to 3D
+states3D = VEstates23D(states, Gt, fluid, 'poro3D', rock.poro);
+
+% Saturation in formation after injection period
+figure; plotCellData(Gt.parent, states3D{51}.s(:,2)); view(-63, 68); colorbar; 
+set(gcf, 'position', [531   337   923   356]); axis tight;
+
+% Saturation in formation at end of simulation
+figure; plotCellData(Gt.parent, states3D{end}.s(:,2)); view(-63, 68); colorbar; 
+set(gcf, 'position', [531   337   923   356]); axis tight;
+
+% saturation in selected vertical section, after injection period
+[i j k] = ind2sub(G.cartDims, G.cells.indexMap);
+figure; 
+plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states3D{50}.s(j==48 & i>18 & i < 60,2)); 
+view(0,0); axis off;
+
+% saturation in selected vertical section, at end of simulation
+figure; 
+plotCellData(extractSubgrid(G, j==48 & i>18 & i < 60), states3D{end}.s(j==48 & i>18 & i < 60,2)); 
+view(0,0); axis off;
 
 %% Trapping inventory
 % The result is a more detailed inventory that accounts for six different categories of CO2:

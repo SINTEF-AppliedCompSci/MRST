@@ -55,7 +55,7 @@ if heterogeneity
     % Compute an anisotropic gaussian field to represent log-perm
     logperm = GaussianProcessND([xres, zres], @(xy) exp(-sqrt(sum((xy * scale).^2, 2))/0.3));
     
-    % compute permeability from its algorithm, and scale it to ensure exact average
+    % compute permeability from its logarithm, and scale it to ensure exact average
     perm = 10.^(logperm/5);
     perm = perm / mean(perm(:)) * avg_perm; 
 
