@@ -49,7 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'nSteps',        inf);
    opt = merge_options(opt, varargin{:});
 
-   is_open_pre = fopen('all');
+   is_open_pre = listOpenedFiles();
 
    [dname, fp] = fileparts(prefix);
    if isempty(dname)
@@ -72,7 +72,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        rstrt   = readEclipseOutputFileUnFmt(rstfile, 'cellOutput', true, 'maxCellSize', opt.nSteps);
    end
 
-   is_open_post = fopen('all');
+   is_open_post = listOpenedFiles();
 
    assert (all(size(is_open_pre) == size(is_open_post)) && ...
            all(is_open_pre == is_open_post),               ...

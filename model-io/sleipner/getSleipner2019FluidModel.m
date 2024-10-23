@@ -98,7 +98,7 @@ if opt.useEOS
         (G.cells.centroids(:,3) - topDepth) * gradT;    % Kelvin
 
     fluid = addSampledFluidProperties(fluid,...
-                                      'G','fixedT',reservoir_temp);
+                                      'G','reservoirT',reservoir_temp);
 
     fluid = include_BO_form(fluid, 'G', fluid.rhoGS);
 end

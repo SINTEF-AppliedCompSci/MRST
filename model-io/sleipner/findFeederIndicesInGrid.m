@@ -100,27 +100,28 @@ for k = 1:numel(fIx)
         gi = gi(ijIx);
         gj = gj(ijIx);
         catch
-            warning('Cannot add feeders 2 and 3. Probably using a coarsened mesh')
+            warning('Cannot add feeders 2 and 3. Probably using a coarsened mesh.')
             break
         end
     end
+
     
     for j = 1:numel(layers)
         
         layerNo = layers(j);
-        if opt.includeCaprock
+
             gridInds = zeros(cartDims(1),cartDims(2),cartDims(3));
-        else
-            gridInds = zeros(cartDims(1),cartDims(2),cartDims(3)-10);
+
+        try 
+            gridInds(gi,gj,:) = 1;
+            gridInds = reshape(gridInds,[],1);
+            gridInds = gridInds.*(layerMapG == layerNo);
+            feederCellsTemp = [feederCellsTemp; find(gridInds)];
+        catch
+            error('Make sure cartDims do not include caprock cells')
         end
-        
-        gridInds(gi,gj,:) = 1;
-        gridInds = reshape(gridInds,[],1);
-        gridInds = gridInds.*(layerMapG == layerNo);
-        feederCellsTemp = [feederCellsTemp; find(gridInds)];
 
 
- 
         
     end
 
@@ -128,3 +129,8 @@ for k = 1:numel(fIx)
     feederCellsMap(feederCellsTemp) = k+1;    
     feederFaces = [feederFaces; gridCellFaces(G, feederCellsTemp)];
 end
+    if isempty(feederCells)
+        warning('No feeders have been added. Probably using a coarsened mesh.')
+    end
+end
+
