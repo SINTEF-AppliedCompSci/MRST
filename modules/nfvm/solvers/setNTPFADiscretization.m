@@ -56,6 +56,10 @@ function model = setNTPFA(model, varargin)
     model.operators.Grad = dp.Grad;
 
     % Gravity
-    model.operators.gdz = setup_gdz(model, dp.Grad);
+    if norm(model.getGravityVector()) > 0
+        model.operators.gdz = setup_gdz(model, dp.Grad);
+    else
+        model.operators.gdz = zeros(size(model.operators.N, 1), 1);
+    end
 
 end
