@@ -203,7 +203,7 @@ function W = topoSortWellCells(G, W)
    
     endpoints = find(sum(A,2) == 1);
     
-    [~, ix] = min(G.cells.centroids(endpoints,3));
+    [~, ix] = min(G.cells.centroids(cells(endpoints),3));
     first = endpoints(ix);
  
     cells = nan(n,1);
