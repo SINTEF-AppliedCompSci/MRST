@@ -57,8 +57,8 @@ function polygons = computeGridSlicePolygons(G, coord, varargin)
 % 
 % EXAMPLE:
 %%
-% G  = addBoundingBoxFields(computeGeometry(cartGrid([20 20 10])));
-% poly = computeGridSlicePolygons(G, [15*sin((0:.1:2))', .5*cos(0:.1:2)', (0:.1:2)'], 'cutDir', [0 0 1]);
+G  = addBoundingBoxFields(computeGeometry(cartGrid([20 20 10])));
+poly = computeGridSlicePolygons(G, [15*sin((0:.1:2))', .5*cos(0:.1:2)', (0:.1:2)'], 'cutDir', [0 0 1]);
 % patch('Faces', poly.nodes, 'Vertices', poly.coords3D, 'FaceColor', 'y')
 % view(3)
 %%

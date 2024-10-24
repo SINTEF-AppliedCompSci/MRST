@@ -1,14 +1,22 @@
 % setupModel:  construct model for example analyseModel2D
 
 % set up grid and rock-properties for simple 2D-model
-nxyz = [40, 40, 1];
-Dxyz = [400, 400, 10];
-
-G = cartGrid(nxyz, Dxyz);
-G = computeGeometry(G);
-
-rock = getSPE10rock(1:40, 101:140, 4);
-
+% nxyz = [40, 40, 1];
+% Dxyz = [400, 400, 10];
+% 
+% G = cartGrid(nxyz, Dxyz);
+% G = computeGeometry(G);
+% 
+% rock = getSPE10rock(1:40, 101:140, 2);
+clear all;
+cartDims = [  60,  60,  1];
+physDims = [600, 600, 10];
+G  = cartGrid(cartDims, physDims);
+G  = computeGeometry(G);
+[T,layer] = deal(10*year, [23, 75]);
+n = 2;
+ rock = getSPE10rock(1:cartDims(1),1:cartDims(2),layer(n));
+rock.poro = max(rock.poro, 0.14);
 % fluid
 pRef = 200*barsa;
 
@@ -43,14 +51,13 @@ end
 
 
 % Set up 4 control-steps each 150 days
-ts = { [1 1 3 5 5 10 10 10 15 15 15 15 15 15 15]'*day, ...
-                   repmat(150/10, 10, 1)*day, ...
-                   repmat(150/6, 6, 1)*day, ...
-                   repmat(150/6, 6, 1)*day};
+ts = { [0.1 0.25 0.5 1 3 3 3 5 5 5 5 5 5 5 5 5]'*day, ...
+                   repmat(70/10, 10, 1)*day, ...
+                   repmat(80/10, 10, 1)*day};
        
 numCnt = numel(ts);
 [schedule.control(1:numCnt).W] = deal(W);
-schedule.step.control = rldecode((1:4)', cellfun(@numel, ts));
+schedule.step.control = rldecode((1:3)', cellfun(@numel, ts));
 schedule.step.val     = vertcat(ts{:});
 
 gravity on
