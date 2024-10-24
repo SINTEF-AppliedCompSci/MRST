@@ -99,6 +99,30 @@ if model.oil &&  isfield(model.fluid, 'krO')
     end
     model.fluid = fluid;
 end
+
+% check rel-perm names
+if model.water &&  isfield(model.fluid, 'krW')
+    fluid = model.fluid;
+    if ~model.gas && model.oil && ~isfield(fluid, 'krOW')
+        fluid.krOW = fluid.krO;
+        if isfield(fluid.krPts, 'w')
+            fluid.krPts.ow = fluid.krPts.w;
+        end
+    end
+    if ~model.oil && model.gas && ~isfield(fluid, 'krOG')
+        fluid.krOG = fluid.krG;
+        if isfield(fluid.krPts, 'w')
+            fluid.krPts.wg = fluid.krPts.w;
+        end
+    end
+    if (~model.oil || isfield(fluid, 'krOW')) && ...
+       (~model.gas   || isfield(fluid, 'krWG')) 
+        fluid = rmfield(fluid, 'krW');  
+    else
+        warning('Scaling of ''krW''-function ignored');
+    end
+    model.fluid = fluid;
+end
 end
 
 %--------------------------------------------------------------------------

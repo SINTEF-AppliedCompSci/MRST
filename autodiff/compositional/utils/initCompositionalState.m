@@ -59,6 +59,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     nls = getDefaultFlashNonLinearSolver();
     state = eos.validateState(state);
+    state.L = solveRachfordRiceVLE(state.L, state.K, state.components);
     [state, report] = nls.solveTimestep(state, 1000*year, eos);
     if ~report.StepReports{1}.Converged
         state = eos.updateAfterConvergence(state0, state, dt, struct());

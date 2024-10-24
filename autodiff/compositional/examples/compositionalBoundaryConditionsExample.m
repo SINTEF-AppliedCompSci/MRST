@@ -68,10 +68,10 @@ schedule = simpleSchedule(dt, 'bc', bc);
 % Natural variables is one possible variable set for compositional
 % problems. These variables include saturations, making it easier to limit
 % updates for problems with strong relative permeability effects.
-model = NaturalVariablesCompositionalModel(G, rock, flowfluid, fluid, 'water', false);
-
-nls = NonLinearSolver('useRelaxation', true);
-[~, states, report] = simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls);
+% model = NaturalVariablesCompositionalModel(G, rock, flowfluid, fluid, 'water', false);
+% 
+% nls = NonLinearSolver('useRelaxation', true);
+% [~, states, report] = simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls);
 %% Solve using overall composition
 % Another formulation is to use composition variables with no saturations.
 % In this formulation, the flash is solved between each nonlinear update.

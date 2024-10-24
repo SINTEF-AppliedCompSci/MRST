@@ -1,0 +1,120 @@
+-- Copyright (C) 2024 SINTEF DIGITAL
+-- This script presents current simulation results for an illustrative example of hydrogen (H2) storage.
+-- The initial state, schedule, mesh saturation number (satnum), active number (actnum), 
+-- porosity (poro), and permeability (perm) are derived from the main script.
+-- Adapted from SINTEF/Olav by Elyes Ahmed.
+----------------------------------------------------------------------------
+
+RUNSPEC
+----------------------------------------------------------------------------
+
+DIMENS
+1 1 1 /
+
+OIL
+GAS
+-- H2 STORAGE
+DISGAS
+-- DIFFUSE
+-- DISPER
+
+METRIC
+
+START
+17 'Feb' 2023 /
+
+EQLDIMS
+/
+
+WELLDIMS
+/
+
+TABDIMS
+3 1* 101 101 /
+
+UNIFOUT
+
+----------------------------------------------------------------------------
+GRID
+----------------------------------------------------------------------------
+
+INIT
+
+INCLUDE
+'H2TRAP.GRDECL' /
+
+INCLUDE
+'PERM.inc' /
+
+INCLUDE
+'PORO.inc' /
+
+COPY
+PERMX PERMY /
+PERMX PERMZ /
+/
+
+----------------------------------------------------------------------------
+EDIT
+----------------------------------------------------------------------------
+
+INCLUDE
+'PORV.inc' /
+
+----------------------------------------------------------------------------
+PROPS
+----------------------------------------------------------------------------
+
+-- DENSITY of OIL, WATER, and GAS
+DENSITY
+9.98207150467e+02 1.0 0.0851
+/
+
+-- DIFFUSION COEFFICIENTS
+DIFFC
+18.01528 2.016 4.5e-05 1* 1e-9  /
+
+INCLUDE
+'SGOF_H2STORAGE.txt' /
+
+INCLUDE
+'RS_PVT_H2STORAGE.inc' /
+
+----------------------------------------------------------------------------
+REGIONS
+----------------------------------------------------------------------------
+
+INCLUDE
+'SATNUM_H2STORAGE.inc' /
+
+----------------------------------------------------------------------------
+SOLUTION
+----------------------------------------------------------------------------
+
+RTEMPVD
+/
+
+RSVD
+/
+
+BC 
+/
+/
+
+RPTRST
+BASIC=2 DEN KRG KRO /
+
+----------------------------------------------------------------------------
+SUMMARY
+----------------------------------------------------------------------------
+
+ALL
+PERFORMA
+
+----------------------------------------------------------------------------
+SCHEDULE
+----------------------------------------------------------------------------
+
+INCLUDE
+'SCHEDULE.inc'
+
