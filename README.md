@@ -1,6 +1,6 @@
 ![MRST Logo](mrst.png)
 ## What is this?
-This is the official GitHub repository of the Matlab Reservoir Simulation Toolbox (MRST), an open source toolbox for simulation of flow, mechanics and transport in porous media developed at [group for Computational Geosciences](https://www.sintef.no/en/digital/applied-mathematics/computational-geoscience/) at [SINTEF Digital](https://www.sintef.no/digital/). We only recommend getting MRST from the repositories for users who are interested in following the development actively and tolerate the occasional bug or broken feature. For most users, the [MRST releases](https://www.sintef.no/projectweb/mrst/download/) released twice each year are a better option, which comes pre-packaged and tested.
+This is the official GitHub repository of the Matlab Reservoir Simulation Toolbox (MRST), an open source toolbox for simulation of flow, mechanics and transport in porous media developed at [group for Applied Computational Science](https://www.sintef.no/en/digital/departments-new/department-of-mathematics-and-cybernetics/research-group-applied-computational-science/) at [SINTEF Digital](https://www.sintef.no/digital/). We only recommend getting MRST from the repositories for users who are interested in following the development actively and tolerate the occasional bug or broken feature. For most users, the [MRST releases](https://www.sintef.no/projectweb/mrst/download/) released twice each year are a better option, which comes pre-packaged and tested.
 
 For more details on MRST, please see our website at [www.mrst.no](http://www.mrst.no). Starting with MRST 2024b, development of MRST occurs in this repository. The following GitHub features are enabled if you want to get involved:
 
@@ -12,7 +12,7 @@ For more details on MRST, please see our website at [www.mrst.no](http://www.mrs
 Clone this repository:
 
 ```bash
-git clone https://github.com/SINTEF-COMG/MRST.git
+git clone git@github.com:SINTEF-AppliedCompSci/MRST.git
 ```
 
 Once the repository has been cloned, navigate your install of MATLAB or GNU Octave to the checked out repository
