@@ -60,30 +60,17 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     bcvals = bc.linformvals;
     bcvals = prod.eval(nfareas, bcvals);
-    
+
+    bcindtbl = projIndexArray(bcnodefacetbl, 'bcinds');
+
     prod = TensorProd();
     prod.tbl1 = bcnodefacecoltbl;
-    prod.tbl2 = bcnodefacecoltbl;
-    prod.tbl3 = bcnodefacetbl;
-    prod.mergefds = {'nodes', 'faces', 'bcinds'};
-    prod.reducefds = {'coldim'};
-    prod = prod.setup();
-     
-    D_T = SparseTensor('matlabsparse', true);
-    D_T = D_T.setFromTensorProd(linform, prod);
-
-    map = TensorMap();
-    map.fromTbl = nodefacecoltbl;
-    map.toTbl = bcnodefacecoltbl;
-    map.mergefds = {'nodes', 'faces', 'coldim'};
-    map = map.setup();
+    prod.tbl2 = nodefacecoltbl;
+    prod.tbl3 = bcindtbl;
+    prod.reducefds = {'faces', 'nodes', 'coldim'};
+    prod = prod.setup();    
     
-    M_T = SparseTensor('matlabsparse', true);
-    M_T = M_T.setFromTensorMap(map);
-    
-    D_T = D_T*M_T;
-    
-    D = D_T.getMatrix();
+    D = prod.setupMatrix(linform);
     D = D';
     
 end
