@@ -81,15 +81,15 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     % Construction of tensor g (as defined in paper eq 4.1.2)
     % g belongs to cellnodefacevectbl
     g = computeConsistentGradient2(G, eta, tbls, mappings, 'bcetazero', bcetazero);    
-    
+
     %% Computation of Cg
     
     prod = TensorProd();
     prod.tbl1        = cellvec1212tbl;
     prod.tbl2        = cellnodefacevectbl;
-    prod.replacefds1 = {{'vec22', 'vec2'}};
-    prod.replacefds2 = {{'vec', 'vec21'}};
-    prod.reducefds   = {'vec21'};
+    prod.replacefds1 = {{'vec21', 'vec2'}};
+    prod.replacefds2 = {{'vec', 'vec22'}};
+    prod.reducefds   = {'vec22'};
     prod.mergefds    = {'cells'};
     prod = prod.setup();
     
