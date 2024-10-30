@@ -50,7 +50,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
 % we invert it directly and reduce to a cell-centered scheme.
     
     bcetazero = opts.bcetazero;
-    eta = opts.eta;
+    eta       = opts.eta;
     
     vectbl       = tbls.vectbl;
     vec12tbl     = tbls.vec12tbl;
@@ -148,7 +148,7 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     prod = prod.setup();
 
     extcellnodefacevec122tbl = prod.tbl3;
-    
+
     delta = ones(cellnodetbl.num, 1);
     Cg2 = prod.eval(delta, Cg2);
 
@@ -163,19 +163,21 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
 
     Cg2 = map.eval(Cg2);
 
+    % We adjust the sparsity of Cg1
+
+    map = TensorMap();
+    map.fromTbl  = cellnodefacevec122tbl;
+    map.toTbl    = extcellnodefacevec122tbl;
+    map.mergefds = {'cells', 'nodes', 'faces', 'vec11', 'vec12', 'vec2'};
+    map = map.setup();
+
+    Cg1 = map.eval(Cg1);
+    
     %% We reset Cg as the average of Cg1 and Cg2
-
-    % map = TensorMap();
-    % map.fromTbl  = cellnodefacevec122tbl;
-    % map.toTbl    = extcellnodefacevec122tbl;
-    % map.mergefds = {'cells', 'nodes', 'faces', 'vec11', 'vec12', 'vec2'};
-    % map = map.setup();
-
-    % Cg1 = map.eval(Cg1);
     
-    % Cg = 0.5*(Cg1 + Cg2);
-    
-    % cellnodefacevec122tbl = extcellnodefacevec122tbl;
+    Cg = 0.5*(Cg1 + Cg2);
+
+    cellnodefacevec122tbl = extcellnodefacevec122tbl;
     
     %% We multiply Cg by the normals to obtain nCg
 
@@ -213,8 +215,6 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     
     A11 = prod.setupMatrix(nCg);
 
-    keyboard
-    
     % Setup of A12
     
     prod = TensorProd();
@@ -260,8 +260,6 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
 
     A22 = prod.setupMatrix(nCg);
 
-    keyboard
-    
     [nodes, sz] = rlencode(nodefacevectbl.get('nodes'), 1);
     opt.invertBlocks = 'm';
     bi = blockInverter(opt);
@@ -269,46 +267,14 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
 
     % Matrix for boundary conditions
     [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls);
-
-    
-    %
-    % The divergence operator (integrated over the volume)
-    % is given by 
-    %
-    %  div[c] = sum (m[f,s] u_[f,n,i] n[c,f,i])
-    %
-    % where u:solution, n:normal, m:area
-    % indices : c:cell, f:face, n:node.
-    
-    % The facetNormals are already weighted with respect to area
-    
-    prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = nodefacecoltbl;
-    prod.tbl3 = celltbl;
-    prod.reducefds = {'faces', 'nodes', 'coldim'};
-    % prod = prod.setup();
-    
-    prod.pivottbl = cellnodefacecoltbl;
-    prod.dispind1 = (1 : cnfc_num)';
-    [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-    prod.dispind2 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
-    prod.dispind3 = cell_from_cellnode(cellnode_from_cellnodeface(i));
-    prod.issetup = true;
-    
-    div_T = SparseTensor;
-    div_T = div_T.setFromTensorProd(facetNormals, prod);
-    div = div_T.getMatrix();
     
     matrices = struct('A11'   , A11   , ...
                       'A12'   , A12   , ...
                       'A21'   , A21   , ...
                       'A22'   , A22   , ...
                       'D'     , D     , ...
-                      'invA11', invA11, ...
-                      'C1'    , C1    , ...
-                      'C2'    , C2    , ...
-                      'div'   , div);
+                      'invA11', invA11);
     
     extra = struct('g', g);
+    
 end
