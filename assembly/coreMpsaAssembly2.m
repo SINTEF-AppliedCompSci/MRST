@@ -96,6 +96,17 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     cellnodefacevec122tbl = prod.tbl3;
     Cg = prod.eval(C, g); % Cg is in cellnodefacevec122tbl
 
+    %% Setup transpose CgT
+
+    map = TensorMap();
+    map.fromTbl           = cellnodefacevec122tbl;
+    map.toTbl             = cellnodefacevec122tbl;
+    map.replaceFromTblfds = {{'vec11', 'vec12', 'interchange'}};
+    map.mergefds          = {'cells', 'nodes', 'faces', 'vec11', 'vec12', 'vec2'};
+    map = map.setup();
+
+    CgT = map.eval(Cg); 
+    
     % Compute number of cell per node, nnodepercell in nodetbl
     map = TensorMap();
     map.fromTbl  = cellnodetbl;
@@ -120,66 +131,60 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     fixbc2 = ones(nodetbl.num, 1);
     fixbc2(fixnodes) = 0;
 
-    %% Setup Cg1
-    
+    gen = CrossIndexArrayGenerator();
+    gen.tbl1        = cellnodetbl;
+    gen.tbl2        = cellnodetbl;
+    gen.replacefds1 = {{'cells', 'cells1'}};
+    gen.replacefds2 = {{'cells', 'cells2'}};
+    gen.mergefds    = {'nodes'};
+
+    cell12nodetbl = gen.eval();
+
+    icell12nodetbl = cellnodetbl;
+    icell12nodetbl = replacefield(icell12nodetbl, {{'cells', 'cells1'}});
+    icell12nodetbl = icell12nodetbl.addInd('cells2', cellnodetbl.get('cells'));
+
+    map = TensorMap();
+    map.fromTbl  = icell12nodetbl;
+    map.toTbl    = cell12nodetbl;
+    map.mergefds = {'cells1', 'cells2', 'nodes'};
+    map = map.setup();
+
+    a = map.eval(ones(icell12nodetbl.num, 1));
+
+    map = TensorMap();
+    map.fromTbl           = cellnodetbl;
+    map.toTbl             = cell12nodetbl;
+    map.replaceFromTblfds = {{'cells', 'cells1'}};
+    map.mergefds          = {'cells1', 'nodes'};
+    map = map.setup();
+
+    aT = map.eval(ones(cellnodetbl.num, 1));
+
     prod = TensorProd();
-    prod.tbl1 = nodetbl;
-    prod.tbl2 = cellnodefacevec122tbl;
-    prod.tbl3 = cellnodefacevec122tbl;
+    prod.tbl1     = nodetbl;
+    prod.tbl2     = cell12nodetbl;
+    prod.tbl3     = cell12nodetbl;
     prod.mergefds = {'nodes'};
     prod = prod.setup();
     
-    Cg1 = prod.eval(fixbc1, Cg);
-
-    %% Setup Cg2
-
-    coef = (1./nnodepercell).*fixbc2;
-    Cg2 = prod.eval(coef, Cg);
-
-    % Take cell cell average around node
+    a  = 0.5*prod.eval(fixbc1, a);
+    aT = 0.5*prod.eval(fixbc2./nnodepercell, aT);
+    
+    %% Setup of S
     
     prod = TensorProd();
-    prod.tbl1        = cellnodetbl;
-    prod.tbl2        = cellnodefacevec122tbl;
-    prod.mergefds    = {'nodes'};
+    prod.tbl1 = cell12nodetbl;
+    prod.tbl2 = cellnodefacevec122tbl;
     prod.replacefds2 = {{'cells', 'cells2'}};
-    prod.reducefds2  = {'cells2'};
-    prod.mergefds    = {'nodes'};
+    prod.mergefds = {'cells2', 'nodes'};
     prod = prod.setup();
 
-    extcellnodefacevec122tbl = prod.tbl3;
+    cell12nodefacevec122tbl = prod.tbl3;
+    S = prod.eval(a, Cg) + prod.eval(aT, CgT);
 
-    delta = ones(cellnodetbl.num, 1);
-    Cg2 = prod.eval(delta, Cg2);
-
-    % Take transpose
-
-    map = TensorMap();
-    map.fromTbl           = extcellnodefacevec122tbl;
-    map.toTbl             = extcellnodefacevec122tbl;
-    map.replaceFromTblfds = {{'vec11', 'vec12', 'interchange'}};
-    map.mergefds          = {'cells', 'nodes', 'faces', 'vec11', 'vec12', 'vec2'};
-    map = map.setup();
-
-    Cg2 = map.eval(Cg2);
-
-    % We adjust the sparsity of Cg1
-
-    map = TensorMap();
-    map.fromTbl  = cellnodefacevec122tbl;
-    map.toTbl    = extcellnodefacevec122tbl;
-    map.mergefds = {'cells', 'nodes', 'faces', 'vec11', 'vec12', 'vec2'};
-    map = map.setup();
-
-    Cg1 = map.eval(Cg1);
     
-    %% We reset Cg as the average of Cg1 and Cg2
-    
-    Cg = 0.5*(Cg1 + Cg2);
-
-    cellnodefacevec122tbl = extcellnodefacevec122tbl;
-    
-    %% We multiply Cg by the normals to obtain nCg
+    %% We multiply S by the normals to obtain nS
 
     % Setup normals at facets (get vector in cellnodefacevectbl)
     
@@ -187,78 +192,77 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
     
     prod = TensorProd();
     prod.tbl1        = cellnodefacevectbl;
-    prod.tbl2        = cellnodefacevec122tbl;
-    prod.replacefds1 = {{'faces', 'faces1'}, {'vec', 'redvec'}};
+    prod.tbl2        = cell12nodefacevec122tbl;
+    prod.replacefds1 = {{'faces', 'faces1'}, {'vec', 'redvec'}, {'cells', 'cells1'}};
     prod.replacefds2 = {{'faces', 'faces2'}, {'vec11', 'vec1'}, {'vec12', 'redvec'}};
     prod.reducefds   = {'redvec'};
-    prod.mergefds    = {'cells', 'nodes'};
+    prod.mergefds    = {'cells1', 'nodes'};
     prod = prod.setup();
 
-    cellnodeface12vec12tbl = prod.tbl3;
+    cell12nodeface12vec12tbl = prod.tbl3;
 
-    nCg = prod.eval(facetNormals, Cg);
+    nS = prod.eval(facetNormals, S);
 
     %% Setup of the matrices A11, A12, A21, A22
 
     % Setup of A11
     
     prod = TensorProd();
-    prod.tbl1        = cellnodeface12vec12tbl;
+    prod.tbl1        = cell12nodeface12vec12tbl;
     prod.tbl2        = nodefacevectbl;
     prod.tbl3        = nodefacevectbl;
     prod.replacefds1 = {{'faces1', 'faces'}, {'vec1', 'vec'}};
     prod.replacefds2 = {{'faces', 'faces2'}, {'vec', 'vec2'}};
     prod.reducefds   = {'faces2', 'vec2'};
-    prod.reducefds1  = {'cells'};
+    prod.reducefds1  = {'cells1', 'cells2'};
     prod.mergefds    = {'nodes'};
     prod = prod.setup();
     
-    A11 = prod.setupMatrix(nCg);
+    A11 = prod.setupMatrix(nS);
 
     % Setup of A12
     
     prod = TensorProd();
-    prod.tbl1        = cellnodeface12vec12tbl;
+    prod.tbl1        = cell12nodeface12vec12tbl;
     prod.tbl2        = cellvectbl;
     prod.tbl3        = nodefacevectbl;
     prod.replacefds1 = {{'faces1', 'faces'}, {'vec1', 'vec'}};
-    prod.replacefds2 = {{'vec', 'vec2'}};
-    prod.reducefds   = {'vec2', 'cells'};
-    prod.reducefds1  = {'faces2'};
+    prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
+    prod.reducefds   = {'cells2', 'vec2'};
+    prod.reducefds1  = {'cells1', 'faces2'};
     prod = prod.setup();
 
     % note the sign
-    A12 = -prod.setupMatrix(nCg);
+    A12 = - prod.setupMatrix(nS);
     
     % Setup of A21
     
     prod = TensorProd();
-    prod.tbl1        = cellnodeface12vec12tbl;
+    prod.tbl1        = cell12nodeface12vec12tbl;
     prod.tbl2        = nodefacevectbl;
     prod.tbl3        = cellvectbl;
-    prod.replacefds1 = {{'vec1', 'vec'}};
+    prod.replacefds1 = {{'vec1', 'vec'}, {'cells1', 'cells'}};
     prod.replacefds2 = {{'vec', 'vec2'}, {'faces', 'faces2'}};
     prod.reducefds   = {'nodes', 'faces2', 'vec2'};
-    prod.reducefds1  = {'faces1'};
+    prod.reducefds1  = {'faces1', 'cells2'};
     prod = prod.setup();
 
     % note the sign
-    A21 = -prod.setupMatrix(nCg);
+    A21 = - prod.setupMatrix(nS);
     
     % Setup of A22
     
     prod = TensorProd();
-    prod.tbl1        = cellnodeface12vec12tbl;
+    prod.tbl1        = cell12nodeface12vec12tbl;
     prod.tbl2        = cellvectbl;
     prod.tbl3        = cellvectbl;
-    prod.replacefds1 = {{'vec1', 'vec'}};
-    prod.replacefds2 = {{'vec', 'vec2'}};
-    prod.reducefds   = {'vec2'};
+    prod.replacefds1 = {{'vec1', 'vec'}, {'cells1', 'cells'}};
+    prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
+    prod.reducefds   = {'vec2', 'cells2'};
     prod.reducefds1  = {'faces1', 'faces2', 'nodes'};
-    prod.mergefds    = {'cells'};
     prod = prod.setup();
 
-    A22 = prod.setupMatrix(nCg);
+    A22 = prod.setupMatrix(nS);
 
     [nodes, sz] = rlencode(nodefacevectbl.get('nodes'), 1);
     opt.invertBlocks = 'm';
