@@ -1,4 +1,4 @@
-function assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, varargin)
+function [assembly, extra] = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, varargin)
 % Assembly of MPSA-weak
 %
 % Reference paper:
@@ -108,10 +108,12 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     bc = loadstruct.bc;
     opts = struct('eta', eta, ...
                   'bcetazero', opt.bcetazero);
-    [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts);
+    output = coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts);
 
-    assembly = [];
-    
+    matrices = output.matrices;
+    bcvals   = output.bcvals;
+    extra    = output.extra;
+
     extforce = loadstruct.extforce;
     force = loadstruct.force;
 
@@ -174,6 +176,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                       'extforce', extforce, ...
                       'R1'      , R1      , ...
                       'R2'      , R2);
+
+    extra = output;
     
     if opt.assemblyMatrices
         assembly.matrices = matrices;

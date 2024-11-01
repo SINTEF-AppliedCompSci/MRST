@@ -1,4 +1,4 @@
-function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts)
+function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts)
 % Assembly of MPSA-weak
 %
 % Reference paper:
@@ -280,5 +280,15 @@ function [matrices, bcvals, extra] = coreMpsaAssembly2(G, C, bc, nnodesperface, 
                       'invA11', invA11);
     
     extra = struct('g', g);
+
+    tbls.cell12nodefacevec122tbl = tbls;
     
+    indexarrays = struct('nS', nS);
+
+    output = struct('tbls'       , tbls       , ...
+                    'indexarrays', indexarrays, ...
+                    'matrices'   , matrices   , ...
+                    'bcvals'     , bcvals     , ...
+                    'extra'      , extra);
+
 end
