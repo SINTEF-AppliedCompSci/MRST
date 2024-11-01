@@ -54,29 +54,18 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     
     vectbl       = tbls.vectbl;
     vec12tbl     = tbls.vec12tbl;
-    vec1212tbl   = tbls.vec1212tbl;
     celltbl      = tbls.celltbl;
     nodetbl      = tbls.nodetbl;
     cellnodetbl  = tbls.cellnodetbl;
     nodefacetbl  = tbls.nodefacetbl;
     cellvectbl   = tbls.cellvectbl;
-    cellvec12tbl = tbls.cellvec12tbl;
-    nodevectbl   = tbls.nodevectbl;
 
     nodefacevectbl         = tbls.nodefacevectbl;
     cellnodefacetbl        = tbls.cellnodefacetbl;
     cellnodevectbl         = tbls.cellnodevectbl;
     cellnodevec12tbl       = tbls.cellnodevec12tbl;
     cellnodefacevectbl     = tbls.cellnodefacevectbl;
-    cellnodefacevec12tbl   = tbls.cellnodefacevec12tbl;
-    cellnodeface12tbl      = tbls.cellnodeface12tbl;
-    cellnodeface12vec12tbl = tbls.cellnodeface12vec12tbl;
-    nodeface12tbl          = tbls.nodeface12tbl;
-    nodeface12vec12tbl     = tbls.nodeface12vec12tbl;    
-    nodevec12tbl           = tbls.nodevec12tbl;
-    nodefacevec12tbl       = tbls.nodefacevec12tbl;
     cellvec1212tbl         = tbls.cellvec1212tbl;
-    cellnodevec1212tbl     = tbls.cellnodevec1212tbl;
     
     % Construction of tensor g (as defined in paper eq 4.1.2)
     % g belongs to cellnodefacevectbl
@@ -270,6 +259,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     invA11 = bi(A11, sz);
 
     % Matrix for boundary conditions
+    
     [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls);
     
     matrices = struct('A11'   , A11   , ...
@@ -281,7 +271,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     
     extra = struct('g', g);
 
-    tbls.cell12nodefacevec122tbl = tbls;
+    tbls.cell12nodeface12vec12tbl = cell12nodeface12vec12tbl;
     
     indexarrays = struct('nS', nS);
 
