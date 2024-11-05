@@ -60,6 +60,8 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     nodefacetbl  = tbls.nodefacetbl;
     cellvectbl   = tbls.cellvectbl;
 
+    dim = vectbl.num;
+    
     nodefacevectbl           = tbls.nodefacevectbl;
     cellnodefacetbl          = tbls.cellnodefacetbl;
     cellnodefacevectbl       = tbls.cellnodefacevectbl;
@@ -162,7 +164,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.replacefds2 = {{'cells', 'cells2'}};
     prod.mergefds    = {'cells2', 'nodes'};
     prod = prod.setup();
-
+    
     S = prod.eval(a, Cg) + prod.eval(aT, CgT);
     
     %% We multiply S by the normals to obtain nS
@@ -179,7 +181,38 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.replacefds2 = {{'faces', 'faces2'}, {'vec11', 'vec1'}, {'vec12', 'redvec'}};
     prod.reducefds   = {'redvec'};
     prod.mergefds    = {'cells1', 'nodes'};
-    prod = prod.setup();
+
+    dooptimize = true;
+
+    if dooptimize
+
+        gen = CrossIndexArrayGenerator();
+        gen.tbl1        = vec12tbl;
+        gen.tbl2        = vectbl;
+        gen.replacefds1 = {{'vec1', 'vec11'}, {'vec2', 'vec12'}};
+        gen.replacefds2 = {{'vec', 'vec2'}};
+        
+        vec122tbl = gen.eval();
+
+        cell12nodeface12vec122tbl = crossIndexArray(tbls.cell12nodeface12tbl, vec122tbl, {}, ...
+                                                    'optpureproduct', true, ...
+                                                    'virtual', true);        
+        prod.pivottbl = cell12nodeface12vec122tbl;
+        
+        map1 = mappings.cellnodeface_from_cell12nodeface12tbl;
+        map2 = mappings.cell12nodeface_from_cell12nodeface12tbl;
+
+        [v2, v12, v11, i] = ind2sub([dim, dim, dim, tbls.cell12nodeface12tbl.num], (1 : cell12nodeface12vec122tbl.num)');
+
+        prod.dispind1 = sub2ind([dim, tbls.cellnodefacetbl.num], v12, map1(i));
+        prod.dispind2 = sub2ind([dim, dim, dim, tbls.cell12nodefacetbl.num], v2, v12, v11, map2(i));
+        prod.dispind3 = sub2ind([dim, dim, tbls.cell12nodeface12tbl.num], v2, v11, i);
+
+        prod.issetup = true;
+        
+    else
+        prod = prod.setup();
+    end
     
     nS = prod.eval(facetNormals, S);
 
