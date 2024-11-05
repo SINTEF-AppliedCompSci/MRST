@@ -60,12 +60,13 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     nodefacetbl  = tbls.nodefacetbl;
     cellvectbl   = tbls.cellvectbl;
 
-    nodefacevectbl         = tbls.nodefacevectbl;
-    cellnodefacetbl        = tbls.cellnodefacetbl;
-    cellnodevectbl         = tbls.cellnodevectbl;
-    cellnodevec12tbl       = tbls.cellnodevec12tbl;
-    cellnodefacevectbl     = tbls.cellnodefacevectbl;
-    cellvec1212tbl         = tbls.cellvec1212tbl;
+    nodefacevectbl          = tbls.nodefacevectbl;
+    cellnodefacetbl         = tbls.cellnodefacetbl;
+    cellnodefacevectbl      = tbls.cellnodefacevectbl;
+    cellvec1212tbl          = tbls.cellvec1212tbl;
+    cellnodefacevec122tbl   = tbls.cellnodefacevec122tbl;
+    cell12nodetbl           = tbls.cell12nodetbl;
+    cell12nodefacevec122tbl = tbls.cell12nodefacevec122tbl;
     
     % Construction of tensor g (as defined in paper eq 4.1.2)
     % g belongs to cellnodefacevectbl
@@ -76,14 +77,13 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod = TensorProd();
     prod.tbl1        = cellvec1212tbl;
     prod.tbl2        = cellnodefacevectbl;
+    prod.tbl3        = cellnodefacevec122tbl;
     prod.replacefds1 = {{'vec21', 'vec2'}};
     prod.replacefds2 = {{'vec', 'vec22'}};
     prod.reducefds   = {'vec22'};
     prod.mergefds    = {'cells'};
     prod = prod.setup();
-
     
-    cellnodefacevec122tbl = prod.tbl3;
     Cg = prod.eval(C, g); % Cg is in cellnodefacevec122tbl
 
     %% Setup transpose CgT
@@ -121,15 +121,6 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     fixbc2 = ones(nodetbl.num, 1);
     fixbc2(fixnodes) = 0;
 
-    gen = CrossIndexArrayGenerator();
-    gen.tbl1        = cellnodetbl;
-    gen.tbl2        = cellnodetbl;
-    gen.replacefds1 = {{'cells', 'cells1'}};
-    gen.replacefds2 = {{'cells', 'cells2'}};
-    gen.mergefds    = {'nodes'};
-
-    cell12nodetbl = gen.eval();
-
     icell12nodetbl = cellnodetbl;
     icell12nodetbl = replacefield(icell12nodetbl, {{'cells', 'cells1'}});
     icell12nodetbl = icell12nodetbl.addInd('cells2', cellnodetbl.get('cells'));
@@ -164,15 +155,14 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     %% Setup of S
     
     prod = TensorProd();
-    prod.tbl1 = cell12nodetbl;
-    prod.tbl2 = cellnodefacevec122tbl;
+    prod.tbl1        = cell12nodetbl;
+    prod.tbl2        = cellnodefacevec122tbl;
+    prod.tbl3        = cell12nodefacevec122tbl;
     prod.replacefds2 = {{'cells', 'cells2'}};
-    prod.mergefds = {'cells2', 'nodes'};
+    prod.mergefds    = {'cells2', 'nodes'};
     prod = prod.setup();
 
-    cell12nodefacevec122tbl = prod.tbl3;
     S = prod.eval(a, Cg) + prod.eval(aT, CgT);
-
     
     %% We multiply S by the normals to obtain nS
 
