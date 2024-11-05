@@ -81,6 +81,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.reducefds   = {'vec22'};
     prod.mergefds    = {'cells'};
     prod = prod.setup();
+
     
     cellnodefacevec122tbl = prod.tbl3;
     Cg = prod.eval(C, g); % Cg is in cellnodefacevec122tbl

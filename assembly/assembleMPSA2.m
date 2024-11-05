@@ -55,43 +55,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                  'extraoutput'     , false);
     opt = merge_options(opt, varargin{:});
     
-    % Recover IndexArrays
-    vectbl               = tbls.vectbl;
-    celltbl              = tbls.celltbl;
-    facetbl              = tbls.facetbl;
-    nodetbl              = tbls.nodetbl;
-    cellnodetbl          = tbls.cellnodetbl;
-    nodefacetbl          = tbls.nodefacetbl;
-    cellvectbl           = tbls.cellvectbl;
-    nodevectbl           = tbls.nodevectbl;
-    nodefacevectbl       = tbls.nodefacevectbl;
-    cellnodefacetbl      = tbls.cellnodefacetbl;
-    cellnodevectbl       = tbls.cellnodevectbl;
-    cellnodevec12tbl     = tbls.cellnodevec12tbl;
-    cellnodefacevectbl   = tbls.cellnodefacevectbl;
-    cellnodefacevec12tbl = tbls.cellnodefacevec12tbl;
-    vec12tbl             = tbls.vec12tbl;
-    nodevec12tbl         = tbls.nodevec12tbl;
-    vec1212tbl           = tbls.vec1212tbl;
-    cellvec1212tbl       = tbls.cellvec1212tbl;
-    cellnodevec1212tbl   = tbls.cellnodevec1212tbl;
-    
-    cell_from_cellnode         = mappings.cell_from_cellnode;
-    node_from_cellnode         = mappings.node_from_cellnode;
-    cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
-    nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
-    
-    % Some shortcuts
-    c_num     = celltbl.num;
-    n_num     = nodetbl.num;
-    cnf_num   = cellnodefacetbl.num;
-    cnfc_num  = cellnodefacevectbl.num;
-    cn_num    = cellnodetbl.num;
-    cncr_num  = cellnodevec12tbl.num;
-    nf_num    = nodefacetbl.num;
-    nfc_num   = nodefacevectbl.num;
-    cnfcr_num = cellnodefacevec12tbl.num;
-    d_num     = vectbl.num;
+    % Retrieve IndexArrays
+    vectbl      = tbls.vectbl;
+    nodefacetbl = tbls.nodefacetbl;
+    facetbl     = tbls.facetbl;
     
     dim = vectbl.num;
 
@@ -199,8 +166,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         alpha = ones(G.cells.num, 1);
         % we need to send number of nodes per cell
         map = TensorMap();
-        map.fromTbl = cellnodetbl;
-        map.toTbl = celltbl;
+        map.fromTbl  = cellnodetbl;
+        map.toTbl    = celltbl;
         map.mergefds = {'cells'};
         map = map.setup();
         nnodespercell = map.eval(ones(cellnodetbl.num, 1));

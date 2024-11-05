@@ -21,8 +21,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     
-    bcetazero = opts.bcetazero;
-    eta = opts.eta;
+    bcetazero  = opts.bcetazero;
+    eta        = opts.eta;
     dooptimize = opts.dooptimize;
     
     cellcolrowtbl         = tbls.cellcolrowtbl;
