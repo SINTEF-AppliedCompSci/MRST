@@ -60,13 +60,14 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     nodefacetbl  = tbls.nodefacetbl;
     cellvectbl   = tbls.cellvectbl;
 
-    nodefacevectbl          = tbls.nodefacevectbl;
-    cellnodefacetbl         = tbls.cellnodefacetbl;
-    cellnodefacevectbl      = tbls.cellnodefacevectbl;
-    cellvec1212tbl          = tbls.cellvec1212tbl;
-    cellnodefacevec122tbl   = tbls.cellnodefacevec122tbl;
-    cell12nodetbl           = tbls.cell12nodetbl;
-    cell12nodefacevec122tbl = tbls.cell12nodefacevec122tbl;
+    nodefacevectbl           = tbls.nodefacevectbl;
+    cellnodefacetbl          = tbls.cellnodefacetbl;
+    cellnodefacevectbl       = tbls.cellnodefacevectbl;
+    cellvec1212tbl           = tbls.cellvec1212tbl;
+    cellnodefacevec122tbl    = tbls.cellnodefacevec122tbl;
+    cell12nodetbl            = tbls.cell12nodetbl;
+    cell12nodefacevec122tbl  = tbls.cell12nodefacevec122tbl;
+    cell12nodeface12vec12tbl = tbls.cell12nodeface12vec12tbl;
     
     % Construction of tensor g (as defined in paper eq 4.1.2)
     % g belongs to cellnodefacevectbl
@@ -173,14 +174,13 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod = TensorProd();
     prod.tbl1        = cellnodefacevectbl;
     prod.tbl2        = cell12nodefacevec122tbl;
+    prod.tbl3        = cell12nodeface12vec12tbl;
     prod.replacefds1 = {{'faces', 'faces1'}, {'vec', 'redvec'}, {'cells', 'cells1'}};
     prod.replacefds2 = {{'faces', 'faces2'}, {'vec11', 'vec1'}, {'vec12', 'redvec'}};
     prod.reducefds   = {'redvec'};
     prod.mergefds    = {'cells1', 'nodes'};
     prod = prod.setup();
-
-    cell12nodeface12vec12tbl = prod.tbl3;
-
+    
     nS = prod.eval(facetNormals, S);
 
     %% Setup of the matrices A11, A12, A21, A22
