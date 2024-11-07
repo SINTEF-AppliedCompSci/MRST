@@ -20,7 +20,7 @@ classdef settingsStruct < handle & matlab.mixin.SetGetExactNames
         end          
 
         function set.dataDirectory(obj,value)
-            if isdir(value)
+            if isfolder(value)
                 obj.dataDirectory = value;
             else
                 error('Set mrstDataDirectory: %s is not a valid directory',value);
@@ -28,7 +28,7 @@ classdef settingsStruct < handle & matlab.mixin.SetGetExactNames
         end
         
         function set.outputDirectory(obj,value)
-            if isdir(value)
+            if isfolder(value)
                 obj.outputDirectory = value;
             else
                  error('Set mrstOutputDirectory: %s is not a valid directory',value);

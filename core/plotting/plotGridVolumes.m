@@ -154,7 +154,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                   'FaceColor', c(i,:), 'EdgeColor', 'none', ...
                   'FaceAlpha', opt.basealpha*i/(2*N));
         fn = size(get(p, 'Faces'),1);
-        set(get(p, 'Parent'), 'ZDir', 'reverse')
+        %set(get(p, 'Parent'), 'ZDir', 'reverse')
         if fn > opt.patchn/N
             reducepatch(p, ceil(opt.patchn/N));
         end

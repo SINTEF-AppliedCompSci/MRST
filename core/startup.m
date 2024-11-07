@@ -23,8 +23,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    build_mrst_path_tree();
 
    % Register known third-party modules
-   mod_3rdparty = { 'matlab_bgl' };
-   activate_3rdparty_modules(mod_3rdparty);
+   % mod_3rdparty = { 'matlab_bgl' };
+   % activate_3rdparty_modules(mod_3rdparty);
 
    % If there exists a startup_user.m file in the root dir of MRST, we
    % execute this file.

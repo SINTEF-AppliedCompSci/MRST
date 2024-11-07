@@ -173,7 +173,7 @@ function h = plotFaces3D(G, faces, color, varargin)
       h = plotFaces3DCoarseGrid(G, faces, varargin{:});
    else
       h = plotPatches(G, faces, color, 'EdgeColor', 'k', varargin{:});
-      set(get(h, 'Parent'), 'ZDir', 'reverse')
+      %set(get(h, 'Parent'), 'ZDir', 'reverse')
    end
 end
 
@@ -198,7 +198,7 @@ function h = plotFaces2D(G, faces, varargin)
    ix          = mcolon(G.faces.nodePos(f), G.faces.nodePos(f+1)-1);
    edges       = reshape(G.faces.nodes(ix), 2, []) .';
    h           = plotLineSegments(G, edges, varargin{:});
-   set(get(h, 'Parent'), 'ZDir', 'reverse');
+   %set(get(h, 'Parent'), 'ZDir', 'reverse');
 
    % Find unique endpoints - if varargin contains 'marker*'
    if numel(marker_opts) > 0
@@ -243,7 +243,7 @@ function h = plotFaces3DCoarseGrid(G, faces, varargin)
    varargin  = varargin(~ix);
 
    h = plotPatches(G.parent, f, 'EdgeColor', 'none', varargin{:});
-   set(get(h, 'Parent'), 'ZDir', 'reverse')
+   %set(get(h, 'Parent'), 'ZDir', 'reverse')
 
    h = [h; plotFaceOutline(G, faces, edge_opts{:})];
 

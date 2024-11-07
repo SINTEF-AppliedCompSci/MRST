@@ -50,7 +50,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    r   = unique(r);
    ix  = mcolon(pos(r)+num(r), pos(r+1)-1);
    newData = zeros(size(data, 1)+size(new, 1), size(data, 2));
-   i    = (1:size(newData, 1))';
+   i    = (1:size(newData))';
    i(ix)=[];
    newData(i, :) = data;
    newData(ix,1:size(new,2)) = new;

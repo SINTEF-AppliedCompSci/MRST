@@ -64,7 +64,7 @@ function [is_directory, canonicalise] = ...
 
    is_directory = @isfolder;
    if ~isfolder_safe
-      is_directory = @isdir;
+      is_directory = @isfolder;
    end
 
    canonicalise = @canonicalise_path_matlab;

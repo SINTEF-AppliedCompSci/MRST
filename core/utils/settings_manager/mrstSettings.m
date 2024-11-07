@@ -157,7 +157,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                       ['Directory name must be a character vector ', ...
                        '(i.e., a sequence of characters bookended by ', ...
                        'single quotes ('')).']);
-                if isdir(new)                                              %#ok
+                if isfolder(new)                                              %#ok
                     new = getCanonicalPath(new);
                     SETTINGS.(sarg) = new;
                     need_save = true;
@@ -482,7 +482,7 @@ function odir = default_output_dir()
 end
 
 function ensure_directory_exists(ddir)
-    if ~isdir(ddir)                                                        %#ok
+    if ~isfolder(ddir)                                                        %#ok
         [ok, msg, id] = mkdir(ddir);
 
         if ~ok

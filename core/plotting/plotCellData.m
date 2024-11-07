@@ -176,9 +176,9 @@ else
     h = plot(x, d, varargin{:});
 end
 
-if (G.griddim == 3) || isfield(G.cells, 'z')
-   set(get(h, 'Parent'), 'ZDir', 'reverse')
-end
+% if (G.griddim == 3) || isfield(G.cells, 'z')
+%    set(get(h, 'Parent'), 'ZDir', 'reverse')
+% end
 
 if nargout > 0, varargout{1} = h; end
 end
