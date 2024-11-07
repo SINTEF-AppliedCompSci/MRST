@@ -42,7 +42,7 @@ opt = struct('verbose', mrstVerbose);
  end
 
  if iscell(arg)
-   if ~isdir(fullfile(pwd, '.cache'))
+   if ~isfolder(fullfile(pwd, '.cache'))
      mkdir('.cache');
    end
    id = md5sum(arg);
@@ -66,7 +66,7 @@ opt = struct('verbose', mrstVerbose);
  fp = fopen(['.cache', filesep, name, type], 'r');
  h  = hash(arg);
 
- if ~isdir('.cache')
+ if ~isfolder('.cache')
    mkdir('.cache');
 
  elseif fp ~= -1

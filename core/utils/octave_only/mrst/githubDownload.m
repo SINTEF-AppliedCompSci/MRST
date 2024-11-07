@@ -347,6 +347,6 @@ function tf = is_directory(elem)
    if exist('isfolder', 'builtin')
       tf = isfolder(elem);
    else
-      tf = isdir(elem);
+      tf = isfolder(elem);
    end
 end

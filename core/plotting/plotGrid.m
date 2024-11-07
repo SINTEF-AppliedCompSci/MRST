@@ -139,12 +139,12 @@ elseif isCoarseGrid(G)
 
    h  = plotPatches(G.parent, subFaces(G, f), ...
       'EdgeColor', 'none', 'FaceColor', 'y', varargin{:});
-   set(get(h, 'Parent'), 'ZDir', 'reverse');
+   %set(get(h, 'Parent'), 'ZDir', 'reverse');
    h  = [h; plotFaceOutline(G, f, outline_opts{:})];
 
 else
    h = plotPatches(G, f, 'FaceColor', 'y', varargin{:});
-   set(get(h, 'Parent'), 'ZDir', 'reverse');
+   %set(get(h, 'Parent'), 'ZDir', 'reverse');
 end
 
 if nargout > 0, varargout{1} = h; end

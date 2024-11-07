@@ -101,7 +101,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     info = merge_options(info, varargin{:});
     info.name = info.name(~isspace(info.name));
     
-    present = isdir(fullfile(mrstDataDirectory(), info.name));
+    present = isfolder(fullfile(mrstDataDirectory(), info.name));
 
     % Work out if a image is attached to the dataset
     pth = fileparts(mfilename('fullpath'));

@@ -29,11 +29,11 @@ function varargout = mrstPath(varargin)
 %     of the directory arguments in the above list while MODNAME is the
 %     corresponding module name)::
 %
-%        if ISDIR(fullfile(pwd, DIRARG)),
+%        if ISFOLDER(fullfile(pwd, DIRARG)),
 %
 %           register MODNAME fullfile(pwd, DIRARG)
 %
-%        elseif ISDIR(fullfile(ROOTDIR, DIRARG)),
+%        elseif ISFOLDER(fullfile(ROOTDIR, DIRARG)),
 %
 %           register MODNAME fullfile(ROOTDIR, DIRARG)
 %
@@ -41,7 +41,7 @@ function varargout = mrstPath(varargin)
 %
 %           register MODNAME fullfile(PATH entry, DIRARG)
 %
-%        elseif isdir(DIRARG)
+%        elseif isfolder(DIRARG)
 %           % Assume DIRARG is an absolute pathname
 %           register MODNAME DIRARG
 %

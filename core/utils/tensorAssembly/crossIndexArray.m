@@ -156,6 +156,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     cfdnames2 = fdnames2(ctblinds2);
     ofdnames2 = fdnames2(otblinds2);    
 
+    % fields that have save names in both structure and are not merged ar not allowed
+    isok = not(any(ismember(ofdnames1, ofdnames2)));
+    isok = isok & not(any(ismember(ofdnames2, ofdnames1)));
+    assert(isok, 'the two tables have same field names that are not merged');
+    
     [~, otblinds2] = ismember(ofdnames2, fdnames2);
     
     allfdnames = {fdnames1{:}, ofdnames2{:}};
