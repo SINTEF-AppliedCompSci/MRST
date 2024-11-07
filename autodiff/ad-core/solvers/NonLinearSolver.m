@@ -196,6 +196,10 @@ classdef NonLinearSolver < handle
                     % Ensure that we hit report time
                     isFinalMinistep = true;
                     dt = dT - t_local;
+                elseif (dT- t_local)/dt_choice < 1.5
+                    % avoid very short time steps to hit report steps
+                    dt = (dT-t_local);
+                    isFinalMinistep = true;
                 else
                     dt = dt_choice;
                 end

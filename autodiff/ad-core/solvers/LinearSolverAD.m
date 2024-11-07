@@ -669,7 +669,12 @@ classdef LinearSolverAD < handle
         function dx = recoverResult(solver, dxElim, eliminatedEqs, keep)
             kept = find(keep);
             left = find(~keep);
-            keptEqNo = numel(kept);
+            nokept = find(~keep);
+            keptEqNo = NaN(size(nokept));
+            for i=1:numel(nokept)
+                keptEqNo(i) = sum(kept<nokept(i));
+            end
+            %keptEqNo = numel(kept);
             
             % Find number of variables
             nP = numel(keep);
@@ -687,7 +692,7 @@ classdef LinearSolverAD < handle
             
             for i = numel(eliminatedEqs):-1:1
                 pos = left(i);
-                dVal = recoverVars(eliminatedEqs{i}, keptEqNo + 1, dx(recovered));
+                dVal = recoverVars(eliminatedEqs{i}, keptEqNo(i) + 1, dx(recovered));
                 dx{pos} = dVal;
                 recovered(pos) = true;
             end

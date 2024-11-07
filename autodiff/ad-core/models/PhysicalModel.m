@@ -75,7 +75,6 @@ methods
         model.AutoDiffBackend = AutoDiffBackend();
         model = merge_options(model, varargin{:});
         model.G = G;
-
         model.stepFunctionIsLinear = false;
     end
 
@@ -735,15 +734,31 @@ methods
         [linearReport, updateReport, stabilizeReport] = deal(struct());
         if (~(all(convergence) && doneMinIts) && ~outOfIterations)
             % Get increments for Newton solver
-            try
-                [dx, ~, linearReport] = linsolver.solveLinearProblem(problem, model);
-                if any(cellfun(@(d) ~all(isfinite(d)), dx))
+            if (mrstDebug()<10)
+                try                  
+                    [dx, ~, linearReport] = linsolver.solveLinearProblem(problem, model);
+                    if isfield(linearReport, 'Failed') & linearReport.Failed
+                        failure = true;
+                        failureMsg = linearReport.failureMsg;
+                    end
+                    if ~failure & any(cellfun(@(d) ~all(isfinite(d)), dx))
+                        failure = true;
+                        failureMsg = 'Linear solver produced non-finite values.';
+                    end
+                catch ex
                     failure = true;
-                    failureMsg = 'Linear solver produced non-finite values.';
+                    failureMsg = sprintf('Linear solver failure: %s: %s', ex.identifier, ex.message);
                 end
-            catch ex
-                failure = true;
-                failureMsg = sprintf('Linear solver failure: %s: %s', ex.identifier, ex.message);
+            else
+                [dx, ~, linearReport] = linsolver.solveLinearProblem(problem, model);
+                if isfield(linearReport, 'Failed') & linearReport.Failed
+                    failure = true;
+                    failureMsg = linearReport.failureMsg;
+                end
+                if ~failure & any(cellfun(@(d) ~all(isfinite(d)), dx))
+                        failure = true;
+                        failureMsg = 'Linear solver produced non-finite values.';
+                end
             end
             if ~failure
                 % Let the nonlinear solver decide what to do with the
@@ -759,6 +774,12 @@ methods
                     % Finally update the state. The physical model knows which
                     % properties are actually physically reasonable.
                     [state, updateReport] = model.updateState(state, problem, dx, drivingForces);
+                end
+                if ~isempty(updateReport)
+                    if isfield(updateReport, 'Failure') && updateReport.Failure
+                        failure = true;
+                        failureMsg = updateReport.FailureMsg;
+                    end
                 end
             end
         else
@@ -911,23 +932,11 @@ methods
         if stepNo < numel(dt_steps)
             after    = getState(stepNo + 1);
             dt_next = dt_steps(stepNo + 1);
-            [current, primaryVars] = model.getReverseStateAD(current);
-            assert(isequal(current.primaryVariables, primaryVars))
-            % check if controls for for stepNo/stepNo+1 are different
-            if diff(schedule.step.control([stepNo;stepNo+1])) == 0
-                forces_p = forces;
-            else
-                % get forces and merge with valid forces
-                forces_p = model.getDrivingForces(lookupCtrl(stepNo + 1));
-                forces_p = merge_options(validforces, forces_p{:});
-                if isa(model, 'ReservoirModel') && ~isempty(model.FacilityModel)
-                    model.FacilityModel = model.FacilityModel.validateModel(forces_p);
-                else
-                    model = model.validateModel(forces_p);
-                end
-            end
+            % get forces and merge with valid forces
+            forces_p = model.getDrivingForces(lookupCtrl(stepNo + 1));
+            forces_p = merge_options(validforces, forces_p{:});
             problem_p = model.getAdjointEquations(current, after, dt_next, forces_p,...
-                                'iteration', inf, 'reverseMode', true);                
+                                'iteration', inf, 'reverseMode', true);
         else
             problem_p = [];
         end

@@ -22,8 +22,8 @@ classdef AGMGSolverAD < LinearSolverAD
 
    methods
        function solver = AGMGSolverAD(varargin)
-            require agmg
-            solver = solver@LinearSolverAD();
+            % require agmg
+            solver = solver@LinearSolverAD(varargin{:});
             solver.setupDone = false;
             solver.reuseSetup = false;
             solver.reduceToCell = true;
@@ -43,16 +43,21 @@ classdef AGMGSolverAD < LinearSolverAD
                assert(~solver.singleApply, 'Cannot use singleApply without reuseSetup.');
                code = [];
            end
+           assert(isreal(b));
+           assert(isreal(A));
            [result, flag, relres, iter, resvec] = agmg(A, b,...
-                                                       [],... % Restart option (default)
+                                                       20,... % Restart option (default)
                                                        solver.tolerance, ...
                                                        solver.maxIterations, ...
-                                                       double(solver.verbose > 1), ... % If verbose > 1, do internal verbose
+                                                       double(solver.verbose == true), ... % If verbose > 1, do internal verbose
                                                        [], ...
                                                        code);
            report = solver.getSolveReport('Converged', flag < 1, ...
                                           'Residual', relres, ...
                                           'Iterations',   iter);
+            if(relres>0.1)
+                result = inf(size(result));
+            end
             if solver.extraReport
                 report.ResidualHistory = resvec;
             end

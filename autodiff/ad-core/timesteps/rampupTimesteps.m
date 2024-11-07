@@ -61,19 +61,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Remaining time that must be discretized
     dt_left = time - sum(dt_init);
     % Even steps
-    nrem = floor(dt_left/dt);
-    dt_rem = repmat(dt, nrem, 1);
-    if nrem > 0
-        dt_rem_final = dt_rem(end);
-    else
-        dt_rem_final = 0.0;
-    end
+    dt_rem = repmat(dt, floor(dt_left/dt), 1);
     % Final ministep if present
     dt_final = time - sum(dt_init) - sum(dt_rem);
     % Less than to account for rounding errors leading to a very small
     % negative time-step.
-    if dt_final/dt_rem_final <= 1e-6
-        dt_rem(end)=dt_rem_final+dt_final;
+    if dt_final/dt_rem(end) <= 1e-6
+        dt_rem(end)=dt_rem(end)+dt_final;
         dt_final = [];
     end
     % Combined timesteps
