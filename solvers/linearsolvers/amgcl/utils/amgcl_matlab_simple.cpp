@@ -121,8 +121,7 @@ static void reset_solvers(void){
 
 
 void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
-	       std::vector<double> b, std::vector<double> & x, double tolerance,
-	       int maxiter, int & iters, double & error, boost::property_tree::ptree prm){
+	       std::vector<double> b, std::vector<double> & x, int & iters, double & error, boost::property_tree::ptree prm){
     /***************************************
      * Start AMGCL-link and select options *
      ***************************************/
@@ -134,23 +133,21 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
     typedef
     amgcl::relaxation::as_preconditioner<Backend, amgcl::runtime::relaxation::wrapper>
             SPrecond;
-    //boost::property_tree::ptree prm;
-    /* Set tolerance */
-      
+
     /***************************************
      *        Solve problem                *
      ***************************************/
     auto t1 = std::chrono::high_resolution_clock::now();
     const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
-    bool use_drs = prm.get<bool>("use_drs");
-    bool use_blocks = prm.get<bool>("cpr_blocksolver");
-    bool verbose = prm.get<int>("verbosity")>0;
+    bool use_drs      = prm.get<bool>("use_drs");
+    bool use_blocks   = prm.get<bool>("cpr_blocksolver");
+    bool verbose      = prm.get<int>("verbose") > 0;
     bool write_params = prm.get<bool>("write_params");
-    bool update_s   =  prm.get<bool>("update_sprecond");
-    bool update_p  =  prm.get<bool>("update_ptransfer");
-    int  block_size = prm.get<int>("block_size");
+    bool update_s     = prm.get<bool>("update_sprecond");
+    bool update_p     = prm.get<bool>("update_ptransfer");
+    int  block_size   = prm.get<int>("block_size");
     if(use_drs){   
-        if(prm.get<int>("verbosity")>10){
+        if(prm.get<int>("verbose")>10){
             std::cout << "Writing amgcl setup file to mrst_amgcl_cpr_drs_setup.json" << std::endl;
             std::ofstream file("mrst_amgcl_drs_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
@@ -181,7 +178,6 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
             std::ofstream file("mrst_amgcl_setup.json");
             boost::property_tree::json_parser::write_json(file, prm);
         }
-        
 	if(!use_blocks){
 	    std::tie(iters, error) = solve_shared_cpr(cpr_solve_ptr, *matrix, b, x, prm, matrix->nrows, update_s, update_p, verbose);
              if(verbose){
@@ -202,20 +198,9 @@ void solve_cpr(int n, mwIndex * cols, mwIndex * rows, double * entries,
 
 
 void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const double * entries, 
-        const std::vector<double> & b, std::vector<double> & x, double tolerance,
-		   int maxiter, int & iters, double & error, boost::property_tree::ptree prm){
+        const std::vector<double> & b, std::vector<double> & x, int & iters, double & error, boost::property_tree::ptree prm){
 
     std::string relaxParam;
-    /***************************************
-     * Start AMGCL-link and select options *
-     ***************************************/
-
-    //boost::property_tree::ptree prm;
-    /* Set tolerance */
-    prm.put("solver.tol", tolerance);
-    if(maxiter > 0){
-        prm.put("solver.maxiter", maxiter);
-    }
        
     /***************************************
      *        Solve problem                *
@@ -229,29 +214,36 @@ void solve_regular(int n, const mwIndex * cols, mwIndex const * rows, const doub
     }
     int block_size = prm.get<int>("block_size");
     const auto matrix = amgcl::adapter::zero_copy(n, &cols[0], &rows[0], &entries[0]);
-    bool verbose = prm.get<int>("verbosity") >0 ;
+    bool verbose = prm.get<int>("verbose") >0 ;
+
+    prm.erase("write_params");
+    prm.erase("reuse_mode");
+    prm.erase("solver_type");
+    prm.erase("verbose");
+    prm.erase("block_size");
+    
     switch(block_size){
-      case 0:
-      case 1:
+    case 0:
+    case 1:
       {
         auto t2 = std::chrono::high_resolution_clock::now();
         if(verbose){
-            std::cout << "Solver setup took "
-                      << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
-                      << " seconds\n";
+          std::cout << "Solver setup took "
+                    << (double)std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()/1000.0
+                    << " seconds\n";
         }
 	std::tie(iters, error) = solve_shared(scalar_solve_ptr, matrix, b, x, prm, verbose);
         if(verbose){
-            std::cout << *scalar_solve_ptr << std::endl;
+          std::cout << *scalar_solve_ptr << std::endl;
         }
       } break;
-       BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
-      default:
-       {
-	 std::cout << "Block size is :" << block_size << std::endl;
-	 std::string msg("AMGCL:UndefBlockSize", "Failure: Block size not supported. xxx");	     
-	 mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",msg.c_str());
-       }
+      BOOST_PP_SEQ_FOR_EACH(AMGCL_BLOCK_SOLVER, block_solve_ptr, AMGCL_BLOCK_SIZES)
+    default:
+        {
+          std::cout << "Block size is :" << block_size << std::endl;
+          std::string msg("AMGCL:UndefBlockSize", "Failure: Block size not supported. xxx");	     
+          mexErrMsgIdAndTxt("AMGCL:UndefBlockSize",msg.c_str());
+        }
     }
 }
 
@@ -274,8 +266,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     std::string relaxParam;
     std::string coarsenParam;
 
-    if (nrhs != 5) {
-      std::string msg("5 input arguments required. input is:");
+    if (nrhs != 3) {
+      std::string msg("3 input arguments required. input is:");
       std::cout << "Given input " << nrhs << std::endl;
       mexErrMsgTxt(msg.c_str());
     } else if (nlhs > 3) {
@@ -308,19 +300,19 @@ void mexFunction( int nlhs, mxArray *plhs[],
     entries = mxGetPr(prhs[0]);
     nnz  = mxGetNzmax(prhs[0]);
     rhs     = mxGetPr(prhs[1]);
-    double tolerance = mxGetScalar(prhs[2]);
-    int maxiter = mxGetScalar(prhs[3]);
     boost::property_tree::ptree prm;
-    {
-      char *chopt = mxArrayToString(prhs[4]);  
-      std::istringstream str(chopt);
-      boost::property_tree::read_json(str, prm);
-      std::cout << "options in prm" << std::endl;
-      std::ofstream file("options_amgcl.json");
-      //pt::write_json(std::cout, prm);
-      boost::property_tree::write_json(file, prm);
-    }
-
+    
+    char *chopt = mxArrayToString(prhs[2]);  
+    std::istringstream str(chopt);
+    boost::property_tree::read_json(str, prm);
+    
+    bool write_params = prm.get<bool>("write_params");
+    if (write_params) {
+        std::cout << "Write options in to file" << std::endl;
+        std::ofstream file("options_amgcl.json");
+        boost::property_tree::write_json(file, prm);
+    };
+    
     std::vector<double> b(n);
     #pragma omp parallel for
     for(int ix = 0; ix < n; ix++){
@@ -331,7 +323,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     std::vector<double> x(M, 0.0);
     std::string solver_type = prm.get<std::string>("solver_type");
     int reuse_mode = prm.get<int>("reuse_mode");
-    bool verbose = prm.get<int>("verbosity") >0 ;
+    bool verbose = prm.get<int>("verbose") >0 ;
     switch(reuse_mode){
     case 1:
 	// Default: No reuse, delete all if present
@@ -344,9 +336,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
     }
 
     if( solver_type == "regular"){
-      solve_regular(M, cols, rows, entries, b, x, tolerance, maxiter, iters, error, prm);
+      solve_regular(M, cols, rows, entries, b, x, iters, error, prm);
     }else if(solver_type == "cpr"){
-      solve_cpr(M, cols, rows, entries, b, x, tolerance, maxiter, iters, error, prm);
+      solve_cpr(M, cols, rows, entries, b, x, iters, error, prm);
     }else if(solver_type == "reset"){
 	// Remove shared pointers
 	if(verbose){

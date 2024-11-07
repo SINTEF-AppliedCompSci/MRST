@@ -97,7 +97,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
               'FaceVertexCData', node_data(verts, :), ...
               'FaceColor', fc, varargin{:});
     
-    set(get(h, 'Parent'), 'ZDir', 'reverse')
+    %set(get(h, 'Parent'), 'ZDir', 'reverse')
 
     if nargout > 0, varargout{1} = h; end
 end

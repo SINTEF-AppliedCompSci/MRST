@@ -6,7 +6,7 @@ function varargout = amgcl_matlab_simple(varargin)
 % GitHub repository: https://github.com/ddemidov/amgcl/tree/master/examples
 %
 % SYNOPSIS:
-%    x              = amgcl_matlab(A, b, amg_opt, tol, maxIter, id)
+%    x              = amgcl_matlab(A, b, amg_opt, id)
 %   [x, err]        = amgcl_matlab(...)
 %   [x, err, nIter] = amgcl_matlab(...)
 %
@@ -18,11 +18,6 @@ function varargout = amgcl_matlab_simple(varargin)
 %
 %   amg_opt - AMGCL options structure as defined by function
 %             `getAMGCLMexStruct`.
-%
-%   tol     - Relative residual reduction tolerance.  Positive scalar.
-%
-%   maxIter - Maximum number of linear iterations.
-%
 %   id      - Solver method ID.  Integer.  Supported values are `1` for the
 %             regular solver and `2` for the CPR solver.
 %
@@ -44,7 +39,7 @@ function varargout = amgcl_matlab_simple(varargin)
 %   BOOSTPATH = '/path/to/boost';
 %   AMGCLPATH = '/path/to/amgcl-repo';
 %   % Build the binaries
-%   amgcl_matlab();
+%   amgcl_matlab_simple();
 %
 %   In addition, you will require a working C++ compiler (see mex -setup).
 %
@@ -62,9 +57,6 @@ function varargout = amgcl_matlab_simple(varargin)
 %       MSVC  19.16.27024.1 (Visual Studio 15.9)
 %       Boost 1.68.0
 %
-% SEE ALSO:
-%   `callAMGCL`, `getAMGCLMexStruct`.
-
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
