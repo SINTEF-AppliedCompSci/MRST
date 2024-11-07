@@ -386,7 +386,7 @@ function props = convertPROPS(props, u)
             d(isnan(d)) = def(isnan(d));
             props.(key) = d;
 
-         case {'SGFN', 'SWFN'}
+         case {'SGFN', 'SWFN', 'GSF'}
             unt = [1, 1, u.press];
 
             for t = 1 : numel(props.(key))
@@ -401,7 +401,7 @@ function props = convertPROPS(props, u)
             for t = 1 : numel(props.(key))
                props.(key){t} = convertFrom(props.(key){t}, unt);
             end
-            
+
          case 'PMISC'
             unt = [u.press, 1];
             for t = 1 : numel(props.(key))
@@ -527,6 +527,8 @@ function props = convertPROPS(props, u)
                'GRAVITY', ...
                ...
                'OMEGAA', 'OMEGAB', ...
+               ...
+               'WSF'
                }
             continue;  % Dimensionless
 

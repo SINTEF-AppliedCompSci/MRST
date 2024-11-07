@@ -230,6 +230,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
          case {'SGOF', 'SGWFN', 'SLGOF', 'SWOF'}
             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 4);
 
+         case 'GSF'
+             % [ Sg, Krg, Pcgw ]
+             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 3);
+
+         case 'WSF'
+             % [ Sw, Krw ]
+             prp.(kw) = readRelPermTable(fid, kw, ntsfun, 2);
+
          case {'STONE' , 'STONE1', 'STONE2', 'SIMPLE'}
             prp.(kw) = true;
 
