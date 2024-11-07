@@ -146,8 +146,8 @@ classdef TensorMap
             else
                 givenpivottbl = map.pivottbl;
                 [pivottbl, indstruct] = crossIndexArray(fromTbl, toTbl, mergefds);                
-                dispind1 = instruct{1}.inds;
-                dispind2 = instruct{2}.inds;
+                dispind1 = indstruct{1}.inds;
+                dispind2 = indstruct{2}.inds;
                 % pivottbl and givenpivottbl corresponds to the same multi-indices
                 % but not necessarily in the same order. 
                 % We check that they at least have the same field
@@ -156,7 +156,7 @@ classdef TensorMap
                 assert(all(ismember(fds, givenfds)) & all(ismember(givenfds, ...
                                                                   fds)), ...
                        'non matching fields');
-                [~, indstruct] = crossIndexArray(pivotbl, givenpivotbl, givenfds);
+                [~, indstruct] = crossIndexArray(pivottbl, givenpivottbl, givenfds);
                 ind1 = indstruct{1}.inds;
                 ind2 = indstruct{2}.inds;
                 indi2(ind2) = (1 : givenpivottbl.num)';
