@@ -38,7 +38,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       J = (1:nrows) + offsets(i) - 1;
       jac = {sparse(I, J, 1, nrows, ncols)};
 
-      varargout{i} = GenericAD(varargin{i}, jac);
+      varargout{i} = GenericAD(varargin{i}, jac, numvals, offsets);
       varargout{i}.numVars = numvals';
    end
 end

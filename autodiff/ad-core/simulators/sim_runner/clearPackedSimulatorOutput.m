@@ -59,7 +59,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         problem = problems{i};
         s = problem.OutputHandlers.states;
         r = problem.OutputHandlers.reports;
-        w = problem.OutputHandlers.wellSols;
+        w = problem.OutputHandlers.globVars;
         ns = s.numelData();
         nr = r.numelData();
         nw = w.numelData();

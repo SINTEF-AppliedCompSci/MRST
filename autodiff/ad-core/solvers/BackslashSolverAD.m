@@ -18,6 +18,8 @@ classdef BackslashSolverAD < LinearSolverAD
        
        function [result, report] = solveLinearSystem(solver, A, b, varargin)
            timer = tic();
+           assert(isreal(A))
+           assert(isreal(b))
            result = A\b;
            t_solve = toc(timer);
            report = solver.getSolveReport('LinearSolutionTime', t_solve);

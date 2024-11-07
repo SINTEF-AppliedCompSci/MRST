@@ -74,10 +74,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Unpack base case
         nls = problem.SimulatorSetup.NonLinearSolver;
         doMinisteps = problem.SimulatorSetup.OutputMinisteps;
-
-        state_handler = problem.OutputHandlers.states;
-        wellSol_handler = problem.OutputHandlers.wellSols;
-        report_handler = problem.OutputHandlers.reports;
+        
+        state_handler    = problem.OutputHandlers.states;
+        globvars_handler = problem.OutputHandlers.globVars;
+        report_handler   = problem.OutputHandlers.reports;
 
         ok = true;
 
@@ -111,25 +111,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         timer = tic();
         if isfinite(restartStep)
             mods = mrstModule();
-            try
-                mrstModule('add', problem.Modules{:});
-                simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls,...
-                    'restartStep', restartStep,...
-                    'OutputHandler', state_handler, ...
-                    'WellOutputHandler', wellSol_handler, ...
-                    'ReportHandler', report_handler, ...
-                    'outputOffset', restartOffset, ...
-                    problem.SimulatorSetup.ExtraArguments{:}, ...
-                    'OutputMinisteps', doMinisteps);
-            catch ex
-                mrstModule('reset', mods{:});
-                msg = ex.message;
-                ok = false;
-                fprintf('!!! Simulation resulted in fatal error !!!\n Exception thrown: %s\n', msg);
-                if ~opt.continueOnError
-                    rethrow(ex);
+            if(mrstDebug()<10)
+                try
+                    mrstModule('add', problem.Modules{:});
+                    simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls, ...
+                                       'restartStep'          , restartStep           , ...
+                                       'OutputHandler'        , state_handler         , ...
+                                       'GlobVarsOutputHandler', globvars_handler      , ...
+                                       'ReportHandler'        , report_handler        , ...
+                                       'outputOffset'         , restartOffset         , ...
+                                       'OutputMinisteps'      , doMinisteps           , ...
+                                       problem.SimulatorSetup.ExtraArguments{:});
+                catch ex
+                    mrstModule('reset', mods{:});
+                    msg = ex.message;
+                    ok = false;
+                    fprintf('!!! Simulation resulted in fatal error !!!\n Exception thrown: %s\n', msg);
+                    if ~opt.continueOnError
+                        rethrow(ex);
+                    end
                 end
+            else
+                mrstModule('add', problem.Modules{:});
+                simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls, ...
+                                   'restartStep'          , restartStep           , ...
+                                   'OutputHandler'        , state_handler         , ...
+                                   'GlobVarsOutputHandler', globvars_handler      , ...
+                                   'ReportHandler'        , report_handler        , ...
+                                   'outputOffset'         , restartOffset         , ...
+                                   'OutputMinisteps'      , doMinisteps           , ...
+                                   problem.SimulatorSetup.ExtraArguments{:});
             end
+            
             if ok
                 mrstModule('reset', problem.Modules{:});
             end

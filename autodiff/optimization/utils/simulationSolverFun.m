@@ -92,7 +92,7 @@ if opt.computeGradient || nargout == 2
         gradient = computeGradientAdjointAD(setup.state0, states, setup.model, ...
                    setup.schedule, objh, 'OutputPerTimestep', true);
         if isfield(problem, 'OutputHandlers')
-            ws  = problem.OutputHandlers.wellSols;
+            ws  = problem.OutputHandlers.globVars;
         else
             ws = applyFunction(@(s)s.wellSol, states);
         end

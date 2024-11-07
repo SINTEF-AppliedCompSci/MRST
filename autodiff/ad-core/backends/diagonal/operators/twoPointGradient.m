@@ -58,10 +58,11 @@ function v = gradVal(val, N, useMex)
     if useMex
         v = mexTwoPointGradientVal(val, N);
     else
-        if size(val, 2) > 1
+        %if size(val, 2) > 1
             v = val(N(:, 2), :) - val(N(:, 1), :);
-        else
-            v = diff(val(N), 1, 2);
-        end
+        %else
+        %    assert(size(N,1)>1);
+        %    v = diff(val(N), 1, 2);
+        %end
     end
 end

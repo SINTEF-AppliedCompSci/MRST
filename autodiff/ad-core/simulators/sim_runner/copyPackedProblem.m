@@ -101,6 +101,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     problemCopy.OutputHandlers.states   = makeHandler('state');
     problemCopy.OutputHandlers.reports  = makeHandler('report');
-    problemCopy.OutputHandlers.wellSols = makeHandler('wellSols');
+    problemCopy.OutputHandlers.globVars = makeHandler('globVars');
     
 end

@@ -1,11 +1,10 @@
-function [wellSols, states, schedulereport] = ...
-      simulateScheduleAD(initState, model, schedule, varargin)
+function [globVars, states, schedulereport] = simulateScheduleAD(initState, model, schedule, varargin)
 % Run a schedule for a non-linear physical model using an automatic differention
 %
 % SYNOPSIS:
-%   wellSols = simulateScheduleAD(initState, model, schedule)
+%   globVars = simulateScheduleAD(initState, model, schedule)
 %
-%   [wellSols, state, report]  = simulateScheduleAD(initState, model, schedule)
+%   [globVars, state, report]  = simulateScheduleAD(initState, model, schedule)
 %
 % DESCRIPTION:
 %   This function takes in a valid schedule file (see required parameters)
@@ -31,8 +30,7 @@ function [wellSols, states, schedulereport] = ...
 %                  follows:
 %                         - `schedule.control` is a struct array containing
 %                           fields that the model knows how to process.
-%                           Typically, this will be the fields such as `.W` 
-%                           for wells or `.bc` for boundary conditions.
+%                           Typically, this will be the fields such as `.src` 
 %
 %                         - `schedule.step` contains two arrays of equal 
 %                           size named `val` and `control`. Control is a
@@ -69,11 +67,11 @@ function [wellSols, states, schedulereport] = ...
 %                        to disk during the simulation or in-situ
 %                        visualization. See the ResultHandler base class.
 %
-%   'WellOutputHandler'- Same as 'OutputHandler', but for the well
-%                        solutions for the individual report steps. Well
-%                        solutions are also stored using OutputHandler, but
-%                        using WellOutputHandler is convenient for quickly
-%                        loading well solutions only.
+%   'GlobVarsOutputHandler'- Same as 'OutputHandler', but for the well
+%                            solutions for the individual report steps. Well
+%                            solutions are also stored using OutputHandler, but
+%                            using GlobVarsOutputHandler is convenient for quickly
+%                            loading well solutions only.
 %
 %   'ReportHandler'    - Same as 'OutputHandler', but for the reports for the
 %                        individual report steps.
@@ -104,7 +102,7 @@ function [wellSols, states, schedulereport] = ...
 %                        `blackoilTutorialPlotHook` for a worked example.
 %
 %   'processOutputFn'  - Function handle to an optional function that
-%                        processes the simulation output (wellSols, states
+%                        processes the simulation output (globVars, states
 %                        and reports) before they are stored to state using
 %                        the output handlers. Allows for storing only data
 %                        of interest, which is useful when dealing with
@@ -134,7 +132,7 @@ function [wellSols, states, schedulereport] = ...
 %                        starts. Defaults to true.
 %                       
 % RETURNS:
-%   wellSols         - Well solution at each control step (or timestep if
+%   globVars         - Well solution at each control step (or timestep if
 %                      'OutputMinisteps' is enabled.)
 %
 %   states           - State at each control step (or timestep if
@@ -173,20 +171,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     assert (isa(model, 'PhysicalModel'), ...
             'The model must be derived from PhysicalModel');
-    opt = struct('Verbose',           mrstVerbose(),...
-                 'OutputMinisteps',   false, ...
-                 'initialGuess',      {{}}, ...
-                 'NonLinearSolver',   [], ...
-                 'OutputHandler',     [], ...
-                 'WellOutputHandler', [], ...
-                 'ReportHandler',     [], ...
-                 'afterStepFn',       [], ...
-                 'controlLogicFn',    [], ...
-                 'processOutputFn',   [], ...
-                 'restartStep',       1,  ...
-                 'outputOffset',      [], ...
-                 'LinearSolver',      [], ...
-                 'checkOperators',    []);
+    opt = struct('Verbose'             , mrstVerbose(), ...
+                 'OutputMinisteps'     , false        , ...
+                 'initialGuess'        , {{}}         , ...
+                 'NonLinearSolver'     , []           , ...
+                 'OutputHandler'       , []           , ...
+                 'GlobVarsOutputHandler', []           , ...
+                 'ReportHandler'       , []           , ...
+                 'afterStepFn'         , []           , ...
+                 'controlLogicFn'      , []           , ...
+                 'processOutputFn'     , []           , ...
+                 'restartStep'         , 1            , ...
+                 'outputOffset'        , []           , ...
+                 'LinearSolver'        , []           , ...
+                 'checkOperators'      , []);
 
     opt = merge_options(opt, varargin{:});
     if isempty(opt.checkOperators)
@@ -238,7 +236,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     solver.timeStepSelector.reset();
 
     nSteps = numel(schedule.step.val);
-    [wellSols, states, reports] = deal(cell(nSteps, 1));
+    [globVars, states, reports] = deal(cell(nSteps, 1));
     wantStates = nargout > 1 || ~isempty(opt.afterStepFn);
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
@@ -299,6 +297,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             ind = i;
         end
 
+        % Get globVars, if they exist
+        globVars_step = model.extractGlobalVariables(substates);
+
+        % Store output in handlers, if configured
+        writeOutput(opt.OutputHandler, opt, ind, substates)
+        writeOutput(opt.GlobVarsOutputHandler, opt, ind, globVars_step)
+        writeOutput(opt.ReportHandler, opt, i, report, false)
+        
         t = toc(timer);
         simtime(i) = t;
         % Abort simulation
@@ -322,19 +328,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.Verbose
            disp_step_convergence(report.Iterations, t);
         end
-        % Get wellSols, if they exist
-        wellSols_step = getWellSols(substates);
         % Process output before proceeding
         if ~isempty(opt.processOutputFn)
-            [substates, wellSols_step, report] = opt.processOutputFn(substates, wellSols_step, report);
+            [substates, globVars_step, report] = opt.processOutputFn(substates, globVars_step, report);
         end
-        % Store output in handlers, if configured
-        writeOutput(opt.OutputHandler, opt, ind, substates)
-        writeOutput(opt.WellOutputHandler, opt, ind, wellSols_step)
-        writeOutput(opt.ReportHandler, opt, i, report, false)
         
         % Write to the cell arrays that will be outputs from the function
-        wellSols(ind) = wellSols_step;
+        globVars(ind) = globVars_step;
         if wantStates
             states(ind) = substates;
         end
@@ -351,6 +351,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end        
         
         if report.EarlyStop
+            ind = cellfun(@(state) ~isempty(state), states);
+            states = states(ind);
             break;
         end
     end
@@ -377,17 +379,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fprintf('*** Simulation complete. Solved %d control steps in %s%s ***\n',...
                                   nSteps, formatTimeRange((sum(simtime))), earlyStopMsg);
     
-end
-
-%--------------------------------------------------------------------------
-function ws = getWellSols(states)
-    ns = numel(states);
-    ws = cell(ns, 1);
-    for i = 1:ns
-        if isfield(states{i}, 'wellSol')
-            ws{i} = states{i}.wellSol;
-        end
-    end
 end
 
 %--------------------------------------------------------------------------

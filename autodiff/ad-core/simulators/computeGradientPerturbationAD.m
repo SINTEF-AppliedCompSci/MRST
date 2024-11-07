@@ -29,7 +29,7 @@ function grad = computeGradientPerturbationAD(state0, model, schedule, getObject
 %
 %   getObjective - Function handle for getting objective function value 
 %                  from a set of wellSols. 
-%                  Function handle format: `@(wellSols, states, schedule)`
+%                  Function handle format: `@(globVars, states, schedule)`
 %
 % OPTIONAL PARAMETERS:
 %   

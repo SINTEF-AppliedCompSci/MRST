@@ -1525,6 +1525,16 @@ methods
         %   `getExtraWellContributions`
         names = {};
     end
+
+    function wellSols = extractGlobalVariables(states)
+        ns = numel(states);
+        ws = cell(ns, 1);
+        for i = 1:ns
+            if isfield(states{i}, 'wellSol')
+                ws{i} = states{i}.wellSol;
+            end
+        end
+    end
     
     function eqs = insertSources(model, eqs, src)
         % Insert source terms into equations

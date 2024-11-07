@@ -164,5 +164,5 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     problem.OutputHandlers.states   = makeHandler('state');
     problem.OutputHandlers.reports  = makeHandler('report');
-    problem.OutputHandlers.wellSols = makeHandler('wellSols');
+    problem.OutputHandlers.globVars = makeHandler('globVars');
 end
