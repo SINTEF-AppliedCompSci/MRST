@@ -1,6 +1,7 @@
 classdef CrossIndexArrayGenerator 
 
     properties
+        
         tbl1        % IndexArray for the first table
         tbl2        % IndexArray for the second table
         mergefds    % Field names for merging
@@ -9,6 +10,15 @@ classdef CrossIndexArrayGenerator
                     % (before setting up map)
         replacefds2 % Possibility to change field names of second table
                     % (before setting up map)
+
+        %% dispactch mappings updated during setup
+        tbl
+        ind1
+        ind2
+
+        %% options
+        opts = {};
+        
     end
 
     methods
@@ -29,7 +39,8 @@ classdef CrossIndexArrayGenerator
 
         end
 
-        function tbl = eval(gen)
+        function [tbl, gen] = eval(gen)
+
 
             mergefds  = gen.mergefds;
             tbl1 = gen.tbl1;
@@ -43,11 +54,16 @@ classdef CrossIndexArrayGenerator
                  tbl2 = replacefield(tbl2, gen.replacefds2);
             end
 
-            tbl = crossIndexArray(tbl1, tbl2, mergefds);
-
+            [tbl, indstruct] = crossIndexArray(tbl1, tbl2, mergefds, gen.opts{:});
+            
+            gen.tbl = tbl;
+            gen.ind1 = indstruct{1}.inds;
+            gen.ind2 = indstruct{2}.inds;
+            
         end
 
     end
+    
 end
 
 %{

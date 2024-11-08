@@ -129,11 +129,14 @@ classdef TensorProd
         end
         
         function prod = setup(prod)
-            reducefds = prod.reducefds;
+            
+            reducefds  = prod.reducefds;
             reducefds1 = prod.reducefds1;
             reducefds2 = prod.reducefds2;
-            mergefds  = prod.mergefds;
+            mergefds   = prod.mergefds;
+
             crossfds  = {reducefds{:}, mergefds{:}};
+            
             tbl1 = prod.tbl1;
             tbl2 = prod.tbl2;
             
