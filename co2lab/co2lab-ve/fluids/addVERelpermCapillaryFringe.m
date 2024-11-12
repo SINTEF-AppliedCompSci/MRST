@@ -46,8 +46,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fluid.krG = @(sg, p, varargin) krG_ptable(sg, p, table, fluid, Gt.cells.H, varargin{:});
         fluid.krW = @(sw, p, varargin) krW_simple(sw, fluid, varargin{:});
       case 'P-K-scaled table'
-        kscale = sqrt(rock.poro ./ (rock.perm)) * fluid.surface_tension;
-        table = make_CO2_table_p_based(invPc3D, kr3D, opt.samples, Pmax / kscale);
+        kscale = sqrt(rock2D.poro ./ (rock2D.perm)) * fluid.surface_tension;
+        table = make_CO2_table_p_based(invPc3D, kr3D, opt.samples, max(Pmax / kscale));
         fluid.pcWG = @(sg, p, varargin) ...
             pcWG_ptable(sg, p, table, fluid, Gt.cells.H, 'kscale', kscale, varargin{:});
         fluid.krG = @(sg, p, varargin) ...
@@ -234,7 +234,7 @@ function issue_warnings(type, fluid, Gt, rock)
             warning(['The ''P-scaled table'' relperm model is used, which ' ...
                      'assumes the same capillary pressure function ' ...
                      'everywhere.  However, provided rock properties are ' ...
-                     'heterogeneous.  Consider using the k-scaled model.']);
+                     'heterogeneous.  Consider using the P-K-scaled table model.']);
         end
       case {'P-K-scaled table', 'linear cap.'}
         % nothing 
@@ -285,8 +285,8 @@ function table = make_CO2_table_h_based(invPc3D, kr3D, Gt, samples, Pmax, drho_s
     SH  = (cumsum(sg_h) - sg_h / 2) * dh;
     krH = (cumsum(kr_h) - kr_h / 2) * dh;
     
-    table.SH  = truncate_at_aquifer_bottom(SH, h, max(Gt.cells.H));
-    table.krH = truncate_at_aquifer_bottom(krH, h, max(Gt.cells.H));
+    table.SH  = truncate_at_aquifer_bottom(SH(:)', h, max(Gt.cells.H));
+    table.krH = truncate_at_aquifer_bottom(krH(:)', h, max(Gt.cells.H));
     table.h = h;
 end
 
@@ -300,6 +300,7 @@ function table = make_CO2_table_p_based(invPc3D, kr3D, samples, Pmax)
     sw_p = invPc3D(p);
     sg_p = 1 - sw_p;
     kr_p = kr3D(sg_p);
+    kr_p = kr_p(:)'; % should be a row vector
     
     % With nonzero entry pressure, more than one of the first saturation
     % values will likely be zero.  To ensure an invertible function, we
