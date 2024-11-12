@@ -49,7 +49,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     topcells = rldecode((1:Gt.cells.num)', cells_per_column);
     
     % attribute correct topcell to each 3D grid cell
-    topcells = topcells(Gt.columns.cells); 
+    topcells(Gt.columns.cells) = topcells;
     
     top_z_val = Gt.cells.z(topcells); % z position of pVE for the cells
                                       % in each column
