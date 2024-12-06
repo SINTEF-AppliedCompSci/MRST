@@ -1,4 +1,4 @@
-name: Running the numerical examples
+name: Run examples
 
 on:
  push:
@@ -25,20 +25,15 @@ jobs:
       run: |
         brew install octave
     
-    - name: Download mrst (master branch)
+    - name: Download mrst (master branch), remove existing ad-micp, and clone ad-micp from the master branch
       run: |
-        repos='core autodiff solvers co2lab model-io multiscale visualization thirdparty-modules'
-        for r in $repos; do
-            git clone https://bitbucket.org/mrst/"mrst-${r}.git"
-        done
-        cp tests/startup_user.m mrst-core/
-        pushd ./mrst-thirdparty-modules
+        git clone https://github.com/SINTEF-AppliedCompSci/MRST.git
+        cd MRST/modules
         rm -rf ad-micp
-        rm -rf upr
         git clone https://github.com/daavid00/ad-micp.git
-        git clone https://github.com/rbe051/UPR.git upr 
+        cd ad-micp
       
     - name: Run the two tests
       run: |
-        pushd ./tests
-        octave run_both_examples.m
+        octave tests/test_runMICP1DCase.m
+        octave tests/test_runMICP3DCase.m

@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml/badge.svg)](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml)[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Build Status](https://github.com/daavid00/ad-micp/actions/workflows/CI.yml/badge.svg)](https://github.com/daavid00/ad-micp/actions/workflows/CI.yml)[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 # ad-micp: A module to study CO2 leakage remediation by microbially induced calcite precipitation (MICP)
 
@@ -17,24 +17,43 @@ The numerical examples accompanying this module are:
 * runMICP1DCase.m and
 * runMICP3DCase.m.
 
-In addition, this module includes scripts to run the studies in [A, B].
+In addition, this module includes scripts to run the studies in [A, B], see the [_publications folder_](https://github.com/daavid00/ad-micp/tree/main/publications).
 
 The ad-micp module is compatible with the (freely available) MATLAB
 Reservoir Simulation Toolbox (MRST) provided by SINTEF Digital, see
 http://www.sintef.no/projectweb/mrst/.
 
-See the Wiki for an extended description, information regarding changes
-respect to previous releases, and using this module in macOS with GNU
-Octave.
+See the [_Wiki_](https://github.com/daavid00/ad-micp/wiki) for an extended description, information regarding changes
+respect to previous releases, and using this module in macOS with GNU Octave.
 
 ## Requirements
-* MRST (Tested version: 2023a)
-* MATLAB (Tested version: R2023a) or GNU Octave (Tested version: 8.1.0)
+* MRST (Tested version: mrst-2024b)
+* MATLAB (Tested version: R2023a) or GNU Octave (Tested version: 9.2.0)
 
 ## Installation (MATLAB/GNU Octave)
-* Set the folder's name to 'ad-micp'.
-* Move the folder inside the 'modules' folder in MRST.
-* Run the 'startup.m' file in MRST.
+The ad-micp module is included in MRST, click [_this link_](https://github.com/SINTEF-AppliedCompSci/MRST/tree/main/modules/ad-micp) 
+to see the version of ad-micp included.
+
+If you are interested in using the ad-micp module from the edge version, this can be achieved by the following steps:
+
+```bash
+# Clone MRST
+git clone https://github.com/SINTEF-AppliedCompSci/MRST.git
+# Get inside the modules folder
+cd MRST/modules
+# Remove the ad-micp folder from the MRST folder
+rm -rf ad-micp
+# Clone the ad-micp repo
+git clone https://github.com/daavid00/ad-micp.git
+``` 
+
+To test that the clonning succeeded and you have the requirements (e.g., octave, which
+can be installed by executing `brew install octave`), then you can try to run the tests,
+e.g., the [_test_runMICP1DCase.m_](https://github.com/daavid00/ad-micp/blob/main/tests/test_runMICP1DCase.m):
+
+```bash
+octave tests/test_runMICP1DCase.m
+```
 
 ## Getting started
 See https://www.youtube.com/watch?v=nvz3bV4QgxM.
