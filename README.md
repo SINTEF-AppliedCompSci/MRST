@@ -47,9 +47,7 @@ rm -rf ad-micp
 git clone https://github.com/daavid00/ad-micp.git
 ``` 
 
-To test that the clonning succeeded and you have the requirements (e.g., octave, which
-can be installed by executing `brew install octave`), then you can try to run the tests,
-e.g., the [_test_runMICP1DCase.m_](https://github.com/daavid00/ad-micp/blob/main/tests/test_runMICP1DCase.m):
+Then you can try to run the tests, e.g., the [_test_runMICP1DCase.m_](https://github.com/daavid00/ad-micp/blob/main/tests/test_runMICP1DCase.m) using octave (octave can be installed by executing `brew install octave`):
 
 ```bash
 octave tests/test_runMICP1DCase.m

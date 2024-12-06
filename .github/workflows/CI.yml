@@ -28,12 +28,12 @@ jobs:
     - name: Download mrst (master branch), remove existing ad-micp, and clone ad-micp from the master branch
       run: |
         git clone https://github.com/SINTEF-AppliedCompSci/MRST.git
-        cd MRST/modules
+        pushd MRST/modules
         rm -rf ad-micp
         git clone https://github.com/daavid00/ad-micp.git
-        cd ad-micp
       
     - name: Run the two tests
       run: |
+        pushd MRST/modules/ad-micp
         octave tests/test_runMICP1DCase.m
         octave tests/test_runMICP3DCase.m
