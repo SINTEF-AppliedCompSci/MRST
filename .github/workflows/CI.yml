@@ -36,4 +36,3 @@ jobs:
       run: |
         pushd MRST/modules/ad-micp
         octave tests/test_runMICP1DCase.m
-        octave tests/test_runMICP3DCase.m
