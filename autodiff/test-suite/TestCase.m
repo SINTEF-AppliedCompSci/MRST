@@ -274,6 +274,8 @@ classdef TestCase
         %-----------------------------------------------------------------%
         function h = plot(test, varargin)
         % Plot field v on test case grid using plotToolbar
+        
+            require mrst-gui
             
             if nargin == 1 || ischar(varargin{1})
                 v = test.model.rock;
