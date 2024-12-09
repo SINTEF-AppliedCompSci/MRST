@@ -319,7 +319,7 @@ classdef LinearSolverAD < handle
             report.LinearSolutionTime = t_solve;
             report.PreparationTime = t_prepare;
             report.PostProcessTime = report.SolverTime - t_solve - t_prepare;
-            lambda = solver.storeIncrements(problemCurr, lambdaVec);
+            lambda = solver.storeAdjointIncrements(problemCurr, lambdaVec);
         end
         
         function [dx, result, report] = solveLinearProblem(solver, problem, model)
@@ -389,6 +389,24 @@ classdef LinearSolverAD < handle
                 dx = solver.recoverResult(dx, eliminated, keep);
             end
             solver.keepNumber = keepNumber0;
+        end
+
+        function dx = storeAdjointIncrements(solver, problem, result) 
+        % Same as storeIncrements but for the adjoint variable 
+            eqs = problem.equations;
+
+            ind_curr = 1;
+            
+            for ieq = 1 : numel(eqs)
+
+                ind_next = ind_curr + size(eqs{ieq}.jac{1}, 1);
+
+                dx{ieq} = result(ind_curr : ind_next - 1, :);
+
+                ind_curr = ind_next;
+                
+            end
+            
         end
         
         function dx = storeIncrements(solver, problem, result) %#ok

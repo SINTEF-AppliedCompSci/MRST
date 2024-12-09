@@ -55,9 +55,23 @@ aMax   = opt.maxStep;
 assert(d'*g0 <= 0)
 
 % Define convenience-function to gather info for a "point", where a is the 
-% step-length, v is the value and dv is the dirctional derivative:
-assignPoint = @(a,v,dv)struct('a', a, 'v', v, 'dv', dv);
-p0          = assignPoint(0, v0, d'*g0);  % 0-point
+% step-length, v is the value and dv is the directional derivative:
+function p = assignPoint(a, v, g)
+    if isnan(v)
+        v  = inf;
+        dv = inf;
+        failure = true;
+    else
+        dv = d'*g;
+        failure = false;
+    end
+    p = struct('a'      , a , ...
+               'v'      , v , ...
+               'dv'     , dv, ...
+               'failure', failure);
+end
+
+p0 = assignPoint(0, v0, g0);  % 0-point
 
 % Function handles for wolfe conditions wrt p0
 w1 = @(p) p.v <= p0.v + c1*p.a*p0.dv;
@@ -76,7 +90,7 @@ while ~lineSearchDone && it < maxIt
     u = u0 + a*d;
     [v, g]  = f(u); % function evaluation / simulation
     vals(it) = v;
-    p = assignPoint(a, v, d'*g); % new point
+    p = assignPoint(a, v, g); % new point
     if w1(p) && w2(p)
         lineSearchDone = true;
         flag = 1;
@@ -106,6 +120,8 @@ while ~lineSearchDone && it < maxIt
             if p1.v > p2.v && p1.dv >= p2.dv
                 % Just getting steeper, no need to interpolate
                 a = inf;
+            elseif p2.failure
+                a = (p1.a + p2.a)/2;
             else
                 a = argmaxCubic(negatePnt(p1), negatePnt(p2));
             end

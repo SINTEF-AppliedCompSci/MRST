@@ -70,7 +70,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     nstep = numel(dt);
     
     sh = problem.OutputHandlers.states;
-    wh = problem.OutputHandlers.wellSols;
+    wh = problem.OutputHandlers.globVars;
     rh = problem.OutputHandlers.reports;
     
     ndata = sh.numelData();
