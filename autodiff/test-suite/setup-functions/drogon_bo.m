@@ -23,8 +23,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Step 1: Test case description and options
     %---------------------------------------------------------------------%
     description = [ ...
-        'The synthethic Drogon model from Equinor. See', ...
-        'https://webviz-subsurface-example.azurewebsites.net/drogon-conceptual-description ', ...
+        'The synthethic Drogon model from Equinor. See ', ...
+        'https://webviz-subsurface-example.azurewebsites.net/', ...
+        'drogon-conceptual-description ', ...
         'for details.'
     ];
     options = struct();
@@ -48,10 +49,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     fn = fullfile(mrstPath('opm-tests'), 'drogon', 'model', 'DROGON_HIST.DATA');
     % Initialize initial state, model, and schedule
     [state0, model, schedule] = initEclipseProblemAD(fn, options.extra{:});
+    % Normalize saturations
+    state0.s = state0.s./sum(state0.s, 2);
+    % Set defaulted threshold pressures
+    model = model.validateModel();
+    ppd = model.FlowDiscretization.PhasePotentialDifference;
+    ppd = ppd.setThresholdPressuresFromState(model, state0);
+    model.FlowDiscretization.PhasePotentialDifference = ppd;
+    % Use simple wells
     for i = 1:numel(schedule.control)
-        [schedule.control(i).W.isMS] = deal(false);
+        W = schedule.control(i).W;
+        [W.isMS] = deal(false);
+        W = rmfield(W, 'topo');
+        schedule.control(i).W = W;
     end
-
     % Plotting
     plotOptions = { ...
         'View'              , [94, 27]                   , ...
