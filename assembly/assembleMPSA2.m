@@ -13,18 +13,18 @@ function [assembly, extra] = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappi
     %      [A21, A22,  0];
     %      [D' , 0  ,  0]];
     %
-    % u = [u (displacement at nodefacecoltbl);
-    %      u (displacement at cellcoltbl);
+    % u = [u (displacement at nodefacevectbl);
+    %      u (displacement at cellvectbl);
     %      lagmult (forces in the linear directions at the boundary)];
     %
-    % f = [extforce (force at nodefacecoltbl);
-    %      force    (volumetric force at cellcoltbl);
+    % f = [extforce (force at nodefacevectbl);
+    %      force    (volumetric force at cellvectbl);
     %      bcvals   (for the linear form at the boundary)];
     %
     % A*u = f
     %
     % Note: extforce is sparse and should only give contribution at facets
-    % that are at the boundary
+    % that are at the boundary (otherwise the code will run but the results will be wrong)
     %
     % By construction of the method, the matrix A11 is block-diagonal. Hence,
     % we invert it directly and reduce to a cell-centered scheme.
