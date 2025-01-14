@@ -1,4 +1,4 @@
-function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts)
+function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts, varargin)
 % Assembly of MPSA-weak
 %
 % Reference paper:
@@ -48,17 +48,24 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
 %
 % By construction of the method, the matrix A11 is block-diagonal. Hence,
 % we invert it directly and reduce to a cell-centered scheme.
+
+
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
     
     bcetazero = opts.bcetazero;
     eta       = opts.eta;
     
-    vectbl       = tbls.vectbl;
-    vec12tbl     = tbls.vec12tbl;
-    celltbl      = tbls.celltbl;
-    nodetbl      = tbls.nodetbl;
-    cellnodetbl  = tbls.cellnodetbl;
-    nodefacetbl  = tbls.nodefacetbl;
-    cellvectbl   = tbls.cellvectbl;
+    vectbl      = tbls.vectbl;
+    vec12tbl    = tbls.vec12tbl;
+    vec1212tbl  = tbls.vec1212tbl;
+    celltbl     = tbls.celltbl;
+    nodetbl     = tbls.nodetbl;
+    cellnodetbl = tbls.cellnodetbl;
+    nodefacetbl = tbls.nodefacetbl;
+    cellvectbl  = tbls.cellvectbl;
 
     dim = vectbl.num;
     
@@ -85,8 +92,18 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.replacefds2 = {{'vec', 'vec22'}};
     prod.reducefds   = {'vec22'};
     prod.mergefds    = {'cells'};
-    prod = prod.setup();
-    
+
+    if useVirtual
+        cellnodefacevec1212tbl = crossIndexArray(cellnodefacetbl, vec1212tbl, {}, 'optpureproduct', true, 'virtual', true);
+        prod.pivottbl = cellnodefacevec1212tbl;
+        [vec22, vec21, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, d_num, cnf_num], (1 : cellnodefacevec1212tbl.num)');
+
+        prod.dispind1 = sub2ind([d_num, d_num, d_num, d_num, c_num], vec22, vec21, vec12, vec11 , cell_from_cellnodeface(i));
+        prod.dispind2 = sub2ind([d_num, cnf_num], vec22, i);
+        prod.dispind3 = sub2ind([d_num, d_num, d_num, cnf_num], vec21, vec12, vec11 , i);
+    else
+        prod = prod.setup();
+    end
     Cg = prod.eval(C, g); % Cg is in cellnodefacevec122tbl
 
     %% Setup transpose CgT
