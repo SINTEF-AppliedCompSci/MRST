@@ -53,7 +53,8 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     opt = struct('useVirtual', false);
     opt = merge_options(opt, varargin{:});
 
-    useVirtual = opt.useVirtual;
+    % useVirtual = opt.useVirtual;
+    useVirtual = true;
     
     bcetazero = opts.bcetazero;
     eta       = opts.eta;
@@ -77,6 +78,22 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     cell12nodetbl            = tbls.cell12nodetbl;
     cell12nodefacevec122tbl  = tbls.cell12nodefacevec122tbl;
     cell12nodeface12vec12tbl = tbls.cell12nodeface12vec12tbl;
+
+    if useVirtual
+        
+        d_num   = vectbl.num;
+        c_num   = celltbl.num;
+        cnf_num = cellnodefacetbl.num;
+
+        cell_from_cellnode                      = mappings.cell_from_cellnode;
+        face_from_cellface                      = mappings.face_from_cellface;
+        cell_from_cellface                      = mappings.cell_from_cellface;
+        node_from_cellnode                      = mappings.node_from_cellnode;
+        cell_from_cellnodeface                  = mappings.cell_from_cellnodeface;
+        cellnode_from_cellnodeface              = mappings.cellnode_from_cellnodeface;
+        nodeface_from_cellnodeface              = mappings.nodeface_from_cellnodeface;
+        
+    end
     
     % Construction of tensor g (as defined in paper eq 4.1.2)
     % g belongs to cellnodefacevectbl
@@ -100,10 +117,15 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
 
         prod.dispind1 = sub2ind([d_num, d_num, d_num, d_num, c_num], vec22, vec21, vec12, vec11 , cell_from_cellnodeface(i));
         prod.dispind2 = sub2ind([d_num, cnf_num], vec22, i);
+        % order in cellnodefacevec122tbl is cellnodefac, vec11, vec12, vec2
         prod.dispind3 = sub2ind([d_num, d_num, d_num, cnf_num], vec21, vec12, vec11 , i);
+        
+        prod.issetup = true;
+        
     else
         prod = prod.setup();
     end
+    
     Cg = prod.eval(C, g); % Cg is in cellnodefacevec122tbl
 
     %% Setup transpose CgT
@@ -113,7 +135,17 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     map.toTbl             = cellnodefacevec122tbl;
     map.replaceFromTblfds = {{'vec11', 'vec12', 'interchange'}};
     map.mergefds          = {'cells', 'nodes', 'faces', 'vec11', 'vec12', 'vec2'};
-    map = map.setup();
+
+    if useVirtual
+        map.pivottbl = cellnodefacevec122tbl;
+        % order in cellnodefacevec122tbl is cellnodefac, vec11, vec12, vec2
+        [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, cnf_num], (1 : cellnodefacevec122tbl.num)');
+        map.dispind1 = (1 : cellnodefacevec122tbl.num)';
+        map.dispind2 = sub2ind([d_num, d_num, d_num, cnf_num], vec2, vec11, vec12 , i);
+        map.issetup = true;
+    else
+        map = map.setup();
+    end
 
     CgT = map.eval(Cg); 
     
@@ -123,7 +155,17 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     map.toTbl    = nodetbl;
     map.mergefds = {'nodes'};
     map = map.setup();
-    
+
+
+    if useVirtual
+        map.pivottbl = cellnodetbl;
+        map.dispind1 = (1 : cellnodetbl.num)';
+        map.dispind2 = node_from_cellnode;
+        map.issetup = true;
+    else
+        map = map.setup();
+    end
+        
     nnodepercell = map.eval(ones(cellnodetbl.num, 1));
 
     switch vectbl.num
@@ -182,6 +224,29 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.mergefds    = {'cells2', 'nodes'};
     prod = prod.setup();
     
+    if useVirtual
+
+        prod.pivottbl = cell12nodefacevec122tbl;
+
+        cell12nodefacetbl = tbls.cell12nodefacetbl;
+        cell12nodetbl     = tbls.cell12nodetbl;
+        
+        N = cell12nodefacetbl.num;
+        [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, N], (1 : cell12nodefacevec122tbl.num)');
+
+        prod.dispind1 = mappings.cell12node_from_cell12nodeface(i);
+        
+        N = cellnodefacetbl.num;
+        prod.dispind2 = sub2ind([d_num, d_num, d_num,  N], vec2, vec12, vec11 , mappings.cell2nodeface_from_cell12nodeface(i));
+
+        prod.dispind3 = (1 : cell12nodefacevec122tbl.num)';
+        
+        prod.issetup = true;
+        
+    else
+        prod = prod.setup();
+    end
+
     S = prod.eval(a, Cg) + prod.eval(aT, CgT);
     
     %% We multiply S by the normals to obtain nS
@@ -216,8 +281,8 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
                                                     'virtual', true);        
         prod.pivottbl = cell12nodeface12vec122tbl;
         
-        map1 = mappings.cellnodeface_from_cell12nodeface12tbl;
-        map2 = mappings.cell12nodeface_from_cell12nodeface12tbl;
+        map1 = mappings.cell1nodeface1_from_cell12nodeface12;
+        map2 = mappings.cell12nodeface2_from_cell12nodeface12;
 
         [v2, v12, v11, i] = ind2sub([dim, dim, dim, tbls.cell12nodeface12tbl.num], (1 : cell12nodeface12vec122tbl.num)');
 
