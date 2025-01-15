@@ -53,8 +53,8 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     opt = struct('useVirtual', false);
     opt = merge_options(opt, varargin{:});
 
-    % useVirtual = opt.useVirtual;
-    useVirtual = true;
+    useVirtual = opt.useVirtual;
+    % useVirtual = true;
     
     bcetazero = opts.bcetazero;
     eta       = opts.eta;
@@ -264,38 +264,25 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.reducefds   = {'redvec'};
     prod.mergefds    = {'cells1', 'nodes'};
 
-    dooptimize = true;
 
-    if dooptimize
+    vec122tbl = tbls.vec122tbl;
 
-        gen = CrossIndexArrayGenerator();
-        gen.tbl1        = vec12tbl;
-        gen.tbl2        = vectbl;
-        gen.replacefds1 = {{'vec1', 'vec11'}, {'vec2', 'vec12'}};
-        gen.replacefds2 = {{'vec', 'vec2'}};
-        
-        vec122tbl = gen.eval();
-
-        cell12nodeface12vec122tbl = crossIndexArray(tbls.cell12nodeface12tbl, vec122tbl, {}, ...
-                                                    'optpureproduct', true, ...
-                                                    'virtual', true);        
-        prod.pivottbl = cell12nodeface12vec122tbl;
-        
-        map1 = mappings.cell1nodeface1_from_cell12nodeface12;
-        map2 = mappings.cell12nodeface2_from_cell12nodeface12;
-
-        [v2, v12, v11, i] = ind2sub([dim, dim, dim, tbls.cell12nodeface12tbl.num], (1 : cell12nodeface12vec122tbl.num)');
-
-        prod.dispind1 = sub2ind([dim, tbls.cellnodefacetbl.num], v12, map1(i));
-        prod.dispind2 = sub2ind([dim, dim, dim, tbls.cell12nodefacetbl.num], v2, v12, v11, map2(i));
-        prod.dispind3 = sub2ind([dim, dim, tbls.cell12nodeface12tbl.num], v2, v11, i);
-
-        prod.issetup = true;
-        
-    else
-        prod = prod.setup();
-    end
+    cell12nodeface12vec122tbl = crossIndexArray(tbls.cell12nodeface12tbl, vec122tbl, {}, ...
+                                                'optpureproduct', true, ...
+                                                'virtual', true);        
+    prod.pivottbl = cell12nodeface12vec122tbl;
     
+    map1 = mappings.cell1nodeface1_from_cell12nodeface12;
+    map2 = mappings.cell12nodeface2_from_cell12nodeface12;
+
+    [v2, v12, v11, i] = ind2sub([dim, dim, dim, tbls.cell12nodeface12tbl.num], (1 : cell12nodeface12vec122tbl.num)');
+
+    prod.dispind1 = sub2ind([dim, tbls.cellnodefacetbl.num], v12, map1(i));
+    prod.dispind2 = sub2ind([dim, dim, dim, tbls.cell12nodefacetbl.num], v2, v12, v11, map2(i));
+    prod.dispind3 = sub2ind([dim, dim, tbls.cell12nodeface12tbl.num], v2, v11, i);
+
+    prod.issetup = true;
+
     nS = prod.eval(facetNormals, S);
 
     %% Setup of the matrices A11, A12, A21, A22
