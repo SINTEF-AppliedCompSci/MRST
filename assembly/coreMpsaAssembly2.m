@@ -54,7 +54,6 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     opt = merge_options(opt, varargin{:});
 
     useVirtual = opt.useVirtual;
-    % useVirtual = true;
     
     bcetazero = opts.bcetazero;
     eta       = opts.eta;
@@ -222,7 +221,6 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.tbl3        = cell12nodefacevec122tbl;
     prod.replacefds2 = {{'cells', 'cells2'}};
     prod.mergefds    = {'cells2', 'nodes'};
-    prod = prod.setup();
     
     if useVirtual
 
@@ -298,7 +296,34 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.reducefds   = {'faces2', 'vec2'};
     prod.reducefds1  = {'cells1', 'cells2'};
     prod.mergefds    = {'nodes'};
-    prod = prod.setup();
+
+    if useVirtual
+
+        prod.pivottbl = cell12nodeface12vec12tbl;
+
+        N = tbls.cell12nodeface12tbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cell12nodeface12vec12tbl.num)');
+
+        prod.dispind1 = (1 : cell12nodeface12vec12tbl.num)';
+        
+        N = nodefacetbl.num;
+        j = mappings.cell12nodeface2_from_cell12nodeface12(i);
+        j = mappings.cell2nodeface_from_cell12nodeface(j);
+        j = nodeface_from_cellnodeface(j);
+        prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+        N = nodefacetbl.num;
+        j = mappings.cell1nodeface1_from_cell12nodeface12(i);
+        j = nodeface_from_cellnodeface(j);
+        prod.dispind3 = sub2ind([d_num, N], vec1, j);
+        
+        prod.issetup = true;
+        
+    else
+
+        prod = prod.setup();
+        
+    end
     
     A11 = prod.setupMatrix(nS);
 
@@ -312,8 +337,36 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
     prod.reducefds   = {'cells2', 'vec2'};
     prod.reducefds1  = {'cells1', 'faces2'};
-    prod = prod.setup();
 
+    if useVirtual
+
+        prod.pivottbl = cell12nodeface12vec12tbl;
+
+        N = tbls.cell12nodeface12tbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cell12nodeface12vec12tbl.num)');
+
+        prod.dispind1 = (1 : cell12nodeface12vec12tbl.num)';
+        
+        N = celltbl.num;
+        j = mappings.cell12nodeface2_from_cell12nodeface12(i);
+        j = mappings.cell12node_from_cell12nodeface(j);
+        j = mappings.cell2node_from_cell12node(j);
+        j = cell_from_cellnode(j);
+        prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+        N = nodefacetbl.num;
+        j = mappings.cell1nodeface1_from_cell12nodeface12(i);
+        j = mappings.nodeface_from_cellnodeface(j);
+        prod.dispind3 = sub2ind([d_num, N], vec1, j);
+        
+        prod.issetup = true;
+        
+    else
+
+        prod = prod.setup();
+        
+    end
+    
     % note the sign
     A12 = - prod.setupMatrix(nS);
     
@@ -327,8 +380,34 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.replacefds2 = {{'vec', 'vec2'}, {'faces', 'faces2'}};
     prod.reducefds   = {'nodes', 'faces2', 'vec2'};
     prod.reducefds1  = {'faces1', 'cells2'};
-    prod = prod.setup();
 
+    if useVirtual
+
+        prod.pivottbl = cell12nodeface12vec12tbl;
+
+        N = tbls.cell12nodeface12tbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cell12nodeface12vec12tbl.num)');
+
+        prod.dispind1 = (1 : cell12nodeface12vec12tbl.num)';
+
+        N = nodefacetbl.num;
+        j = mappings.cell12nodeface2_from_cell12nodeface12(i);
+        j = mappings.cell2nodeface_from_cell12nodeface(j);
+        j = mappings.nodeface_from_cellnodeface(j);
+        prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+        N = celltbl.num;
+        j = mappings.cell1nodeface1_from_cell12nodeface12(i);
+        j = mappings.cell_from_cellnodeface(j);
+        prod.dispind3 = sub2ind([d_num, N], vec1, j);
+        
+        prod.issetup = true;
+        
+    else
+
+        prod = prod.setup();
+        
+    end
     % note the sign
     A21 = - prod.setupMatrix(nS);
     
@@ -342,8 +421,34 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
     prod.reducefds   = {'vec2', 'cells2'};
     prod.reducefds1  = {'faces1', 'faces2', 'nodes'};
-    prod = prod.setup();
+    if useVirtual
 
+        prod.pivottbl = cell12nodeface12vec12tbl;
+
+        N = tbls.cell12nodeface12tbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cell12nodeface12vec12tbl.num)');
+
+        prod.dispind1 = (1 : cell12nodeface12vec12tbl.num)';
+
+        N = celltbl.num;
+        j = mappings.cell12nodeface2_from_cell12nodeface12(i);
+        j = mappings.cell2nodeface_from_cell12nodeface(j);
+        j = mappings.cell_from_cellnodeface(j);
+        prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+        N = celltbl.num;
+        j = mappings.cell1nodeface1_from_cell12nodeface12(i);
+        j = mappings.cell_from_cellnodeface(j);
+        prod.dispind3 = sub2ind([d_num, N], vec1, j);
+        
+        prod.issetup = true;
+        
+    else
+
+        prod = prod.setup();
+        
+    end
+    
     A22 = prod.setupMatrix(nS);
 
     [nodes, sz] = rlencode(nodefacevectbl.get('nodes'), 1);
