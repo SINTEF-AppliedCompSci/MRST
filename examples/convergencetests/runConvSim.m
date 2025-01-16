@@ -21,10 +21,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('verbose'  , false, ...
-                 'blocksize', []   , ...
-                 'useVir'   , true , ...
-                 'bcetazero', false);
+    opt = struct('verbose'   , false, ...
+                 'blocksize' , []   , ...
+                 'useVirtual', true , ...
+                 'bcetazero' , false);
 
     opt = merge_options(opt, varargin{:});
 
@@ -37,7 +37,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     alpha     = params.alpha;
 
     doVem = false;
-    [tbls, mappings] = setupStandardTables2(G, 'useVirtual', useVirtual);
+    [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
     vectbl = tbls.vectbl;
     nodefacetbl = tbls.nodefacetbl;
     nodefacevectbl = tbls.nodefacevectbl;
@@ -67,7 +67,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                                        true);
     clear bcfacetbl
 
-    [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
+    [~, nodefacecents] = computeNodeFaceCentroids2(G, eta, tbls, 'bcetazero', opt.bcetazero);
 
     map = TensorMap();
     map.fromTbl = nodefacevectbl;
@@ -141,8 +141,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                                      'blocksize', opt.blocksize, 'verbose', ...
                                      true, 'useVirtual', useVirtual);
     else
-        assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                'bcetazero', opt.bcetazero);
+        assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, ...
+                                 'bcetazero', opt.bcetazero, 'useVirtual', useVirtual);
     end
 
     clear prop loadstruct

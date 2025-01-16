@@ -1,4 +1,4 @@
-function [tbls, mappings] = setupStandardTables2(G, varargin)
+function [tbls, mappings] = setupMpsaStandardTables(G, varargin)
 %Undocumented Utility Function
 
 %{

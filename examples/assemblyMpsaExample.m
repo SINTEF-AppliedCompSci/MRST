@@ -73,7 +73,7 @@ switch casetype
     [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
     loadstruct = setupBCpercase(runcase, G, tbls, mappings);
   case 'experimental'
-    [tbls, mappings] = setupStandardTables2(G, 'useVirtual', useVirtual);
+    [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
     loadstruct = setupBCpercase2(runcase, G, tbls, mappings);
 end
 
