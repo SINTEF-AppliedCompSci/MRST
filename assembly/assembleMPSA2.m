@@ -52,6 +52,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('bcetazero'       , true , ...
                  'assemblyMatrices', false, ...
                  'addAdOperators'  , false, ...
+                 'useVirtual'      , false, ...
                  'extraoutput'     , false);
     opt = merge_options(opt, varargin{:});
     
@@ -75,7 +76,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     bc = loadstruct.bc;
     opts = struct('eta', eta, ...
                   'bcetazero', opt.bcetazero);
-    output = coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts);
+    output = coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts, 'useVirtual', opt.useVirtual);
 
     matrices = output.matrices;
     bcvals   = output.bcvals;
