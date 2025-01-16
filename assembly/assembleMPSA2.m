@@ -200,11 +200,6 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         assembly.adoperators = adoperators;
         
     end
-        
-    if opt.extraoutput
-        div = matrices.div;
-        assembly.divop = @(sol) mpsaDivOperator(sol, extforce, R1, R2, div);
-    end
     
 end
 

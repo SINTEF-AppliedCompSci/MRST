@@ -20,7 +20,7 @@ prop = struct('lambda', lambda, ...
               'mu', mu);
 
 useVirtual = false;
-[tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
+[tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
 
 extfaces{1} = bcfaces.ymin;
 n = numel(extfaces{1});
@@ -32,43 +32,43 @@ n = numel(extfaces{2});
 linforms{2} = repmat([cos(angle), sin(angle)], n, 1);
 linformvals{2} = zeros(n, 1);
 
-nodefacecoltbl  = tbls.nodefacecoltbl;
-coltbl  = tbls.coltbl;
+nodefacevectbl = tbls.nodefacevectbl;
+vectbl         = tbls.vectbl;
+
 facetbl.faces = (1 : G.faces.num)';
 facetbl = IndexArray(facetbl);
-facecoltbl  = crossIndexArray(facetbl, coltbl, {});
+facevectbl  = crossIndexArray(facetbl, vectbl, {});
 
 extfacetbl.faces = bcfaces.ymax;
 extfacetbl = IndexArray(extfacetbl);
-extfacecoltbl = crossIndexArray(extfacetbl, coltbl, {});
+extfacevectbl = crossIndexArray(extfacetbl, vectbl, {});
 
 normals = G.faces.normals;
 normals = reshape(normals', [], 1);
 
 map = TensorMap();
-map.fromTbl = facecoltbl;
-map.toTbl = extfacecoltbl;
-map.mergefds = {'faces', 'coldim'};
+map.fromTbl  = facevectbl;
+map.toTbl    = extfacevectbl;
+map.mergefds = {'faces', 'vec'};
 map = map.setup();
 extFacetNormals = map.eval(normals);
 
 map = TensorMap();
-map.fromTbl = extfacecoltbl;
-map.toTbl = nodefacecoltbl;
-map.mergefds = {'faces', 'coldim'};
-
+map.fromTbl  = extfacevectbl;
+map.toTbl    = nodefacevectbl;
+map.mergefds = {'faces', 'vec'};
 map = map.setup();
 
 extforce = map.eval(-extFacetNormals);
 
-cellcoltbl = tbls.cellcoltbl;
-force = zeros(cellcoltbl.num, 1);
+cellvectbl = tbls.cellvectbl;
+force = zeros(cellvectbl.num, 1);
 
 bc.extfaces    = vertcat(extfaces{:});
 bc.linform     = vertcat(linforms{:});
 bc.linformvals = vertcat(linformvals{:});
 
-bc = setupFaceBC(bc, G, tbls);
+bc = setupFaceBC2(bc, G, tbls);
 
 loadstruct.bc = bc;
 loadstruct.extforce = extforce;
@@ -77,8 +77,8 @@ loadstruct.force = force;
 eta = 1/3;
 bcetazero = false;
 
-assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', ...
-                        bcetazero, 'extraoutput', true);
+assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', ...
+                         bcetazero, 'extraoutput', true);
 
 B   = assembly.B  ;
 rhs = assembly.rhs;
@@ -86,12 +86,12 @@ rhs = assembly.rhs;
 sol = B\rhs;
 
 % displacement values at cell centers.
-n = cellcoltbl.num;
+n = cellvectbl.num;
 
 ucell = sol(1 : n);
 lagmult = sol(n + 1 : end);
 
-unode = computeNodeDisp(ucell, tbls);
+unode = computeNodeDisp2(ucell, tbls);
 
 dim = G.griddim;
 ucell = reshape(ucell, dim, [])';
