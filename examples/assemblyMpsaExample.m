@@ -9,7 +9,7 @@ clear all
 close all
 
 % load modules
-mrstModule add mimetic mpsaw incomp vemmech mpfa
+% mrstModule add mimetic mpsaw incomp vemmech mpfa
 
 eta = 0;
 bcetazero = false;
@@ -22,7 +22,7 @@ runcases = {'2d-refinement', ...
             '3d-linear'    , ...
             '3d-compaction' };
 
-runcase = '2d-compaction';
+runcase = '3d-compaction';
 
 switch runcase
   case '2d-refinement'
@@ -64,18 +64,26 @@ mu     = ones(nc, 1);
 prop = struct('lambda', lambda, ...
               'mu', mu);
 
-useVirtual = false;
-[tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
-loadstruct = setupBCpercase(runcase, G, tbls, mappings);
+useVirtual = true;
 
-casetype = 'standard';
+casetype = 'experimental';
+
+switch casetype
+  case {'blockassembly', 'standard'}
+    [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
+    loadstruct = setupBCpercase(runcase, G, tbls, mappings);
+  case 'experimental'
+    [tbls, mappings] = setupStandardTables2(G, 'useVirtual', useVirtual);
+    loadstruct = setupBCpercase2(runcase, G, tbls, mappings);
+end
+
 switch casetype
   case 'blockassembly'
     assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true);
   case 'standard'
     assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true, 'addAdOperators', true); 
   case 'experimental'
-    assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true);     
+    assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);     
 end
 
 B   = assembly.B  ;
@@ -84,8 +92,15 @@ rhs = assembly.rhs;
 sol = B\rhs;
 
 % Recover displacement values at cell centers.
-cellcoltbl = tbls.cellcoltbl;
-n = cellcoltbl.num;
+switch casetype
+  case {'blockassembly', 'standard'}
+    cellcoltbl = tbls.cellcoltbl;
+    n = cellcoltbl.num;
+  case 'experimental'
+    cellvectbl = tbls.cellvectbl;
+    n = cellvectbl.num;
+end
+
 u = sol(1 : n);
 % values of Lagrangian corresponding to Dirichlet contraint
 lm = sol((n + 1) : end);
@@ -97,19 +112,30 @@ if strcmp(casetype, 'standard')
     unf = op.facenodedispop(u, lm);
     % We compute stress
     stress = op.stressop(unf, u);
-    assert(dim == 2, 'only 2d treated here at the moment');
-    stress = formatField(stress, dim, 'stress');
-    isstresscomputed = true;
+    if dim == 2
+        isstresscomputed = false;
+    else
+        stress = formatField(stress, dim, 'stress');
+        isstresscomputed = true;
+    end
 end
 
 plotdeformedgrid = true;
 if plotdeformedgrid
     lagmult = sol(n + 1 : end);
-    unode = computeNodeDisp(u, tbls);
+    switch casetype
+      case {'blockassembly', 'standard'}
+        unode = computeNodeDisp(u, tbls);
+      case 'experimental'
+        unode = computeNodeDisp2(u, tbls);        
+    end    
     unvec = formatField(unode, dim, 'displacement');
     coef = 1e0;
+    figure
     plotGridDeformed(G, coef*unvec);
 end
+
+return
 
 dim = G.griddim;
 uvec = reshape(u, dim, [])';
