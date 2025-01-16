@@ -96,7 +96,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     
     % Construction of tensor g (as defined in paper eq 4.1.2)
     % g belongs to cellnodefacevectbl
-    g = computeConsistentGradient2(G, eta, tbls, mappings, 'bcetazero', bcetazero);    
+    g = computeConsistentGradient2(G, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);    
 
     %% Computation of Cg
     

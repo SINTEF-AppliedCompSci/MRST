@@ -38,17 +38,18 @@ bcfaces = [bottomfaces; topfaces];
 bcvals = zeros(nbf + ntf, 1);
 bcvals(1 : nbf) = 1*barsa;
 
-useVirtual = false;
-[tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
+useVirtual = true;
+[tbls, mappings] = setupMpfaStandardTables(G, 'useVirtual', useVirtual);
 nodefacetbl = tbls.nodefacetbl;
 
 bcfacetbl.faces = bcfaces;
 bcfacetbl = IndexArray(bcfacetbl);
+
 bcnodefacetbl = crossIndexArray(nodefacetbl, bcfacetbl, {'faces'});
 
 map = TensorMap();
-map.fromTbl = bcfacetbl;
-map.toTbl = bcnodefacetbl;
+map.fromTbl  = bcfacetbl;
+map.toTbl    = bcnodefacetbl;
 map.mergefds = {'faces'};
 map = map.setup();
 
@@ -63,14 +64,14 @@ bcstruct = struct('bcdirichlet', bcdirichlet, ...
 
 src = []; % no source in this case
 
-% setup identity K in cellcolrowtbl
-cellcolrowtbl = tbls.cellcolrowtbl;
-colrowtbl = tbls.colrowtbl;
+% setup identity K in cellvec12tbl
+cellvec12tbl = tbls.cellvec12tbl;
+vec12tbl     = tbls.vec12tbl;
 
 map = TensorMap();
-map.fromTbl = colrowtbl;
-map.toTbl = cellcolrowtbl;
-map.mergefds = {'coldim', 'rowdim'};
+map.fromTbl  = vec12tbl;
+map.toTbl    = cellvec12tbl;
+map.mergefds = {'vec1', 'vec2'};
 map = map.setup();
 
 K = [1; 0; 0; 1];
@@ -82,7 +83,7 @@ doblock = false;
 if doblock
     assembly = blockAssembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'blocksize', 20, 'verbose', true);
 else
-    assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings);
+    assembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, 'useVirtual', useVirtual);
 end
 
 B = assembly.B;

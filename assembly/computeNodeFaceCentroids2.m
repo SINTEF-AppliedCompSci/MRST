@@ -21,10 +21,13 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('bcetazero', false);
+    opt = struct('bcetazero', false, ...
+                 'useVirtual', false);
     opt = merge_options(opt, varargin{:});
-    bcetazero = opt.bcetazero;
 
+    bcetazero  = opt.bcetazero;
+    useVirtual = opt.useVirtual;
+    
     % cellnodefacecents centroid of node-face points, relative to cell
     % centroids. It belongs to cellnodefacevectbl
     %
@@ -60,10 +63,28 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     abscellnodefacecents = reshape(abscellnodefacecents', [], 1);
 
     map = TensorMap();
-    map.fromTbl = cellnodefacevectbl;
-    map.toTbl = nodefacevectbl;
+    map.fromTbl  = cellnodefacevectbl;
+    map.toTbl    = nodefacevectbl;
     map.mergefds = {'nodes', 'faces', 'vec'};
-    map = map.setup();
+
+    if useVirtual
+
+        map.pivottbl = cellnodefacevectbl;
+
+        d_num   = tbls.vectbl.num;
+        cnf_num = cellnodefacetbl.num;
+        [vec, i] = ind2sub([d_num, cnf_num], (1 : cellnodefacevectbl.num)');
+
+        map.dispind1 = (1 : cellnodefacevectbl.num)';
+        map.dispind2 = i;
+        
+        map.issetup = true;
+        
+    else
+        
+        map = map.setup();
+        
+    end
     
     nodefacecents = map.eval(abscellnodefacecents);
     coef = map.eval(ones(cellnodefacevectbl.num, 1));

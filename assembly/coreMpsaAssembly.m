@@ -50,7 +50,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % we invert it directly and reduce to a cell-centered scheme.
         
     bcetazero = opts.bcetazero;
-    eta = opts.eta;
+    eta       = opts.eta;
     
     coltbl      = tbls.coltbl;
     colrowtbl   = tbls.colrowtbl;

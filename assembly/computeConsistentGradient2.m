@@ -21,11 +21,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('bcetazero', false);
+    opt = struct('bcetazero', false, ...
+                 'useVirtual', false);
     opt = merge_options(opt, varargin{:});
-    bcetazero = opt.bcetazero;
     
-    cellnodefacecents = computeNodeFaceCentroids2(G, eta, tbls, 'bcetazero', opt.bcetazero);
+    bcetazero  = opt.bcetazero;
+    useVirtual = opt.useVirtual;
+    
+    cellnodefacecents = computeNodeFaceCentroids2(G, eta, tbls, 'bcetazero', bcetazero, 'useVirtual', useVirtual);
 
     vectbl             = tbls.vectbl;
     cellnodetbl        = tbls.cellnodetbl;
