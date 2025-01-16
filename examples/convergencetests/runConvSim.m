@@ -21,26 +21,26 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('verbose'   , false, ...
-                 'blocksize' , []   , ...
-                 'useVirtual', true , ...
-                 'bcetazero' , false);
+    opt = struct('verbose'  , false, ...
+                 'blocksize', []   , ...
+                 'useVir'   , true , ...
+                 'bcetazero', false);
 
     opt = merge_options(opt, varargin{:});
 
     useVirtual = opt.useVirtual;
 
     force_fun = params.force_fun;
-    mu_fun = params.mu_fun;
-    u_fun = params.u_fun;
-    eta = params.eta;
-    alpha = params.alpha;
+    mu_fun    = params.mu_fun;
+    u_fun     = params.u_fun;
+    eta       = params.eta;
+    alpha     = params.alpha;
 
     doVem = false;
-    [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
-    coltbl = tbls.coltbl;
+    [tbls, mappings] = setupStandardTables2(G, 'useVirtual', useVirtual);
+    vectbl = tbls.vectbl;
     nodefacetbl = tbls.nodefacetbl;
-    nodefacecoltbl = tbls.nodefacecoltbl;
+    nodefacevectbl = tbls.nodefacevectbl;
 
     Nc = G.cells.num; 
     Nf = G.faces.num; 
@@ -63,20 +63,20 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     bcfacetbl.faces = bcfaces;
     bcfacetbl = IndexArray(bcfacetbl);
     bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
-    bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
+    bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, 'optpureproduct', ...
                                        true);
     clear bcfacetbl
 
     [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
 
     map = TensorMap();
-    map.fromTbl = nodefacecoltbl;
-    map.toTbl = bcnodefacecoltbl;
-    map.mergefds = {'nodes', 'faces', 'coldim'};
+    map.fromTbl = nodefacevectbl;
+    map.toTbl = bcnodefacevectbl;
+    map.mergefds = {'nodes', 'faces', 'vec'};
     map = map.setup();
 
     bcnodefacecents = map.eval(nodefacecents);
-    % Here, we assume a given structure of bcnodefacecoltbl:
+    % Here, we assume a given structure of bcnodefacevectbl:
     bcnodefacecents = reshape(bcnodefacecents, Nd, [])';
     bcnum = bcnodefacetbl.num;
 
@@ -128,12 +128,12 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % figure
     % quiver(cc{1}, cc{2}, force(:, 1), force(:, 2));
 
-    % Here, we assume we know the structure of cellcoltbl;
+    % Here, we assume we know the structure of cellvectbl;
     force = reshape(force', [], 1);
 
     loadstruct.bc = bc;
     loadstruct.force = force;
-    loadstruct.extforce = zeros(tbls.nodefacecoltbl.num, 1);
+    loadstruct.extforce = zeros(tbls.nodefacevectbl.num, 1);
     clear bc force
 
     if ~isempty(opt.blocksize)
@@ -152,8 +152,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     sol = B\rhs;
 
     % Displacement values at cell centers.
-    cellcoltbl = tbls.cellcoltbl;
-    n = cellcoltbl.num;
+    cellvectbl = tbls.cellvectbl;
+    n = cellvectbl.num;
 
     u = sol(1 : n);
     u = reshape(u, Nd, [])';    
