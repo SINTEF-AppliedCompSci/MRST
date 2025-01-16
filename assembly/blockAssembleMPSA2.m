@@ -109,7 +109,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             fprintf('Assembling block %d/%d (%d nodes)\n', iblock, nblocks, nodetbl.num);
         end
         
-        [tbls, mappings] = setupStandardBlockTables2(G, nodetbl, globtbls, 'useVirtual', useVirtual);
+        [tbls, mappings] = setupStandardBlockTables2(G, nodetbl, globtbls, 'useVirtual', useVirtual, 'tblcase', 'mpsa');
         
         celltbl              = tbls.celltbl;
         facetbl              = tbls.facetbl;

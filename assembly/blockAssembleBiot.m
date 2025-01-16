@@ -49,8 +49,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     %        | 0      0      A63    0      0      0    | 
     %
     %
-    %       | displacement_nfc (node face dofs, belongs to nodefacecoltbl)         |
-    %       | displacement_c   (cell dofs, belongs to cellcoltbl)                  |
+    %       | displacement_nfc (node face dofs, belongs to nodefacevectbl)         |
+    %       | displacement_c   (cell dofs, belongs to cellvectbl)                  |
     %  u =  | pressure_nf      (node face dofs, belongs to nodefacetbl)            |
     %       | pressure_c       (cell dofs, belongs to celltbl)                     |
     %       | lambda1          (lagrangian multiplier for Dirichlet mechanical bc) |
@@ -66,7 +66,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     
     useVirtual = opt.useVirtual;
-    blocksize = opt.blocksize;
+    blocksize  = opt.blocksize;
     
     nn = G.nodes.num;
     nblocks = floor(nn/blocksize);
@@ -77,25 +77,25 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     nblocks = numel(blocksizes);
     blockinds = cumsum([1; blocksizes]);
 
-    coltbl         = globtbls.coltbl;
-    colrowtbl      = globtbls.colrowtbl;
-    col2row2tbl    = globtbls.col2row2tbl;
-    globcellcoltbl      = globtbls.cellcoltbl;
-    globcellnodetbl     = globtbls.cellnodetbl;
-    globnodefacecoltbl  = globtbls.nodefacecoltbl;
-    globcellcolrowtbl   = globtbls.cellcolrowtbl;
-    globcelltbl         = globtbls.celltbl;
-    globfacetbl         = globtbls.facetbl;
-    globnodefacetbl     = globtbls.nodefacetbl;
-    globcellcol2row2tbl = globtbls.cellcol2row2tbl;
+    vectbl             = globtbls.vectbl;
+    vec12tbl           = globtbls.vec12tbl;
+    vec1212tbl         = globtbls.vec1212tbl;
+    globcellvectbl     = globtbls.cellvectbl;
+    globcellnodetbl    = globtbls.cellnodetbl;
+    globnodefacevectbl = globtbls.nodefacevectbl;
+    globcellvec12tbl   = globtbls.cellvec12tbl;
+    globcelltbl        = globtbls.celltbl;
+    globfacetbl        = globtbls.facetbl;
+    globnodefacetbl    = globtbls.nodefacetbl;
+    globcellvec1212tbl = globtbls.cellvec1212tbl;
     
-    dim = coltbl.num;
+    dim = vectbl.num;
     
     mechprops  = props.mechprops;
     fluidprops = props.fluidprops;
     coupprops  = props.coupprops;
    
-    globC     = setupStiffnessTensor(mechprops, globtbls);
+    globC     = setupStiffnessTensor2(mechprops, globtbls);
     globK     = fluidprops.K;
     globalpha = coupprops.alpha;
     globrho   = coupprops.rho;
@@ -112,7 +112,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     globmechbc = loadstruct.bc;
     globmechbcnodefacetbl = globmechbc.bcnodefacetbl;        
     globmechbcnodefacetbl = globmechbcnodefacetbl.addLocInd('bcinds');    
-    globmechbcnodefacecoltbl = crossIndexArray(globmechbcnodefacetbl, coltbl, {}, ...
+    globmechbcnodefacevectbl = crossIndexArray(globmechbcnodefacetbl, vectbl, {}, ...
                                            'optpureproduct', true);
     globlinform = globmechbc.linform;
     globlinform = reshape(globlinform', [], 1);
@@ -143,14 +143,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     %       |      B42       B44 |
     %
     %
-    %       | displacement at cell          |    in globcellcoltbl
+    %       | displacement at cell          |    in globcellvectbl
     %  u =  | pressure at cell              |    in globcelltbl
     %       | lagrange multiplier mechanics |    in globmechbcnodefacetbl
     %       | lagrange multiplier fluid     |    in globfluidbcnodefacetbl
     
 
     % Setup the global matrices B  
-    bglobtbls = {globcellcoltbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
+    bglobtbls = {globcellvectbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
     nA = 6;
     nB = 4;
     B = cell(nB, 1);
@@ -171,7 +171,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     if opt.assemblyMatrices
         % for debugging: store the non-reduced system
-        aglobtbls = {globnodefacecoltbl, globcellcoltbl, globnodefacetbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
+        aglobtbls = {globnodefacevectbl, globcellvectbl, globnodefacetbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};
         A = cell(nA, 1);
         for i = 1 : nA
             A{i} = cell(nA, 1);
@@ -215,41 +215,38 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             fprintf('Assembling block %d/%d (%d nodes)\n', iblock, nblocks, nodetbl.num);
         end
         
-        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, 'useVirtual', useVirtual);
+        [tbls, mappings] = setupStandardBlockTables2(G, nodetbl, globtbls, 'useVirtual', useVirtual, 'tblcase', 'both');
 
         celltbl     = tbls.celltbl;
-        colrowtbl   = tbls.colrowtbl;
+        vec12tbl    = tbls.vec12tbl;
         nodetbl     = tbls.nodetbl;
         facetbl     = tbls.facetbl;
         cellnodetbl = tbls.cellnodetbl;
         nodefacetbl = tbls.nodefacetbl;
-        cellcoltbl  = tbls.cellcoltbl;
-        nodecoltbl  = tbls.nodecoltbl;
+        cellvectbl  = tbls.cellvectbl;
+        nodevectbl  = tbls.nodevectbl;
         
-        nodefacecoltbl        = tbls.nodefacecoltbl;
-        cellnodefacetbl       = tbls.cellnodefacetbl;
-        cellnodecoltbl        = tbls.cellnodecoltbl;
-        cellnodecolrowtbl     = tbls.cellnodecolrowtbl;
-        cellnodefacecoltbl    = tbls.cellnodefacecoltbl;
-        cellnodefacecolrowtbl = tbls.cellnodefacecolrowtbl;
-        nodecolrowtbl         = tbls.nodecolrowtbl;
-        cellcol2row2tbl       = tbls.cellcol2row2tbl;
-        cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
-        cellcolrowtbl         = tbls.cellcolrowtbl;
+        nodefacevectbl     = tbls.nodefacevectbl;
+        cellnodefacetbl    = tbls.cellnodefacetbl;
+        cellnodevectbl     = tbls.cellnodevectbl;
+        cellnodevec12tbl   = tbls.cellnodevec12tbl;
+        cellnodefacevectbl = tbls.cellnodefacevectbl;
+        cellvec1212tbl     = tbls.cellvec1212tbl;
+        cellvec12tbl       = tbls.cellvec12tbl;
         
         globcell_from_cell = mappings.globcell_from_cell;
     
         % Obtain stiffness values for the block
         map = TensorMap();
-        map.fromTbl = globcellcol2row2tbl;
-        map.toTbl = cellcol2row2tbl;
-        map.mergefds = {'cells', 'coldim1', 'coldim2', 'rowdim1', 'rowdim2'};
+        map.fromTbl  = globcellvec1212tbl;
+        map.toTbl    = cellvec1212tbl;
+        map.mergefds = {'cells', 'vec11', 'vec12', 'vec21', 'vec22'};
         
-        map.pivottbl = cellcol2row2tbl;
+        map.pivottbl = cellvec1212tbl;
         c_num     = celltbl.num;             % shortcut
-        gc_num    = globcellcol2row2tbl.num; % shortcut
-        cc2r2_num = cellcol2row2tbl.num;     % shortcut
-        c2r2_num  = col2row2tbl.num;         % shortcut
+        gc_num    = globcellvec1212tbl.num; % shortcut
+        cc2r2_num = cellvec1212tbl.num;     % shortcut
+        c2r2_num  = vec1212tbl.num;         % shortcut
         [c2r2, i] = ind2sub([c2r2_num, c_num], (1 : cc2r2_num)');
         map.dispind1 = sub2ind([c2r2_num, gc_num], c2r2, globcell_from_cell(i));
         map.dispind2 = (1 : cc2r2_num)';
@@ -259,13 +256,13 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
         % Obtain permeability values for the block
         map = TensorMap();
-        map.fromTbl = globcellcolrowtbl;
-        map.toTbl = cellcolrowtbl;
-        map.mergefds = {'cells', 'coldim', 'rowdim'};
+        map.fromTbl  = globcellvec12tbl;
+        map.toTbl    = cellvec12tbl;
+        map.mergefds = {'cells', 'vec1', 'vec2'};
         
-        map.pivottbl = cellcolrowtbl;
-        ccr_num = cellcolrowtbl.num; % shortcut
-        cr_num = colrowtbl.num;      % shortcut
+        map.pivottbl = cellvec12tbl;
+        ccr_num = cellvec12tbl.num; % shortcut
+        cr_num = vec12tbl.num;      % shortcut
         [cr, i] = ind2sub([cr_num, c_num], (1 : ccr_num)');
         map.dispind1 = sub2ind([cr_num, gc_num], cr, globcell_from_cell(i));
         map.dispind2 = (1 : ccr_num)';
@@ -287,14 +284,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         if mechbcterm_exists
             
             mechbcinds = mechbcnodefacetbl.get('bcinds');
-            mechbcnodefacecoltbl = crossIndexArray(mechbcnodefacetbl, coltbl, {}, 'optpureproduct', true);
+            mechbcnodefacevectbl = crossIndexArray(mechbcnodefacetbl, vectbl, {}, 'optpureproduct', true);
             
             linformvals = globlinformvals(mechbcinds, :);
 
             map = TensorMap();
-            map.fromTbl = globmechbcnodefacecoltbl;
-            map.toTbl = mechbcnodefacecoltbl;
-            map.mergefds = {'bcinds', 'coldim', 'nodes', 'faces'};
+            map.fromTbl = globmechbcnodefacevectbl;
+            map.toTbl = mechbcnodefacevectbl;
+            map.mergefds = {'bcinds', 'vec', 'nodes', 'faces'};
             map = map.setup();
             
             linform = map.eval(globlinform);
@@ -309,10 +306,21 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
         % We get the part of external and volumetric force that are active in the block
         map = TensorMap();
-        map.fromTbl = globnodefacecoltbl;
-        map.toTbl = nodefacecoltbl;
-        map.mergefds = {'nodes', 'faces', 'coldim'};
-        map = map.setup();
+        map.fromTbl  = globnodefacevectbl;
+        map.toTbl    = nodefacevectbl;
+        map.mergefds = {'nodes', 'faces', 'vec'};
+
+        if useVirtual
+
+            map.pivottbl = nodefacevectbl;
+
+            [vec, i] = ind2sub([vectbl.num, nodefacetbl.num], (1 : nodefacevectbl.num)');
+            map.dispind1 = sub2ind([vectbl.num, globnodefacetbl.num], vec, globnodeface_from_nodeface(i));
+            map.dispind2 = (1 : nodefacevectbl.num)';            
+            
+        else
+            map = map.setup();
+        end
 
         extforce = map.eval(globextforce);
         
@@ -373,7 +381,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         [fluidmat, fluidbcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts);
         
         
-        atbls = {nodefacecoltbl, cellcoltbl, nodefacetbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};
+        atbls = {nodefacevectbl, cellvectbl, nodefacetbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};
         locA = cell(nA, 1);
         for i = 1 : nA
             locA{i} = cell(4, 1);
@@ -464,7 +472,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         %          |             locB{4}{2}              locB{4}{4} |
         
         
-        btbls  = {cellcoltbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};        
+        btbls  = {cellvectbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};        
         bnums  = cell(4, 1);
         locB   = cell(4, 4);
         locrhs = cell(4, 1);
@@ -514,10 +522,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         % We store in the global matrices wthe values that have been computed at the block level
         
-        btbls = {cellcoltbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};        
+        btbls = {cellvectbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};        
         
         % Setup the index mappings (l2ginds) between local and global (could have been done more efficiently)
-        fds = {{'cells', 'coldim'}, ...
+        fds = {{'cells', 'vec'}, ...
                {'cells'}, ...
                {'faces', 'nodes', 'bcinds'}, ...
                {'faces', 'nodes'}};
@@ -552,11 +560,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         if opt.assemblyMatrices
             % setup the index mappings (l2ginds)
-            fds = {{'nodes', 'faces', 'coldim'} , ...
-                   {'cells', 'coldim'}          , ...
-                   {'nodes', 'faces'}           , ...
-                   {'cells'}                    , ...
-                   {'faces', 'nodes', 'bcinds'} , ...
+            fds = {{'nodes', 'faces', 'vec'}   , ...
+                   {'cells', 'vec'}            , ...
+                   {'nodes', 'faces'}          , ...
+                   {'cells'}                   , ...
+                   {'faces', 'nodes', 'bcinds'}, ...
                    {'faces', 'nodes'}};
             
             al2ginds = cell(nA, 1);

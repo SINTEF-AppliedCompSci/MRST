@@ -21,7 +21,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('useVirtual', true);
+    opt = struct('useVirtual', true, ...
+                 'tblcase', 'empty');
+    
     opt = merge_options(opt, varargin{:});
     useVirtual = opt.useVirtual;
 
@@ -61,9 +63,30 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                       'nodefacetbl'    , nodefacetbl, ...
                       'cellfacetbl'    , cellfacetbl, ...
                       'cellnodefacetbl', cellnodefacetbl);
+
+    switch opt.tblcase
+      case 'mpsa'
+        [tbls, mappings] = setupMpsaStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
+      case 'mpfa'
+        [tbls, mappings] = setupMpfaStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
+      case 'both'
+        [tbls, mappings] = setupMpxaStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
+
+        if useVirtual
+            map = TensorMap();
+            map.fromTbl  = globnodefacetbl;
+            map.toTbl    = nodefacetbl;
+            map.mergefds = {'nodes', 'faces'};
+
+            mapping.globnodeface_from_nodeface = map.getDispatchInd();
+        end
         
-    [tbls, mappings] = setupMpsaStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
-    
+      case 'empty'
+        error('to avoid unnecessary index array setup, provide the tblcase option [mpsa/mpfa/both]')
+      otherwise
+        error('tblcase not recognized')
+    end
+
     mappings.globcell_from_cell = globcell_from_cell;
     
 end

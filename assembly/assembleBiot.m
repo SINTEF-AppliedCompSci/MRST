@@ -21,12 +21,15 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('bcetazero'       , true, ...
+    opt = struct('bcetazero'       , true , ...
                  'assemblyMatrices', false, ...
                  'addAdOperators'  , false, ...
-                 'scalingfactor', []);
+                 'scalingfactor'   , []   , ...
+                 'useVirtual'      , false);
     opt = merge_options(opt, varargin{:});
 
+    useVirtual = opt.useVirtual;
+    
     % We solve the system
     %
     %  A*u = f
@@ -70,16 +73,18 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     % Assemble mechanic problem
     loadstruct = drivingforces.mechanics;
-    options = {'assemblymatrices', true, ...
+    options = {'assemblymatrices', true      , ...
+               'useVirtual'      , useVirtual, ...
                'bcetazero'       , opt.bcetazero};
-    mechassembly = assembleMPSA(G, mechprops, loadstruct, eta, tbls, mappings, options{:});
+    mechassembly = assembleMPSA2(G, mechprops, loadstruct, eta, tbls, mappings, options{:});
     
     % Assemble fluid problem
     fluidforces = drivingforces.fluid;
     bcstruct = fluidforces.bcstruct;
     src = fluidforces.src;
     K = fluidprops.K;
-    options = {'addAdOperators', true, ...
+    options = {'addAdOperators', true      , ...
+               'useVirtual'    , useVirtual, ...
                'bcetazero'     , opt.bcetazero};
     fluidassembly = assembleMPFA(G, K, bcstruct, src, eta, tbls, mappings, options{:});
     
@@ -115,8 +120,6 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     A22 = mechmat.A22;
     A15 = -mechmat.D;
     A51 = -A15';
-    C1  = mechmat.C1;
-    C2  = mechmat.C2;
     mechrhs = mechmat.fullrhs;
     
     % Recover matrices from fluid assembly
@@ -171,8 +174,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     %        | 0      0      A63    0      0      0    | 
     %
     
-    n1 = tbls.nodefacecoltbl.num;
-    n2 = tbls.cellcoltbl.num;
+    n1 = tbls.nodefacevectbl.num;
+    n2 = tbls.cellvectbl.num;
     n3 = tbls.nodefacetbl.num;
     n4 = tbls.celltbl.num;
     n5 = size(mechrhs{3}, 1);
@@ -220,7 +223,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     B44 = -A63invA33*A36;
 
     % Assemble B matrix
-    n1 = tbls.cellcoltbl.num;
+    n1 = tbls.cellvectbl.num;
     n2 = tbls.celltbl.num;
     n3 = size(mechrhs{3}, 1);
     n4 = size(fluidrhs{3}, 1);
@@ -261,6 +264,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     end    
     
     if opt.addAdOperators
+        
+        C1 = mechmat.C1;
+        C2 = mechmat.C2;
 
         fluxop = fluidassembly.adoperators.fluxop;
         

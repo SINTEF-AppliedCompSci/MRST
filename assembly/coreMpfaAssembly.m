@@ -29,14 +29,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     cellvec12tbl         = tbls.cellvec12tbl;
     cellnodevec12tbl     = tbls.cellnodevec12tbl;
-    cellnodeface12vectbl  = tbls.cellnodeface12vectbl;
-    cellnodeface12tbl     = tbls.cellnodeface12tbl;
+    cellnodeface12vectbl = tbls.cellnodeface12vectbl;
+    cellnodeface12tbl    = tbls.cellnodeface12tbl;
     cellnodefacevec12tbl = tbls.cellnodefacevec12tbl;
     cellnodefacevectbl   = tbls.cellnodefacevectbl;
     cellnodefacetbl      = tbls.cellnodefacetbl;
     celltbl              = tbls.celltbl;
     vectbl               = tbls.vectbl;
-    nodeface12tbl         = tbls.nodeface12tbl;
+    nodeface12tbl        = tbls.nodeface12tbl;
     nodefacevectbl       = tbls.nodefacevectbl;
     nodefacetbl          = tbls.nodefacetbl;
     
