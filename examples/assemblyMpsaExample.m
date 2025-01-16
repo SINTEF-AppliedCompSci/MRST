@@ -67,24 +67,27 @@ prop = struct('lambda', lambda, ...
 useVirtual = true;
 
 casetype = 'experimental';
+useblock = true;
 
 switch casetype
-  case {'blockassembly', 'standard'}
+  case {'standard'}
     [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
-    loadstruct = setupBCpercase(runcase, G, tbls, mappings);
+    loadstruct       = setupBCpercase(runcase, G, tbls, mappings);
+    if useblock
+        assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true);
+    else
+        assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true, 'addAdOperators', true);
+    end
   case 'experimental'
     [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
-    loadstruct = setupBCpercase2(runcase, G, tbls, mappings);
+    loadstruct       = setupBCpercase2(runcase, G, tbls, mappings);
+    if useblock
+        assembly = blockAssembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true);
+    else
+        assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);
+    end
 end
 
-switch casetype
-  case 'blockassembly'
-    assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true);
-  case 'standard'
-    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true, 'addAdOperators', true); 
-  case 'experimental'
-    assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);     
-end
 
 B   = assembly.B  ;
 rhs = assembly.rhs;
@@ -106,7 +109,7 @@ u = sol(1 : n);
 lm = sol((n + 1) : end);
 
 isstresscomputed = false;
-if strcmp(casetype, 'standard')
+if strcmp(casetype, 'standard') && isfield(assembly, 'adoperators')
     % We compute node-face displacement values
     op = assembly.adoperators;
     unf = op.facenodedispop(u, lm);
