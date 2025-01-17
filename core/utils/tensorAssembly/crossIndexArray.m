@@ -58,7 +58,7 @@ function [tbl, indstruct] = crossIndexArray(tbl1, tbl2, crossfields, varargin)
 % RETURNS:
 %   tbl  - IndexArray constructed from tbl1, tbl2 and the given fields
 %   crossfields, as described above 
-%   indstruct - structure used to setup mappings between tbl1, tbl2 and tbl3 
+%   indstruct - structure used to setup mappings between tbl1, tbl2 and tbl 
 %
 % SEE ALSO: `IndexArray`
 %   `projIndexArray`, `sortIndexArray`, `addLocInd`, `replacefield`.
@@ -199,8 +199,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         tbl = IndexArray([], 'fdnames', fdnames, 'inds', mat);
         
         if nargout > 1
-            error(['output not implemented for pureproduct option. It should ' ...
-                   'not be difficult though']);
+            
+            indstruct{1}.inds = rldecode((1 : n1)', n2*ones(n1, 1));
+            indstruct{1}.num  = n1;            
+            indstruct{2}.inds = repmat((1 : n2)', n1, 1);
+            indstruct{2}.num  = n2;
+            
         end
         
         return
