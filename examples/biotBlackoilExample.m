@@ -47,7 +47,8 @@ lambda = lambda*ones(G.cells.num, 1);
 mu = mu*ones(G.cells.num, 1);
 mechprop = struct('lambda', lambda, 'mu', mu);
 
-[tbls, mappings] = setupMpxaStandardTables(G);
+useVirtual = false;
+[tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
 % We set zero displacement at all external faces
 

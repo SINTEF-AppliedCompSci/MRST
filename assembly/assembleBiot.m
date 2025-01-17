@@ -45,8 +45,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     %        | 0      0      A63    0      0      0    | 
     %
     %
-    %       | displacement_nfc (node face dofs, belongs to nodefacecoltbl)         |
-    %       | displacement_c   (cell dofs, belongs to cellcoltbl)                  |
+    %       | displacement_nfc (node face dofs, belongs to nodefacevectbl)         |
+    %       | displacement_c   (cell dofs, belongs to cellvectbl)                  |
     %  u =  | pressure_nf      (node face dofs, belongs to nodefacetbl)            |
     %       | pressure_c       (cell dofs, belongs to celltbl)                     |
     %       | lambda1          (lagrangian multiplier for Dirichlet mechanical bc) |

@@ -1,4 +1,4 @@
-function output = mandelrun(params)
+function output = mandelrun(params, varargin)
 %Undocumented Utility Function
 
 %{
@@ -20,19 +20,22 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    
-    mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
+
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
 
     output.params = params;
     
     % Setup grid
 
     % discretization parameters
-    nx = params.nx;
-    ny = params.ny;
-    dt = params.dt;
-    totime = params.totime;
-    rampup = params.rampup;
+    nx          = params.nx;
+    ny          = params.ny;
+    dt          = params.dt;
+    totime      = params.totime;
+    rampup      = params.rampup;
     fixedtsteps = params.fixedtsteps;
     
     % Flow parameters
@@ -107,7 +110,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     mu = mu*ones(G.cells.num, 1);
     mechprop = struct('lambda', lambda, 'mu', mu);
 
-    [tbls, mappings] = setupStandardTables(G);
+    [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
     % We recover the top, bottom and lateral faces using function pside
     dummy = 0;
@@ -138,14 +141,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                 'extfaces'   , extfaces, ...
                 'linformvals', bcvals);
 
-    bc = setupFaceBC(bc, G, tbls);
+    bc = setupFaceBC2(bc, G, tbls);
 
     loadstruct.bc = bc;
 
-    nodefacecoltbl = tbls.nodefacecoltbl;
-    cellcoltbl = tbls.cellcoltbl;
-    loadstruct.extforce = zeros(nodefacecoltbl.num, 1); 
-    loadstruct.force = zeros(cellcoltbl.num, 1);
+    nodefacevectbl = tbls.nodefacevectbl;
+    cellvectbl = tbls.cellvectbl;
+    loadstruct.extforce = zeros(nodefacevectbl.num, 1); 
+    loadstruct.force = zeros(cellvectbl.num, 1);
 
     % Setup mech structure 
     mech.prop = mechprop;
@@ -215,8 +218,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     nlf = size(bcstruct.bcdirichlet.bcvals, 1);
     initState.lambdafluid = zeros(nlf, 1);
     % mech
-    cellcoltbl = tbls.cellcoltbl;
-    initState.u = zeros(cellcoltbl.num, 1);
+    cellvectbl = tbls.cellvectbl;
+    initState.u = zeros(cellvectbl.num, 1);
     nlm = size(loadstruct.bc.linformvals, 1);
     initState.lambdamech = zeros(nlm, 1);
     initState.avgtopforce = 0;

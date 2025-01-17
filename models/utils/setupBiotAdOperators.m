@@ -1,4 +1,4 @@
-function operators = setupBiotAdOperators(model)
+function operators = setupBiotAdOperators(model, varargin)
 %Undocumented Utility Function
 
 %{
@@ -21,6 +21,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
+    
     G = model.G;
     mech  = model.mech;
     fluid = model.fluid;
@@ -37,7 +42,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     perm = model.rock.perm;
 
     assert(numel(perm) == G.cells.num, 'only isotropic perm for the moment');
-    [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', false);
+    [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
     celltbl      = tbls.celltbl;
     vec12tbl     = tbls.vec12tbl;

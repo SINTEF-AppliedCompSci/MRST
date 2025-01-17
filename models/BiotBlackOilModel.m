@@ -8,14 +8,22 @@ classdef BiotBlackOilModel < GenericBlackOilModel
 
         BiotPropertyFunctions
         MechPropertyFunctions        
+
+        % assembly choise
+        useVirtual
     end
 
     methods
         
         function model = BiotBlackOilModel(G, rock, fluid, mech, varargin)
+
+            opt = struct('useVirtual', false);
+            [opt, extra] = merge_options(opt, varargin{:});
+
+            useVirtual = opt.useVirtual;
             
-            model = model@GenericBlackOilModel(G, rock, fluid, varargin{:});
-            model = merge_options(model, varargin{:});
+            model = model@GenericBlackOilModel(G, rock, fluid, extra{:});
+            model = merge_options(model, extra{:});
             
             % Physical properties of rock and fluid
             model.mech  = mech;
@@ -24,7 +32,7 @@ classdef BiotBlackOilModel < GenericBlackOilModel
             model.bcetazero = false;
             
             % Add mechanical operators  
-            model.operators = setupBiotAdOperators(model);
+            model.operators = setupBiotAdOperators(model, 'useVirtual', useVirtual);
 
             model.BiotPropertyFunctions = BiotPropertyFunctions(model);
             model.MechPropertyFunctions = MechPropertyFunctions(model);

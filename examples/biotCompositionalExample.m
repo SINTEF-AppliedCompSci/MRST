@@ -58,7 +58,9 @@ lambda = lambda*ones(G.cells.num, 1);
 mu = mu*ones(G.cells.num, 1);
 mechprop = struct('lambda', lambda, 'mu', mu);
 
-[tbls, mappings] = setupStandardTables(G);
+useVirtual = false;
+
+[tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
 
 % We set zero displacement at all external faces
 
@@ -72,13 +74,13 @@ bc = struct('linform'    , linform , ...
             'extfaces'   , extfaces, ...
             'linformvals', bcvals);
 
-bc = setupFaceBC(bc, G, tbls);
+bc = setupFaceBC2(bc, G, tbls);
 
-nodefacecoltbl = tbls.nodefacecoltbl;
-extforce = zeros(nodefacecoltbl.num, 1);
+nodefacevectbl = tbls.nodefacevectbl;
+extforce = zeros(nodefacevectbl.num, 1);
 
-cellcoltbl = tbls.cellcoltbl;
-force = zeros(cellcoltbl.num, 1);
+cellvectbl = tbls.cellvectbl;
+force = zeros(cellvectbl.num, 1);
 
 loadstruct.bc = bc;
 loadstruct.extforce = extforce;
