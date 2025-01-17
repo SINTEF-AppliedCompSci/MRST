@@ -1,4 +1,4 @@
-function operators = setupMpsaOperators(model)
+function operators = setupMpsaOperators(model, varargin)
 %Undocumented Utility Function
 
 %{
@@ -20,7 +20,11 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
 
+    useVirtual = opt.useVirtual;
+    
     G = model.G;
     mech = model.mech;
     prop = mech.prop;
@@ -29,9 +33,13 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     eta = 0;
     bcetazero = false;
 
-    [tbls, mappings] = setupStandardTables(G);
+    [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
 
-    assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'addAdOperators', true); 
+    assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, ...
+                             'bcetazero'     , bcetazero, ...
+                             'addAdOperators', true     , ...
+                             'useVirtual'    , useVirtual); 
 
     operators = assembly.adoperators;
+    
 end

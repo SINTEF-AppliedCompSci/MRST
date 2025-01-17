@@ -57,6 +57,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
     
     % Retrieve IndexArrays
+
+    cellnodetbl = tbls.cellnodetbl;
+    celltbl     = tbls.celltbl;
     vectbl      = tbls.vectbl;
     nodefacetbl = tbls.nodefacetbl;
     facetbl     = tbls.facetbl;

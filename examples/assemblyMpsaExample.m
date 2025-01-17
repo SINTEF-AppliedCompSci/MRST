@@ -9,7 +9,7 @@ clear all
 close all
 
 % load modules
-% mrstModule add mimetic mpsaw incomp vemmech mpfa
+mrstModule add mimetic mpsaw incomp vemmech mpfa
 
 eta = 0;
 bcetazero = false;

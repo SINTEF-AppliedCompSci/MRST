@@ -66,10 +66,11 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     cellnodetbl = tbls.cellnodetbl;
     nodefacetbl = tbls.nodefacetbl;
     cellvectbl  = tbls.cellvectbl;
-
+    
     dim = vectbl.num;
     
     nodefacevectbl           = tbls.nodefacevectbl;
+    cellnodevec12tbl         = tbls.cellnodevec12tbl;
     cellnodefacetbl          = tbls.cellnodefacetbl;
     cellnodefacevectbl       = tbls.cellnodefacevectbl;
     cellvec1212tbl           = tbls.cellvec1212tbl;
@@ -245,7 +246,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
         prod = prod.setup();
     end
 
-    S = prod.eval(a, Cg) + prod.eval(aT, CgT);
+    S = prod.eval(a, Cg) + prod.eval(aT, CgT); % S is in cell12nodefacevec122tbl
     
     %% We multiply S by the normals to obtain nS
 
@@ -459,13 +460,74 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     % Matrix for boundary conditions
     
     [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls);
+
+    % Matrix for the stress computation
+
+    prod = TensorProd();
+    prod.tbl1        = cell12nodefacevec122tbl;
+    prod.tbl2        = nodefacevectbl;
+    prod.tbl3        = cellnodevec12tbl;
+    prod.replacefds1 = {{'cells1', 'cells'}, {'vec2', 'redvec'}, {'vec11', 'vec1'}, {'vec12', 'vec2'}};
+    prod.replacefds2 = {{'vec', 'redvec'}};
+    prod.reducefds   = {'redvec', 'faces'};
+    prod.reducefds1  = {'cells2'};
+    prod.mergefds    = {'nodes'};
+    prod = prod.setup();
+
+    C1 = prod.setupMatrix(S);
+
+    prod = TensorProd();
+    prod.tbl1        = cell12nodefacevec122tbl;
+    prod.tbl2        = cellvectbl;
+    prod.tbl3        = cellnodevec12tbl;
+    prod.replacefds1 = {{'cells1', 'cells'}, {'vec2', 'redvec'}, {'vec11', 'vec1'}, {'vec12', 'vec2'}};
+    prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
+    prod.reducefds   = {'vec2', 'cells2'};
+    prod.reducefds1  = {'faces'};
+    prod = prod.setup();
+
+    % note the sign
+    C2 = -prod.setupMatrix(S);
     
+    %
+    % The divergence operator (integrated over the volume)
+    % is given by 
+    %
+    %  div[c] = sum (m[f,s] u_[f,n,i] n[c,f,i])
+    %
+    % where u:solution, n:normal, m:area
+    % indices : c:cell, f:face, n:node.
+    
+    % The facetNormals are already weighted with respect to area
+    
+    prod = TensorProd();
+    prod.tbl1 = cellnodefacevectbl;
+    prod.tbl2 = nodefacevectbl;
+    prod.tbl3 = celltbl;
+    prod.reducefds = {'faces', 'nodes', 'vec'};
+
+    if useVirtual
+        prod.pivottbl = cellnodefacevectbl;
+        prod.dispind1 = (1 : cnfc_num)';
+        [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
+        prod.dispind2 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
+        prod.dispind3 = cell_from_cellnode(cellnode_from_cellnodeface(i));
+        prod.issetup = true;
+    else
+        prod = prod.setup();
+    end
+    
+    div = prod.setupMatrix(facetNormals);
+
     matrices = struct('A11'   , A11   , ...
                       'A12'   , A12   , ...
                       'A21'   , A21   , ...
                       'A22'   , A22   , ...
                       'D'     , D     , ...
-                      'invA11', invA11);
+                      'invA11', invA11, ...
+                      'C1'    , C1    , ...
+                      'C2'    , C2    , ...
+                      'div'   , div );
     
     extra = struct('g', g);
 
