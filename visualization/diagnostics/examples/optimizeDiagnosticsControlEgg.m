@@ -55,7 +55,6 @@ figure, p.plotObjectiveValues();
 % run full simulations for base and optimal cases (if opted)
 if runSimulations
     problems = samples.problem;
-    Wopt    = problem.SimulatorSetup.schedule.control.W;
     [statesInit, statesOpt] = deal(cell(1, numel(realizations)));
     
     for k = 1:numel(realizations)

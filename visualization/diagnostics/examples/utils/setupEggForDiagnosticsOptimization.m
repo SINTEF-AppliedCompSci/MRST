@@ -36,7 +36,7 @@ model.OutputStateFunctions = {};
 model.dpMaxRel = inf;
 
 %diagnostics model
-pSolver = AGMGSolverAD('tolerance', 1e-8, 'maxIterations', 100, 'keepNumber', G.cells.num);
+pSolver = AMGCLSolverAD('tolerance', 1e-8, 'maxIterations', 100, 'keepNumber', G.cells.num);
 % phase weights
 phw = [0, 1/2.7]; % [no mobile water initially, inverse speed of BL-front]
 dmodel = DiagnosticsModel(LinearPressureModel(model), 'state0', state0, 'pSolver', pSolver, 'pressureTol', 1e-8, ...
