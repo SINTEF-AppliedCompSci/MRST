@@ -7,6 +7,7 @@ classdef SummaryOptionsSelector < UIItem
         propPropType
         subItemSwitch
         scaleSwitch
+        markerSwitch
     end
     properties (Dependent)
         caseNames
@@ -36,8 +37,12 @@ classdef SummaryOptionsSelector < UIItem
             end
             subItemSwitch = uicontrol('Parent', [], 'Style', 'checkbox', 'String', 'Sub-items', ...
                                          'Visible', 'off', 'Value', 1);
-            scaleSwitch   = uicontrol('Parent', [], 'Style', 'checkbox', 'String', 'Scale', ...
+            scaleSwitch = uicontrol('Parent', [], 'Style', 'checkbox', 'String', 'Scale', ...
                                          'Visible', 'off');
+            markerText = uicontrol('Parent', [], 'Style', 'text', 'Value', [], ... 
+                                  'String', 'Marker:', 'Visible', 'off');
+            markerSwitch = uicontrol('Parent', [], 'Style', 'checkbox', 'String', 'Marker', ...
+                                     'Visible', 'off');
             caseText   = uicontrol('Parent', [], 'Style', 'text', 'Value', [], ... 
                                   'String', 'Cases:', 'Visible', 'off');
             nameText   = uicontrol('Parent', [], 'Style', 'text', 'Value', [], ... 
@@ -51,10 +56,10 @@ classdef SummaryOptionsSelector < UIItem
             propPropType = uicontrol('Parent', [], 'Style', 'popup', 'String', {'Marker', 'Color', 'LineStyle'}, ...
                                      'Value', 2, 'Visible', 'off');  
             c1 = applyFunction(@(x,y){x,y}, caseEdits, caseSwitches);
-            controls      = [c1, {{subItemSwitch, scaleSwitch}, {caseText,nameText, propText}, ...
+            controls      = [c1, {{subItemSwitch, scaleSwitch, markerSwitch}, {caseText,nameText, propText}, ...
                              {casePropType, namePropType, propPropType}}];
             cl1 = repmat({[.9, nan]}, [1, numel(caseEdits)]);
-            controlLayout = [cl1, {[.5 nan], [.33, .33, nan], [.33, .33, nan]}];
+            controlLayout = [cl1, {[.4 .3 nan], [.33, .33, nan], [.33, .33, nan]}];
                 
             s = s@UIItem('Parent', opt.Parent, 'controls', controls, ...
                          'controlWidths', controlLayout, 'Title', opt.Title, ...
@@ -67,7 +72,7 @@ classdef SummaryOptionsSelector < UIItem
             s.propPropType = propPropType;
             s.subItemSwitch = subItemSwitch;
             s.scaleSwitch   = scaleSwitch;
-            
+            s.markerSwitch = markerSwitch;
             s.Callback = opt.Callback;
             setCallbackForAll(s.controls, opt.Callback);
             

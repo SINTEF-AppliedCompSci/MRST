@@ -343,7 +343,7 @@ end
 end
 
 function [ss, ii] = uniqueStringIndex(ss, ii)
-cumn = cumsum( [1, cellfun(@numel, ss)]);
+cumn = cumsum( [1; cellfun(@numel, ss)]);
 [ss, ~, nix] = unique(vertcat(ss{:}));
 for k = 1:numel(ii)
     tmp = nix(cumn(k):(cumn(k+1)-1));

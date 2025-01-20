@@ -35,7 +35,7 @@ classdef SummaryViewer < handle
         smry
         casePaths
         layout = struct('menuWidth', 240, 'subItemWidth', 150)
-        markerOrder = {'none', 'x', 'o', 's', 'd'};
+        markerOrder = {'none', 'o', 'x', 's', 'd'};
         lineStyleOrder = {'-', '--', '-.', ':'};
         colorOrder
         subItemIx
@@ -63,8 +63,8 @@ classdef SummaryViewer < handle
     
     methods
         function d = SummaryViewer(varargin)
-            [d.smry, d.caseNames, d.casePaths]= handleInput(varargin);
-            if isempty(d.smry{1}), return; end
+            [d.smry, d.caseNames, d.casePaths]= handleInput2(varargin);
+            if isempty(d.smry), return; end
             d.caseSelection = (1:numel(d.smry))';
             d.Figure = figure('Name', 'main');
             d.Axes   = axes('Parent', d.Figure, 'Units', 'pixels');
@@ -256,7 +256,9 @@ classdef SummaryViewer < handle
                 h = vertcat(h{:});
                 propIx = vertcat(propIx{1:count});
                 ix = getLinePropIx(d, numel(prps), numel(prps), numel(d.smry), propIx);
-                [mo, lso] = deal(d.markerOrder(:), d.lineStyleOrder(:));
+                markerStart = 1 + d.optionSelector.markerSwitch.Value;
+                mo = d.markerOrder(markerStart:end);
+                [mo, lso] = deal(mo(:), d.lineStyleOrder(:));
                 set(h, {'Marker'},    mo(ix{1}), ...
                        {'Color'},     num2cell(d.colorOrder(ix{2},:), 2), ...
                        {'LineStyle'}, lso(ix{3}) );
@@ -471,8 +473,83 @@ opt = struct('caseNames', {names});
 opt = merge_options(opt, varargin{2:end});
 names = opt.caseNames;
 end
-
 %--------------------------------------------------------------------------
+function [smry, names, fullnames] = handleInput2(varargin)
+if nargin == 0 || isempty(varargin{1})
+    input = {''};
+else
+    input = varargin{1}{1};
+end
+if ~iscell(input)
+    input = {input};
+end
+if ischar(input{1})
+    if isfolder(input{1}) || isempty(input{1})
+        fn = launchFileSelector(input{1});
+    else
+        fn = input;
+    end
+    names = makeDisplayNames(fn);
+    fullnames = fn;
+    ok = true(numel(fn), 1);
+    smry = cell(numel(fn), 1);
+    for k = 1:numel(fn)
+        try
+            [a,b] = fileparts(fn{k});
+            smry{k} = readEclipseSummaryUnFmt(fullfile(a,b));
+        catch
+            warning('Reading failed: %s\n', fn{k})
+            ok(k) = false;
+        end
+    end
+    if ~all(ok)
+        names = names(ok);
+        smry = smry(ok);
+        fullnames = fullnames(ok);
+    end
+else
+    % smry given
+    smry = input;
+    names = applyFunction(@(k)sprintf('Case %k', k), (1:numel(smry)));
+    opt = struct('caseNames', {names});
+    opt = merge_options(opt, varargin{2:end});
+    names = opt.caseNames;
+    fullnames = names;
+end
+end
+%--------------------------------------------------------------------------
+function dn = makeDisplayNames(fn)
+[dd, dn] = fileparts(fn);
+cnt = 0;
+if numel(fn) > 1
+    found = false;
+    while ~found && cnt < 50
+        cnt = cnt + 1;
+        if numel(dn) == numel(unique(dn))
+            found = true;
+        else
+           [dd, tmp] = fileparts(dd);
+           dn = fullfile(tmp, dn);
+        end
+    end
+end
+end
+%--------------------------------------------------------------------------
+function fn = launchFileSelector(pth)
+    fn = {};
+    fig = dialog('Resize', 'on');
+    s = FileSelector('Parent', fig, 'fileExtensions', {'.SMSPEC'}, 'path', pth, 'standalone', true, ...
+                     'settingsFile', fullfile(mrstOutputDirectory(), 'summary_selector_settings.mat'), ...
+                     'Title', 'Select summary files');
+    s.applyButton.String = 'Launch';
+    s.Callback = @getFiles;
+    uiwait(s.Parent)
+    function getFiles(~, ~)
+        fn = s.selectedFiles;
+        close(fig);
+    end
+end
+
 function inp = selectSummaryFiles()  
 inp = [];
 [fnl, pthl] = uigetfile('*.SMSPEC', 'Select ECLIPSE summary specification(s)  (SMSPEC)', 'Multiselect', 'on');
@@ -527,7 +604,8 @@ lProps = {'Marker', 'Color', 'LineStyle'};
 props  = {d.orderPropsBy, d.orderNamesBy, d.orderCasesBy};
 n      = [nprp, nnms, ncs];
 ix = cell(1,3);
-nlp = [numel(d.markerOrder), size(d.colorOrder,1), numel(d.lineStyleOrder)];
+alwaysMarker = d.optionSelector.markerSwitch.Value;
+nlp = [numel(d.markerOrder)-alwaysMarker, size(d.colorOrder,1), numel(d.lineStyleOrder)];
 for j = 1:3
     isPrp = matches(props, lProps{j});
     prd   = [1, cumprod((n(1:2)-1).*isPrp(1:2) + 1)];
