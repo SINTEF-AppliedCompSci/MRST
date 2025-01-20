@@ -33,9 +33,6 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    % Load necessary modules
-    mrstModule add vem mpfa mpsaw vemmech libgeometry
-
     close all
     dosave = true;
     savecount = 1; % counter for setting up filenames.

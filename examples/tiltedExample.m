@@ -1,8 +1,6 @@
 clear all
 close all
 
-mrstModule add mpsaw vemmech mpfa
-
 N = 20;
 G = cartGrid([N, N], [1 , 1]);
 angle = 10/180*pi;

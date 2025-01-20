@@ -5,8 +5,6 @@ clear all
 close all
 
 %% Load required modules
-mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
-
 %% Setup grid
 physdim = [1, 1] * meter;
 nx = 40; ny = 40;

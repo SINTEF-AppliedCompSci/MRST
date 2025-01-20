@@ -1,5 +1,3 @@
-mrstModule add vem mpfa mpsaw vemmech libgeometry
-
 close all
 
 %% params setting
