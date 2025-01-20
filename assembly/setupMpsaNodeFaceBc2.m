@@ -1,4 +1,4 @@
-function [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls)
+function [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls, mappings, varargin)
 % The structure bc gives conditions on the nodeface displacement
 
 %{
@@ -20,7 +20,11 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
 
+    useVirtual = opt.useVirtual;
+    
     assert(isfield(bc, 'bcnodefacetbl'), ['this function is meant to set ' ...
                         'boundary conditions at the nodeface'])
     
@@ -30,8 +34,16 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     facetbl        = tbls.facetbl;
     
     bcnodefacetbl = bc.bcnodefacetbl;
+
+    map = TensorMap();
+    map.fromTbl  = nodefacetbl;
+    map.toTbl    = bcnodefacetbl;
+    map.mergefds = {'nodes', 'faces'};
+    nodeface_from_bcnodeface = map.getDispatchInd();
+
     bcnodefacetbl = bcnodefacetbl.addLocInd('bcinds');
-    bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, 'optpureproduct', true);
+
+    bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
     
     linform = bc.linform;
     linform = reshape(linform', [], 1);
@@ -47,7 +59,22 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     prod.tbl2 = bcnodefacevectbl;
     prod.tbl3 = bcnodefacevectbl;
     prod.mergefds = {'faces'};
-    prod = prod.setup();
+
+    if useVirtual
+        
+        prod.pivottbl = bcnodefacevectbl;
+        
+        [vec, i] = ind2sub([vectbl.num, bcnodefacetbl.num], (1 : bcnodefacevectbl.num)');
+
+        prod.dispind1 = mappings.face_from_nodeface(nodeface_from_bcnodeface(i));
+        prod.dispind2 = (1 : bcnodefacevectbl.num)';
+        prod.dispind3 = (1 : bcnodefacevectbl.num)';
+        
+        prod.issetup = true;
+
+    else
+        prod = prod.setup();
+    end
     
     linform = prod.eval(nfareas, linform);
     
@@ -56,7 +83,23 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     prod.tbl2 = bcnodefacetbl;
     prod.tbl3 = bcnodefacetbl;
     prod.mergefds = {'faces'};
-    prod = prod.setup();
+
+    if useVirtual
+        
+        prod.pivottbl = bcnodefacetbl;
+
+        i = (1 : bcnodefacetbl.num)';
+        j = nodeface_from_bcnodeface(i);
+        j = mappings.face_from_nodeface(j);
+        prod.dispind1 = j;
+        prod.dispind2 = i;
+        prod.dispind3 = i;
+        
+        prod.issetup = true;
+
+    else
+        prod = prod.setup();
+    end
     
     bcvals = bc.linformvals;
     bcvals = prod.eval(nfareas, bcvals);
@@ -67,7 +110,22 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     prod.tbl3      = bcnodefacetbl;
     prod.mergefds  = {'nodes', 'faces', 'bcinds'};
     prod.reducefds = {'vec'};
-    prod = prod.setup();
+
+    if useVirtual
+        
+        prod.pivottbl = bcnodefacevectbl;
+
+        [vec, i] = ind2sub([vectbl.num, bcnodefacetbl.num], (1 : bcnodefacevectbl.num)');
+
+        prod.dispind1 = (1 : bcnodefacevectbl.num)';
+        prod.dispind2 = (1 : bcnodefacevectbl.num)';
+        prod.dispind3 = i;
+        
+        prod.issetup = true;
+
+    else
+        prod = prod.setup();
+    end
      
     D_T = SparseTensor('matlabsparse', true);
     D_T = D_T.setFromTensorProd(linform, prod);
@@ -76,7 +134,19 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     map.fromTbl  = nodefacevectbl;
     map.toTbl    = bcnodefacevectbl;
     map.mergefds = {'nodes', 'faces', 'vec'};
-    map = map.setup();
+
+    if useVirtual
+        
+        map.pivottbl = bcnodefacevectbl;
+        
+        [vec, i] = ind2sub([vectbl.num, bcnodefacetbl.num], (1 : bcnodefacevectbl.num)');
+        
+        map.dispind1 = sub2ind([vectbl.num, nodefacetbl.num], vec, nodeface_from_bcnodeface(i));
+        map.dispind2 = (1 : bcnodefacevectbl.num)';
+        map.issetup = true;
+    else
+        map = map.setup();
+    end
     
     M_T = SparseTensor('matlabsparse', true);
     M_T = M_T.setFromTensorMap(map);

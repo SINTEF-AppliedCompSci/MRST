@@ -1,4 +1,4 @@
-function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts, varargin)
+function output = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts, varargin)
 %Undocumented Utility Function
 
 %{
@@ -297,5 +297,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                       'D', D);
     
     extra.nKg = nKg;
+
+    output = struct('matrices', matrices, ...
+                    'bcvals'  , bcvals  , ...
+                    'extra'   , extra);
     
 end

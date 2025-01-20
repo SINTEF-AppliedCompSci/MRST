@@ -78,7 +78,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             map.toTbl    = nodefacetbl;
             map.mergefds = {'nodes', 'faces'};
 
-            mapping.globnodeface_from_nodeface = map.getDispatchInd();
+            mappings.globnodeface_from_nodeface = map.getDispatchInd();
         end
         
       case 'empty'

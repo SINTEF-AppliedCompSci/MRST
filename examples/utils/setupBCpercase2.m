@@ -1,4 +1,4 @@
-function loadstruct = setupBCpercase2(runcase, G, tbls, mappings, extras)
+function loadstruct = setupBCpercase2(runcase, G, tbls, mappings, extras, varargin)
 % Boundary conditions
 
 %{
@@ -20,7 +20,11 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
 
+    useVirtual = opt.useVirtual;
+    
     % One linear form per Dirichlet condition
 
     nodefacetbl        = tbls.nodefacetbl;
@@ -87,35 +91,18 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
         extnodefacevectbl = crossIndexArray(extnodefacetbl, vectbl, {});
 
+        [extcellnodefacetbl, indstruct] = crossIndexArray(extnodefacetbl, cellnodefacetbl, {'nodes', 'faces'});
+
+        extnodeface_from_extcellnodeface  = indstruct{1}.inds;
+        cellnodeface_from_extcellnodeface = indstruct{2}.inds;
+
+        extcellnodefacevectbl = crossIndexArray(extcellnodefacetbl, vectbl, {});
+
         map = TensorMap();
         map.fromTbl  = cellnodefacevectbl;
         map.toTbl    = extnodefacevectbl;
         map.mergefds = {'faces', 'nodes', 'vec'};
-
-        % Here, we setup a direct construction of extcellnodefacetbl, which allows us
-        % to avoid map = map.setup()    
-        %    
-        %    map = map.setup();
-        %    extFacetNormals = map.eval(facetNormals);
-
-        u = (1 : extnodefacetbl.num)';
-        v = zeros(nodefacetbl.num, 1);
-        v(nodeface_from_extnodeface) = u;
-        w = v(nodeface_from_cellnodeface);
-        ind = find(w);
-        fds = {'cells', 'nodes', 'faces'};
-        [~, fdind] = ismember(fds, cellnodefacevectbl.fdnames);
-        extcellnodefacemat = cellnodefacevectbl.inds(:, fdind);
-        extcellnodefacemat = extcellnodefacemat(ind, 1 : 3);
-
-        extcellnodefacetbl = IndexArray([]);
-        extcellnodefacetbl = extcellnodefacetbl.setup(fds, extcellnodefacemat);
-
-        extnodeface_from_extcellnodeface = w(ind);
-        cellnodeface_from_extcellnodeface = ind;
-
-        extcellnodefacevectbl = crossIndexArray(extcellnodefacetbl, vectbl, {});
-
+        
         map.pivottbl = extcellnodefacevectbl;
         ecnf_num = extcellnodefacetbl.num;
         ecnfc_num = extcellnodefacevectbl.num;
@@ -129,11 +116,24 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         extFacetNormals = map.eval(facetNormals);
 
         map = TensorMap();
-        map.fromTbl = extnodefacevectbl;
-        map.toTbl = nodefacevectbl;
+        map.fromTbl  = extnodefacevectbl;
+        map.toTbl    = nodefacevectbl;
         map.mergefds = {'faces', 'nodes', 'vec'};
 
-        map = map.setup();
+        if useVirtual
+            
+            map.pivottbl = extnodefacevectbl;
+
+            [vec, i] = ind2sub([d_num, extnodefacetbl.num], (1 : extnodefacevectbl.num)');
+            map.dispind1 = (1 : extnodefacevectbl.num)';
+            map.dispind2 = sub2ind([d_num, nodefacetbl.num], vec, nodeface_from_extnodeface(i));
+            map.issetup = true;
+            
+        else
+            
+            map = map.setup();
+            
+        end
 
         extforce = map.eval(-extFacetNormals);
 

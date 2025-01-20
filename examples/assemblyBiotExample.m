@@ -55,7 +55,7 @@ useVirtual = false;
 [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
 % Setup mechanical driving forces (volumetric forces and boundary condition)
-loadstruct = setupBCpercase2(runcase, G, tbls, mappings);
+loadstruct = setupBCpercase2(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
 % Setup fluid driving forces (source terms and boundary condition)
 
 % get some "external faces" from setupBCpercase
@@ -120,7 +120,7 @@ props = struct('mechprops' , mechprops , ...
                'fluidprops', fluidprops, ...
                'coupprops' , coupprops);
 
-casetype = 'standard';
+casetype = 'blockassembly';
 switch casetype
   case 'blockassembly'
     assembly = blockAssembleBiot(G, props, drivingforces, eta, tbls, mappings, 'blocksize', 20, 'verbose', true, 'useVirtual', useVirtual);

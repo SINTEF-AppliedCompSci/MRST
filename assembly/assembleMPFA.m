@@ -74,7 +74,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     bcdirichlet = bcstruct.bcdirichlet;
     opts = struct('eta', eta, ...
                   'bcetazero', opt.bcetazero);
-    [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts, 'useVirtual', useVirtual);
+    output = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts, 'useVirtual', useVirtual);
+
+    matrices = output.matrices;
+    bcvals   = output.bcvals;
+    extra    = output.extra;
     
     % We enforce the Dirichlet boundary conditions as Lagrange multipliers
     if ~isempty(bcstruct.bcneumann)

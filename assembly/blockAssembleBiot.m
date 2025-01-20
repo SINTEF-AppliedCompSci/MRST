@@ -270,7 +270,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         K = map.eval(globK);
 
-
+        
         % Assembly mechanical part
         
         % We collect the degrees of freedom in the current block that belongs to the boundary.
@@ -302,6 +302,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             mechbc = struct('bcnodefacetbl', mechbcnodefacetbl2, ...
                             'linform'      , linform      , ...
                             'linformvals'  , linformvals);
+        else
+            mechbcnodefacetbl2 = replacefield(mechbcnodefacetbl, {{'bcinds', ''}});
+            mechbc = struct('bcnodefacetbl', mechbcnodefacetbl2, ...
+                            'linform'      , []      , ...
+                            'linformvals'  , []);
         end
 
         % We get the part of external and volumetric force that are active in the block
@@ -315,8 +320,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             map.pivottbl = nodefacevectbl;
 
             [vec, i] = ind2sub([vectbl.num, nodefacetbl.num], (1 : nodefacevectbl.num)');
-            map.dispind1 = sub2ind([vectbl.num, globnodefacetbl.num], vec, globnodeface_from_nodeface(i));
+            map.dispind1 = sub2ind([vectbl.num, globnodefacetbl.num], vec, mappings.globnodeface_from_nodeface(i));
             map.dispind2 = (1 : nodefacevectbl.num)';            
+
+            map.issetup = true;
             
         else
             map = map.setup();
@@ -351,8 +358,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         % We get the part of external and volumetric sources that are active in the block
         map = TensorMap();
-        map.fromTbl = globnodefacetbl;
-        map.toTbl = nodefacetbl;
+        map.fromTbl  = globnodefacetbl;
+        map.toTbl    = nodefacetbl;
         map.mergefds = {'nodes', 'faces'};
         map = map.setup();
         
@@ -361,8 +368,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         % Assemble mechanical part
         
         map = TensorMap();
-        map.fromTbl = globfacetbl;
-        map.toTbl = facetbl;
+        map.fromTbl  = globfacetbl;
+        map.toTbl    = facetbl;
         map.mergefds = {'faces'};
         map = map.setup();
         
@@ -370,7 +377,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         opts = struct('eta', eta, ...
                       'bcetazero', opt.bcetazero);
-        [mechmat, mechbcvals] = coreMpsaAssembly(G, C, mechbc, nnpf, tbls, mappings, opts);
+        output = coreMpsaAssembly2(G, C, mechbc, nnpf, tbls, mappings, opts, 'useVirtual', useVirtual);
+
+        mechmat    = output.matrices;
+        mechbcvals = output.bcvals;
         
         % Assemble fluid part
 
@@ -378,8 +388,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         opts = struct('eta', eta, ...
                       'bcetazero', opt.bcetazero, ...
                       'dooptimize', dooptimize);
-        [fluidmat, fluidbcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts);
-        
+        output = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts, 'useVirtual', useVirtual);
+
+        fluidmat    = output.matrices;
+        fluidbcvals = output.bcvals;
         
         atbls = {nodefacevectbl, cellvectbl, nodefacetbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};
         locA = cell(nA, 1);
@@ -404,7 +416,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         alpha = map.eval(globalpha);
         rho   = map.eval(globrho);
         nnpc  = map.eval(nnodespercell);
-        coupassembly = assembleCouplingTerms(G, eta, alpha, nnpc, tbls, mappings);
+        coupassembly = assembleCouplingTerms(G, eta, alpha, nnpc, tbls, mappings, 'useVirtual', useVirtual);
         
         % Recover terms from mpsa assembly
         

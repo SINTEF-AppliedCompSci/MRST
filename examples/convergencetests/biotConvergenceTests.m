@@ -44,13 +44,12 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    % Load necessary modules
-    mrstModule add vem mpfa mpsaw vemmech libgeometry
-
     close all
     dosave = true;
     savecount = 1; % counter for setting up filenames.
     filerootname = 'biotconvoutput';
+
+    useVirtual = true;
     
     % params is a struct with the fields:
     %    Nd       : Spatial dimension (Nd = 2 or 3)
@@ -83,7 +82,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'tau'     , 1, ...
                         'rho'     , 1);
         
-        output = biotConvergenceFunc(params);
+        output = biotConvergenceFunc(params, 'useVirtual', useVirtual);
         plotConv(output, params);
         if dosave
             filename = sprintf('%s%d.mat', filerootname, savecount);
@@ -107,7 +106,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'tau'     , 1, ...
                         'rho'     , 1);
         
-        output = biotConvergenceFunc(params);
+        output = biotConvergenceFunc(params, 'useVirtual', useVirtual);
         plotConv(output, params);
         if dosave
             filename = sprintf('%s%d.mat', filerootname, savecount);
@@ -130,7 +129,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'tau'     , 1, ...
                         'rho'     , 1);
         
-        output = biotConvergenceFunc(params);
+        output = biotConvergenceFunc(params, 'useVirtual', useVirtual);
         plotConv(output, params);
         if dosave
             filename = sprintf('%s%d.mat', filerootname, savecount);
@@ -153,7 +152,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'tau'     , 1, ...
                         'rho'     , 1);
         
-        output = biotConvergenceFunc(params);
+        output = biotConvergenceFunc(params, 'useVirtual', useVirtual);
         plotConv(output, params);
         if dosave
             filename = sprintf('%s%d.mat', filerootname, savecount);
@@ -176,7 +175,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'tau'     , 1, ...
                         'rho'     , 1);
         
-        output = biotConvergenceFunc(params, 'blocksize', 100);
+        output = biotConvergenceFunc(params, 'blocksize', 100, 'useVirtual', useVirtual);
         plotConv(output, params);
         if dosave
             filename = sprintf('%s%d.mat', filerootname, savecount);
@@ -199,7 +198,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'tau'     , 1, ...
                         'rho'     , 1);
         
-        output = biotConvergenceFunc(params, 'blocksize', 100);
+        output = biotConvergenceFunc(params, 'blocksize', 100, 'useVirtual', useVirtual);
         plotConv(output, params);
         if dosave
             filename = sprintf('%s%d.mat', filerootname, savecount);

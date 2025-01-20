@@ -154,8 +154,6 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     map.fromTbl  = cellnodetbl;
     map.toTbl    = nodetbl;
     map.mergefds = {'nodes'};
-    map = map.setup();
-
 
     if useVirtual
         map.pivottbl = cellnodetbl;
@@ -459,7 +457,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
 
     % Matrix for boundary conditions
     
-    [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls);
+    [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls, mappings, 'useVirtual', useVirtual);
 
     % Matrix for the stress computation
 

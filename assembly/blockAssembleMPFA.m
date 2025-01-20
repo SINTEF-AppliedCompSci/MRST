@@ -179,8 +179,12 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         opts = struct('eta', eta, ...
                       'bcetazero', opt.bcetazero, ...
                       'dooptimize', dooptimize);
-        [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts);
-    
+        output =  coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts);
+
+        matrices = output.matrices;
+        bcvals   = output.bcvals;
+        extra    = output.extra;
+        
         A11 = matrices.A11;
         A12 = matrices.A12;
         A21 = matrices.A21;

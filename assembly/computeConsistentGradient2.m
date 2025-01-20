@@ -28,7 +28,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     bcetazero  = opt.bcetazero;
     useVirtual = opt.useVirtual;
     
-    cellnodefacecents = computeNodeFaceCentroids2(G, eta, tbls, 'bcetazero', bcetazero, 'useVirtual', useVirtual);
+    cellnodefacecents = computeNodeFaceCentroids2(G, eta, tbls, ...
+                                                  'bcetazero', bcetazero, ...
+                                                  'useVirtual', useVirtual);
 
     vectbl             = tbls.vectbl;
     cellnodetbl        = tbls.cellnodetbl;
