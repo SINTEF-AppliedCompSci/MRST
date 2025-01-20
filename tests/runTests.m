@@ -40,7 +40,7 @@ for itestcase = 1 : numel(testCases)
     testCase = testCases{itestcase};
     suite =  TestSuite.fromClass(meta.class.fromName(testCase));
 
-    if strcmp(testCase, 'TestExamples')
+    % if strcmp(testCase, 'TestExamples')
 
         % % Tests that are not supported on github
         % filenames = {'somtest'};
@@ -51,7 +51,7 @@ for itestcase = 1 : numel(testCases)
         % end
         % suite = suite.selectIf(~selector);
 
-    end
+    % end
 
     suites{itestcase} = suite;
 

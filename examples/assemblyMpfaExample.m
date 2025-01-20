@@ -5,8 +5,6 @@
 % condition such that the exact solution is linear. The grid is a twisted
 % grid made from a Cartesian grid.
 
-mrstModule add ad-core ad-props incomp mrst-gui mpfa postprocessing mpsaw
-
 clear all
 close all
 

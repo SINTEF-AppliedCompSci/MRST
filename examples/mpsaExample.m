@@ -1,7 +1,3 @@
-%% load modules
-
-mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
-
 clear all
 close all
 
