@@ -13,7 +13,7 @@ classdef MechModel < PhysicalModel
         %              - force   , Volumetric boundary conditions
         MechPropertyFunctions;
 
-        % assembly choise
+        % assembly optimisation using virtual index array tables
         useVirtual        
     end
 

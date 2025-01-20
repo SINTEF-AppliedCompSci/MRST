@@ -9,7 +9,7 @@ classdef BiotBlackOilModel < GenericBlackOilModel
         BiotPropertyFunctions
         MechPropertyFunctions        
 
-        % assembly choise
+        % assembly optimisation using virtual index array tables
         useVirtual
     end
 

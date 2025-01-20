@@ -55,21 +55,15 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     useVirtual = opt.useVirtual;
     
-    cellvec12tbl         = tbls.cellvec12tbl;
-    cellnodevec12tbl     = tbls.cellnodevec12tbl;
-    cellnodefacetbl      = tbls.cellnodefacetbl;
-    cellnodefacevectbl   = tbls.cellnodefacevectbl;
-    celltbl              = tbls.celltbl;
-    vectbl               = tbls.vectbl;
-    nodefacevectbl       = tbls.nodefacevectbl;
-    nodefacetbl          = tbls.nodefacetbl;
-    
-    if useVirtual
-        % fetch the index mappings to set explictly the tensor products or tensor mappings
-        cell_from_cellnodeface            = mappings.cell_from_cellnodeface;
-        nodeface_from_cellnodeface        = mappings.nodeface_from_cellnodeface;
-    end
-    
+    cellvec12tbl       = tbls.cellvec12tbl;
+    cellnodevec12tbl   = tbls.cellnodevec12tbl;
+    cellnodefacetbl    = tbls.cellnodefacetbl;
+    cellnodefacevectbl = tbls.cellnodefacevectbl;
+    celltbl            = tbls.celltbl;
+    vectbl             = tbls.vectbl;
+    nodefacevectbl     = tbls.nodefacevectbl;
+    nodefacetbl        = tbls.nodefacetbl;
+
     % Some shortcuts
     c_num     = celltbl.num;
     cnf_num   = cellnodefacetbl.num;

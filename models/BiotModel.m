@@ -12,7 +12,7 @@ classdef BiotModel < PhysicalModel
         BiotPropertyFunctions
         MechPropertyFunctions
 
-        % assembly choise
+        % assembly optimisation using virtual index array tables
         useVirtual
         
     end
