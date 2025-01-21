@@ -109,7 +109,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     nnodespercell = map.eval(ones(cellnodetbl.num, 1));
 
-    coupassembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings);
+    coupassembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings, 'useVirtual', useVirtual);
     
     % Recover matrices from mechanic assembly
     mechmat = mechassembly.matrices;

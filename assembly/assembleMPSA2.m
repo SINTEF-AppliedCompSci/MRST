@@ -55,6 +55,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                  'useVirtual'      , false, ...
                  'extraoutput'     , false);
     opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
     
     % Retrieve IndexArrays
 
@@ -72,14 +74,25 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     map.fromTbl  = nodefacetbl;
     map.toTbl    = facetbl;
     map.mergefds = {'faces'};
-    map = map.setup();
+
+    if useVirtual
+
+        map.pivottbl = nodefacetbl;
+        map.dispind1 = (1 : nodefacetbl.num)';
+        map.dispind2 = mappings.face_from_nodeface;
+        
+        map.issetup = true;
+        
+    else
+        map = map.setup();
+    end
     
     nnodesperface = map.eval(ones(nodefacetbl.num, 1));
     
     bc = loadstruct.bc;
     opts = struct('eta', eta, ...
                   'bcetazero', opt.bcetazero);
-    output = coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts, 'useVirtual', opt.useVirtual);
+    output = coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts, 'useVirtual', useVirtual);
 
     matrices = output.matrices;
     bcvals   = output.bcvals;
@@ -173,7 +186,21 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         map.fromTbl  = cellnodetbl;
         map.toTbl    = celltbl;
         map.mergefds = {'cells'};
-        map = map.setup();
+
+        if useVirtual
+
+            map.pivottbl = cellnodetbl;
+            map.dispind1 = (1 : cellnodetbl.num)';
+            map.dispind2 = cell_from_cellnode;
+
+            map.issetup = true;
+            
+        else
+            
+            map = map.setup();
+            
+        end
+        
         nnodespercell = map.eval(ones(cellnodetbl.num, 1));
         cassembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings);
         cdiv{1} = cassembly.divconsnf;

@@ -89,11 +89,6 @@ function [tbls, mappings] = setupMpsaStandardTables(G, varargin)
 
     vec12tbl = gen.eval();
     
-    cellvectbl = crossIndexArray(celltbl, vectbl, {}); % ordering is cell - vec
-    nodevectbl = crossIndexArray(nodetbl, vectbl, {}); % ordering is node - vec
-                                                       % not virtual because used in setupBCpercase (could be optimized)
-    nodefacevectbl = crossIndexArray(nodefacetbl, vectbl, {});
-
     map = TensorMap();
     map.fromTbl = celltbl;
     map.toTbl = cellnodetbl;
@@ -144,15 +139,15 @@ function [tbls, mappings] = setupMpsaStandardTables(G, varargin)
 
     cell_from_cellnodeface = cell_from_cellnode(cellnode_from_cellnodeface);
     
-    cellnodevectbl = crossIndexArray(cellnodetbl, vectbl, {}, 'virtual', useVirtual);
-
-    % not virtual because used in setupBCpercase (could be optimized)
-    cellnodefacevectbl = crossIndexArray(cellnodefacetbl, vectbl, {});
-    
-    facevectbl       = crossIndexArray(facetbl    , vectbl  , {}, 'virtual', useVirtual);
-    cellnodevec12tbl = crossIndexArray(cellnodetbl, vec12tbl, {}, 'virtual', useVirtual);
-    cellfacevectbl   = crossIndexArray(cellfacetbl, vectbl  , {}, 'virtual', useVirtual);
-    cellvec12tbl     = crossIndexArray(celltbl    , vec12tbl, {}, 'virtual', useVirtual);
+    cellnodevectbl     = crossIndexArray(cellnodetbl    , vectbl  , {}, 'optpureproduct', true, 'virtual', useVirtual);
+    cellvectbl         = crossIndexArray(celltbl        , vectbl  , {}, 'optpureproduct', true, 'virtual', useVirtual); 
+    nodevectbl         = crossIndexArray(nodetbl        , vectbl  , {}, 'optpureproduct', true, 'virtual', useVirtual); 
+    cellnodefacevectbl = crossIndexArray(cellnodefacetbl, vectbl  , {}, 'optpureproduct', true, 'virtual', useVirtual);
+    nodefacevectbl     = crossIndexArray(nodefacetbl    , vectbl  , {}, 'optpureproduct', true, 'virtual', useVirtual);
+    facevectbl         = crossIndexArray(facetbl        , vectbl  , {}, 'optpureproduct', true, 'virtual', useVirtual);
+    cellnodevec12tbl   = crossIndexArray(cellnodetbl    , vec12tbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
+    cellfacevectbl     = crossIndexArray(cellfacetbl    , vectbl  , {}, 'optpureproduct', true, 'virtual', useVirtual);
+    cellvec12tbl       = crossIndexArray(celltbl        , vec12tbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
     
     gen = CrossIndexArrayGenerator();
     gen.tbl1 = vec12tbl;

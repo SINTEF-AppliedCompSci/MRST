@@ -63,18 +63,31 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     bcfacetbl.faces = bcfaces;
     bcfacetbl = IndexArray(bcfacetbl);
     bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
-    bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, 'optpureproduct', ...
-                                       true);
+    bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, ...
+                                       'optpureproduct', true   , ...
+                                       'useVirtual', useVirtual);
     clear bcfacetbl
 
-    [~, nodefacecents] = computeNodeFaceCentroids2(G, eta, tbls, 'bcetazero', opt.bcetazero);
+    [~, nodefacecents] = computeNodeFaceCentroids2(G, eta, tbls, ...
+                                                   'bcetazero', opt.bcetazero, ...
+                                                   'useVirtual', useVirtual);
 
     map = TensorMap();
-    map.fromTbl = nodefacevectbl;
-    map.toTbl = bcnodefacevectbl;
+    map.fromTbl  = nodefacevectbl;
+    map.toTbl    = bcnodefacevectbl;
     map.mergefds = {'nodes', 'faces', 'vec'};
-    map = map.setup();
 
+    if useVirtual
+        map.pivottbl = bcnodefacevectbl;
+        
+        map.dispind1 = (1 : cellnodetbl.num)';
+        map.dispind2 = node_from_cellnode;
+        map.issetup = true;
+        
+    else
+        map = map.setup();
+    end
+        
     bcnodefacecents = map.eval(nodefacecents);
     % Here, we assume a given structure of bcnodefacevectbl:
     bcnodefacecents = reshape(bcnodefacecents, Nd, [])';
