@@ -1,6 +1,6 @@
 % Run this file to load the MRST modules required for the examples and install the necessary paths.
 
-mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui mpsaw mpfa libgeometry vemmech
+mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui mpsaw mpfa libgeometry vemmech vem
 
 addpath('.');
 
