@@ -69,7 +69,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     globbcnodefacetbl = globbc.bcnodefacetbl;        
     globbcnodefacetbl = globbcnodefacetbl.addLocInd('bcinds');    
     globbcnodefacevectbl = crossIndexArray(globbcnodefacetbl, vectbl, {}, ...
-                                           'optpureproduct', true);
+                                           'optpureproduct', true, 'virtual', useVirtual);
     globlinform = globbc.linform;
     globlinform = reshape(globlinform', [], 1);
     globlinformvals = globbc.linformvals;
@@ -90,14 +90,22 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % computes number of nodes per face
     
     map = TensorMap();
-    map.fromTbl = globnodefacetbl;
-    map.toTbl = globfacetbl;     
+    map.fromTbl  = globnodefacetbl;
+    map.toTbl    = globfacetbl;     
     map.mergefds = {'faces'};
-    map = map.setup();
+    if useVirtual
+        map.pivottbl = globnodefacetbl;
+        map.dispind1 = (1 : globnodefacetbl.num)'
+        map.dispind2 = globmappings.face_from_nodeface;
+        map.issetup = true;
+    else
+        map = map.setup();
+    end
     
     nnodesperface = map.eval(ones(globnodefacetbl.num, 1));
 
     for iblock = 1 : nblocks
+        
         % Construction of tensor g (as defined in paper eq 4.1.2)
         nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
 
@@ -147,8 +155,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         % Obtain stiffness values for the block
         
         map = TensorMap();
-        map.fromTbl = globcellvec1212tbl;
-        map.toTbl = cellvec1212tbl;
+        map.fromTbl  = globcellvec1212tbl;
+        map.toTbl    = cellvec1212tbl;
         map.mergefds = {'cells', 'vec11', 'vec12', 'vec21', 'vec22'};
         
         map.pivottbl = cellvec1212tbl;
@@ -164,8 +172,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         % We collect the degrees of freedom in the current block that belongs to the boundary.
         
-        bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', ...
-                            'faces'});
+        [bcnodefacetbl, indstruct] = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
+        globbcnodeface_from_bcnodeface = indstruct{1}.inds;
         
         bcterm_exists = true;
         if bcnodefacetbl.num == 0
@@ -175,8 +183,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         if bcterm_exists
             
             bcind = bcnodefacetbl.get('bcinds');
-            bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, ...
-                                               'optpureproduct', true);
+            bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
             bcnodefacetbl = replacefield(bcnodefacetbl, {{'bcinds', ''}});
             
             linformvals = globlinformvals(bcind, :);
@@ -185,14 +192,29 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             map.fromTbl  = globbcnodefacevectbl;
             map.toTbl    = bcnodefacevectbl;
             map.mergefds = {'bcinds', 'vec', 'nodes', 'faces'};
-            map = map.setup();
-            
+
+            if useVirtual
+                map.pivottbl = bcnodefacevectbl;
+                [vec, i] = ind2sub([vectbl.num, bcnodefacetbl.num], (1 : bcnodefacevectbl.num)');
+                map.dispind1 = sub2ind([vectbl.num, globbcnodefacetbl.num], vec, globbcnodeface_from_bcnodeface(i));
+                map.dispind2 = (1 : bcnodefacevectbl.num)';
+                map.issetup = true;
+            else
+                map = map.setup();
+            end
+
             linform = map.eval(globlinform);
             linform = reshape(linform, dim, [])';
             
             bc = struct('bcnodefacetbl', bcnodefacetbl, ...
                         'linform'      , linform      , ...
                         'linformvals'  , linformvals);
+        else
+            
+            bcnodefacetbl = replacefield(bcnodefacetbl, {{'bcinds', ''}});
+            bc = struct('bcnodefacetbl', bcnodefacetbl, ...
+                        'linform'      , []      , ...
+                        'linformvals'  , []);
         end
 
         map = TensorMap();
@@ -209,7 +231,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             map.issetup = true;
             
         else
+            
             map = map.setup();
+            
         end
 
         nnpf = map.eval(nnodesperface);

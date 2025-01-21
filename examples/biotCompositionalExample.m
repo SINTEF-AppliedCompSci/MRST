@@ -55,7 +55,7 @@ lambda = lambda*ones(G.cells.num, 1);
 mu = mu*ones(G.cells.num, 1);
 mechprop = struct('lambda', lambda, 'mu', mu);
 
-useVirtual = false;
+useVirtual = true;
 
 [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
 

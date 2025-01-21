@@ -60,7 +60,7 @@ schedule = simpleSchedule(dt, 'W', W);
 [ws, states] = simulateScheduleAD(state0, model, schedule);
 
 %% Simulate implicit MPFA
-useVirtual = false;
+useVirtual = true;
 model_mpfa = MpfaBlackOilModel(G, rock, fluid, 'water', true, 'oil', true, 'gas', false, 'useVirtual', useVirtual);
 
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);

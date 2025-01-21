@@ -304,6 +304,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                             'linform'      , linform      , ...
                             'linformvals'  , linformvals);
         else
+
             mechbcnodefacetbl2 = replacefield(mechbcnodefacetbl, {{'bcinds', ''}});
             mechbc = struct('bcnodefacetbl', mechbcnodefacetbl2, ...
                             'linform'      , []      , ...
@@ -343,6 +344,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         if bcterm_exists
+            
             map = TensorMap();
             map.fromTbl  = globfluidbcnodefacetbl;
             map.toTbl    = fluidbcnodefacetbl;

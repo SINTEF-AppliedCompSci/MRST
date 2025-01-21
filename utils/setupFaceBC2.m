@@ -36,7 +36,8 @@ function [nodefacebc, tbls, mappings] = setupFaceBC2(bc, G, tbls, mappings, vara
         map.pivottbl = bcnodefacetbl;
         map.dispind1 = bcface_from_bcnodeface;
         map.dispind2 = (1 : bcnodefacetbl.num)';
-
+        map.issetup = true;
+        
     else
     
         map = map.setup();
@@ -59,7 +60,7 @@ function [nodefacebc, tbls, mappings] = setupFaceBC2(bc, G, tbls, mappings, vara
 
         map.pivottbl = bcnodefacevectbl;
 
-        N = bcnodefacetbl.num
+        N = bcnodefacetbl.num;
         [vec, i] = ind2sub([vectbl.num], (1 : bcnodefacevectbl.num)');
         map.dispind1 = sub2ind([vectbl.num,  N], vec, bcface_from_bcnodeface(i));
         map.dispind2 = (1 : bcnodefacevectbl.num)';
