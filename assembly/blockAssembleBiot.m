@@ -95,7 +95,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     fluidprops = props.fluidprops;
     coupprops  = props.coupprops;
    
-    globC     = setupStiffnessTensor2(mechprops, globtbls);
+    globC     = setupStiffnessTensor2(mechprops, globtbls, globmappings, 'useVirtual', useVirtual);
     globK     = fluidprops.K;
     globalpha = coupprops.alpha;
     globrho   = coupprops.rho;

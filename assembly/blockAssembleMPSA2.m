@@ -77,7 +77,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     gncc = globcellvectbl.num;
     gnbc = globbcnodefacetbl.num;
     
-    globC = setupStiffnessTensor2(prop, globtbls);
+    globC = setupStiffnessTensor2(prop, globtbls, globmappings, 'useVirtual', useVirtual);
     
     B11 = sparse(gncc, gncc);
     B12 = sparse(gncc, gnbc);

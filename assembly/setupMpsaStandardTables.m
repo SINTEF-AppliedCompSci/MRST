@@ -157,9 +157,8 @@ function [tbls, mappings] = setupMpsaStandardTables(G, varargin)
 
     vec1212tbl = gen.eval();
 
-    % not virtual because used in setupStiffnessTensor (could be optimized).
-    cellvec1212tbl = crossIndexArray(celltbl, vec1212tbl, {}, ...
-                                     'optpureproduct', true);
+    % not virtual because used in setupStiffnessTensor.
+    cellvec1212tbl = crossIndexArray(celltbl, vec1212tbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
 
     gen = CrossIndexArrayGenerator();
     gen.tbl1        = cellnodetbl;
