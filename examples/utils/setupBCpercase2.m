@@ -162,8 +162,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             
             sourcevectbl = crossIndexArray(sourcetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
 
-            map = TensorMap()
-            map.fromTbl  = vectbl
+            map = TensorMap();
+            map.fromTbl  = vectbl;
             map.toTbl    = sourcevectbl;
             map.mergefds = {'vec'};
 
@@ -184,8 +184,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             
             force = map.eval(force);
 
-            map = TensorMap()
-            map.fromTbl  = sourcevectbl
+            map = TensorMap();
+            map.fromTbl  = sourcevectbl;
             map.toTbl    = cellvectbl;
             map.mergefds = {'cells', 'vec'};
             

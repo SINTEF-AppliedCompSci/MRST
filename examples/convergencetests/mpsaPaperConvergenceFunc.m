@@ -41,18 +41,21 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('verbose'  , false, ...
-                 'blocksize', []   , ...
-                 'bcetazero', false);
+    opt = struct('verbose'   , false, ...
+                 'blocksize' , []   , ...
+                 'bcetazero' , false, ...
+                 'useVirtual', false);
     
     opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
     
-    Nd = params.Nd;
-    nref = params.nref;
-    kappa = params.kappa;
-    alpha = params.alpha;
+    Nd       = params.Nd;
+    nref     = params.nref;
+    kappa    = params.kappa;
+    alpha    = params.alpha;
     gridtype = params.gridtype;
-    eta = params.eta;
+    eta      = params.eta;
     
     % at the moment, we must have mu0 = 1
     mu0 = 1;
@@ -75,8 +78,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         Nd = G.griddim;
         Nc = G.cells.num;
         
-        output = runConvSim(G, params, 'bcetazero', opt.bcetazero, 'blocksize', ...
-                            opt.blocksize);
+        output = runConvSim(G, params, ...
+                            'bcetazero', opt.bcetazero, ...
+                            'blocksize', opt.blocksize, ...
+                            'useVirtual', useVirtual);
         
         u = output.u;
         tbls = output.tbls;

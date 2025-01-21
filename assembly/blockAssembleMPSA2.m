@@ -95,7 +95,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     map.mergefds = {'faces'};
     if useVirtual
         map.pivottbl = globnodefacetbl;
-        map.dispind1 = (1 : globnodefacetbl.num)'
+        map.dispind1 = (1 : globnodefacetbl.num)';
         map.dispind2 = globmappings.face_from_nodeface;
         map.issetup = true;
     else
