@@ -51,6 +51,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     [tbls, mappings] = setupMpfaStandardTables(G, 'useVirtual', false);
 
     celltbl      = tbls.celltbl;
+    vectbl       = tbls.vectbl;
     vec12tbl     = tbls.vec12tbl;
     cellvec12tbl = tbls.cellvec12tbl;
 
@@ -64,6 +65,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         prod.pivottbl = cellvec12tbl;
 
         N = tbls.celltbl.num;
+        d_num = vectbl.num;
         [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cellvec12tbl.num)');
 
         prod.dispind1 = sub2ind([d_num, d_num], vec2, vec1);
