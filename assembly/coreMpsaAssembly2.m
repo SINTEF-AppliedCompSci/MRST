@@ -450,7 +450,12 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     
     A22 = prod.setupMatrix(nS);
 
-    [nodes, sz] = rlencode(nodefacevectbl.get('nodes'), 1);
+    if useVirtual
+        nodeinds = rldecode(mappings.node_from_nodeface, vectbl.num);
+    else
+        nodeinds = nodefacevectbl.get('nodes');
+    end
+    [nodes, sz] = rlencode(nodeinds, 1);
     opt.invertBlocks = 'm';
     bi = blockInverter(opt);
     invA11 = bi(A11, sz);

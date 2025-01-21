@@ -51,7 +51,7 @@ end
 G = computeGeometry(G);
 dim = G.griddim;
 
-useVirtual = false;
+useVirtual = true;
 [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
 % Setup mechanical driving forces (volumetric forces and boundary condition)

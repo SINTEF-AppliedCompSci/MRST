@@ -1,4 +1,4 @@
-function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids2(G, eta, tbls, varargin)
+function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids2(G, eta, tbls, mappings, varargin)
 %Undocumented Utility Function
 
 %{
@@ -76,7 +76,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         [vec, i] = ind2sub([d_num, cnf_num], (1 : cellnodefacevectbl.num)');
 
         map.dispind1 = (1 : cellnodefacevectbl.num)';
-        map.dispind2 = i;
+        map.dispind2 = sub2ind([d_num, tbls.nodefacetbl.num], vec, mappings.nodeface_from_cellnodeface(i));
         
         map.issetup = true;
         
