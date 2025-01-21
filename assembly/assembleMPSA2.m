@@ -68,7 +68,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     dim = vectbl.num;
 
-    C = setupStiffnessTensor2(prop, tbls);
+    C = setupStiffnessTensor2(prop, tbls, mappings, 'useVirtual', useVirtual);
     
     map = TensorMap();
     map.fromTbl  = nodefacetbl;
