@@ -74,7 +74,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         Nx = 2^iter1*ones(1, Nd); 
         G = gridForConvTest(Nx, gridtype); 
         G = computeVEMGeometry(G); 
-        G = computeGeometryCalc(G); 
+        G = computeGeometryCalc(G);
         Nd = G.griddim;
         Nc = G.cells.num;
         
