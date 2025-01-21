@@ -48,10 +48,11 @@ pref = 0*barsa;
 
 %% setup mechanics mech structure (with field prop and loadstruct)
 lambda = lambda*ones(G.cells.num, 1);
-mu = mu*ones(G.cells.num, 1);
+mu     = mu*ones(G.cells.num, 1);
+
 mechprop = struct('lambda', lambda, 'mu', mu);
 
-[tbls, mappings] = setupStandardTables(G);
+[tbls, mappings] = setupMpxaStandardTables(G);
 
 % We recover the top, bottom and lateral faces using function pside
 dummy = 0;
@@ -81,50 +82,52 @@ bc = struct('linform'    , linform , ...
             'extfaces'   , extfaces, ...
             'linformvals', bcvals);
 
-bc = setupFaceBC(bc, G, tbls);
+bc = setupFaceBC2(bc, G, tbls);
 
 %% setup vertical force at the top
 
 topfacetbl.faces = topfaces;
 topfacetbl = IndexArray(topfacetbl);
-nodefacecoltbl = tbls.nodefacecoltbl;
-topnodefacecoltbl = crossIndexArray(topfacetbl, nodefacecoltbl, {'faces'});
+nodefacevectbl = tbls.nodefacevectbl;
+topnodefacevectbl = crossIndexArray(topfacetbl, nodefacevectbl, {'faces'});
 
-cellnodefacetbl = tbls.cellnodefacetbl;
-cellnodefacecoltbl = tbls.cellnodefacecoltbl;
-facetNormals = computeFacetNormals(G, cellnodefacetbl);
+cellnodefacetbl    = tbls.cellnodefacetbl;
+cellnodefacevectbl = tbls.cellnodefacevectbl;
+
+facetNormals = computeFacetNormals2(G, cellnodefacetbl);
 
 map = TensorMap();
-map.fromTbl = cellnodefacecoltbl;
-map.toTbl = topnodefacecoltbl;
-map.mergefds = {'faces', 'nodes', 'coldim'};
+map.fromTbl  = cellnodefacevectbl;
+map.toTbl    = topnodefacevectbl;
+map.mergefds = {'faces', 'nodes', 'vec'};
 map = map.setup();
 
 topnormals = map.eval(facetNormals);
+
 extforce = -top_force*topnormals;
 
 map = TensorMap();
-map.fromTbl = topnodefacecoltbl;
-map.toTbl = nodefacecoltbl;
-map.mergefds = {'nodes', 'faces', 'coldim'};
+map.fromTbl  = topnodefacevectbl;
+map.toTbl    = nodefacevectbl;
+map.mergefds = {'nodes', 'faces', 'vec'};
 map = map.setup();
 
 extforce = map.eval(extforce);
 
-cellcoltbl = tbls.cellcoltbl;
-force = zeros(cellcoltbl.num, 1);
+cellvectbl = tbls.cellvectbl;
+force = zeros(cellvectbl.num, 1);
 
 loadstruct.bc = bc;
-loadstruct.extforce = zeros(nodefacecoltbl.num, 1); % get the dimension right
+loadstruct.extforce = zeros(nodefacevectbl.num, 1); % get the dimension right
 loadstruct.force = force;
 
 % Setup the mechanical structure (input to to setup model)
-mech.prop = mechprop;
+mech.prop       = mechprop;
 mech.loadstruct = loadstruct;
 
 %% Setup flow parameters (with field c and bcstruct)
 
-fluid.c = cW;
+fluid.c   = cW;
 fluid.src = []; % no source
 
 %% Setup boundary conditions for flow
@@ -140,8 +143,8 @@ bcfacetbl = IndexArray(bcfacetbl);
 bcnodefacetbl = crossIndexArray(nodefacetbl, bcfacetbl, {'faces'});
 
 map = TensorMap();
-map.fromTbl = bcfacetbl;
-map.toTbl = bcnodefacetbl;
+map.fromTbl  = bcfacetbl;
+map.toTbl    = bcnodefacetbl;
 map.mergefds = {'faces'};
 map = map.setup();
 
@@ -164,16 +167,18 @@ model.OutputStateFunctions = {'Dilatation', 'Stress'};
 
 %% Setup schedule
 % We gradually increase the force exterted at the top
-tsteps1 = 10; 
+tsteps1   = 10; 
 duration1 = 1;
-tsteps2 = 10;
+tsteps2   = 10;
 duration2 = 4;
+
 val1 = (duration1/tsteps1)*ones(tsteps1, 1);
 val2 = linspace(0, 1, tsteps2 + 1)'.^4;
 val2 = duration2*diff(val2);
 
-schedule.step.val = [val1; val2];
+schedule.step.val     = [val1; val2];
 schedule.step.control = [(1 : tsteps1)'; (tsteps1 + 1)*ones(tsteps2, 1)];
+
 for i = 1 : tsteps1
     coef = i/tsteps1;
     control(i) = struct('W', [], 'extforce', coef*extforce);
@@ -188,8 +193,8 @@ initState.pressure = zeros(G.cells.num, 1);
 nlf = size(bcstruct.bcdirichlet.bcvals, 1);
 initState.lambdafluid = zeros(nlf, 1);
 % mech
-cellcoltbl = tbls.cellcoltbl;
-initState.u = zeros(cellcoltbl.num, 1);
+cellvectbl = tbls.cellvectbl;
+initState.u = zeros(cellvectbl.num, 1);
 nlm = size(loadstruct.bc.linformvals, 1);
 initState.lambdamech = zeros(nlm, 1);
 initState.extforce = 0*extforce;

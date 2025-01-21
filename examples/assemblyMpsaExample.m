@@ -79,7 +79,7 @@ switch casetype
     [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
     loadstruct       = setupBCpercase2(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
     if useblock
-        assembly = blockAssembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true);
+        assembly = blockAssembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true, 'useVirtual', useVirtual);
     else
         assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);
     end
