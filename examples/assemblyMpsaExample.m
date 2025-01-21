@@ -15,18 +15,14 @@ eta = 0;
 bcetazero = false;
 
 %% Define and process geometry
+% Construct a Cartesian grid 
+runcases = {'2d-refinement', ...
+            '2d-linear'    , ...
+            '2d-compaction', ...
+            '3d-linear'    , ...
+            '3d-compaction' };
 
-extras.rho = 1; % density is used when gravity
-runcases = {'2d-refinement'          , ...
-            '2d-linear'              , ...
-            '2d-compaction'          , ...
-            '3d-linear'              , ...
-            '3d-compaction'          , ...
-            '3d-compaction-dirichlet', ...
-            '3d-gravity-zero-bc'  , ...
-            '3d-gravity'};
-
-runcase = '3d-gravity-zero-bc';
+runcase = '2d-compaction';
 
 switch runcase
   case '2d-refinement'
@@ -47,8 +43,8 @@ switch runcase
     % Nx = N*ones(1, 2);
     % G = createBisectedTriangleGrid(Nx,1);
     % G = twister(G, 0.1);
-  case {'3d-linear', '3d-compaction', '3d-gravity', '3d-gravity-zero-bc'}
-    nx = 10;
+  case {'3d-linear', '3d-compaction'}
+    nx = 5;
     ny = nx;
     nz = nx;
     G = cartGrid([nx, ny, nz], [1, 1, 1]);
@@ -56,7 +52,7 @@ switch runcase
     error('runcase not recognized');
 end
 
-% G = twister(G, 0.1);
+G = twister(G, 0.1);
 G = computeGeometry(G);
 dim = G.griddim;
 
@@ -70,12 +66,12 @@ prop = struct('lambda', lambda, ...
 
 useVirtual = false;
 [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
-loadstruct = setupBCpercase(runcase, G, tbls, mappings, extras);
+loadstruct = setupBCpercase(runcase, G, tbls, mappings);
 
-casetype = 'blockassembly';
+casetype = 'standard';
 switch casetype
   case 'blockassembly'
-    assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 500, 'verbose', true);
+    assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true);
   case 'standard'
     assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'extraoutput', true, 'addAdOperators', true); 
   case 'experimental'
@@ -95,7 +91,7 @@ u = sol(1 : n);
 lm = sol((n + 1) : end);
 
 isstresscomputed = false;
-if strcmp(casetype, 'standard') && (dim == 2)
+if strcmp(casetype, 'standard')
     % We compute node-face displacement values
     op = assembly.adoperators;
     unf = op.facenodedispop(u, lm);
@@ -130,20 +126,6 @@ if doplotsol
     titlestr = sprintf('displacement - %s direction, eta=%g', 'y', eta);
     title(titlestr)
     colorbar
-    if dim == 3
-        figure
-        plotCellData(G, uvec(:, 3));
-        titlestr = sprintf('displacement - %s direction, eta=%g', 'z', eta);
-        title(titlestr)
-        colorbar
-
-        figure
-        plotToolbar(G, uvec(:, 3));
-        titlestr = sprintf('displacement - %s direction, eta=%g', 'z', eta);
-        title(titlestr)
-        colorbar
-        
-    end
     if isstresscomputed
         figure
         plotCellData(G, stress(:, 1));

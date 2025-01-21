@@ -281,34 +281,6 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         rho = extras.rho;
         force = map.eval(rho*vols*10);
         
-      case '3d-gravity-zero-bc'
-        
-        allextfaces = find(any(G.faces.neighbors==0, 2));
-        n = numel(allextfaces);
-        for i = 1 : 3
-            linform        = zeros(3, 1);
-            linform(i)     = 1;
-            linforms{i}    = repmat(linform, n, 1);
-            linformvals{i} = zeros(n, 1);
-            extfaces{i}    = allextfaces;
-        end
-
-        vols = G.cells.volumes;
-
-        ztbl.coldim = 3;
-        ztbl = IndexArray(ztbl);
-
-        cellztbl = crossIndexArray(celltbl, ztbl, {});
-
-        map = TensorMap();
-        map.fromTbl = cellztbl;
-        map.toTbl = cellcoltbl;
-        map.mergefds= {'cells', 'coldim'};
-        map = map.setup();
-
-        rho = extras.rho;
-        force = map.eval(rho*vols*10);
-        
       otherwise
         
         error('runcase not recognized');
