@@ -253,7 +253,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     cellnodefacetbl = tbls.cellnodefacetbl;
     cellnodefacevectbl = tbls.cellnodefacevectbl;
     % facetNormals is in cellnodefacevectbl;
-    facetNormals =  computeFacetNormals(G, cellnodefacetbl);
+    facetNormals =  computeFacetNormals2(G, cellnodefacetbl);
 
     map = TensorMap();
     map.fromTbl  = cellnodefacevectbl;
