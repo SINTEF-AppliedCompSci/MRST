@@ -62,13 +62,18 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     bcfacetbl.faces = bcfaces;
     bcfacetbl = IndexArray(bcfacetbl);
-    bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
+    [bcnodefacetbl, indstruct] = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
+    if useVirtual
+        bcface_from_bcnodeface   = indstruct{1}.inds;
+        nodeface_from_bcnodeface = indstruct{2}.inds;
+    else
+    end
     bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, ...
                                        'optpureproduct', true   , ...
-                                       'useVirtual', useVirtual);
+                                       'virtual', useVirtual);
     clear bcfacetbl
 
-    [~, nodefacecents] = computeNodeFaceCentroids2(G, eta, tbls, ...
+    [~, nodefacecents] = computeNodeFaceCentroids2(G, eta, tbls, mappings,  ...
                                                    'bcetazero', opt.bcetazero, ...
                                                    'useVirtual', useVirtual);
 
@@ -79,9 +84,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     if useVirtual
         map.pivottbl = bcnodefacevectbl;
-        
-        map.dispind1 = (1 : cellnodetbl.num)';
-        map.dispind2 = node_from_cellnode;
+
+        [vec, i] = ind2sub([vectbl.num, bcnodefacetbl.num], (1 : bcnodefacevectbl.num)');
+        map.dispind1 = sub2ind([vectbl.num, nodefacetbl.num], vec, nodeface_from_bcnodeface(i));
+        map.dispind2 = (1 : bcnodefacevectbl.num)';
         map.issetup = true;
         
     else
@@ -150,12 +156,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     clear bc force
 
     if ~isempty(opt.blocksize)
-        assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                     'blocksize', opt.blocksize, 'verbose', ...
-                                     true, 'useVirtual', useVirtual);
+        assembly = blockAssembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, ...
+                                      'blocksize' , opt.blocksize, ...
+                                      'verbose'   , true         , ...
+                                      'useVirtual', useVirtual);
     else
         assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, ...
-                                 'bcetazero', opt.bcetazero, 'useVirtual', useVirtual);
+                                 'bcetazero', opt.bcetazero, ...
+                                 'useVirtual', useVirtual);
     end
 
     clear prop loadstruct
