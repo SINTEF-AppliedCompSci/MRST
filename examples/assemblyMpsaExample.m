@@ -77,11 +77,11 @@ switch casetype
     end
   case 'experimental'
     [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
-    loadstruct       = setupBCpercase2(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
+    loadstruct       = setupBCpercase(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
     if useblock
-        assembly = blockAssembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true, 'useVirtual', useVirtual);
+        assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'blocksize', 100, 'verbose', true, 'useVirtual', useVirtual);
     else
-        assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);
+        assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);
     end
 end
 
@@ -127,7 +127,7 @@ if plotdeformedgrid
       case {'blockassembly', 'standard'}
         unode = computeNodeDisp(u, tbls);
       case 'experimental'
-        unode = computeNodeDisp2(u, tbls, mappings, 'useVirtual', useVirtual);
+        unode = computeNodeDisp(u, tbls, mappings, 'useVirtual', useVirtual);
     end    
     unvec = formatField(unode, dim, 'displacement');
     coef = 1e0;

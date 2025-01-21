@@ -58,10 +58,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     d_num     = vectbl.num;
 
     % g belongs to cellnodefacevectbl;
-    g = computeConsistentGradient2(G, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);
+    g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);
 
     % facetNormals belongs to cellnodefacevectbl;
-    normals = computeFacetNormals2(G, cellnodefacetbl);
+    normals = computeFacetNormals(G, cellnodefacetbl);
 
     % K belongs to cellvec12tbl
 

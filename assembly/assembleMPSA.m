@@ -1,4 +1,4 @@
-function [assembly, extra] = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, varargin)
+function [assembly, extra] = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varargin)
 % Assembly of MPSA-weak
 %
 % Reference paper:
@@ -68,7 +68,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     dim = vectbl.num;
 
-    C = setupStiffnessTensor2(prop, tbls, mappings, 'useVirtual', useVirtual);
+    C = setupStiffnessTensor(prop, tbls, mappings, 'useVirtual', useVirtual);
     
     map = TensorMap();
     map.fromTbl  = nodefacetbl;
@@ -92,7 +92,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     bc = loadstruct.bc;
     opts = struct('eta', eta, ...
                   'bcetazero', opt.bcetazero);
-    output = coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts, 'useVirtual', useVirtual);
+    output = coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opts, 'useVirtual', useVirtual);
 
     matrices = output.matrices;
     bcvals   = output.bcvals;

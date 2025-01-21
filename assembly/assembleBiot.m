@@ -76,7 +76,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     options = {'assemblymatrices', true      , ...
                'useVirtual'      , useVirtual, ...
                'bcetazero'       , opt.bcetazero};
-    mechassembly = assembleMPSA2(G, mechprops, loadstruct, eta, tbls, mappings, options{:});
+    mechassembly = assembleMPSA(G, mechprops, loadstruct, eta, tbls, mappings, options{:});
     
     % Assemble fluid problem
     fluidforces = drivingforces.fluid;

@@ -1,4 +1,4 @@
-function unode = computeNodeDisp2(ucell, tbls, mappings, varargin)
+function unode = computeNodeDisp(ucell, tbls, mappings, varargin)
 %Undocumented Utility Function
 
 %{

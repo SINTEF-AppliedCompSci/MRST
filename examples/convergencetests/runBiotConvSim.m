@@ -94,7 +94,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     end
     bcdirnodefacevectbl = crossIndexArray(bcdirnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
 
-    [~, nodefacecents] = computeNodeFaceCentroids2(G, eta, tbls, mappings, ...
+    [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, mappings, ...
                                                    'bcetazero', opt.bcetazero, ...
                                                    'useVirtual', useVirtual);
 
@@ -253,7 +253,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     cellnodefacetbl = tbls.cellnodefacetbl;
     cellnodefacevectbl = tbls.cellnodefacevectbl;
     % facetNormals is in cellnodefacevectbl;
-    facetNormals =  computeFacetNormals2(G, cellnodefacetbl);
+    facetNormals =  computeFacetNormals(G, cellnodefacetbl);
 
     map = TensorMap();
     map.fromTbl  = cellnodefacevectbl;

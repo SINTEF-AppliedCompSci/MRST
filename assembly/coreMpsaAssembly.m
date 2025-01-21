@@ -1,4 +1,4 @@
-function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, opts, varargin)
+function output =  coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opts, varargin)
 % Assembly of MPSA-weak
 %
 % Reference paper:
@@ -97,7 +97,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
     
     % Construction of tensor g (as defined in paper eq 4.1.2)
     % g belongs to cellnodefacevectbl
-    g = computeConsistentGradient2(G, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);    
+    g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);    
 
     %% Computation of Cg
     
@@ -250,7 +250,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
 
     % Setup normals at facets (get vector in cellnodefacevectbl)
     
-    facetNormals = computeFacetNormals2(G, cellnodefacetbl);
+    facetNormals = computeFacetNormals(G, cellnodefacetbl);
     
     prod = TensorProd();
     prod.tbl1        = cellnodefacevectbl;
@@ -462,7 +462,7 @@ function output =  coreMpsaAssembly2(G, C, bc, nnodesperface, tbls, mappings, op
 
     % Matrix for boundary conditions
     
-    [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls, mappings, 'useVirtual', useVirtual);
+    [D, bcvals] = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls, mappings, 'useVirtual', useVirtual);
 
     % Matrix for the stress computation
 

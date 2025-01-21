@@ -100,7 +100,7 @@ bc.extfaces    = vertcat(extfaces{:});
 bc.linform     = vertcat(linforms{:});
 bc.linformvals = vertcat(linformvals{:});
 
-bc = setupFaceBC2(bc, G, tbls, mappings, 'useVirtual', useVirtual);
+bc = setupFaceBC(bc, G, tbls, mappings, 'useVirtual', useVirtual);
 
 loadstruct.bc = bc;
 loadstruct.extforce = extforce;
@@ -109,7 +109,7 @@ loadstruct.force = force;
 eta = 1/3;
 bcetazero = false;
 
-assembly = assembleMPSA2(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', ...
+assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', ...
                          bcetazero, 'extraoutput', true, 'useVirtual', useVirtual);
 
 B   = assembly.B  ;
@@ -123,7 +123,7 @@ n = cellvectbl.num;
 ucell = sol(1 : n);
 lagmult = sol(n + 1 : end);
 
-unode = computeNodeDisp2(ucell, tbls, mappings, 'useVirtual', useVirtual);
+unode = computeNodeDisp(ucell, tbls, mappings, 'useVirtual', useVirtual);
 
 dim = G.griddim;
 ucell = reshape(ucell, dim, [])';

@@ -1,4 +1,4 @@
-function [D, bcvals] = setupMpsaNodeFaceBc2(bc, G, nnodesperface, tbls, mappings, varargin)
+function [D, bcvals] = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls, mappings, varargin)
 % The structure bc gives conditions on the nodeface displacement
 
 %{

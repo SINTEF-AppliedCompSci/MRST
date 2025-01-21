@@ -1,4 +1,4 @@
-function [tbls, mappings] = setupStandardBlockTables2(G, nodetbl, globtbls, varargin)
+function [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, varargin)
 %Undocumented Utility Function
 
 %{

@@ -1,4 +1,4 @@
-function assembly = blockAssembleMPSA2(G, prop, loadstruct, eta, globtbls, globmappings, varargin)
+function assembly = blockAssembleMPSA(G, prop, loadstruct, eta, globtbls, globmappings, varargin)
 % Assembly of MPSA-weak
 %
 % Reference paper:
@@ -77,7 +77,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     gncc = globcellvectbl.num;
     gnbc = globbcnodefacetbl.num;
     
-    globC = setupStiffnessTensor2(prop, globtbls, globmappings, 'useVirtual', useVirtual);
+    globC = setupStiffnessTensor(prop, globtbls, globmappings, 'useVirtual', useVirtual);
     
     B11 = sparse(gncc, gncc);
     B12 = sparse(gncc, gnbc);
@@ -117,7 +117,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             fprintf('Assembling block %d/%d (%d nodes)\n', iblock, nblocks, nodetbl.num);
         end
         
-        [tbls, mappings] = setupStandardBlockTables2(G, nodetbl, globtbls, 'useVirtual', useVirtual, 'tblcase', 'mpsa');
+        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, 'useVirtual', useVirtual, 'tblcase', 'mpsa');
         
         celltbl              = tbls.celltbl;
         facetbl              = tbls.facetbl;
@@ -240,7 +240,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         opts = struct('eta', eta, ...
                       'bcetazero', opt.bcetazero);
-        output = coreMpsaAssembly2(G, C, bc, nnpf, tbls, mappings, opts, 'useVirtual', useVirtual);
+        output = coreMpsaAssembly(G, C, bc, nnpf, tbls, mappings, opts, 'useVirtual', useVirtual);
 
         matrices = output.matrices;
         bcvals   = output.bcvals;

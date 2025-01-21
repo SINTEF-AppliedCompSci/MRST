@@ -59,7 +59,7 @@ bc = struct('linform'    , linform , ...
             'extfaces'   , extfaces, ...
             'linformvals', bcvals);
 
-bc = setupFaceBC2(bc, G, tbls);
+bc = setupFaceBC(bc, G, tbls);
 
 nodefacevectbl = tbls.nodefacevectbl;
 extforce = zeros(nodefacevectbl.num, 1);

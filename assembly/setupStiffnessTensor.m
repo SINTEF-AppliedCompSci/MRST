@@ -1,4 +1,4 @@
-function C = setupStiffnessTensor2(prop, tbls, mappings, varargin)
+function C = setupStiffnessTensor(prop, tbls, mappings, varargin)
 %Undocumented Utility Function
 
 %{

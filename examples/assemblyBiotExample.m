@@ -55,7 +55,7 @@ useVirtual = true;
 [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
 % Setup mechanical driving forces (volumetric forces and boundary condition)
-loadstruct = setupBCpercase2(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
+loadstruct = setupBCpercase(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
 % Setup fluid driving forces (source terms and boundary condition)
 
 % get some "external faces" from setupBCpercase
@@ -165,7 +165,7 @@ end
 
 plotdeformedgrid = true;
 if plotdeformedgrid
-    unc = computeNodeDisp2(ucc, tbls, mappings, 'useVirtual', useVirtual);
+    unc = computeNodeDisp(ucc, tbls, mappings, 'useVirtual', useVirtual);
     unvec = reshape(unc, dim, [])';
     figure 
     coef = 1e0;

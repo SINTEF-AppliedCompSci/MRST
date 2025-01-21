@@ -1,4 +1,4 @@
-function facetNormals =  computeFacetNormals2(G, cellnodefacetbl)
+function facetNormals =  computeFacetNormals(G, cellnodefacetbl)
 % compute facet normals (area weighted)
 
 %{

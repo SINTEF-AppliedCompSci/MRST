@@ -36,11 +36,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     % We fetch the vector g, which belongs to cellnodefacevectbl and is used to
     % construct the consistent divergence operator.
-    g = computeConsistentGradient2(G, eta, tbls, mappings, 'useVirtual', useVirtual);
+    g = computeConsistentGradient(G, eta, tbls, mappings, 'useVirtual', useVirtual);
 
     % We fetch the vector facetNormals, which belongs to cellnodefacevectbl and is
     % used to construct the finite volume divergence operator.
-    normals = computeFacetNormals2(G, cellnodefacetbl);
+    normals = computeFacetNormals(G, cellnodefacetbl);
 
     % Multiply with Biot's coefficient alpha
     prod = TensorProd();

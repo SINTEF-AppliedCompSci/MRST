@@ -82,7 +82,7 @@ bc = struct('linform'    , linform , ...
             'extfaces'   , extfaces, ...
             'linformvals', bcvals);
 
-bc = setupFaceBC2(bc, G, tbls);
+bc = setupFaceBC(bc, G, tbls);
 
 %% setup vertical force at the top
 
@@ -94,7 +94,7 @@ topnodefacevectbl = crossIndexArray(topfacetbl, nodefacevectbl, {'faces'});
 cellnodefacetbl    = tbls.cellnodefacetbl;
 cellnodefacevectbl = tbls.cellnodefacevectbl;
 
-facetNormals = computeFacetNormals2(G, cellnodefacetbl);
+facetNormals = computeFacetNormals(G, cellnodefacetbl);
 
 map = TensorMap();
 map.fromTbl  = cellnodefacevectbl;

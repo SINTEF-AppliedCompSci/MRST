@@ -1,4 +1,4 @@
-function [nodefacebc, tbls, mappings] = setupFaceBC2(bc, G, tbls, mappings, varargin)
+function [nodefacebc, tbls, mappings] = setupFaceBC(bc, G, tbls, mappings, varargin)
 
     opt = struct('useVirtual', false);
     opt = merge_options(opt, varargin{:});

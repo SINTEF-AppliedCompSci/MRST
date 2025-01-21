@@ -1,4 +1,4 @@
-function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids2(G, eta, tbls, mappings, varargin)
+function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, mappings, varargin)
 %Undocumented Utility Function
 
 %{

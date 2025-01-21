@@ -56,7 +56,7 @@ prop = struct('lambda', lambda, ...
 useVirtual = true;
 
 [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
-loadstruct = setupBCpercase2(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
+loadstruct = setupBCpercase(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
 
 mech.prop = prop;
 mech.loadstruct = loadstruct;

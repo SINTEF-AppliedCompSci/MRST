@@ -141,7 +141,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                 'extfaces'   , extfaces, ...
                 'linformvals', bcvals);
 
-    bc = setupFaceBC2(bc, G, tbls);
+    bc = setupFaceBC(bc, G, tbls);
 
     loadstruct.bc = bc;
 

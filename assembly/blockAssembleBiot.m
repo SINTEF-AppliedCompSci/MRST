@@ -95,7 +95,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     fluidprops = props.fluidprops;
     coupprops  = props.coupprops;
    
-    globC     = setupStiffnessTensor2(mechprops, globtbls, globmappings, 'useVirtual', useVirtual);
+    globC     = setupStiffnessTensor(mechprops, globtbls, globmappings, 'useVirtual', useVirtual);
     globK     = fluidprops.K;
     globalpha = coupprops.alpha;
     globrho   = coupprops.rho;
@@ -215,7 +215,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             fprintf('Assembling block %d/%d (%d nodes)\n', iblock, nblocks, nodetbl.num);
         end
         
-        [tbls, mappings] = setupStandardBlockTables2(G, nodetbl, globtbls, 'useVirtual', useVirtual, 'tblcase', 'both');
+        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, 'useVirtual', useVirtual, 'tblcase', 'both');
 
         celltbl     = tbls.celltbl;
         vec12tbl    = tbls.vec12tbl;
@@ -386,7 +386,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         opts = struct('eta', eta, ...
                       'bcetazero', opt.bcetazero);
-        output = coreMpsaAssembly2(G, C, mechbc, nnpf, tbls, mappings, opts, 'useVirtual', useVirtual);
+        output = coreMpsaAssembly(G, C, mechbc, nnpf, tbls, mappings, opts, 'useVirtual', useVirtual);
 
         mechmat    = output.matrices;
         mechbcvals = output.bcvals;
