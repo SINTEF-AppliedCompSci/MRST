@@ -36,10 +36,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     eta       = params.eta;
     alpha     = params.alpha;
 
-    doVem = false;
     [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
-    vectbl = tbls.vectbl;
-    nodefacetbl = tbls.nodefacetbl;
+    vectbl         = tbls.vectbl;
+    nodefacetbl    = tbls.nodefacetbl;
     nodefacevectbl = tbls.nodefacevectbl;
 
     Nc = G.cells.num; 
@@ -54,7 +53,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     mu = mu_fun(cc{:});
     lambda = alpha*mu;
 
-    prop.mu = mu; 
+    prop.mu     = mu; 
     prop.lambda = lambda; 
 
     isBoundary = any(G.faces.neighbors == 0, 2); 
