@@ -21,7 +21,7 @@ function [tbls, mappings] = setupMpsaStandardTables(G, varargin)
 %}
 
 
-    opt = struct('useVirtual', true, ...
+    opt = struct('useVirtual', false, ...
                  'inittbls', []);
     opt = merge_options(opt, varargin{:});
     useVirtual = opt.useVirtual;

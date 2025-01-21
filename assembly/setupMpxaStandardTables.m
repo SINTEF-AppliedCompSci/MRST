@@ -1,7 +1,7 @@
 function [tbls, mappings] = setupMpxaStandardTables(G, varargin)
 % Setup the index arrays for both mpsa and mpfa
 
-    opt = struct('useVirtual', true, ...
+    opt = struct('useVirtual', false, ...
                  'inittbls', []);
     opt = merge_options(opt, varargin{:});
     useVirtual = opt.useVirtual;

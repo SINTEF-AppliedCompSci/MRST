@@ -35,7 +35,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('blocksize' , []   , ...
                  'bcetazero' , false, ...
-                 'useVirtual', true);
+                 'useVirtual', false);
     opt = merge_options(opt, varargin{:});
 
     useVirtual = opt.useVirtual;

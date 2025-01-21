@@ -21,7 +21,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('useVirtual', true);
+    opt = struct('useVirtual', false);
     opt = merge_options(opt, varargin{:});
     useVirtual = opt.useVirtual;
 
