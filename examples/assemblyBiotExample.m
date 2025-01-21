@@ -165,7 +165,7 @@ end
 
 plotdeformedgrid = true;
 if plotdeformedgrid
-    unc = computeNodeDisp2(ucc, tbls);
+    unc = computeNodeDisp2(ucc, tbls, mappings, 'useVirtual', useVirtual);
     unvec = reshape(unc, dim, [])';
     figure 
     coef = 1e0;

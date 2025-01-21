@@ -187,16 +187,16 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     % we compute the number of nodes per cells and per faces
     map = TensorMap();
-    map.fromTbl = globcellnodetbl;
-    map.toTbl = globcelltbl;     
+    map.fromTbl  = globcellnodetbl;
+    map.toTbl    = globcelltbl;     
     map.mergefds = {'cells'};
     map = map.setup();
     
     nnodespercell = map.eval(ones(globcellnodetbl.num, 1));
     
     map = TensorMap();
-    map.fromTbl = globnodefacetbl;
-    map.toTbl = globfacetbl;     
+    map.fromTbl  = globnodefacetbl;
+    map.toTbl    = globfacetbl;     
     map.mergefds = {'faces'};
     map = map.setup();
     
@@ -274,7 +274,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         % Assembly mechanical part
         
         % We collect the degrees of freedom in the current block that belongs to the boundary.
-        mechbcnodefacetbl = crossIndexArray(globmechbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
+        [mechbcnodefacetbl, indstruct] = crossIndexArray(globmechbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
+        globmechbcnodeface_from_mechbcnodeface = indstruct{1}.inds;
         
         mechbcterm_exists = true;
         if mechbcnodefacetbl.num == 0
@@ -333,7 +334,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         % We collect the degrees of freedom in the current block that belongs to the boundary for the fluid part.
         
-        fluidbcnodefacetbl = crossIndexArray(globfluidbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
+        [fluidbcnodefacetbl, indstruct] = crossIndexArray(globfluidbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
+        globfluidbcnodeface_from_fluidbcnodeface = indstruct{1}.inds;
         
         bcterm_exists = true;
         if fluidbcnodefacetbl.num == 0
@@ -342,18 +344,23 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         if bcterm_exists
             map = TensorMap();
-            map.fromTbl = globfluidbcnodefacetbl;
-            map.toTbl = fluidbcnodefacetbl;
+            map.fromTbl  = globfluidbcnodefacetbl;
+            map.toTbl    = fluidbcnodefacetbl;
             map.mergefds = {'faces', 'nodes'};
             map = map.setup();
+
+            globfluidbcnodeface_from_fluidbcnodeface = map.getDispatchInd();
             
             fluidbcvals = map.eval(globfluidbcvals);
 
             clear bcdirichlet;
             bcdirichlet.bcnodefacetbl = fluidbcnodefacetbl;
             bcdirichlet.bcvals = fluidbcvals;
+            
         else
+            
             bcdirichlet = [];
+            
         end
         
         % We get the part of external and volumetric sources that are active in the block
@@ -543,14 +550,51 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                {'faces', 'nodes'}};
         l2ginds = cell(nB, 1);
         bnums = cell(nB, 1);
-        for i = 1 : nB
-            bnums{i} = btbls{i}.num;
-            map = TensorMap();
-            map.fromTbl = bglobtbls{i};
-            map.toTbl = btbls{i};
-            map.mergefds = fds{i};
-            
-            l2ginds{i} = map.getDispatchInd();
+        
+        for iInd = 1 : nB
+
+            if ~isempty(btbls{iInd})
+                
+                map = TensorMap();
+                map.fromTbl  = bglobtbls{iInd};
+                map.toTbl    = btbls{iInd};
+                map.mergefds = fds{iInd};
+
+                if useVirtual
+                    % Recall:
+                    % bglobtbls = {globcellvectbl, globcelltbl, globmechbcnodefacetbl, globfluidbcnodefacetbl};    
+                    % btbls     = {cellvectbl, celltbl, mechbcnodefacetbl, fluidbcnodefacetbl};
+                    switch iInd
+                      case 1
+                        map.pivottbl = cellvectbl;
+                        [vec, i] = ind2sub([vectbl.num, celltbl.num], (1 : cellvectbl.num)');
+                        map.dispind1 = sub2ind([vectbl.num, globcelltbl.num], vec, globcell_from_cell(i));
+                        map.dispind2 = (1 : cellvectbl.num)';
+                      case 2
+                        map.pivottbl = celltbl;
+                        map.dispind1 = globcell_from_cell;
+                        map.dispind2 = (1 : celltbl.num)';                    
+                      case 3
+                        map.pivottbl = mechbcnodefacetbl;
+                        map.dispind1 = globmechbcnodeface_from_mechbcnodeface;
+                        map.dispind2 = (1 : mechbcnodefacetbl.num)';
+                      case 4
+                        map.pivottbl = fluidbcnodefacetbl;
+                        map.dispind1 = globfluidbcnodeface_from_fluidbcnodeface;
+                        map.dispind2 = (1 : fluidbcnodefacetbl.num)';
+                      otherwise
+                        error('out of bound');
+                    end
+                    map.issetup = true;
+                else
+                    map = map.setup();
+                end
+                
+                l2ginds{iInd} = map.getDispatchInd();
+                
+            else
+                l2ginds{iInd} = [];
+            end
         end
         
         for i = 1 : nB

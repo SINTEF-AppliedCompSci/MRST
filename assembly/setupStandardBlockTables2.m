@@ -28,6 +28,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     useVirtual = opt.useVirtual;
 
     globcelltbl         = globtbls.celltbl;
+    globfacetbl         = globtbls.facetbl;
     globnodetbl         = globtbls.nodetbl;
     globcellnodetbl     = globtbls.cellnodetbl;
     globnodefacetbl     = globtbls.nodefacetbl;
@@ -71,16 +72,6 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         [tbls, mappings] = setupMpfaStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
       case 'both'
         [tbls, mappings] = setupMpxaStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
-
-        if useVirtual
-            map = TensorMap();
-            map.fromTbl  = globnodefacetbl;
-            map.toTbl    = nodefacetbl;
-            map.mergefds = {'nodes', 'faces'};
-
-            mappings.globnodeface_from_nodeface = map.getDispatchInd();
-        end
-        
       case 'empty'
         error('to avoid unnecessary index array setup, provide the tblcase option [mpsa/mpfa/both]')
       otherwise
@@ -88,5 +79,26 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     mappings.globcell_from_cell = globcell_from_cell;
+
+    % add global tables and mappings in output
+    if useVirtual
+        
+        map = TensorMap();
+        map.fromTbl  = globnodefacetbl;
+        map.toTbl    = nodefacetbl;
+        map.mergefds = {'nodes', 'faces'};
+
+        mappings.globnodeface_from_nodeface = map.getDispatchInd();
+
+        map = TensorMap();
+        map.fromTbl  = globfacetbl;
+        map.toTbl    = facetbl;    
+        map.mergefds = {'faces'};
+        mappings.globface_from_face = map.getDispatchInd();
     
+        
+    end
+    
+    tbls.globcelltbl = globcelltbl;
+
 end

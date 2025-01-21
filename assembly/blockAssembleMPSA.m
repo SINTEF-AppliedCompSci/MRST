@@ -197,7 +197,13 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             bc = struct('bcnodefacetbl', bcnodefacetbl, ...
                         'linform'      , linform      , ...
                         'linformvals'  , linformvals);
+        else
+            
+            bc = struct('bcnodefacetbl', bcnodefacetbl, ...
+                        'linform'      , []      , ...
+                        'linformvals'  , []);
         end
+        
 
         map = TensorMap();
         map.fromTbl = globfacetbl;

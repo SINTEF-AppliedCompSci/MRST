@@ -182,8 +182,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             linformvals = globlinformvals(bcind, :);
 
             map = TensorMap();
-            map.fromTbl = globbcnodefacevectbl;
-            map.toTbl = bcnodefacevectbl;
+            map.fromTbl  = globbcnodefacevectbl;
+            map.toTbl    = bcnodefacevectbl;
             map.mergefds = {'bcinds', 'vec', 'nodes', 'faces'};
             map = map.setup();
             
@@ -196,11 +196,22 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         map = TensorMap();
-        map.fromTbl = globfacetbl;
-        map.toTbl = facetbl;
+        map.fromTbl  = globfacetbl;
+        map.toTbl    = facetbl;
         map.mergefds = {'faces'};
-        map = map.setup();
-        
+
+        if useVirtual
+
+            map.pivottbl = facetbl;
+            map.dispind1 = mappings.globface_from_face;
+            map.dispind2 = (1 : facetbl.num)';
+
+            map.issetup = true;
+            
+        else
+            map = map.setup();
+        end
+
         nnpf = map.eval(nnodesperface);
         
         opts = struct('eta', eta, ...
@@ -271,10 +282,23 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         % Above, we recall that these index arrays are all local.
 
         map = TensorMap();
-        map.fromTbl = cellvectbl;
-        map.toTbl = globcellvectbl;
+        map.fromTbl  = cellvectbl;
+        map.toTbl    = globcellvectbl;
         map.mergefds = {'cells', 'vec'};
-        map = map.setup();
+
+        if useVirtual
+            map.pivottbl = cellvectbl;
+
+            [vec, i] = ind2sub([vectbl.num, celltbl.num], (1 : cellvectbl.num)');
+            
+            map.dispind1 = (1 : cellvectbl.num)';
+            map.dispind2 = sub2ind([vectbl.num, tbls.globcelltbl.num], vec, globcell_from_cell(i));
+            
+            map.issetup = true;
+            
+        else
+            map = map.setup();
+        end
         % map.pivottbl will be cellvectbl so that dispind2 gives the index of
         % cellvectbl in globcellvectbl
         cellind = map.dispind2;
@@ -298,10 +322,23 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         % We get the part of external force that acts on the block
         map = TensorMap();
-        map.fromTbl = globnodefacevectbl;
-        map.toTbl = nodefacevectbl;
+        map.fromTbl  = globnodefacevectbl;
+        map.toTbl    = nodefacevectbl;
         map.mergefds = {'nodes', 'faces', 'vec'};
-        map = map.setup();
+
+        if useVirtual
+            
+            map.pivottbl = nodefacevectbl;
+
+            [vec, i] = ind2sub([vectbl.num, nodefacetbl.num], (1 : nodefacevectbl.num)');
+            
+            map.dispind1 = sub2ind([vectbl.num, globnodefacetbl.num], vec, mappings.globnodeface_from_nodeface(i));
+            map.dispind2 = (1 : nodefacevectbl.num)';
+            
+            map.issetup = true;
+        else
+            map = map.setup();
+        end
 
         extforce = map.eval(globextforce);
                 
