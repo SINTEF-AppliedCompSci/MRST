@@ -12,20 +12,29 @@ classdef MechModel < PhysicalModel
         %              - extforce, Neumann boundary conditions (external forces)
         %              - force   , Volumetric boundary conditions
         MechPropertyFunctions;
+
+        % assembly optimisation using virtual index array tables
+        useVirtual        
     end
 
     methods
         
         function model = MechModel(G, mech, varargin)
             
-            model = model@PhysicalModel(G, varargin{:});
+            opt = struct('useVirtual', false);
+            [opt, extra] = merge_options(opt, varargin{:});
 
+            useVirtual = opt.useVirtual;
+            
+            model = model@PhysicalModel(G, extra{:});
+            model = merge_options(model, extra{:});
+            
             % Physical properties of rock and fluid
             model.mech  = mech;
 
             model.MechPropertyFunctions = MechPropertyFunctions(model);
             
-            model.operators = setupMpsaOperators(model);
+            model.operators = setupMpsaOperators(model, 'useVirtual', useVirtual);
             
         end
 

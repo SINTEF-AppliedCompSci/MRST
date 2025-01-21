@@ -1,6 +1,3 @@
-% Load modules
-mrstModule add ad-core ad-blackoil compositional ad-props mrst-gui mpsaw mpfa
-
 clear all
 close all
 
@@ -63,7 +60,8 @@ schedule = simpleSchedule(dt, 'W', W);
 [ws, states] = simulateScheduleAD(state0, model, schedule);
 
 %% Simulate implicit MPFA
-model_mpfa = MpfaBlackOilModel(G, rock, fluid, 'water', true, 'oil', true, 'gas', false);
+useVirtual = true;
+model_mpfa = MpfaBlackOilModel(G, rock, fluid, 'water', true, 'oil', true, 'gas', false, 'useVirtual', useVirtual);
 
 [wsMPFA, statesMPFA] = simulateScheduleAD(state0, model_mpfa, schedule);
 

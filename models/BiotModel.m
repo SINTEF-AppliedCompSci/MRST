@@ -11,14 +11,23 @@ classdef BiotModel < PhysicalModel
         % Property container
         BiotPropertyFunctions
         MechPropertyFunctions
+
+        % assembly optimisation using virtual index array tables
+        useVirtual
+        
     end
 
     methods
         
         function model = BiotModel(G, rock, fluid, mech, varargin)
+
+            opt = struct('useVirtual', false);
+            [opt, extra] = merge_options(opt, varargin{:});
+
+            useVirtual = opt.useVirtual;
             
-            model = model@PhysicalModel(G, varargin{:});
-            model = merge_options(model, varargin{:});
+            model = model@PhysicalModel(G, extra{:});
+            model = merge_options(model, extra{:});
 
             % Physical properties of rock and fluid
             model.rock  = rock;
@@ -29,7 +38,7 @@ classdef BiotModel < PhysicalModel
             model.bcetazero = false;
             
             % setup operators
-            model.operators = setupBiotOperators(model);
+            model.operators = setupBiotOperators(model, 'useVirtual', useVirtual);
 
             % setup properties
             model.BiotPropertyFunctions = BiotPropertyFunctions(model);

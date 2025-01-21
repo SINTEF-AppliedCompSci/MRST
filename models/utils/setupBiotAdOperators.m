@@ -1,4 +1,4 @@
-function operators = setupBiotAdOperators(model)
+function operators = setupBiotAdOperators(model, varargin)
 %Undocumented Utility Function
 
 %{
@@ -21,6 +21,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
+    
     G = model.G;
     mech  = model.mech;
     fluid = model.fluid;
@@ -37,16 +42,16 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     perm = model.rock.perm;
 
     assert(numel(perm) == G.cells.num, 'only isotropic perm for the moment');
-    [tbls, mappings] = setupStandardTables(G, 'useVirtual', false);
+    [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
-    celltbl = tbls.celltbl;
-    colrowtbl = tbls.colrowtbl;
-    cellcolrowtbl = tbls.cellcolrowtbl;
+    celltbl      = tbls.celltbl;
+    vec12tbl     = tbls.vec12tbl;
+    cellvec12tbl = tbls.cellvec12tbl;
 
     prod = TensorProd();
-    prod.tbl1 = colrowtbl;
+    prod.tbl1 = vec12tbl;
     prod.tbl2 = celltbl;
-    prod.tbl3 = cellcolrowtbl;
+    prod.tbl3 = cellvec12tbl;
     prod = prod.setup();
 
     K = prod.eval([1; 0; 0; 1], perm);
@@ -59,13 +64,13 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         bcstruct.bcneumann = [];
     end
 
-    eta = model.eta;
+    eta       = model.eta;
     bcetazero = model.bcetazero;
 
     % run assembly
-    fluidprops.K = K;
+    fluidprops.K         = K;
     fluidforces.bcstruct = bcstruct;
-    fluidforces.src = []; % no explicit sources here (for the moment)
+    fluidforces.src      = []; % no explicit sources here (for the moment
 
     coupprops.rho = 0; % the accumulation term is set within the equation
     coupprops.alpha = rock.alpha;
@@ -76,15 +81,13 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     drivingforces = struct('mechanics', loadstruct, ...
                            'fluid'    , fluidforces);
     
-    [tbls, mappings] = setupStandardTables(G);
-
     assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'addAdOperators', true);
     adoperators = assembly.adoperators;
 
     operators = setupOperatorsTPFA(G, rock);
 
-    fullmomentop = adoperators.momentop;
-    fulldivuop = adoperators.divuop;
+    fullmomentop       = adoperators.momentop;
+    fulldivuop         = adoperators.divuop;
     fullfacenodedispop = adoperators.facenodedispop;
 
     extforce = loadstruct.extforce;

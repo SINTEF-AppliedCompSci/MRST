@@ -1,4 +1,4 @@
-function assembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings)
+function assembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings, varargin)
 %Undocumented Utility Function
 
 %{
@@ -20,41 +20,80 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+    
+    useVirtual = opt.useVirtual;
 
-    cellnodefacecoltbl = tbls.cellnodefacecoltbl;
-    nodefacecoltbl     = tbls.nodefacecoltbl;
+    cellnodefacevectbl = tbls.cellnodefacevectbl;
+    nodefacevectbl     = tbls.nodefacevectbl;
     cellnodefacetbl    = tbls.cellnodefacetbl;
     cellnodetbl        = tbls.cellnodetbl;
-    cellcoltbl         = tbls.cellcoltbl;
+    cellvectbl         = tbls.cellvectbl;
     celltbl            = tbls.celltbl;
+    vectbl             = tbls.vectbl;
     
-    % We fetch the vector g, which belongs to cellnodefacecoltbl and is used to
+    % We fetch the vector g, which belongs to cellnodefacevectbl and is used to
     % construct the consistent divergence operator.
-    g = computeConsistentGradient(G, eta, tbls, mappings);
+    g = computeConsistentGradient(G, eta, tbls, mappings, 'useVirtual', useVirtual);
 
-    % We fetch the vector facetNormals, which belongs to cellnodefacecoltbl and is
+    % We fetch the vector facetNormals, which belongs to cellnodefacevectbl and is
     % used to construct the finite volume divergence operator.
     normals = computeFacetNormals(G, cellnodefacetbl);
 
     % Multiply with Biot's coefficient alpha
     prod = TensorProd();
     prod.tbl1 = celltbl;
-    prod.tbl2 = cellnodefacecoltbl;
-    prod.tbl3 = cellnodefacecoltbl;
+    prod.tbl2 = cellnodefacevectbl;
+    prod.tbl3 = cellnodefacevectbl;
     prod.mergefds = {'cells'};
-    prod = prod.setup();
+    if useVirtual
+        
+        prod.pivottbl = cellnodefacevectbl;
+        
+        [vec, i] = ind2sub([vectbl.num, cellnodefacetbl.num], (1 : cellnodefacevectbl.num)');
+
+        prod.dispind1 = mappings.cell_from_cellnodeface(i);
+        prod.dispind2 = (1 : cellnodefacevectbl.num)';
+        prod.dispind3 = (1 : cellnodefacevectbl.num)';
+        
+        prod.issetup = true;
+        
+    else
+        
+        prod = prod.setup();
+        
+    end
+    
     
     normals = prod.eval(alpha, normals);
     
     % We setup the finite volume divergence operator
-    % divfv : nodefacecoltbl -> celltbl
+    % divfv : nodefacevectbl -> celltbl
     
     prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = nodefacecoltbl;
+    prod.tbl1 = cellnodefacevectbl;
+    prod.tbl2 = nodefacevectbl;
     prod.tbl3 = celltbl;
-    prod.reducefds = {'nodes', 'faces', 'coldim'};
-    prod = prod.setup();
+    prod.reducefds = {'nodes', 'faces', 'vec'};
+    if useVirtual
+        
+        prod.pivottbl = cellnodefacevectbl;
+        
+        [vec, i] = ind2sub([vectbl.num, cellnodefacetbl.num], (1 : cellnodefacevectbl.num)');
+
+        prod.dispind1 = (1 : cellnodefacevectbl.num)';
+        prod.dispind2 = sub2ind([vectbl.num, nodefacevectbl.num], vec, mappings.nodeface_from_cellnodeface(i));
+        prod.dispind3 = mappings.cell_from_cellnodeface(i);
+        
+        prod.issetup = true;
+        
+    else
+        
+        prod = prod.setup();
+        
+    end
     
     divfv_T = SparseTensor();
     divfv_T = divfv_T.setFromTensorProd(normals, prod);
@@ -62,7 +101,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     % We setup the consistent divergence operator
     % It consists of two parts,
-    % divconsnf : nodefacecoltbl -> celltbl
+    % divconsnf : nodefacevectbl -> celltbl
     % divconsc : celltbl -> celltbl        
     
     % We agregate the contribution at each cell corner.
@@ -76,44 +115,86 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     mcoef = vols/nnodespercell;
     
     prod = TensorProd();
-    prod.tbl1 = celltbl;
-    prod.tbl2 = cellnodefacecoltbl;
-    prod.tbl3 = cellnodefacecoltbl;
+    prod.tbl1     = celltbl;
+    prod.tbl2     = cellnodefacevectbl;
+    prod.tbl3     = cellnodefacevectbl;
     prod.mergefds = {'cells'};
-    prod = prod.setup();
+
+    if useVirtual
+        
+        prod.pivottbl = cellnodefacevectbl;
+        
+        [vec, i] = ind2sub([vectbl.num, cellnodefacetbl.num], (1 : cellnodefacevectbl.num)');
+
+        prod.dispind1 = mappings.cell_from_cellnodeface(i);
+        prod.dispind2 = (1 : cellnodefacevectbl.num)';
+        prod.dispind3 = (1 : cellnodefacevectbl.num)';
+        
+        prod.issetup = true;
+        
+    else
+        
+        prod = prod.setup();
+        
+    end
+    
     
     mg = prod.eval(mcoef, g);
-    
     % Multiply with Biot's coefficient alpha
-    prod = TensorProd();
-    prod.tbl1 = celltbl;
-    prod.tbl2 = cellnodefacecoltbl;
-    prod.tbl3 = cellnodefacecoltbl;
-    prod.mergefds = {'cells'};
-    prod = prod.setup();
-    
     mg = prod.eval(alpha, mg);
     
-    % We assemble divconsnf : nodefacecoltbl -> celltbl
+    % We assemble divconsnf : nodefacevectbl -> celltbl
     prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl; 
-    prod.tbl2 = nodefacecoltbl;
+    prod.tbl1 = cellnodefacevectbl; 
+    prod.tbl2 = nodefacevectbl;
     prod.tbl3 = celltbl;
-    prod.reducefds = {'nodes', 'faces', 'coldim'};
-    prod = prod.setup();
+    prod.reducefds = {'nodes', 'faces', 'vec'};
+    if useVirtual
+        
+        prod.pivottbl = cellnodefacevectbl;
+        
+        [vec, i] = ind2sub([vectbl.num, cellnodefacetbl.num], (1 : cellnodefacevectbl.num)');
+
+        prod.dispind1 = (1 : cellnodefacevectbl.num)';
+        prod.dispind2 = sub2ind([vectbl.num, nodefacevectbl.num], vec, mappings.nodeface_from_cellnodeface(i));
+        prod.dispind3 = mappings.cell_from_cellnodeface(i);
+        
+        prod.issetup = true;
+        
+    else
+        
+        prod = prod.setup();
+        
+    end
     
     divconsnf_T = SparseTensor();
     divconsnf_T = divconsnf_T.setFromTensorProd(mg, prod);
     divconsnf = divconsnf_T.getMatrix();
     
-    % We assemble divconsc : cellcoltbl -> celltbl    
+    % We assemble divconsc : cellvectbl -> celltbl    
     prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl; 
-    prod.tbl2 = cellcoltbl;
-    prod.tbl3 = celltbl;
-    prod.mergefds = {'cells'};
-    prod.reducefds = {'coldim'};
-    prod = prod.setup();
+    prod.tbl1      = cellnodefacevectbl; 
+    prod.tbl2      = cellvectbl;
+    prod.tbl3      = celltbl;
+    prod.mergefds  = {'cells'};
+    prod.reducefds = {'vec'};
+    if useVirtual
+        
+        prod.pivottbl = cellnodefacevectbl;
+        
+        [vec, i] = ind2sub([vectbl.num, cellnodefacetbl.num], (1 : cellnodefacevectbl.num)');
+
+        prod.dispind1 = (1 : cellnodefacevectbl.num)';
+        prod.dispind2 = sub2ind([vectbl.num, celltbl.num], vec, mappings.cell_from_cellnodeface(i));
+        prod.dispind3 = mappings.cell_from_cellnodeface(i);
+        
+        prod.issetup = true;
+        
+    else
+        
+        prod = prod.setup();
+        
+    end
     
     divconsc_T = SparseTensor();
     % Beware of minus sign below

@@ -30,12 +30,12 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     opt = struct('verbose'    , mrstVerbose, ...
                  'blocksize'  , []         , ...
                  'bcetazero'  , true       , ...
-                 'useVirtual' , true       , ...
+                 'useVirtual' , false       , ...
                  'extraoutput', false);
     opt = merge_options(opt, varargin{:});
     
     useVirtual = opt.useVirtual;
-    blocksize = opt.blocksize;
+    blocksize  = opt.blocksize;
     
     nn = G.nodes.num;
     nblocks = floor(nn/blocksize);
@@ -46,21 +46,21 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     nblocks = numel(blocksizes);
     blockinds = cumsum([1; blocksizes]);
 
-    coltbl         = globtbls.coltbl;
-    colrowtbl      = globtbls.colrowtbl;
-    col2row2tbl    = globtbls.col2row2tbl;
+    vectbl     = globtbls.vectbl;
+    vec12tbl   = globtbls.vec12tbl;
+    vec1212tbl = globtbls.vec1212tbl;
     
-    globnodetbl     = globtbls.nodetbl;
-    globfacetbl     = globtbls.facetbl;
-    globnodefacetbl = globtbls.nodefacetbl;
-    globcellcoltbl  = globtbls.cellcoltbl;
-    globnodecoltbl  = globtbls.nodecoltbl;
-    globcellnodetbl     = globtbls.cellnodetbl;
-    globcellnodecoltbl  = globtbls.cellnodecoltbl;
-    globnodefacecoltbl  = globtbls.nodefacecoltbl;
-    globcellcol2row2tbl = globtbls.cellcol2row2tbl;
+    globnodetbl        = globtbls.nodetbl;
+    globfacetbl        = globtbls.facetbl;
+    globnodefacetbl    = globtbls.nodefacetbl;
+    globcellvectbl     = globtbls.cellvectbl;
+    globnodevectbl     = globtbls.nodevectbl;
+    globcellnodetbl    = globtbls.cellnodetbl;
+    globcellnodevectbl = globtbls.cellnodevectbl;
+    globnodefacevectbl = globtbls.nodefacevectbl;
+    globcellvec1212tbl = globtbls.cellvec1212tbl;
     
-    dim = coltbl.num;
+    dim = vectbl.num;
 
     globextforce = loadstruct.extforce;
     globforce = loadstruct.force;
@@ -68,16 +68,16 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     globbc = loadstruct.bc;
     globbcnodefacetbl = globbc.bcnodefacetbl;        
     globbcnodefacetbl = globbcnodefacetbl.addLocInd('bcinds');    
-    globbcnodefacecoltbl = crossIndexArray(globbcnodefacetbl, coltbl, {}, ...
-                                           'optpureproduct', true);
+    globbcnodefacevectbl = crossIndexArray(globbcnodefacetbl, vectbl, {}, ...
+                                           'optpureproduct', true, 'virtual', useVirtual);
     globlinform = globbc.linform;
     globlinform = reshape(globlinform', [], 1);
     globlinformvals = globbc.linformvals;
 
-    gncc = globcellcoltbl.num;
+    gncc = globcellvectbl.num;
     gnbc = globbcnodefacetbl.num;
     
-    globC = setupStiffnessTensor(prop, globtbls);
+    globC = setupStiffnessTensor(prop, globtbls, globmappings, 'useVirtual', useVirtual);
     
     B11 = sparse(gncc, gncc);
     B12 = sparse(gncc, gnbc);
@@ -90,14 +90,22 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % computes number of nodes per face
     
     map = TensorMap();
-    map.fromTbl = globnodefacetbl;
-    map.toTbl = globfacetbl;     
+    map.fromTbl  = globnodefacetbl;
+    map.toTbl    = globfacetbl;     
     map.mergefds = {'faces'};
-    map = map.setup();
+    if useVirtual
+        map.pivottbl = globnodefacetbl;
+        map.dispind1 = (1 : globnodefacetbl.num)';
+        map.dispind2 = globmappings.face_from_nodeface;
+        map.issetup = true;
+    else
+        map = map.setup();
+    end
     
     nnodesperface = map.eval(ones(globnodefacetbl.num, 1));
 
     for iblock = 1 : nblocks
+        
         % Construction of tensor g (as defined in paper eq 4.1.2)
         nodes = [blockinds(iblock) : (blockinds(iblock + 1) - 1)]';
 
@@ -109,24 +117,21 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             fprintf('Assembling block %d/%d (%d nodes)\n', iblock, nblocks, nodetbl.num);
         end
         
-        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, 'useVirtual', useVirtual);
+        [tbls, mappings] = setupStandardBlockTables(G, nodetbl, globtbls, 'useVirtual', useVirtual, 'tblcase', 'mpsa');
         
-        celltbl               = tbls.celltbl;
-        facetbl               = tbls.facetbl;
-        nodetbl               = tbls.nodetbl;
-        cellnodetbl           = tbls.cellnodetbl;
-        nodefacetbl           = tbls.nodefacetbl;
-        cellcoltbl            = tbls.cellcoltbl;
-        nodecoltbl            = tbls.nodecoltbl;
-        nodefacecoltbl        = tbls.nodefacecoltbl;
-        cellnodefacetbl       = tbls.cellnodefacetbl;
-        cellnodecoltbl        = tbls.cellnodecoltbl;
-        cellnodecolrowtbl     = tbls.cellnodecolrowtbl;
-        cellnodefacecoltbl    = tbls.cellnodefacecoltbl;
-        cellnodefacecolrowtbl = tbls.cellnodefacecolrowtbl;
-        nodecolrowtbl         = tbls.nodecolrowtbl;
-        cellcol2row2tbl       = tbls.cellcol2row2tbl;
-        cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
+        celltbl              = tbls.celltbl;
+        facetbl              = tbls.facetbl;
+        nodetbl              = tbls.nodetbl;
+        cellnodetbl          = tbls.cellnodetbl;
+        nodefacetbl          = tbls.nodefacetbl;
+        cellvectbl           = tbls.cellvectbl;
+        nodevectbl           = tbls.nodevectbl;
+        nodefacevectbl       = tbls.nodefacevectbl;
+        cellnodefacetbl      = tbls.cellnodefacetbl;
+        cellnodevectbl       = tbls.cellnodevectbl;
+        cellnodevec12tbl     = tbls.cellnodevec12tbl;
+        cellnodefacevectbl   = tbls.cellnodefacevectbl;
+        cellvec1212tbl       = tbls.cellvec1212tbl;
 
         globcell_from_cell         = mappings.globcell_from_cell;
         cell_from_cellnode         = mappings.cell_from_cellnode;
@@ -138,27 +143,26 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         c_num     = celltbl.num;
         n_num     = nodetbl.num;
         cnf_num   = cellnodefacetbl.num;
-        cnfc_num  = cellnodefacecoltbl.num;
+        cnfc_num  = cellnodefacevectbl.num;
         cn_num    = cellnodetbl.num;
-        cncr_num  = cellnodecolrowtbl.num;
+        cncr_num  = cellnodevec12tbl.num;
         nf_num    = nodefacetbl.num;
-        nfc_num   = nodefacecoltbl.num;
-        cnfcr_num = cellnodefacecolrowtbl.num;
-        d_num     = coltbl.num;
+        nfc_num   = nodefacevectbl.num;
+        d_num     = vectbl.num;
         
-        dim = coltbl.num;
+        dim = vectbl.num;
         
         % Obtain stiffness values for the block
         
         map = TensorMap();
-        map.fromTbl = globcellcol2row2tbl;
-        map.toTbl = cellcol2row2tbl;
-        map.mergefds = {'cells', 'coldim1', 'coldim2', 'rowdim1', 'rowdim2'};
+        map.fromTbl  = globcellvec1212tbl;
+        map.toTbl    = cellvec1212tbl;
+        map.mergefds = {'cells', 'vec11', 'vec12', 'vec21', 'vec22'};
         
-        map.pivottbl = cellcol2row2tbl;
-        cc2r2_num = cellcol2row2tbl.num; %shortcut
-        c2r2_num = col2row2tbl.num; %shortcut
-        gc_num = globcellcol2row2tbl.num; %shortcut
+        map.pivottbl = cellvec1212tbl;
+        cc2r2_num = cellvec1212tbl.num; %shortcut
+        c2r2_num  = vec1212tbl.num; %shortcut
+        gc_num    = globcellvec1212tbl.num; %shortcut
         [c2r2, i] = ind2sub([c2r2_num, c_num], (1 : cc2r2_num)');
         map.dispind1 = sub2ind([c2r2_num, gc_num], c2r2, globcell_from_cell(i));
         map.dispind2 = (1 : cc2r2_num)';
@@ -168,8 +172,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         % We collect the degrees of freedom in the current block that belongs to the boundary.
         
-        bcnodefacetbl = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', ...
-                            'faces'});
+        [bcnodefacetbl, indstruct] = crossIndexArray(globbcnodefacetbl, nodefacetbl, {'nodes', 'faces'});
+        globbcnodeface_from_bcnodeface = indstruct{1}.inds;
         
         bcterm_exists = true;
         if bcnodefacetbl.num == 0
@@ -179,38 +183,68 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         if bcterm_exists
             
             bcind = bcnodefacetbl.get('bcinds');
-            bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, ...
-                                               'optpureproduct', true);
+            bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
             bcnodefacetbl = replacefield(bcnodefacetbl, {{'bcinds', ''}});
             
             linformvals = globlinformvals(bcind, :);
 
             map = TensorMap();
-            map.fromTbl = globbcnodefacecoltbl;
-            map.toTbl = bcnodefacecoltbl;
-            map.mergefds = {'bcinds', 'coldim', 'nodes', 'faces'};
-            map = map.setup();
-            
+            map.fromTbl  = globbcnodefacevectbl;
+            map.toTbl    = bcnodefacevectbl;
+            map.mergefds = {'bcinds', 'vec', 'nodes', 'faces'};
+
+            if useVirtual
+                map.pivottbl = bcnodefacevectbl;
+                [vec, i] = ind2sub([vectbl.num, bcnodefacetbl.num], (1 : bcnodefacevectbl.num)');
+                map.dispind1 = sub2ind([vectbl.num, globbcnodefacetbl.num], vec, globbcnodeface_from_bcnodeface(i));
+                map.dispind2 = (1 : bcnodefacevectbl.num)';
+                map.issetup = true;
+            else
+                map = map.setup();
+            end
+
             linform = map.eval(globlinform);
             linform = reshape(linform, dim, [])';
             
             bc = struct('bcnodefacetbl', bcnodefacetbl, ...
                         'linform'      , linform      , ...
                         'linformvals'  , linformvals);
+        else
+            
+            bcnodefacetbl = replacefield(bcnodefacetbl, {{'bcinds', ''}});
+            bc = struct('bcnodefacetbl', bcnodefacetbl, ...
+                        'linform'      , []      , ...
+                        'linformvals'  , []);
         end
 
         map = TensorMap();
-        map.fromTbl = globfacetbl;
-        map.toTbl = facetbl;
+        map.fromTbl  = globfacetbl;
+        map.toTbl    = facetbl;
         map.mergefds = {'faces'};
-        map = map.setup();
-        
+
+        if useVirtual
+
+            map.pivottbl = facetbl;
+            map.dispind1 = mappings.globface_from_face;
+            map.dispind2 = (1 : facetbl.num)';
+
+            map.issetup = true;
+            
+        else
+            
+            map = map.setup();
+            
+        end
+
         nnpf = map.eval(nnodesperface);
         
         opts = struct('eta', eta, ...
                       'bcetazero', opt.bcetazero);
-        [matrices, bcvals] = coreMpsaAssembly(G, C, bc, nnpf, tbls, mappings, opts);
+        output = coreMpsaAssembly(G, C, bc, nnpf, tbls, mappings, opts, 'useVirtual', useVirtual);
 
+        matrices = output.matrices;
+        bcvals   = output.bcvals;
+        
         A11 = matrices.A11;
         A12 = matrices.A12;
         A21 = matrices.A21;
@@ -224,12 +258,12 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         %      [A21, A22,  0];
         %      [D' , 0  ,  0]];
         %
-        % u = [u  (displacement at nodefacecoltbl);
-        %      u  (displacement at cellcoltbl);
+        % u = [u  (displacement at nodefacevectbl);
+        %      u  (displacement at cellvectbl);
         %      lagmult];
         %
-        % f = [extforce  (force at nodefacecoltbl);
-        %      force  (volumetric force at cellcoltbl);
+        % f = [extforce  (force at nodefacevectbl);
+        %      force  (volumetric force at cellvectbl);
         %      bcvals (for the linear form at the boundary)];
         %
         % A*u = f
@@ -251,7 +285,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         % B = [[B11, B12];
         %      [B21, B22]];
         %
-        % u = [u (displacement at cellcoltbl);
+        % u = [u (displacement at cellvectbl);
         %      lagmult];
         %
         % rhs = redextforce + [force;
@@ -265,22 +299,35 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             locB22 = D'*invA11*D;
         end
 
-        % locB11 : cellcoltbl    -> cellcoltbl
+        % locB11 : cellvectbl    -> cellvectbl
         % locB22 : bcnodefacetbl -> bcnodefacetbl
-        % locB12 : bcnodefacetbl -> cellcoltbl
-        % locB21 : cellcoltbl    -> bcnodefacetbl 
+        % locB12 : bcnodefacetbl -> cellvectbl
+        % locB21 : cellvectbl    -> bcnodefacetbl 
         % Above, we recall that these index arrays are all local.
 
         map = TensorMap();
-        map.fromTbl = cellcoltbl;
-        map.toTbl = globcellcoltbl;
-        map.mergefds = {'cells', 'coldim'};
-        map = map.setup();
-        % map.pivottbl will be cellcoltbl so that dispind2 gives the index of
-        % cellcoltbl in globcellcoltbl
+        map.fromTbl  = cellvectbl;
+        map.toTbl    = globcellvectbl;
+        map.mergefds = {'cells', 'vec'};
+
+        if useVirtual
+            map.pivottbl = cellvectbl;
+
+            [vec, i] = ind2sub([vectbl.num, celltbl.num], (1 : cellvectbl.num)');
+            
+            map.dispind1 = (1 : cellvectbl.num)';
+            map.dispind2 = sub2ind([vectbl.num, tbls.globcelltbl.num], vec, globcell_from_cell(i));
+            
+            map.issetup = true;
+            
+        else
+            map = map.setup();
+        end
+        % map.pivottbl will be cellvectbl so that dispind2 gives the index of
+        % cellvectbl in globcellvectbl
         cellind = map.dispind2;
         
-        ncc = cellcoltbl.num;
+        ncc = cellvectbl.num;
         
         [i, j, v] = find(locB11);
         B11 = B11 + sparse(cellind(i), cellind(j), v, gncc, gncc);
@@ -299,14 +346,27 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         % We get the part of external force that acts on the block
         map = TensorMap();
-        map.fromTbl = globnodefacecoltbl;
-        map.toTbl = nodefacecoltbl;
-        map.mergefds = {'nodes', 'faces', 'coldim'};
-        map = map.setup();
+        map.fromTbl  = globnodefacevectbl;
+        map.toTbl    = nodefacevectbl;
+        map.mergefds = {'nodes', 'faces', 'vec'};
+
+        if useVirtual
+            
+            map.pivottbl = nodefacevectbl;
+
+            [vec, i] = ind2sub([vectbl.num, nodefacetbl.num], (1 : nodefacevectbl.num)');
+            
+            map.dispind1 = sub2ind([vectbl.num, globnodefacetbl.num], vec, mappings.globnodeface_from_nodeface(i));
+            map.dispind2 = (1 : nodefacevectbl.num)';
+            
+            map.issetup = true;
+        else
+            map = map.setup();
+        end
 
         extforce = map.eval(globextforce);
                 
-        % locrhscc in cellcoltbl
+        % locrhscc in cellvectbl
         % locrhsbc in bcnodefacetbl
 
         locrhscc = -A21*invA11*extforce; 

@@ -50,52 +50,35 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                  'addAssemblyMatrices' , false, ...
                  'addAdOperators'      , false, ...
                  'onlyAssemblyMatrices', false, ...
-                 'dooptimize'          , true);
-    
+                 'useVirtual'          , false);
     opt = merge_options(opt, varargin{:});
     
-    dooptimize = opt.dooptimize;
+    useVirtual = opt.useVirtual;
     
-    if tbls.useVirtual
-        assert(dooptimize, 'We cannot use virtual tables in a non-optimized run of assembleMPFA');
-    end
-    
-    cellcolrowtbl         = tbls.cellcolrowtbl;
-    cellnodecolrowtbl     = tbls.cellnodecolrowtbl;
-    cellnodeface2coltbl   = tbls.cellnodeface2coltbl;
-    cellnodeface2tbl      = tbls.cellnodeface2tbl;
-    cellnodefacecolrowtbl = tbls.cellnodefacecolrowtbl;
-    cellnodefacecoltbl    = tbls.cellnodefacecoltbl;
-    cellnodefacetbl       = tbls.cellnodefacetbl;
-    celltbl               = tbls.celltbl;
-    coltbl                = tbls.coltbl;
-    nodeface2tbl          = tbls.nodeface2tbl;
-    nodefacecoltbl        = tbls.nodefacecoltbl;
-    nodefacetbl           = tbls.nodefacetbl;
-    
-    if dooptimize
-        % fetch the index mappings to set explictly the tensor products or tensor mappings
-        cell_from_cellnodeface     = mappings.cell_from_cellnodeface;
-        nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
-        cellnodeface_1_from_cellnodeface2 = mappings.cellnodeface_1_from_cellnodeface2;
-        cellnodeface_2_from_cellnodeface2 = mappings.cellnodeface_2_from_cellnodeface2;
-        nodeface_1_from_nodeface2 = mappings.nodeface_1_from_nodeface2;
-        nodeface_2_from_nodeface2 = mappings.nodeface_2_from_nodeface2;
-    end
-    
+    cellvec12tbl       = tbls.cellvec12tbl;
+    cellnodevec12tbl   = tbls.cellnodevec12tbl;
+    cellnodefacetbl    = tbls.cellnodefacetbl;
+    cellnodefacevectbl = tbls.cellnodefacevectbl;
+    celltbl            = tbls.celltbl;
+    vectbl             = tbls.vectbl;
+    nodefacevectbl     = tbls.nodefacevectbl;
+    nodefacetbl        = tbls.nodefacetbl;
+
     % Some shortcuts
     c_num     = celltbl.num;
     cnf_num   = cellnodefacetbl.num;
     nf_num    = nodefacetbl.num;
-    cnfcr_num = cellnodefacecolrowtbl.num;
-    d_num     = coltbl.num;
+    d_num     = vectbl.num;
     
     % Setup main assembly matrices
     bcdirichlet = bcstruct.bcdirichlet;
     opts = struct('eta', eta, ...
-                  'bcetazero', opt.bcetazero, ...
-                  'dooptimize', dooptimize);
-    [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts);
+                  'bcetazero', opt.bcetazero);
+    output = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts, 'useVirtual', useVirtual);
+
+    matrices = output.matrices;
+    bcvals   = output.bcvals;
+    extra    = output.extra;
     
     % We enforce the Dirichlet boundary conditions as Lagrange multipliers
     if ~isempty(bcstruct.bcneumann)

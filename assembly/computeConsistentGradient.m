@@ -21,24 +21,29 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('bcetazero', false);
+    opt = struct('bcetazero', false, ...
+                 'useVirtual', false);
     opt = merge_options(opt, varargin{:});
-    bcetazero = opt.bcetazero;
     
-    cellnodefacecents = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
+    bcetazero  = opt.bcetazero;
+    useVirtual = opt.useVirtual;
+    
+    cellnodefacecents = computeNodeFaceCentroids(G, eta, tbls, mappings, ...
+                                                  'bcetazero', bcetazero, ...
+                                                  'useVirtual', useVirtual);
 
-    coltbl             = tbls.coltbl;
+    vectbl             = tbls.vectbl;
     cellnodetbl        = tbls.cellnodetbl;
-    cellnodecoltbl     = tbls.cellnodecoltbl;
+    cellnodevectbl     = tbls.cellnodevectbl;
     cellnodefacetbl    = tbls.cellnodefacetbl;
-    cellnodefacecoltbl = tbls.cellnodefacecoltbl;
+    cellnodefacevectbl = tbls.cellnodefacevectbl;
     
     cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
     
-    d_num    = coltbl.num;
+    d_num    = vectbl.num;
     cn_num   = cellnodetbl.num;
-    cnc_num  = cellnodecoltbl.num; 
-    cnfc_num = cellnodefacecoltbl.num;
+    cnc_num  = cellnodevectbl.num; 
+    cnfc_num = cellnodefacevectbl.num;
     cnf_num  = cellnodefacetbl.num;
     
     [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
@@ -53,7 +58,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     opt.invertBlocks = 'mex';
     bi = blockInverter(opt);
 
-    sz = repmat(coltbl.num, cellnodetbl.num, 1);
+    sz = repmat(vectbl.num, cellnodetbl.num, 1);
     invA = bi(A, sz);
 
     ind = sub2ind([cnf_num, cnc_num], ind2, ind1);
