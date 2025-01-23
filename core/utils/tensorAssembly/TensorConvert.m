@@ -11,8 +11,10 @@ classdef TensorConvert
         replacefdsFromTbl % Possibility to change field names of second table
                           % (before setting up conversion)
 
-        % Dispatching index
-        inds
+        % Dispatching indexes
+        indTo   % dispatching indexes for toTbl from pivottbl
+        indFrom % dispatching indexes for fromTbl from pivottbl
+        inds    % dispatching indexes for the conversion, obtained from indTo and indFrom
         
         issetup % Flag is set to true is product has been set up.
         
@@ -69,22 +71,22 @@ classdef TensorConvert
             map.toTbl    = pivottbl;
             map.mergefds = fdsTo;
 
-            indTo = map.getDispatchInd();
+            tconv.indTo = map.getDispatchInd();
 
             map = TensorMap();
             map.fromTbl  = fromTbl;
             map.toTbl    = pivottbl;
             map.mergefds = fdsFrom;
 
-            indFrom = map.getDispatchInd();
+            tconv.indFrom = map.getDispatchInd();
             
-            tconv = tconv.setupFromInds(indFrom, indTo);
+            tconv = tconv.setupFromInds();
             
         end
 
-        function tconv = setupFromInds(tconv, indFrom, indTo)
+        function tconv = setupFromInds(tconv)
 
-            inds = sub2ind([tconv.toTbl.num, tconv.fromTbl.num], indTo, indFrom);
+            inds = sub2ind([tconv.toTbl.num, tconv.fromTbl.num], tconv.indTo, tconv.indFrom);
 
             tconv.inds    = inds;
             tconv.issetup = true;
