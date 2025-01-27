@@ -1,8 +1,8 @@
-function iseq = compIndexArray(tbl1, tbl2)
+function iseq = compareIndexArray(tbl1, tbl2)
 %
 %
 % SYNOPSIS:
-%   iseq = compIndexArray(tbl1, tbl2)
+%   iseq = compareIndexArray(tbl1, tbl2)
 %
 % DESCRIPTION:
 %   Compares the two IndexArrays tbl1 and tbl2 (field names and indices)
