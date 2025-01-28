@@ -41,6 +41,10 @@ classdef TensorProd
 % prod.replacefds2. This option is used very often as different names for the
 % same indexing appear naturally.
 %
+% If the pivot space (pivottbl property) is given before the setup, then it is possible to dispatch in a index array
+% tbl3 which does not corresponds to the otherwise detected sparsity of the product. It is implemented for convenience,
+% to avoid to have to create an extra TensorMap to do this this operation.
+%
 % RETURNS:
 %   class instance
 %
@@ -95,8 +99,8 @@ classdef TensorProd
                           'replacefds2', [], ...
                           'replacefds3', [], ...
                           'reducefds'  , [], ...
-                          'reducefds1'  , [], ...
-                          'reducefds2'  , [], ...
+                          'reducefds1' , [], ...
+                          'reducefds2' , [], ...
                           'mergefds'   , []);
             
             prod = merge_options(prod, varargin{:}); 
@@ -161,10 +165,36 @@ classdef TensorProd
                    ['There exist fields with same name in first and second ' ...
                     'table that are neither merged or reduced.']);
             
-            [pivottbl, indstruct] = crossIndexArray(tbl1, tbl2, crossfds);
-            
-            dispind1 = indstruct{1}.inds;
-            dispind2 = indstruct{2}.inds;
+            if isempty(prod.pivottbl)
+                
+                [pivottbl, indstruct] = crossIndexArray(tbl1, tbl2, crossfds);
+                
+                dispind1 = indstruct{1}.inds;
+                dispind2 = indstruct{2}.inds;
+                
+            else
+
+                pivottbl = prod.pivottbl;
+
+                pivotfds = pivottbl.fdnames;
+                
+                mergefds1 = tbl1.fdnames(ismember(tbl1.fdnames, pivotfds));
+
+                map = TensorMap();
+                map.fromTbl  = tbl1;
+                map.toTbl    = pivottbl;
+                map.mergefds = mergefds1;
+                dispind1 = getDispatchInd(map);
+                
+                mergefds2 = tbl2.fdnames(ismember(tbl2.fdnames, pivotfds));
+
+                map = TensorMap();
+                map.fromTbl  = tbl2;
+                map.toTbl    = pivottbl;
+                map.mergefds = mergefds2;
+                dispind2 = getDispatchInd(map);
+                
+            end
             
             if isempty(prod.tbl3)
                 fds1 = tbl1.fdnames;
