@@ -332,7 +332,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
                     linform = zeros(3, 1);
                     linform(i) = 1;
-                    linforms{ind}    = repmat(linform, n, 1);
+                    linforms{ind} = repmat(linform, n, 1);
 
                     linformvals{ind} = zeros(n, 1);
 

@@ -1,4 +1,4 @@
-function [D, bcvals] = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls, mappings, varargin)
+function output = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls, mappings, varargin)
 % The structure bc gives conditions on the nodeface displacement
 
 %{
@@ -127,8 +127,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         prod = prod.setup();
     end
      
-    D_T = SparseTensor('matlabsparse', true);
-    D_T = D_T.setFromTensorProd(linform, prod);
+    D = prod.setupMatrix(linform);
 
     map = TensorMap();
     map.fromTbl  = nodefacevectbl;
@@ -148,13 +147,21 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         map = map.setup();
     end
     
-    M_T = SparseTensor('matlabsparse', true);
-    M_T = M_T.setFromTensorMap(map);
+    M = map.getMatrix();
     
-    D_T = D_T*M_T;
+    D = D*M;
     
-    D = D_T.getMatrix();
     D = D';
+
+    tbls.bcnodefacetbl    = bcnodefacetbl;
+    tbls.bcnodefacevectbl = bcnodefacevectbl;
+
+    mappings.nodeface_from_bcnodeface = nodeface_from_bcnodeface;
+    
+    output = struct('D'       ,D     , ...
+                    'bcvals'  ,bcvals, ...
+                    'tbls'    ,tbls  , ...
+                    'mappings', mappings);
     
 end
 

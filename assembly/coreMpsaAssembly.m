@@ -462,8 +462,15 @@ function output =  coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opt
 
     % Matrix for boundary conditions
     
-    [D, bcvals] = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls, mappings, 'useVirtual', useVirtual);
+    output = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls, mappings, 'useVirtual', useVirtual);
 
+    D      = output.D;
+    bcvals = output.bcvals;
+
+    % We update the mappings and tables from the output of setupMpsaNodeFaceBc
+    tbls     = output.tbls;
+    mappings = output.mappings;
+    
     % Matrix for the stress computation
 
     prod = TensorProd();
@@ -599,6 +606,7 @@ function output =  coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opt
     indexarrays = struct('nS', nS);
 
     output = struct('tbls'       , tbls       , ...
+                    'mappings'   , mappings   , ...
                     'indexarrays', indexarrays, ...
                     'matrices'   , matrices   , ...
                     'bcvals'     , bcvals     , ...
