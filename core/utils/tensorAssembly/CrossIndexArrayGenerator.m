@@ -67,8 +67,8 @@ classdef CrossIndexArrayGenerator
             if ~isempty(gen.sortfds)
                 [tbl, dispind] = sortIndexArray(tbl, gen.sortfds, 'keepAllFields', gen.sortKeepAllFields);
                 gen.tbl = tbl;
-                gen.ind1(dispind) = gen.ind1;
-                gen.ind2(dispind) = gen.ind2;
+                gen.ind1 = gen.ind1(dispind);
+                gen.ind2 = gen.ind2(dispind);
             end
             
         end
