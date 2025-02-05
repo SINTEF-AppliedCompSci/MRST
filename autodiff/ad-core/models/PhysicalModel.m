@@ -409,6 +409,22 @@ methods
         end
     end
 
+    function [dt, done, currControl] = getTimeStep(model, itstep, schedule, state)
+    % Returns the current time-step and control index
+
+        done = (itstep > numel(schedule.step.val));
+
+        if done
+            dt = [];
+            currControl = [];
+        else
+            % Get the current time-step
+            dt          = schedule.step.val(itstep);
+            currControl = schedule.step.control(itstep);
+        end
+        
+    end
+    
     function [model, state] = prepareReportstep(model, state, state0, dT, drivingForces)
         % Prepare state and model (temporarily) before solving a report-step
         model = model.validateModel(drivingForces);

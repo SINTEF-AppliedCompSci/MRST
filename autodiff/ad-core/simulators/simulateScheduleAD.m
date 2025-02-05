@@ -263,11 +263,23 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     simtime = zeros(nSteps, 1);
     prevControl = nan;
     firstEmptyIx = 1;
-    for i = 1:nSteps
-        step_header(i);
-        state0 = state;
+
+    done   = false;
+    itstep = 0;
+    
+    while ~done
+
+        itstep = itstep + 1;
         
-        currControl = schedule.step.control(i);
+        step_header(itstep);
+        state0 = state;
+
+        [dt, done, currControl] = model.getTimeStep(itstep, schedule, state);
+
+        if done
+            break;
+        end
+        
         if prevControl ~= currControl
             [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
             [model, state0]= model.updateForChangedControls(state, fstruct);
@@ -277,10 +289,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if isempty(opt.initialGuess)
             extraArg = {};
         else
-            guess = model.validateState(opt.initialGuess{i});
+            guess = model.validateState(opt.initialGuess{itstep});
             extraArg = {'initialGuess', guess};
         end
-        dt = schedule.step.val(i);
+
         timer = tic();
         if opt.OutputMinisteps
             [state, report, substates] = solver.solveTimestep(state0, dt, model, ...
@@ -294,7 +306,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                                             forces{:}, 'controlId', currControl, extraArg{:});
             % Single state requested for dt. We set values accordingly.
             substates = {state};
-            ind = i;
+            ind = itstep;
         end
 
         % Get globVars, if they exist
@@ -303,10 +315,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Store output in handlers, if configured
         writeOutput(opt.OutputHandler, opt, ind, substates)
         writeOutput(opt.GlobVarOutputHandler, opt, ind, globVars_step)
-        writeOutput(opt.ReportHandler, opt, i, report, false)
+        writeOutput(opt.ReportHandler, opt, itstep, report, false)
         
         t = toc(timer);
-        simtime(i) = t;
+        simtime(itstep) = t;
         % Abort simulation
         if ~report.Converged
             warning('NonLinear:Failure', ...
@@ -318,7 +330,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         % Apply control logic
         if ~isempty(opt.controlLogicFn)
-            [state, schedule, report, isAltered] = opt.controlLogicFn(state, schedule, report, i);
+            [state, schedule, report, isAltered] = opt.controlLogicFn(state, schedule, report, itstep);
             if isAltered
                 prevControl = nan; 
                 substates{end} = state;
@@ -339,7 +351,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             states(ind) = substates;
         end
         if wantReport
-            reports{i} = report;
+            reports{itstep} = report;
         end
         
         if ~isempty(opt.afterStepFn)
