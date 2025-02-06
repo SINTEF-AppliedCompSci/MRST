@@ -40,8 +40,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
                 for i = 1:numel(wellIndices)
                     wNo = wellIndices(i);
-                    [rho, comp] = getSurfaceParameters(model, forces.W(wNo), rhoL(i), rhoV(i), x(i, :), y(i, :), L(i), Z_L(i), Z_V(i), Z(i, :));
-%                     forces.W(wNo).compi = comp;
+                    [rho, comp] = getSurfaceParameters(model, forces.W(wNo), p(i,:), T(i,:), rhoL(i), rhoV(i), x(i, :), y(i, :), L(i), Z_L(i), Z_V(i), Z(i, :));
+                    forces.W(wNo).compi = comp;
                     forces.W(wNo).rhoS = rho;
                 end
             end
@@ -49,14 +49,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 end
 
-function [rho, compi] = getSurfaceParameters(model, W, rhoL, rhoV, x, y, L, Z_L, Z_V, Z)
+function [rho, compi] = getSurfaceParameters(model, W, p,T, rhoL, rhoV, x, y, L, Z_L, Z_V, Z)
     hc = model.getEoSPhaseIndices();
     nph = model.getNumberOfPhases();
-    if false
+    if true
         % Use flash
-        [sL, sV] = eos.computeSaturations(rhoL, rhoV, x, y, L, Z_L, Z_V);
+        %[sL, sV] = eos.computeSaturations(p,T, rhoL, rhoV, x, y, L, Z_L, Z_V);
+        [sL, sV] = model.EOSModel.computeSaturations(p, T, rhoL, rhoV, x, y, L, Z_L, Z_V);
         % compi is a mass-fraction in practice
-        L_mass = sL.*rhoL(u)./(sL.*rhoL + sV.*rhoV);
+        L_mass = sL.*rhoL./(sL.*rhoL + sV.*rhoV);
         comp = [L_mass, 1-L_mass];
     else
         % Use the pre-computed definition of light/heavy
