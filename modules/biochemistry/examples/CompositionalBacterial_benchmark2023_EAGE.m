@@ -232,6 +232,10 @@ for i = 1:nT
     yH2NoBact(i)=sum(statesNoBact{i}.y(:,indH2).*model.operators.pv);
     yCO2NoBact(i)=sum(statesNoBact{i}.y(:,indCO2).*model.operators.pv);
 end
+
+sum(yH2+xH2)./sum(yH2NoBact+xH2NoBact)
+
+stop
 for i = 1:nT
     figure(1); clf; 
     plot(1:nT,yH2,'b')
