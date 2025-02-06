@@ -366,7 +366,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             
             map.pivottbl = cellztbl;
 
-            map.dispind1 = (1 : cellztbl.num)'
+            map.dispind1 = (1 : cellztbl.num)';
             map.dispind2 = sub2ind([vectbl.num, celltbl.num], ...
                                    vec_from_cellztbl, ...
                                    cell_from_cellztbl);
