@@ -206,6 +206,14 @@ simulatePackedProblem(problem,'restartStep',1);
 %% Get packed reservoir and well states
 [ws, states] = getPackedSimulatorOutput(problem);
 
+%% Compare with and without bectrial effects
+problemNoBact = problem;
+problemNoBact.BaseName = "H2_STORAGE_EAGE2003_NOBACT";
+problemNoBact.OutputHandlers.states.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\H2_STORAGE_EAGE2003_NOBACT";
+problemNoBact.OutputHandlers.wellSols.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\H2_STORAGE_EAGE2003_NOBACT";
+problemNoBact.OutputHandlers.reports.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\H2_STORAGE_EAGE2003_NOBACT";
+[wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
+
 %% Plotting Results
 namecp = model.EOSModel.getComponentNames();
 indH2=find(strcmp(namecp,'H2'));
@@ -215,11 +223,15 @@ xH2=zeros(nT,1);
 yH2=zeros(nT,1);
 yCO2= zeros(nT,1);
 for i = 1:nT
-    xH2(i)=max(states{i}.x(:,indH2));
-    yH2(i)=max(states{i}.y(:,indH2));
-    yCO2(i)=max(states{i}.y(:,indCO2));
+    xH2(i)=sum(states{i}.x(:,indH2).*model.operators.pv);
+    yH2(i)=sum(states{i}.y(:,indH2).*model.operators.pv);
+    yCO2(i)=sum(states{i}.y(:,indCO2).*model.operators.pv);
 end
-
+for i = 1:nT
+    xH2NoBact(i)=sum(statesNoBact{i}.x(:,indH2).*model.operators.pv);
+    yH2NoBact(i)=sum(statesNoBact{i}.y(:,indH2).*model.operators.pv);
+    yCO2NoBact(i)=sum(statesNoBact{i}.y(:,indCO2).*model.operators.pv);
+end
 for i = 1:nT
     figure(1); clf; 
     plot(1:nT,yH2,'b')

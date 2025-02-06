@@ -44,13 +44,13 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         % with H2-CO2-H2O-CH4
         compFluid 
         % Physical quantities and bounds
-        Y_H2 = 4.1e12;  % Conversion factor for hydrogen consumption (moles/volume)
+        Y_H2 = 6.875e11;  % Conversion factor for hydrogen consumption (moles/volume)
         gammak = [];
         mol_diff = [];
-        alphaH2 = 1.0946e-6;
-        alphaCO2 = 3.188e-5;
-        Psigrowthmax = 1.7e-4;
-        b_bact = 6.87E-10;
+        alphaH2 = 1.0946e-7;
+        alphaCO2 = 3.188e-6;
+        Psigrowthmax = 1.7e-5;
+        b_bact = 6.87E-11;
         Db = 10^(-8)*meter/second
         bDiffusionEffect = false;
         moleculardiffusion = false;
@@ -120,7 +120,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                 if strcmp(model.metabolicReaction,'MethanogenicArchae')
                     compFluid = TableCompositionalMixture({'Hydrogen', 'Water','Nitrogen', 'CarbonDioxide', 'Methane'}, ...
                     {'H2', 'Water', 'N2', 'CO2', 'C1'});
-                    model.gammak = [-4.0, 2.0, 0.0, -1.0, 1.0]/4;
+                    model.gammak = [-4.0, 2.0, 0.0, -1.0, 1.0];
                     eos =SoreideWhitsonEquationOfStateModel([], compFluid, 'sw');
                     model.EOSModel = eos;
                else
@@ -138,7 +138,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                     model.gammak(indH2O)=2.0;
                     model.gammak(indCO2)=-1.0;
                     model.gammak(indC1)=1.0;
-                    model.gammak = model.gammak./4;
+                    model.gammak = model.gammak;
                 end                 
             end
             model.compFluid = compFluid;
