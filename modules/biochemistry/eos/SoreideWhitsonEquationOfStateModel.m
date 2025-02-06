@@ -269,7 +269,7 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
                 Z0_L = model.computeCompressibilityZ(state.pressure, x0, A_L, B_L, Si_L, Bi, true);
                 Z0_V = model.computeCompressibilityZ(state.pressure, y0, A_V, B_V, Si_V, Bi, false);
                 L0(~stable) = model.solveRachfordRice(L0(~stable), K0(~stable, :), z(~stable, :));
-                L0(stable) = model.singlePhaseLabel(P(stable), T(stable), z(stable, :));
+                L0(stable) = model.singlePhaseLabel(P(stable), T(stable), z(stable, :), Z0_L(stable,:), Z0_V(stable,:));
                 active = ~stable;
                 % Flag stable cells as converged
                 state.eos.converged(stable) = true;
@@ -365,17 +365,82 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
             report.FlashTime = t_flash;
             report.StabilityTime = t_stability;
         end
-        
-        function L = singlePhaseLabel(eos, p, T, z)
-            % Li's method for phase labeling
-            Vc = eos.CompositionalMixture.Vcrit;
-            Tc = eos.CompositionalMixture.Tcrit;
-            Vz = bsxfun(@times, Vc, z);
-            
-            Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
-            L = double(T < Tc_est);
+
+        % function L = singlePhaseLabel(eos, p, T, z)
+        %     % Li's method for phase labeling
+        %     Vc = eos.CompositionalMixture.Vcrit;
+        %     Tc = eos.CompositionalMixture.Tcrit;
+        %     Vz = bsxfun(@times, Vc, z);
+        %
+        %     Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
+        %     L = double(T < Tc_est);
+        % end
+        function L = singlePhaseLabel(eos, p, T, z, Z_V, Z_L)
+            % Improved phase labeling based on compressibility factor (Z), fugacity, and critical properties
+            % Inputs:
+            %   eos: Equation of state object
+            %   p: Pressure (Pa)
+            %   T: Temperature (K)
+            %   z: Composition (mole fractions)
+            % Output:
+            %   L: Phase label (0 = gas, 1 = liquid, 2 = supercritical)
+
+            % Critical properties
+            Pc = eos.CompositionalMixture.Pcrit; % Critical pressure (Pa)
+            Tc = eos.CompositionalMixture.Tcrit; % Critical temperature (K)
+            omega = eos.CompositionalMixture.acentricFactors; % Acentric factors
+
+            % Pseudo-critical properties using Kay's rule
+            Tc_est = sum(z .* Tc); % Pseudo-critical temperature
+            Pc_est = sum(z .* Pc); % Pseudo-critical pressure
+            omega_est = sum(z .* omega); % Pseudo-acentric factor
+
+            % Reduced temperature and pressure
+            Tr = T ./ Tc_est; % Reduced temperature
+            Pr = p ./ Pc_est; % Reduced pressure
+
+            % Compressibility factor (Z) using a more accurate correlation
+            % Example: Peng-Robinson EoS or a generalized correlation like Lee-Kesler
+            % Z = 0.2905 - 0.087*(Tr) + 0.0164*(Tr.^2) - 0.0041*(Tr.^3) + 0.0006*(Tr.^4); % Approximation
+
+            % Fugacity calculation (optional, for more accurate phase labeling)
+            % fug = eos.fugacity(p, T, z); % Fugacity coefficients
+
+            % Phase classification:
+            % Phase classification:
+            if Tr > 1
+                if Pr > 1
+                    % Supercritical conditions
+                    L = 2; % Supercritical
+                else
+                    % Check other conditions if Pr <= 1
+                    if abs(Z_V - Z_L) < 0.1 % Z_V and Z_L are close
+                        if Z_V < 0.5
+                            L = 1; % Liquid-like behavior
+                        else
+                            L = 0; % Gas-like behavior
+                        end
+                    elseif Z_V > Z_L
+                        L = 0; % Gas phase
+                    else
+                        L = 1; % Liquid phase
+                    end
+                end
+            else
+                % Check other conditions if Tr <= 1
+                if abs(Z_V - Z_L) < 0.1 % Z_V and Z_L are close
+                    if Z_V < 0.5
+                        L = 1; % Liquid-like behavior
+                    else
+                        L = 0; % Gas-like behavior
+                    end
+                elseif Z_V > Z_L
+                    L = 0; % Gas phase
+                else
+                    L = 1; % Liquid phase
+                end
+            end
         end
-        
         function [x, y, K, Z_L, Z_V, L, values] = substitutionCompositionUpdate(model, P, T, z, K, L)
             % Determine overall liquid fraction
             L = model.solveRachfordRice(L, K, z);

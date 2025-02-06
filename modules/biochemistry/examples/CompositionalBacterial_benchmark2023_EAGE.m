@@ -39,8 +39,8 @@ compFluid = TableCompositionalMixture({'Water', 'Hydrogen', 'CarbonDioxide', 'Me
                                       {'H2O', 'H2', 'CO2', 'C1'});
 
 % Fluid density and viscosity (kg/m^3 and cP)
-[rhow, rhog] = deal(999.52 * kilogram / meter^3, 1.0 * kilogram / meter^3);
-[viscow, viscog] = deal(0.3292 * centi * poise, 0.0099 * centi * poise);
+[rhow, rhog] = deal(1023.52 * kilogram / meter^3, 0.0817 * kilogram / meter^3);
+[viscow, viscog] = deal(1 * centi * poise, 1 * centi * poise);
 
 % Compressibility (per bar)
 [cfw, cfg] = deal(4.1483e-10, 8.1533e-3 / barsa);
@@ -51,7 +51,7 @@ P0=100 * barsa;
 T0 = 313.15;                % Initial temperature (K)
 fluid = initSimpleADIFluid('phases', 'OG', 'mu', [viscow, viscog], ...
                            'rho', [rhow, rhog], 'pRef', 150, ...
-                           'c', [cfw, cfg], 'n', [2, 2], 'smin', [srw, src]);
+                           'c', [cfw, 0], 'n', [2, 2], 'smin', [srw, src]);
 
 % Capillary pressure function
 Pe = 0.1 * barsa;
@@ -86,7 +86,7 @@ tmp = cell(4,1);
 n1=floor(0.5*nx)+1; n2=floor(0.5*nx)+1;
 schedule.control = struct('W',tmp);
 
-cellInd =[481;1442;2403;3364;4325;5286;6247;7208];
+cellInd =[1442;2403;3364;4325;5286;6247;7208];
 
 
 % Add a production well at the identified cells with specified properties
@@ -97,7 +97,8 @@ W0 = addWell([], G, rock, cellInd, ...
     'Sign', 1, ...               % Sign
     'comp_i', [0, 1]);                        % Component indices
 W0(1).components = [0.0, 0.95,  0.05, 0.0];  % H2-rich injection   {'H2O', 'H2', 'CO2', 'C1'});
-W0(1).T = T0;
+%W0(1).refDepth = min(G.cells.centroids(:,3));
+%W0(1).T = T0;
 % Injection well parameters
 W1 = addWell([], G, rock, cellInd, ...
     'Name', 'Injector', ...                       % Well name
@@ -106,7 +107,7 @@ W1 = addWell([], G, rock, cellInd, ...
     'Val', rate, ...           % Production rate
     'comp_i', [0, 1]);
 W1(1).components = [0.0, 0.95,  0.05, 0.0];  % H2-rich injection   {'H2O', 'H2', 'CO2', 'C1'});
-W1(1).T = T0;
+%W1(1).T = T0;
 %Idle period
 W2 = addWell([], G, rock, cellInd, ...
     'Name', 'Rest', ...                       % Well name
@@ -115,7 +116,7 @@ W2 = addWell([], G, rock, cellInd, ...
     'Sign', 0, ...               % Sign
     'Compi', [0, 1]);
 W2(1).components = [0.0, 0.95,  0.05, 0.0];  % rest period
-W2(1).T = T0;
+%W2(1).T = T0;
 %production
 Pwell=70*barsa; 
 W3 = addWell([], G, rock, cellInd, ...
@@ -126,7 +127,7 @@ W3 = addWell([], G, rock, cellInd, ...
     'Compi', [0, 1]);
 W3(1).components = [0.0, 0.95,  0.05, 0.0];  %production
 %W3.lims.bhp= P0;qq
-W3(1).T = T0;
+%W3(1).T = T0;
 %Idle period
 W4 = addWell([], G, rock, cellInd, ...
     'Name', 'Idle', ...                       % Well name
@@ -135,7 +136,7 @@ W4 = addWell([], G, rock, cellInd, ...
     'Sign', 0, ...               % Sign
     'Compi', [0, 1]);
 W4(1).components = [0.0, 0.95,  0.05, 0.0];  % rest period
-W4(1).T = T0;
+%W4(1).T = T0;
 
 % schedule.control(1).W = W1;
 % schedule.control(2).W = W2;

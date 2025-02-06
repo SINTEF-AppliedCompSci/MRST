@@ -4,8 +4,8 @@ gravity reset on
 
 %% Read the Eclipse deck file containing the simulation data
 % Change input fil by UHS_BENCHMARK_RS_SALT.DATA for SALT EFFECTS
-%deck = readEclipseDeck('/home/elyes/Documents/mrst-2023b/spe11-utils/deck_H2/UHS_benchmark/UHSDATA/UHS_BENCHMARK_RS.DATA');
-deck = readEclipseDeck('/home/elyes/Documents/mrst-2023b/spe11-utils/TUC_UHS_Benchmark/Simulation Cases/UHS_Benchmark_HighH2.DATA');
+deck = readEclipseDeck('C:\Users\elyesa\OneDrive - SINTEF\Documents\Projects\TUC_UHS_Benchmark\Simulation Cases/UHS_Benchmark_HighH2.DATA');
+%deck = readEclipseDeck('/home/elyes/Documents/mrst-2023b/spe11-utils/TUC_UHS_Benchmark/Simulation Cases/UHS_Benchmark_HighH2.DATA');
 
 %% Prepare simulation parameters and initial state
 %[~, options, state0, model, schedule,compFluid, ~] = modified_uhs_benchmark_compositional(deck, 'bacteriamodel',false);
