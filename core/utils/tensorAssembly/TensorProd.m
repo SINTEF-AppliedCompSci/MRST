@@ -85,7 +85,10 @@ classdef TensorProd
         
         issetup      % Flag is set to true is product has been set up.
         settbl3      % Flag is set to true if the resulting product table is created
-        setpivottbl3 % Flag is set to true if the pivottbl table is created        
+        setpivottbl3 % Flag is set to true if the pivottbl table is created
+
+        chunksize = 100000; % Chunk size for the computation of the product
+        
     end
    
     methods
@@ -239,23 +242,54 @@ classdef TensorProd
         function prodAB = eval(prod, A, B)
             assert(prod.issetup, ['tensor product is not setup. Use method ' ...
                                 'setup']);
+
+            chunksize = prod.chunksize;
             
             dispind1 = prod.dispind1;
             dispind2 = prod.dispind2;
             dispind3 = prod.dispind3;
             
             n3 = prod.tbl3.num;
-            n = prod.pivottbl.num;
-            
-            A = A(dispind1);
-            B = B(dispind2);
-            prodAB = A.*B;
-            
-            if isa(prodAB, 'double')
-                prodAB = accumarray(dispind3, prodAB, [n3, 1]);
+            n  = prod.pivottbl.num;
+
+            if ~isempty(chunksize) && isa(A, 'double') && isa(B, 'double')
+
+                pivotsize = numel(dispind1);
+                nchunks   = ceil(pivotsize/chunksize);
+
+                prodAB = zeros(n3, 1);
+                
+                for ichunk = 1 : nchunks
+
+                    if ichunk < nchunks
+                        ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
+                    else
+                        ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
+                    end
+                    
+                    Ac = A(dispind1(ind));
+                    Bc = B(dispind2(ind));
+                    prodABc = Ac.*Bc;
+                    
+                    prodAB = prodAB + accumarray(dispind3(ind), prodABc, [n3, 1]);
+
+                end
+                
             else
-                M = sparse(dispind3, (1 : n)', 1, n3, n);
-                prodAB = M*prodAB;
+                
+                prodAB = A.*B;
+            
+                if isa(prodAB, 'double')
+                    
+                    prodAB = accumarray(dispind3, prodAB, [n3, 1]);
+                    
+                else
+                    
+                    M = sparse(dispind3, (1 : n)', 1, n3, n);
+                    prodAB = M*prodAB;
+                    
+                end
+                
             end
             
         end
