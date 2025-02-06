@@ -81,7 +81,10 @@ classdef IndexArray
                 vnum = opt.num;
                 assert(~isempty(vnum), 'In case of virtual table, the size of the index array should be given');
                 tbl.vnum = vnum;
+            else
+                tbl.isvirtual = false;
             end
+            
             tbl.tblname = opt.tblname;    
         end
 
@@ -158,6 +161,7 @@ classdef IndexArray
         
         function inds = get(tbl, fdname)
         % get index vector for the indexing given by fdname
+            assert(tbl.isvirtual == false, 'This function cannot be used for virtual tables');
             fdnames = tbl.fdnames;
             tblinds = strcmp(fdname, fdnames);
             assert(any(tblinds), 'index array field name not recognized');
@@ -167,6 +171,7 @@ classdef IndexArray
         
         function inds = gets(tbl, getfdnames)
         % get the index vectors for the indexings given by fdnames
+            assert(tbl.isvirtual == false, 'This function cannot be used for virtual tables');
             fdnames = tbl.fdnames;
             inds = tbl.inds;
             [isok, getinds] = ismember(getfdnames, fdnames);
