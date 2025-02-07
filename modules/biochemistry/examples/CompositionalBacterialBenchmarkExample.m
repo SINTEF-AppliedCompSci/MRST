@@ -4,7 +4,7 @@ gravity reset on
 
 %% Read the Eclipse deck file containing the simulation data
 % Change input fil by UHS_BENCHMARK_RS_SALT.DATA for SALT EFFECTS
-deck = readEclipseDeck('C:\Users\elyesa\OneDrive - SINTEF\Documents\Projects\TUC_UHS_Benchmark\Simulation Cases/UHS_Benchmark_HighH2.DATA');
+deck = readEclipseDeck('/home/elyes/Documents/mrst-2023b/spe11-utils/TUC_UHS_Benchmark/Simulation Cases/UHS_Benchmark_HighH2.DATA');
 %deck = readEclipseDeck('/home/elyes/Documents/mrst-2023b/spe11-utils/TUC_UHS_Benchmark/Simulation Cases/UHS_Benchmark_HighH2.DATA');
 
 %% Prepare simulation parameters and initial state
@@ -77,7 +77,7 @@ if bacteriamodel
     compFluid = model.EOSModel.CompositionalMixture;
     arg = {model.G, model.rock, model.fluid, compFluid,...
         false, diagonal_backend, 'eos',model.EOSModel, 'oil', true, 'gas', true,... % water-oil system
-    	'bacteriamodel', true,'diffusioneffect',false,'liquidPhase', 'O',...
+    	'bacteriamodel', false,'diffusioneffect',false,'liquidPhase', 'O',...
         'vaporPhase', 'G'}; % water=liquid, gas=vapor
     model = BiochemistryModel(arg{:});
 %     model.EOSModel =eos;
@@ -137,7 +137,7 @@ lsolve = selectLinearSolverAD(model);                          % Select the line
 nls = NonLinearSolver();                                       % Create a nonlinear solver object
 nls.LinearSolver = lsolve;                                     % Assign the linear solver to the nonlinear solver
 
-name = 'UHS_BENCHMARK_COMPOSITIONAL_BACT_TRUE_HIGH_H2_MOD';
+name = 'UHS_BENCHMARK_COMPOSITIONAL_BACT_FALSE_HIGH_H2_MOD';
 %% Pack the simulation problem with the initial state, model, and schedule
 % model = OverallCompositionCompositionalModel(G, model.rock,model.fluid,model.EOSModel, 'water', false);
 % model.EOSModel.minimumComposition =1.0e-8;
@@ -158,14 +158,53 @@ problemNoBact.OutputHandlers.reports.dataDirectory= "/home/elyes/Documents/Proje
 namecp = model.EOSModel.getComponentNames();
 indH2=find(strcmp(namecp,'H2'));
 indCO2= find(strcmp(namecp,'CO2'));
+indCH4= find(strcmp(namecp,'CH4'));
 nT = numel(states);
-for i = 1:nT
-    totMassH2(i)=sum(states{i}.FlowProps.ComponentTotalMass{indH2}.*model.operators.pv);
-    totMassH2(i)=sum(states{i}.FlowProps.ComponentTotalMass{indH2}.*model.operators.pv);
-    totMassCO2(i)=sum(states{i}.FlowProps.ComponentTotalMass{indH2}.*model.operators.pv);
+% Initialize arrays to store total H2 mass
+totalH2_bact = zeros(numel(states), 1);
+totalH2_noBact = zeros(numel(statesNoBact), 1);
 
-    totMassH2NoBact(i)=sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indH2}.*model.operators.pv);
-    totMassH2NoBact(i)=sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indH2}.*model.operators.pv);
-    totMassCO2NoBact(i)=sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indH2}.*model.operators.pv);
+for i = 1:numel(states)
+    % With bacterial effects
+    totalH2_bact(i) = sum(states{i}.FlowProps.ComponentTotalMass{indH2});
+
+    % Without bacterial effects
+    totalH2_noBact(i) = sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indH2});
+
+    % With bacterial effects
+    totalCO2_bact(i) = sum(states{i}.FlowProps.ComponentTotalMass{indCO2});
+
+    % Without bacterial effects
+    totalCO2_noBact(i) = sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indCO2});
+    % With bacterial effects
+    totalCH4_bact(i) = sum(states{i}.FlowProps.ComponentTotalMass{indCH4});
+
+    % Without bacterial effects
+    totalCH4_noBact(i) = sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indCH4});
 end
 
+%% Calculate percentage of H2 loss
+H2_loss_percentage = ((totalH2_noBact - totalH2_bact) ./ totalH2_noBact) * 100;
+%% Calculate percentage of CO2 loss
+CO2_loss_percentage = ((totalCO2_noBact - totalCO2_bact) ./ totalCO2_noBact) * 100;
+%% Calculate percentage of CH4 production
+CH4_loss_percentage = ((totalCH4_bact - totalCH4_noBact) ./ totalCH4_noBact) * 100;
+
+%% Display final H2 loss
+fprintf('Total H2 loss due to bacterial effects: %.2f%%\n', H2_loss_percentage(end));
+for i = 1:nT
+xH2(i)=sum(states{i}.x(:,indH2).*model.operators.pv);
+yH2(i)=sum(states{i}.y(:,indH2).*model.operators.pv);
+yCO2(i)=sum(states{i}.y(:,indCO2).*model.operators.pv);
+xCO2(i)=sum(states{i}.x(:,indCO2).*model.operators.pv);
+xCH4(i)=sum(states{i}.x(:,indCH4).*model.operators.pv);
+yCH4(i)=sum(states{i}.y(:,indCH4).*model.operators.pv);
+end
+for i = 1:nT
+xH2NoBact(i)=sum(statesNoBact{i}.x(:,indH2).*model.operators.pv);
+yH2NoBact(i)=sum(statesNoBact{i}.y(:,indH2).*model.operators.pv);
+xCO2NoBact(i)=sum(statesNoBact{i}.x(:,indCO2).*model.operators.pv);
+yCO2NoBact(i)=sum(statesNoBact{i}.y(:,indCO2).*model.operators.pv);
+xCH4NoBact(i)=sum(statesNoBact{i}.x(:,indCH4).*model.operators.pv);
+yCH4NoBact(i)=sum(statesNoBact{i}.y(:,indCH4).*model.operators.pv);
+end
