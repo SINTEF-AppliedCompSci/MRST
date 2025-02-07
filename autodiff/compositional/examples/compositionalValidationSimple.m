@@ -32,7 +32,9 @@ if useNatural
 else
     name = 'Overall'; %#ok<UNRCH>
 end
-problem = packSimulationProblem(state0, model, schedule, 'simple_comp', 'name', name);
+ eosname='sw';% 'pr';
+ model.EOSModel = SoreideWhitsonEquationOfStateModel(G, model.EOSModel.CompositionalMixture,eosname);
+problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW', 'name', name);
 
 %% Simulate the schedule
 % Note that as the problem has 500 control steps, this may take some time
@@ -55,7 +57,7 @@ ncomp = model.EOSModel.getNumberOfComponents();
 
 lf = get(0, 'DefaultFigurePosition');
 h = figure('Position', lf + [0, 0, 350, 0]);
-data = {states, ref.statesECL(2:end), ref.statesGPRS};
+data = {states};%, ref.statesECL(2:end), ref.statesGPRS};
 n = min(cellfun(@numel, data));
 names = {'MRST', 'E300', 'AD-GPRS'};
 markers = {'-', '--', '--'};
