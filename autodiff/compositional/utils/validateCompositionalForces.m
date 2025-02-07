@@ -37,12 +37,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 Z = eos.getMassFraction(z);
                 n = size(z, 1);
                 [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(repmat(p, n, 1), repmat(T, n, 1), z, eos);
-
-                for i = 1:numel(wellIndices)
-                    wNo = wellIndices(i);
-                    [rho, comp] = getSurfaceParameters(model, forces.W(wNo), p(i,:), T(i,:), rhoL(i), rhoV(i), x(i, :), y(i, :), L(i), Z_L(i), Z_V(i), Z(i, :));
-                    forces.W(wNo).compi = comp;
-                    forces.W(wNo).rhoS = rho;
+ 
+                if strcmp(model.EOSModel.shortname,'sw')
+                    for i = 1:numel(wellIndices)
+                        wNo = wellIndices(i);
+                        [rho, comp] = getSurfaceParameters(model, forces.W(wNo), p, T, rhoL(i), rhoV(i), x(i, :), y(i, :), L(i), Z_L(i), Z_V(i), Z(i, :));
+                        forces.W(wNo).compi = comp;
+                        forces.W(wNo).rhoS = rho;
+                    end
+                else
+                    for i = 1:numel(wellIndices)
+                        wNo = wellIndices(i);
+                        [rho, ~] = getSurfaceParameters(model, forces.W(wNo), p, T, rhoL(i), rhoV(i), x(i, :), y(i, :), L(i), Z_L(i), Z_V(i), Z(i, :));
+                        % forces.W(wNo).compi = comp;
+                        forces.W(wNo).rhoS = rho;
+                    end
                 end
             end
         end
@@ -52,7 +61,7 @@ end
 function [rho, compi] = getSurfaceParameters(model, W, p,T, rhoL, rhoV, x, y, L, Z_L, Z_V, Z)
     hc = model.getEoSPhaseIndices();
     nph = model.getNumberOfPhases();
-    if true
+    if strcmp(model.EOSModel.shortname,'sw')
         % Use flash
         %[sL, sV] = eos.computeSaturations(p,T, rhoL, rhoV, x, y, L, Z_L, Z_V);
         [sL, sV] = model.EOSModel.computeSaturations(p, T, rhoL, rhoV, x, y, L, Z_L, Z_V);

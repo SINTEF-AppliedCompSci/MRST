@@ -25,10 +25,15 @@ classdef PhaseMixingCoefficientsLV < StateFunction
             x = xy(isEoS, L_ix);
             y = xy(isEoS, V_ix);
             acf = eos.CompositionalMixture.acentricFactors;
-            
+            namecp = eos.getComponentNames();
             if strcmp(eos.shortname, 'sw')
-                [A_ij, Bi] = eos.getMixingParametersH2O(p, T, acf, iscell(x));
-                [Si_L, A_L, B_L] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
+                indH2O = find(strcmp(namecp, 'Water') | strcmp(namecp, 'H2O'), 1);
+                if ~isempty(indH2O)
+                    [A_ij, Bi] = eos.getMixingParametersH2O(p, T, acf, iscell(x));
+                else
+                    [A_ij, Bi] = eos.getMixingParameters(p, T, acf, iscell(x));
+                end
+                    [Si_L, A_L, B_L] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
 
                 v{L_ix} = struct('Si', {Si_L}, 'A', {A_L}, 'B', {B_L}, 'Bi', {Bi}, 'A_ij', {A_ij});
 

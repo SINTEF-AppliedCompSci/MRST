@@ -103,11 +103,13 @@ function bic = getBinaryInteractionGasWater(fluid, T)
     end
     % Handle self-interactions for H2, CO2, CH4, N2, and H2O
     for i=1:nComponents
+        Tr = T ./ fluid.Tcrit(i);
         bic{i,i} = fluid.bic(i,i)+0.*Tr;
     end
     for i =1:nComponents
         for j=1:nComponents
             if isempty(bic{i,j})
+                Tr = T ./ fluid.Tcrit(i);
                 bic{i,j} = 0 .* Tr;
             end
         end
@@ -191,6 +193,7 @@ function bic = getBinaryInteractionLiquidWater(fluid, T, msalt)
     end
     % Handle self-interactions for H2, CO2, CH4, N2, and H2O
     for i=1:nComponents
+        Tr = T ./ fluid.Tcrit(i);
         bic{i,i} = fluid.bic(i,i)+0.*Tr;
     end
 

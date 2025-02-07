@@ -143,7 +143,7 @@ W4(1).components = [0.0, 0.95,  0.05, 0.0];  % rest period
 % schedule.control(3).W = W3;
 % schedule.control(4).W = W4;
 
-schedule = createCyclicScenario( 3*day, 5, 180*day, 30*day, 30*day, 30*day,15*day, [W0;W2;W1;W3]);
+schedule = createCyclicScenario( 3*day, 10, 180*day, 30*day, 30*day, 30*day,15*day, [W0;W2;W1;W3]);
 %% Model Setup: Compositional Model with Bacterial Growth
 if biochemistrymodel
     eosname='SW';% 'pr';
@@ -201,7 +201,7 @@ name = 'H2_STORAGE_EAGE2003_BACT';
 problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
 
 %% Execute the simulation of the packed problem
-simulatePackedProblem(problem,'restartStep',1);
+simulatePackedProblem(problem);
 
 %% Get packed reservoir and well states
 [ws, states] = getPackedSimulatorOutput(problem);
@@ -213,7 +213,43 @@ problemNoBact.OutputHandlers.states.dataDirectory= "\\wsl.localhost\ubuntu\home\
 problemNoBact.OutputHandlers.wellSols.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\H2_STORAGE_EAGE2003_NOBACT";
 problemNoBact.OutputHandlers.reports.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\H2_STORAGE_EAGE2003_NOBACT";
 [wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
+namecp = model.EOSModel.getComponentNames();
+indH2=find(strcmp(namecp,'H2'));
+indCO2= find(strcmp(namecp,'CO2'));
+indCH4= find(strcmp(namecp,'C1'));
+nT = numel(states);
+% Initialize arrays to store total H2 mass
+totalH2_bact = zeros(numel(states), 1);
+totalH2_noBact = zeros(numel(statesNoBact), 1);
 
+for i = 1:numel(states)
+    % With bacterial effects
+    totalH2_bact(i) = sum(states{i}.FlowProps.ComponentTotalMass{indH2});
+
+    % Without bacterial effects
+    totalH2_noBact(i) = sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indH2});
+
+    % With bacterial effects
+    totalCO2_bact(i) = sum(states{i}.FlowProps.ComponentTotalMass{indCO2});
+
+    % Without bacterial effects
+    totalCO2_noBact(i) = sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indCO2});
+    % With bacterial effects
+    totalCH4_bact(i) = sum(states{i}.FlowProps.ComponentTotalMass{indCH4});
+
+    % Without bacterial effects
+    totalCH4_noBact(i) = sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indCH4});
+end
+
+%% Calculate percentage of H2 loss
+H2_loss_percentage = ((totalH2_noBact - totalH2_bact) ./ totalH2_noBact) * 100;
+%% Calculate percentage of CO2 loss
+CO2_loss_percentage = ((totalCO2_noBact - totalCO2_bact) ./ totalCO2_noBact) * 100;
+%% Calculate percentage of CH4 production
+CH4_loss_percentage = ((totalCH4_bact - totalCH4_noBact) ./ totalCH4_noBact) * 100;
+
+%% Display final H2 loss
+fprintf('Total H2 loss due to bacterial effects: %.2f%%\n', H2_loss_percentage(end));
 %% Plotting Results
 namecp = model.EOSModel.getComponentNames();
 indH2=find(strcmp(namecp,'H2'));
