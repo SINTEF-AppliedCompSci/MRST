@@ -218,6 +218,7 @@ problemNoBact.OutputHandlers.reports.dataDirectory= "\\wsl.localhost\ubuntu\home
 namecp = model.EOSModel.getComponentNames();
 indH2=find(strcmp(namecp,'H2'));
 indCO2= find(strcmp(namecp,'CO2'));
+indCH4= find(strcmp(namecp,'C1'));
 nT=numel(states);
 xH2=zeros(nT,1);
 yH2=zeros(nT,1);
@@ -226,11 +227,19 @@ for i = 1:nT
     xH2(i)=sum(states{i}.x(:,indH2).*model.operators.pv);
     yH2(i)=sum(states{i}.y(:,indH2).*model.operators.pv);
     yCO2(i)=sum(states{i}.y(:,indCO2).*model.operators.pv);
+    xCO2(i)=sum(states{i}.x(:,indCO2).*model.operators.pv);
+    xCH4(i)=sum(states{i}.x(:,indCH4).*model.operators.pv);
+    yCH4(i)=sum(states{i}.y(:,indCH4).*model.operators.pv);
+
 end
 for i = 1:nT
     xH2NoBact(i)=sum(statesNoBact{i}.x(:,indH2).*model.operators.pv);
     yH2NoBact(i)=sum(statesNoBact{i}.y(:,indH2).*model.operators.pv);
+    xCO2NoBact(i)=sum(statesNoBact{i}.x(:,indCO2).*model.operators.pv);
     yCO2NoBact(i)=sum(statesNoBact{i}.y(:,indCO2).*model.operators.pv);
+    xCH4NoBact(i)=sum(statesNoBact{i}.x(:,indCH4).*model.operators.pv);
+    yCH4NoBact(i)=sum(statesNoBact{i}.y(:,indCH4).*model.operators.pv);
+
 end
 
 sum(yH2+xH2)./sum(yH2NoBact+xH2NoBact)
