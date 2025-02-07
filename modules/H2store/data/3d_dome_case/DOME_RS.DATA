@@ -1,0 +1,121 @@
+-- Copyright (C) 2024 SINTEF DIGITAL
+-- Simulation results for hydrogen (H2) storage in an Anticlinal Dome Aquifer.
+-- Initial state, schedule, mesh saturation (satnum), active cells (actnum),
+-- porosity (poro), and permeability (perm) are configured in the main script.
+-- This case models dissolved gas (disgas) without evaporated water interaction at low depth.
+-- For high-depth scenarios (1200 meters and initial pressure of 120 bar), use 'RS_PVT_DOME_HDEPTH.inc'.
+
+----------------------------------------------------------------------------
+RUNSPEC
+----------------------------------------------------------------------------
+
+DIMENS
+1 1 1 /
+
+OIL
+GAS
+-- H2 STORAGE
+DISGAS
+-- DIFFUSE
+-- DISPER
+
+METRIC
+
+START
+17 'Feb' 2023 /
+
+EQLDIMS
+/
+
+WELLDIMS
+/
+
+TABDIMS
+/
+
+UNIFOUT
+
+MESSAGES
+/
+
+----------------------------------------------------------------------------
+GRID
+----------------------------------------------------------------------------
+
+INIT
+
+INCLUDE
+'H2TRAP.GRDECL' /
+
+INCLUDE
+'PERM.inc' /
+
+INCLUDE
+'PORO.inc' /
+
+COPY
+PERMX PERMY /
+PERMX PERMZ /
+/
+
+----------------------------------------------------------------------------
+EDIT
+----------------------------------------------------------------------------
+
+INCLUDE
+'PORV.inc' /
+
+----------------------------------------------------------------------------
+PROPS
+----------------------------------------------------------------------------
+
+--        OIL   WATER   GAS
+DENSITY
+9.98207150467e+02 1.0 0.0851
+/
+
+DIFFC
+18.01528 2.016 4.5e-05 1* 1e-9  /
+
+INCLUDE
+'SGOF_DOME.txt' /
+
+
+INCLUDE
+'RS_PVT_DOME.inc' /
+
+
+----------------------------------------------------------------------------
+REGIONS
+----------------------------------------------------------------------------
+
+INCLUDE
+'SATNUM_DOME.inc' /
+
+----------------------------------------------------------------------------
+SOLUTION
+----------------------------------------------------------------------------
+
+RTEMPVD
+/
+
+RSVD
+/
+
+BC 
+/
+/
+
+RPTRST
+BASIC=2 DEN KRG KRO/
+
+SUMMARY
+ALL
+PERFORMA
+
+----------------------------------------------------------------------------
+SCHEDULE
+----------------------------------------------------------------------------
+
+INCLUDE
+'SCHEDULE.inc' /
