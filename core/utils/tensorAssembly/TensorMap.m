@@ -55,6 +55,7 @@ classdef TensorMap
 %   `IndexArray`.
     
     properties
+        
         fromTbl           % IndexArray for the argument space of the mapping
         toTbl             % IndexArray for the output space of the mapping
         mergefds          % Field names for merging
@@ -197,7 +198,7 @@ classdef TensorMap
                     nchunks   = ceil(pivotsize/chunksize);
                     
                     if map.verbose
-                        fprintf('number of chunks %d\n', nchunks);
+                        fprintf('number of chunks %d', nchunks);
                     end
 
                     v = sparse(toTbl.num, 1);
@@ -212,9 +213,17 @@ classdef TensorMap
 
                         uc = u(dispind1(ind));
                         v = v + accumarray(dispind2(ind), uc, [toTbl.num, 1]);
+
+                        if map.verbose
+                            fprintf('.');
+                        end
                         
                     end
-                    
+
+                    if map.verbose
+                        fprintf('\n');
+                    end
+
                 else
                     v = u(dispind1);
                     v = accumarray(dispind2, v, [toTbl.num, 1]);

@@ -259,7 +259,7 @@ classdef TensorProd
                 nchunks   = ceil(pivotsize/chunksize);
 
                 if prod.verbose
-                    fprintf('number of chunks %d\n', nchunks);
+                    fprintf('number of chunks %d ', nchunks);
                 end
                 
                 prodAB = sparse(n3, 1);
@@ -278,6 +278,13 @@ classdef TensorProd
                     
                     prodAB = prodAB + accumarray(dispind3(ind), prodABc, [n3, 1]);
 
+                    if prod.verbose
+                        fprintf('.');
+                    end
+                end
+                
+                if prod.verbose
+                    fprintf('\n');
                 end
                 
             else
