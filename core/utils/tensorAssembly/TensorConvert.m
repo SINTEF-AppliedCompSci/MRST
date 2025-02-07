@@ -18,6 +18,8 @@ classdef TensorConvert
         
         issetup % Flag is set to true is product has been set up.
         
+        chunksize = 100000; % Chunk size for the computation of the product
+        verbose = false;        
     end
     
     methods
@@ -65,7 +67,6 @@ classdef TensorConvert
                                                'not belong to fields of pivottbl']);
             assert(all(ismember(fdsFrom, pfds)), ['There exist fields in fromTbl that do ' ...
                                                'not belong to fields of pivottbl']);
-
             map = TensorMap();
             map.fromTbl  = toTbl;
             map.toTbl    = pivottbl;
@@ -79,7 +80,7 @@ classdef TensorConvert
             map.mergefds = fdsFrom;
 
             tconv.indFrom = map.getDispatchInd();
-            
+
             tconv = tconv.setupFromInds();
             
         end
@@ -87,7 +88,7 @@ classdef TensorConvert
         function tconv = setupFromInds(tconv)
 
             inds = sub2ind([tconv.toTbl.num, tconv.fromTbl.num], tconv.indTo, tconv.indFrom);
-
+            
             tconv.inds    = inds;
             tconv.issetup = true;
             
@@ -97,9 +98,40 @@ classdef TensorConvert
 
             assert(tconv.issetup, 'please setup TensorConvert first');
             
-            inds = tconv.inds;
+            inds      = tconv.inds;
+            chunksize = tconv.chunksize;
             
-            m = M(inds);
+            if ~isempty(chunksize)
+
+                pivottbl = tconv.pivottbl;
+                
+                vsize   = numel(inds);
+                nchunks = ceil(vsize/chunksize);
+
+                m = sparse(vsize, 1);
+
+                if tconv.verbose
+                    fprintf('number of chunks %d\n', nchunks);
+                end
+                
+                for ichunk = 1 : nchunks
+
+                    if ichunk < nchunks
+                        ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
+                    else
+                        ind = (1 + (ichunk - 1)*chunksize) : vsize;
+                    end
+                    
+                    m = m + sparse(ind, ones(numel(ind), 1), M(inds(ind)), pivottbl.num, 1);
+                    
+                end
+                
+                
+            else
+                
+               m = M(inds);
+                
+            end
             
         end
         

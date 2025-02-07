@@ -88,6 +88,7 @@ classdef TensorProd
         setpivottbl3 % Flag is set to true if the pivottbl table is created
 
         chunksize = 100000; % Chunk size for the computation of the product
+        verbose = false;
         
     end
    
@@ -257,7 +258,11 @@ classdef TensorProd
                 pivotsize = numel(dispind1);
                 nchunks   = ceil(pivotsize/chunksize);
 
-                prodAB = zeros(n3, 1);
+                if prod.verbose
+                    fprintf('number of chunks %d\n', nchunks);
+                end
+                
+                prodAB = sparse(n3, 1);
                 
                 for ichunk = 1 : nchunks
 
@@ -277,7 +282,7 @@ classdef TensorProd
                 
             else
                 
-                prodAB = A.*B;
+                prodAB = A(dispind1).*B(dispind2);
             
                 if isa(prodAB, 'double')
                     

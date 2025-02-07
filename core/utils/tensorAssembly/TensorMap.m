@@ -75,6 +75,9 @@ classdef TensorMap
         dispind2          % from toTbl to pivottbl
         
         issetup           % Flag is set to true is map has been set up.
+
+        chunksize = 100000; % Chunk size for the computation of the product
+        verbose = false;
     end
    
     methods
@@ -177,17 +180,45 @@ classdef TensorMap
             assert(map.issetup, ['tensor map is not setup. Use method ' ...
                                 'setup']);
             
-            dispind1 = map.dispind1;
-            dispind2 = map.dispind2;
-            toTbl    = map.toTbl;
-            fromTbl  = map.fromTbl;
+            dispind1  = map.dispind1;
+            dispind2  = map.dispind2;
+            toTbl     = map.toTbl;
+            fromTbl   = map.fromTbl;
+            chunksize = map.chunksize;
             
             if isa(u, 'ADI')
                 M = sparse(dispind2, dispind1, 1, toTbl.num, fromTbl.num);
                 v = M*u;
             else
-                v = u(dispind1);
-                v = accumarray(dispind2, v, [toTbl.num, 1]);
+                
+                if ~isempty(chunksize)
+
+                    pivotsize = numel(dispind1);
+                    nchunks   = ceil(pivotsize/chunksize);
+                    
+                    if map.verbose
+                        fprintf('number of chunks %d\n', nchunks);
+                    end
+
+                    v = sparse(toTbl.num, 1);
+
+                    for ichunk = 1 : nchunks
+
+                        if ichunk < nchunks
+                            ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
+                        else
+                            ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
+                        end
+
+                        uc = u(dispind1(ind));
+                        v = v + accumarray(dispind2(ind), uc, [toTbl.num, 1]);
+                        
+                    end
+                    
+                else
+                    v = u(dispind1);
+                    v = accumarray(dispind2, v, [toTbl.num, 1]);
+                end
             end
             
         end
