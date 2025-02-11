@@ -42,7 +42,11 @@ for step = 1:nSteps
     end
     
     % Update control in new schedule
-    newSchedule{step} = simpleSchedule(schedule.step.val(step),'W', W, 'bc', bc{step});
+    if ~isempty(bc)
+        newSchedule{step} = simpleSchedule(schedule.step.val(step),'W', W, 'bc', bc{step});
+    else
+        newSchedule{step} = simpleSchedule(schedule.step.val(step),'W', W);
+    end
 end
 
 newSchedule = combineSchedules(newSchedule{:},'makeConsistent',false);
