@@ -17,7 +17,7 @@ mrstModule add agglom upscaling coarsegrid...
 mrstModule add ad-core ad-props ad-blackoil spe10
 time_steps     = [0.1 ,0.5, 1 ,2 5 10 , 10*ones(1,10)]*day(); 
 training_steps = 1:16;
-partition      = [6,6,4];
+partition      = [3,3,2];
 
 %% Setting up the fine-scale model
 % We make a small model that consists of two different facies with
