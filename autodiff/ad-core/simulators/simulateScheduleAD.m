@@ -190,11 +190,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if isempty(opt.checkOperators)
         opt.checkOperators = mrstSettings('get', 'useHash');
     end
-    
+
+    schedule_is_used = ~(isfield(schedule, 'is_used') && ~schedule.is_used);
     %----------------------------------------------------------------------
-    tm = [0 ; reshape(cumsum(schedule.step.val), [], 1)];
+    if schedule_is_used
+        tm = [0 ; reshape(cumsum(schedule.step.val), [], 1)];
+    end
     restart = opt.restartStep;
-    if restart ~= 1
+    
+    if schedule_is_used && restart ~= 1 
         T0 = sum(schedule.step.val(1:restart-1));
         if isfield(initState, 'time') && abs(initState.time - T0) > 10*eps(sum(schedule.step.val))
             warning('Time mismatch in initial state for restart. Expected %s, got %s.\n', ...
@@ -208,11 +212,25 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         schedule.step.control = schedule.step.control(restart:end);
         schedule.step.val = schedule.step.val(restart:end);
     end
+    
     if opt.Verbose
-       simulation_header(numel(tm)-1, tm(end));
+        clear input
+        input.schedule_is_used = schedule_is_used;
+        if schedule_is_used
+            input.nstep    = numel(tm)-1;
+            input.tot_time = tm(end);
+        end
+       simulation_header(input);
     end
 
-    step_header = create_step_header(opt.Verbose, tm, opt.restartStep);
+    clear input
+    input.schedule_is_used = schedule_is_used;
+    input.verbose = opt.Verbose;
+    if schedule_is_used
+        input.tm      = tm;
+        input.rsrt    = opt.restartStep;
+    end
+    step_header = create_step_header(input);
 
     solver = opt.NonLinearSolver;
     if isempty(solver)
@@ -235,32 +253,40 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Reset timestep selector in case it was used previously.
     solver.timeStepSelector.reset();
 
-    nSteps = numel(schedule.step.val);
-    [globVars, states, reports] = deal(cell(nSteps, 1));
+    if schedule_is_used
+        nSteps = numel(schedule.step.val);
+        [globVars, states, reports] = deal(cell(nSteps, 1));
+    end
     wantStates = nargout > 1 || ~isempty(opt.afterStepFn);
     wantReport = nargout > 2 || ~isempty(opt.afterStepFn);
 
     % Check if model is self-consistent and set up for current BC type
-    dispif(opt.Verbose, 'Validating model...\n')
-    ctrl = schedule.control(schedule.step.control(1));
-    [forces, fstruct] = model.getDrivingForces(ctrl);
-    model = model.validateModel(fstruct, opt.checkOperators);
-    dispif(opt.Verbose, 'Model has been validated.\n')
+    if schedule_is_used
+        dispif(opt.Verbose, 'Validating model...\n')
+        ctrl = schedule.control(schedule.step.control(1));
+        [forces, fstruct] = model.getDrivingForces(ctrl);
+        model = model.validateModel(fstruct, opt.checkOperators);
+        dispif(opt.Verbose, 'Model has been validated.\n')
+    end
     % Check dependencies
     dispif(opt.Verbose, 'Checking state functions and dependencies...\n')
     model.checkStateFunctionDependencies();
     dispif(opt.Verbose, 'All checks ok. Model ready for simulation.\n')
     % Validate schedule
-    dispif(opt.Verbose, 'Preparing schedule for simulation...\n')
-    schedule = model.validateSchedule(schedule);
-    dispif(opt.Verbose, 'All steps ok. Schedule ready for simulation.\n')
-
+    if schedule_is_used
+        dispif(opt.Verbose, 'Preparing schedule for simulation...\n')
+        schedule = model.validateSchedule(schedule);
+        dispif(opt.Verbose, 'All steps ok. Schedule ready for simulation.\n')
+    end
+    
     % Check if initial state is reasonable
     dispif(opt.Verbose, 'Validating initial state...\n')
     state = model.validateState(initState);
     dispif(opt.Verbose, 'Initial state ok. Ready to begin simulation.\n')
     failure = false;
-    simtime = zeros(nSteps, 1);
+    if schedule_is_used
+        simtime = zeros(nSteps, 1);
+    end
     prevControl = nan;
     firstEmptyIx = 1;
 
@@ -271,18 +297,32 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         itstep = itstep + 1;
         
-        step_header(itstep);
         state0 = state;
 
         [dt, done, currControl] = model.getTimeStep(itstep, schedule, state);
+
+        clear headerinput
+        if schedule_is_used
+            headerinput.i = itstep;
+        else
+            headerinput.i    = itstep;
+            headerinput.time = state0.time;
+            headerinput.dt   = dt;
+        end
+
+        step_header(headerinput);
 
         if done
             break;
         end
         
         if prevControl ~= currControl
-            [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
-            [model, state0]= model.updateForChangedControls(state, fstruct);
+            if schedule_is_used
+                [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
+                [model, state0]= model.updateForChangedControls(state, fstruct);
+            else
+                forces = {};
+            end
             prevControl = currControl;
         end
         
@@ -374,7 +414,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         schedulereport = struct();
         schedulereport.ControlstepReports = reports;
-        schedulereport.ReservoirTime = cumsum(schedule.step.val);
+        if schedule_is_used
+            schedulereport.ReservoirTime = cumsum(schedule.step.val);
+        end
         schedulereport.Converged  = cellfun(@(x) x.Converged, reports);
         schedulereport.Iterations = cellfun(@(x) x.Iterations, reports);
         schedulereport.SimulationTime = simtime;
@@ -410,34 +452,57 @@ end
 
 %--------------------------------------------------------------------------
 
-function simulation_header(nstep, tot_time)
-   starline = @(n) repmat('*', [1, n]);
+function simulation_header(input)
 
-   fprintf([starline(65), '\n', starline(10), ...
-            sprintf(' Starting simulation: %5d steps, %5.0f days ', ...
-                    nstep, convertTo(tot_time, day)), ...
-            starline(9), '\n', starline(65), '\n']);
+    if input.schedule_is_used
+        nstep    = input.nstep;
+        tot_time = input.tot_time;
+        
+        starline = @(n) repmat('*', [1, n]);
+
+        fprintf([starline(65), '\n', starline(10), ...
+                 sprintf(' Starting simulation: %5d steps, %5.0f days ', ...
+                         nstep, convertTo(tot_time, day)), ...
+                 starline(9), '\n', starline(65), '\n']);
+    end
+    
 end
 
 %--------------------------------------------------------------------------
 
-function header = create_step_header(verbose, tm, rsrt)
-   nSteps  = numel(tm) - 1;
-   nDigits = floor(log10(nSteps)) + 1;
+function header = create_step_header(input)
 
-   if verbose
-      % Verbose mode.  Don't align '->' token in report-step range
-      nChar = 0;
-   else
-      % Non-verbose mode.  Do align '->' token in report-step range
-      nChar = numel(formatTimeRange(tm(end), 2));
-   end
-   offset = rsrt-1;
-   header = @(i) ...
-      fprintf('Solving timestep %0*d/%0*d: %-*s -> %s\n', ...
-              nDigits, i + offset, nDigits, nSteps, nChar, ...
-              formatTimeRange(tm(i + 0 + offset), 2), ...
-              formatTimeRange(tm(i + 1 + offset), 2));
+    if input.schedule_is_used
+        
+        verbose = input.verbose;
+        tm      = input.tm;
+        rsrt    = input.rsrt;
+
+        nSteps  = numel(tm) - 1;
+        nDigits = floor(log10(nSteps)) + 1;
+
+        if verbose
+            % Verbose mode.  Don't align '->' token in report-step range
+            nChar = 0;
+        else
+            % Non-verbose mode.  Do align '->' token in report-step range
+            nChar = numel(formatTimeRange(tm(end), 2));
+        end
+        offset = rsrt - 1;
+        header = @(headerinput) ...
+                 fprintf('Solving timestep %0*d/%0*d: %-*s -> %s\n', ...
+                         nDigits, headerinput.i + offset, nDigits, nSteps, nChar, ...
+                         formatTimeRange(tm(headerinput.i + 0 + offset), 2), ...
+                         formatTimeRange(tm(headerinput.i + 1 + offset), 2));
+
+    else
+
+        header = @(headerinput) fprintf('Solving timestep %d: %-*s -> %s\n'  , ...
+                                        headerinput.i                        , ...
+                                        formatTimeRange(headerinput.time, 2), ...
+                                        formatTimeRange(headerinput.time + headerinput.dt, 2));
+    end
+    
 end
 
 %--------------------------------------------------------------------------
