@@ -201,7 +201,7 @@ name = 'H2_STORAGE_EAGE2003_BACT';
 problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
 
 %% Execute the simulation of the packed problem
-simulatePackedProblem(problem);
+simulatePackedProblem(problem, 'restartStep', 1);
 
 %% Get packed reservoir and well states
 [ws, states] = getPackedSimulatorOutput(problem);

@@ -21,6 +21,8 @@ classdef BactConvertionRate <  StateFunction
 
              nbact = model.ReservoirModel.getProps(state, 'nbact');
              pv = model.ReservoirModel.PVTPropertyFunctions.get(model.ReservoirModel, state, 'PoreVolume');
+             rhoS = model.ReservoirModel.getSurfaceDensities();
+
 
              Y_H2 = model.ReservoirModel.Y_H2;
              gammak =model.ReservoirModel.gammak;
@@ -29,9 +31,9 @@ classdef BactConvertionRate <  StateFunction
              bact_limit = 1 - (nbact./nbactMax).^0.5;
              qbiot_temp =  (Psigrowth)./Y_H2;
              qbiot =cell(ncomp,1);
-             
+             L_ix = model.ReservoirModel.getLiquidIndex();
              for c = 1:ncomp            
-                qbiot{c} = pv.*gammak(c).*qbiot_temp +0;
+                qbiot{c} = rhoS(L_ix).*gammak(c).*qbiot_temp +0;
             end
          end         
         end
