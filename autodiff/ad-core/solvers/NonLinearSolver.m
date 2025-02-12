@@ -147,8 +147,8 @@ classdef NonLinearSolver < handle
             opt.initialGuess = state;
             assert(dT >= 0, [solver.getId(), 'Negative timestep detected.']);
 
-            converged = false;
-            done = false;
+            converged  = false;
+            done       = false;
             early_done = false;
 
             % Number of nonlinear iterations total
@@ -210,8 +210,7 @@ classdef NonLinearSolver < handle
                 % Increment the time
                 state.time = t_start + t_local + dt;
                 % Solve the ministep
-                [state, failure, tmp] = ...
-                    solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
+                [state, failure, tmp] = solveMinistep(solver, model, state, state0_inner, dt, drivingForces);
 
                 % Store timestep info
                 converged = tmp.Converged;
@@ -313,7 +312,7 @@ classdef NonLinearSolver < handle
                         % significant reduction.
                         timestepFailure = true;
                         cuttingCount = cuttingCount + 1;
-                   end
+                    end
                     isFinalMinistep = false;
                 end
                 % Custom function determines that we have stopped.
