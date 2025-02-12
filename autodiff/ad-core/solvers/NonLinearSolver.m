@@ -316,7 +316,7 @@ classdef NonLinearSolver < handle
                     isFinalMinistep = false;
                 end
                 % Custom function determines that we have stopped.
-                early_done = drivingForces.stopFunction(model, state, state0_inner);
+                early_done = model.triggerSimulationEnd(state, state0_inner, drivingForces);
                 % We are either done early, or done with the final step in
                 % the time interval
                 done = early_done || (isFinalMinistep && converged);

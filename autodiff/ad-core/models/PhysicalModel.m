@@ -409,6 +409,12 @@ methods
         end
     end
 
+    function doend = triggerSimulationEnd(model, state, state0_inner, drivingForces)
+
+        doend = drivingForces.stopFunction(model, state, state0_inner);
+        
+    end
+    
     function [dt, done, currControl] = getTimeStep(model, itstep, schedule, state)
     % Returns the current time-step and control index
 
