@@ -13,8 +13,9 @@ mrstModule add agglom upscaling coarsegrid...
                ad-core ad-blackoil ad-props...
                optimization deckformat
 
-time_steps     = [1 ,1 ,2 5 10 , 10*ones(1,10)]*day(); 
+time_steps     = [0.1, 0.1, 0.25, 0.5, 1 ,1 ,2 5 10 , 10*ones(1,10)]*day(); 
 training_steps = 1:10;
+all_steps =  1:length(time_steps);
 partition      = [3,3,2];
 
 %% Setting up the fine-scale model
@@ -32,8 +33,12 @@ drawnow
 %% Run simulation for fine-scale model
 schedule = simpleSchedule(time_steps, 'W', W);
 problem  = packSimulationProblem(state0, model_f, schedule, 'model_fine_scale');
-[ok, status] = simulatePackedProblem(problem);
+[ok, status] = simulatePackedProblem(problem, 'restartStep', 1);
 [wellSols_f, states_f] = getPackedSimulatorOutput(problem);
+schedule = flipWellControlsAndAddBC(schedule, states_f, []);
+problem  = packSimulationProblem(state0, model_f, schedule, 'model_fine_scale_new');
+[ok, status] = simulatePackedProblem(problem, 'restartStep',1);
+[wellSols_ff, states_ff] = getPackedSimulatorOutput(problem);
 
 %% Coarse-scale model
 % We make a coarse grid defined by partition, and perform a simple
@@ -50,8 +55,9 @@ model_c = imposeRelpermScaling(model_c, scaling{:});
 % use a tighter tollerance for improved gradient accuracy
 model_c.toleranceCNV = 1e-6;
 % perform a simple upscaling of the schedule for the training runs
-schedule_training   = simpleSchedule(time_steps(training_steps), 'W', W);
-schedule_training_c = upscaleSchedule(model_c, schedule_training);
+%schedule_training   = simpleSchedule(time_steps(training_steps), 'W', W);
+schedule_training = schedule;
+schedule_training_c = upscaleSchedule(model_c, schedule_training,  'bcUpscaleMethod', 'mean', 'wellUpscaleMethod', 'sum');
 
 
 figure(1)
@@ -64,7 +70,12 @@ plotWell(model_f.G, W, 'Color', 'k'); axis off tight
 
  %% Simulate initial upscaled coarse model for full time
 state0_c   = upscaleState(model_c, model_f, state0);
-schedule_c = upscaleSchedule(model_c, schedule);
+state0_c.wellSol(1).pressure =states_f{1}.wellSol(1).bhp;
+state0_c.wellSol(2).pressure =states_f{1}.wellSol(2).bhp;
+state0_c.wellSol(3).pressure =states_f{1}.wellSol(3).bhp;
+state0_c.wellSol(4).pressure =states_f{1}.wellSol(4).bhp;
+
+schedule_c = upscaleSchedule(model_c, schedule,  'bcUpscaleMethod', 'mean', 'wellUpscaleMethod', 'sum');
 [wellSols_c, states_c] = simulateScheduleAD(state0_c, model_c, schedule_c);
 summary_plots = plotWellSols({wellSols_f, wellSols_c} ,{schedule.step.val, schedule_c.step.val},...
                             'datasetnames',{'fine scale model','initial upscaled model'});
@@ -107,6 +118,7 @@ objh = @(p)evaluateMatch(p, obj, setup, params, states_f);
 %% Re-run simulation for optimal parameters for full time-horizon
 setup_opt = updateSetupFromScaledParameters(setup, params, p_opt);
 setup_opt.schedule.step = schedule.step; % full time-horizon
+%setup_opt.schedule.control = schedule.control; % full time-horizon
 [wellSols_opt, states_opt] = simulateScheduleAD(setup_opt.state0, setup_opt.model, setup_opt.schedule);
                                                         
 try

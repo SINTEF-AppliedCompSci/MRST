@@ -10,13 +10,13 @@
 %   -Six relperm scalers per cell
 
 clear all;
-
+close all;
 mrstModule add agglom upscaling coarsegrid...
                ad-core ad-blackoil ad-props...
                optimization deckformat
 mrstModule add ad-core ad-props ad-blackoil spe10
-time_steps     = [0.1 ,0.5, 1 ,2 5 10 , 10*ones(1,10)]*day(); 
-training_steps = 1:16;
+time_steps     = [0.1, 0.1, 0.25, 0.5,1 ,2 5 10 , 10*ones(1,10)]*day(); 
+training_steps = 1:18;
 partition      = [3,3,2];
 
 %% Setting up the fine-scale model
@@ -41,7 +41,7 @@ drawnow
 scheduleWellNoBc = simpleSchedule(time_steps, 'W', W);
 problemWellNoBc  = packSimulationProblem(state0, model_f, scheduleWellNoBc, 'model_fine_scale_Well');
 problemWellNoBc.Modules(end-1:end) = [];
-simulatePackedProblem(problemWellNoBc,'restartStep',1);
+simulatePackedProblem(problemWellNoBc, 'restartStep',18);
 [wellSols_f_WellNoBc, states_f_WellNoBc] = getPackedSimulatorOutput(problemWellNoBc);
 
 %% Run another fine-scale with Dirichlet boundary conditions
@@ -56,10 +56,10 @@ for i = 1:length(time_steps)
     bc{i} =  addBC([], bdf_f, 'pressure',        ...
             fpress,'sat', [states_f_WellNoBc{i}.s(cells_bdf,:)]);
 end
-scheduleWellBc = flipWellControlsAndAddBC(scheduleWellNoBc, states_f_WellNoBc, []);
+scheduleWellBc = flipWellControlsAndAddBC(scheduleWellNoBc, states_f_WellNoBc, bc);
 
 problemWellBc  = packSimulationProblem(state0, model_f, scheduleWellBc, 'model_fine_scale_WellBc');
-simulatePackedProblem(problemWellBc,'restartStep',1);
+simulatePackedProblem(problemWellBc,'restartStep',18);
 [wellSols_f_WellBc, states_f_WellBc] = getPackedSimulatorOutput(problemWellBc);
 %% Coarse-scale model
 % We make a coarse grid defined by partition, and perform a simple
@@ -74,17 +74,17 @@ scaling = {'SWL',   pts.w(1), 'SWCR', pts.w(2), 'SWU', pts.w(3), ...
            'SOWCR', pts.o(2), 'KRW',  pts.w(4), 'KRO', pts.o(4)};
 model_c = imposeRelpermScaling(model_c, scaling{:});
 % use a tighter tollerance for improved gradient accuracy
-model_c.toleranceCNV = 1e-6;
+%model_c.toleranceCNV = 1e-6;
 % perform a simple upscaling of the schedule for the training runs
 schedule_training_WellNoBc   = simpleSchedule(time_steps(training_steps), 'W', W);
-schedule_training_c_WellNoBc = upscaleSchedule(model_c, schedule_training_WellNoBc);
+schedule_training_c_WellNoBc = upscaleSchedule(model_c, schedule_training_WellNoBc,   'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
 % another schedule
 schedule_training_WellBc.control = scheduleWellBc.control;
 for i = training_steps
 schedule_training_WellBc.step.val(i) = scheduleWellBc.step.val(i);
 schedule_training_WellBc.step.control(i) = scheduleWellBc.step.control(i);
 end
-schedule_training_c_WellBc = upscaleSchedule(model_c, schedule_training_WellBc, 'bcUpscaleMethod', 'mean', 'wellUpscaleMethod', 'mean');
+schedule_training_c_WellBc = upscaleSchedule(model_c, schedule_training_WellBc, 'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
 
 
 
@@ -98,8 +98,13 @@ plotWell(model_f.G, W, 'Color', 'k'); axis off tight
 
  %% Simulate initial upscaled coarse model for full time
 state0_c   = upscaleState(model_c, model_f, state0);
-schedule_c_WellNoBc = upscaleSchedule(model_c, scheduleWellNoBc);
-schedule_c_WellBc = upscaleSchedule(model_c, scheduleWellBc, 'bcUpscaleMethod','nearest');
+state0_c   = upscaleState(model_c, model_f, state0);
+state0_c.wellSol(1).pressure =states_f_WellNoBc{1}.wellSol(1).bhp;
+state0_c.wellSol(2).pressure =states_f_WellNoBc{1}.wellSol(2).bhp;
+state0_c.wellSol(3).pressure =states_f_WellNoBc{1}.wellSol(3).bhp;
+state0_c.wellSol(4).pressure =states_f_WellNoBc{1}.wellSol(4).bhp;
+schedule_c_WellNoBc = upscaleSchedule(model_c, scheduleWellNoBc, 'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
+schedule_c_WellBc = upscaleSchedule(model_c, scheduleWellBc,   'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
 [wellSols_c_WellNoBc, states_c_WellNoBc] = simulateScheduleAD(state0_c, model_c, schedule_c_WellNoBc);
 [wellSols_c_WellBc, states_c_WellBc] = simulateScheduleAD(state0_c, model_c, schedule_c_WellBc);
 
@@ -127,24 +132,24 @@ params_WellNoBc = addParameter(params_WellNoBc,setup_WellNoBc, 'name', 'krw',  '
 
 
 % Well, porevolume and transmisibility
-params_WellBc = addParameter(params_WellBc,setup_WellNoBc, 'name', 'conntrans',       'relativeLimits', [.25 4], 'scaling', 'log');
-params_WellBc = addParameter(params_WellBc,setup_WellNoBc, 'name', 'porevolume',      'relativeLimits', [.5  2]);
-params_WellBc = addParameter(params_WellBc,setup_WellNoBc, 'name', 'transmissibility','relativeLimits', [.25 4], 'scaling', 'log');
+params_WellBc = addParameter(params_WellBc,setup_WellBc, 'name', 'conntrans',       'relativeLimits', [.25 4], 'scaling', 'log');
+params_WellBc = addParameter(params_WellBc,setup_WellBc, 'name', 'porevolume',      'relativeLimits', [.5  2]);
+params_WellBc = addParameter(params_WellBc,setup_WellBc, 'name', 'transmissibility','relativeLimits', [.25 4], 'scaling', 'log');
 % Rel-perm scalers
-params_WellBc = addParameter(params_WellBc,setup_WellNoBc, 'name', 'swl',  'boxLims',[0.0 0.2]);
-params_WellBc = addParameter(params_WellBc,setup_WellNoBc, 'name', 'swcr', 'boxLims',[0.0 0.2]);
-params_WellBc = addParameter(params_WellBc,setup_WellNoBc, 'name', 'sowcr','boxLims',[0.0 0.2]);
-params_WellBc = addParameter(params_WellBc,setup_WellNoBc, 'name', 'swu',  'boxLims',[0.8 1.0]);
-params_WellBc = addParameter(params_WellBc,setup_WellNoBc, 'name', 'kro',  'boxLims',[0.8 1]);
-params_WellBc = addParameter(params_WellBc,setup_WellNoBc, 'name', 'krw',  'boxLims',[0.8 1]);
+params_WellBc = addParameter(params_WellBc,setup_WellBc, 'name', 'swl',  'boxLims',[0.0 0.2]);
+params_WellBc = addParameter(params_WellBc,setup_WellBc, 'name', 'swcr', 'boxLims',[0.0 0.2]);
+params_WellBc = addParameter(params_WellBc,setup_WellBc, 'name', 'sowcr','boxLims',[0.0 0.2]);
+params_WellBc = addParameter(params_WellBc,setup_WellBc, 'name', 'swu',  'boxLims',[0.8 1.0]);
+params_WellBc = addParameter(params_WellBc,setup_WellBc, 'name', 'kro',  'boxLims',[0.8 1]);
+params_WellBc = addParameter(params_WellBc,setup_WellBc, 'name', 'krw',  'boxLims',[0.8 1]);
 
 
 %% Coarse model tuning
 p0 = getScaledParameterVector(setup_WellNoBc, params_WellNoBc);
 % Weight production rates/bhp relative to their magnitudes
-weighting =  {'WaterRateWeight',  (5/day)^-1, ...
-              'OilRateWeight',    (5/day)^-1,...
-              'BHPWeight',        (5*barsa)^-1};
+weighting =  {'WaterRateWeight',  [], ...
+              'OilRateWeight',    [],...
+              'BHPWeight',        []};
 
 
 obj = @(model_1, states_1, schedule_1, model_2, states_2, schedule_2,states_c, doPartials, tstep, state1,state2)...
@@ -161,26 +166,31 @@ obj = @(model_1, states_1, schedule_1, model_2, states_2, schedule_2,states_c, d
 % computes objective and gradient (if requested).
 % objh = @(p)evaluateMatch(p, obj, setup_WellNoBc, params_WellNoBc, states_f_WellNoBc);
 
-objh = @(p)evaluateMatchTwinModels(p, obj, setup_WellNoBc,setup_WellBc, params_WellBc, states_f_WellNoBc,[],[]);
+objh = @(p)evaluateMatchTwinModels(p, obj, setup_WellNoBc,setup_WellBc, params_WellNoBc, states_f_WellBc,[],[]);
 % run optimization
 [v, p_opt, history] = unitBoxBFGS(p0, objh, 'objChangeTol', 1e-7, 'gradTol', 1e-4, ...
                                  'maxIt', 25, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 10);
 
 %% Re-run simulation for optimal parameters for full time-horizon
-setup_opt = updateSetupFromScaledParameters(setup_WellNoBc, params_WellNoBc, p_opt);
-setup_opt.schedule.step = scheduleWellNoBc.step; % full time-horizon
-[wellSols_opt, states_opt] = simulateScheduleAD(setup_opt.state0, setup_opt.model, setup_opt.schedule);
-                                                        
+setup_opt_WellNoBc = updateSetupFromScaledParameters(setup_WellNoBc, params_WellNoBc, p_opt);
+setup_opt_WellNoBc.schedule.step = scheduleWellNoBc.step; % full time-horizon
+[wellSols_opt_WellNoBc, states_opt_WellNoBc] = simulateScheduleAD(setup_opt_WellNoBc.state0, setup_opt_WellNoBc.model, setup_opt_WellNoBc.schedule);
+  
+%% Re-run simulation for optimal parameters for full time-horizon
+setup_opt_WellBc = updateSetupFromScaledParameters(setup_WellBc, params_WellBc, p_opt);
+setup_opt_WellBc.schedule.step = scheduleWellBc.step; % full time-horizon
+[wellSols_opt_WellBc, states_opt_WellBc] = simulateScheduleAD(setup_opt_WellBc.state0, setup_opt_WellBc.model, setup_opt_WellBc.schedule);
+
 try
     figure(summary_plots.Number)
 catch
     summary_plots = figure;
 end
 ts = scheduleWellNoBc.step.val;
-plotWellSols({wellSols_f_WellNoBc, wellSols_c_WellBc, wellSols_opt, wellSols_f_WellNoBc(1:10)},...
-             {ts,         ts,         ts,           ts(1:10)},...
-              'datasetnames',{'reference','initial coarse', 'tuned coarse', 'training points'},...
-              'linestyles',{'-', '-', '-', 'o'},...
+plotWellSols({wellSols_f_WellNoBc, wellSols_opt_WellNoBc, wellSols_f_WellBc, wellSols_opt_WellBc},...
+             {ts,         ts,         ts,           ts},...
+              'datasetnames',{'reference','tuned WellNoBc', 'reference', 'tuned WellBc'},...
+              'linestyles',{'-', '-.', '-', '-.'},...
               'figure',summary_plots.Number)
 
 %% Copyright Notice
