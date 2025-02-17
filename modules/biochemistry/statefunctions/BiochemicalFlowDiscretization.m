@@ -22,7 +22,7 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
                 % corresponding transmissibilities
                 props = props.setStateFunction('Permeability', BactPermeability(model));
                 props = props.setStateFunction('Transmissibility', ...
-                                                DynamicTransmissibility(model, 'Permeability'));
+                                                DynamicFlowTransmissibility(model, 'Permeability'));
             else
                 % Static transmissibilities already been set up by parent
                 % or set up BactTransmissibility
@@ -33,8 +33,8 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
                 % at each nonlinear iteration, and used to compute
                 % corresponding transmissibilities
                 props = props.setStateFunction('Porosity', BactPorosity(model));
-                props = props.setStateFunction('BactPoreVolume', ...
-                    DynamicPoreVolume(model, 'Porosity'));
+                props = props.setStateFunction('PoreVolume', ...
+                    DynamicFlowPoreVolume(model, 'Porosity'));
             else
                 % Static transmissibilities already been set up by parent
             end

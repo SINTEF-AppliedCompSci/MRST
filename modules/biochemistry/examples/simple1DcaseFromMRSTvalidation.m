@@ -68,11 +68,42 @@ model.fluid.krPts.ow = [0, 1];   % Oil endpoints in water-oil system
 model.fluid.krPts.g = [sgr, 1];  % Gas endpoints (residual and maximum)
 model.fluid.krPts.og = [0, 1];   % Oil endpoints in gas-oil system
 
+%%% try dymanic 
+% Define bacterial concentration parameters
+phi0 = model.rock.poro; % Initial porosity
+nc = 5e5; % Critical bacterial concentration (adjust as needed)
+dp = 1e-5; % Pore diameter (adjust as needed)
+
+% Initialize bacterial concentration in the state
+state0.nbact = zeros(model.G.cells.num, 1); % Initial bacterial concentration
+
+% Define porosity as a function of bacterial concentration
+model.rock.poro = @(p, nbact) phi0 ./ (1 + (nbact / nc).^2);
+
+pvMult_nbact = @(nbact) 1./ (1 + (nbact / nc).^2);
+
+% Replace the original pvMultR function
+model.fluid.pvMultR = @(p, nbact) pvMult_nbact(nbact);
+
+% Define permeability as a function of porosity
+
+nbactMin = 1e3;
+nbactMax = 5e5;
+permMult = 1e-6;
+tau = @(nbact) (min(max(nbact, nbactMin), nbactMax) - nbactMin)./(nbactMax - nbactMin);
+perm = @(p,nbact) model.rock.perm(:,1).*((1-tau(nbact)) + tau(nbact).*permMult);
+
+model.rock.perm = perm;%@(p, nbact) (dp^2 / 180) * (model.rock.poro(p, nbact).^3) ./ (1 - model.rock.poro(p, nbact)).^2;
+
+% Update the fluid object to use the new porosity and permeability
+% model.fluid.poro = @(nbact) model.rock.poro(nbact);
+% model.fluid.perm = @(nbact) model.rock.perm(nbact);
+
 schedule.step.val = schedule.step.val/5;
  % Define compositional fluid model (with CoolProp library support)
  compFluid = TableCompositionalMixture({'Water', 'Hydrogen', 'CarbonDioxide', 'Methane'}, ...
      {'H2O', 'H2', 'CO2', 'C1'});
- model.EOSModel = SoreideWhitsonEquationOfStateModel(G, model.EOSModel.CompositionalMixture,eosname);
+ model.EOSModel = SoreideWhitsonEquationOfStateModel(model.G, model.EOSModel.CompositionalMixture,eosname);
  diagonal_backend = DiagonalAutoDiffBackend('modifyOperators', true);
  mex_backend = DiagonalAutoDiffBackend('modifyOperators', true, 'useMex', true, 'rowMajor', true);
  %includeWater=true
@@ -80,6 +111,7 @@ schedule.step.val = schedule.step.val/5;
      'water', false, 'oil', true, 'gas', true,'bacteriamodel', true,...
      'bDiffusionEffect', false,'moleculardiffusion',false,...
      'liquidPhase', 'O', 'vaporPhase', 'G'};
+% model.setupOperators();
  model = BiochemistryModel(arg{:});
  model.outputFluxes = false;
  model.EOSModel.msalt=0;
@@ -89,11 +121,10 @@ schedule.step.val = schedule.step.val/5;
  schedule.control.W(2).components = [0, 0.95, 0.05, 0];
  T = 50 + 273.15;
  p = 75*barsa;
- nbact0 = 1.0e5;
+ nbact0 = 1.0e4;
  state0 = initCompositionalStateBacteria(model, p, T, [1, 0], z0, nbact0, model.EOSModel);
-
-problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact', 'name', name);
-
+ model.verbose = false;
+ problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact', 'name', name);
 %% Simulate the schedule
 % Note that as the problem has 500 control steps, this may take some time
 % (upwards of 4 minutes).

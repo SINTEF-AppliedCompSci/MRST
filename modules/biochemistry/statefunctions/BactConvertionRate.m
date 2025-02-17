@@ -8,6 +8,7 @@ classdef BactConvertionRate <  StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'PsiGrowthRate'}, 'FlowDiscretization');
             gp = gp.dependsOn({'nbact'}, 'state');
+            gp = gp.dependsOn({'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
             gp.label = 'Q_biot';
         end
 
@@ -20,7 +21,9 @@ classdef BactConvertionRate <  StateFunction
              Psigrowth = model.getProps(state, 'PsiGrowthRate'); 
 
              nbact = model.ReservoirModel.getProps(state, 'nbact');
-             pv = model.ReservoirModel.PVTPropertyFunctions.get(model.ReservoirModel, state, 'PoreVolume');
+%             pv = model.ReservoirModel.PVTPropertyFunctions.get(model.ReservoirModel, state, 'PoreVolume');
+             rho = model.ReservoirModel.PVTPropertyFunctions.get(model, state, 'Density');
+
              rhoS = model.ReservoirModel.getSurfaceDensities();
 
 
@@ -33,7 +36,7 @@ classdef BactConvertionRate <  StateFunction
              qbiot =cell(ncomp,1);
              L_ix = model.ReservoirModel.getLiquidIndex();
              for c = 1:ncomp            
-                qbiot{c} = rhoS(L_ix).*gammak(c).*qbiot_temp +0;
+                qbiot{c} = rho{L_ix}.*gammak(c).*qbiot_temp +0;
             end
          end         
         end
