@@ -12,7 +12,7 @@ test = TestCase('permeability_effects_geothermal');
 
 %%
 problem = test.getPackedSimulationProblem('Name', 'static');
-simulatePackedProblem(problem, 'restartStep', 1);
+% simulatePackedProblem(problem, 'restartStep', 1);
 
 %%
 K0 = 273.15*Kelvin;

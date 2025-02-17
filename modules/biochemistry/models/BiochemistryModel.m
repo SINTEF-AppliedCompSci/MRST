@@ -175,20 +175,22 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                 % Assign dummy transmissibilities to appease
                 % model.setupOperators
                 drock = rock;
-                nbact0 = 50*10^7;
-                drock.perm = rock.perm(1*barsa, nbact0);
+                nbact0 = 0;
+                drock.perm = rock.perm(1*barsa(),nbact0);
             end
 
             if model.dynamicFlowPv()
                 % Assign dummy transmissibilities to appease
                 % model.setupOperators
-                drock = rock;
-                nbact0 = 50*10^7;
-                drock.poro = rock.poro(0.2, nbact0);
+                if ~model.dynamicFlowTrans()                
+                    drock = rock;
+                    nbact0 = 0;
+                end
+                drock.poro = rock.poro(1*barsa(),nbact0);
             end
             % Let reservoir model set up operators
             model = setupOperators@ReservoirModel(model, G, drock, varargin{:});
-            model.rock = drock;
+            model.rock = rock;
         end
 
         %-----------------------------------------------------------------%
@@ -225,6 +227,16 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                 flowprops = flowprops.setStateFunction('PsiDecayRate', DecayBactRateSRC(model));
                 flowprops = flowprops.setStateFunction('BactConvRate', BactConvertionRate(model));
             end
+
+            pvt = pvtprops.getRegionPVT(model);
+            if isfield(model.fluid, 'pvMultR')
+                % Check for multiplier
+                pv = DynamicFlowPoreVolume(model, pvt);
+            else
+                pv = PoreVolume(model, pvt);
+            end
+
+            pvtprops = pvtprops.setStateFunction('PoreVolume', pv);
             model.PVTPropertyFunctions  = pvtprops;
             model.FlowPropertyFunctions = flowprops;
             model.FlowDiscretization    = fluxprops;
