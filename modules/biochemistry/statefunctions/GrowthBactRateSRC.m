@@ -58,8 +58,8 @@ classdef GrowthBactRateSRC <  StateFunction
                 nbactMax = model.ReservoirModel.nbactMax;
                 bact_limit = 1 - (nbact./nbactMax).^0.5;
                 % Calculate Psigrowth using H2 and CO2 mole fractions
-                Psigrowth = pv.*Psigrowthmax.* (xH2 ./ (alphaH2 + xCO2)) ...
-                    .* (xCO2 ./ (alphaCO2 + xH2)).*nbact.*Voln;
+                Psigrowth = pv.*Psigrowthmax.* (xH2 ./ (alphaH2 + xH2)) ...
+                    .* (xCO2 ./ (alphaCO2 + xCO2)).*nbact.*Voln;
             end
         end
     end

@@ -38,7 +38,7 @@ classdef BactConvertionRate <  StateFunction
              L_ix = model.ReservoirModel.getLiquidIndex();
              N=sum(nbact.*sat{L_ix}.*pv);
              for c = 1:ncomp            
-                qbiot{c} = N.*gammak(c).*qbiot_temp +0;
+                qbiot{c} = rho{L_ix}.*gammak(c).*qbiot_temp +0;
             end
          end         
         end

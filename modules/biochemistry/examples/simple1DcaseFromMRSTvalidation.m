@@ -121,14 +121,14 @@ schedule.step.val = schedule.step.val/5;
  schedule.control.W(2).components = [0, 0.8, 0.2, 0];
  T = 50 + 273.15;
  p = 75*barsa;
- nbact0 = 1.0e4;
+ nbact0 = 1.0e8;
  state0 = initCompositionalStateBacteria(model, p, T, [1, 0], z0, nbact0, model.EOSModel);
  model.verbose = false;
  problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact_noclogging', 'name', name);
 %% Simulate the schedule
 % Note that as the problem has 500 control steps, this may take some time
 % (upwards of 4 minutes).
-simulatePackedProblem(problem,'restartStep', 115);
+simulatePackedProblem(problem, 'restartStep',1);
 [ws, states, rep] = getPackedSimulatorOutput(problem);
 
 
@@ -136,10 +136,10 @@ simulatePackedProblem(problem,'restartStep', 115);
 %%
 %% Compare with and without bectrial effects
 problemNoBact = problem;
-problemNoBact.BaseName = "simple_comp_SW_nobact";
-problemNoBact.OutputHandlers.states.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact";
-problemNoBact.OutputHandlers.wellSols.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact";
-problemNoBact.OutputHandlers.reports.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact";
+problemNoBact.BaseName = "simple_comp_SW_nobact_noclogging";
+problemNoBact.OutputHandlers.states.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\simple_comp_SW_nobact_noclogging";
+problemNoBact.OutputHandlers.wellSols.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\simple_comp_SW_nobact_noclogging";
+problemNoBact.OutputHandlers.reports.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\simple_comp_SW_nobact_noclogging";
 [wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
 namecp = model.EOSModel.getComponentNames();
 indH2=find(strcmp(namecp,'H2'));
