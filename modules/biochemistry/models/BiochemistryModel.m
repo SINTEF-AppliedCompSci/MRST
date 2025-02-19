@@ -44,12 +44,12 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         % with H2-CO2-H2O-CH4
         compFluid 
         % Physical quantities and bounds
-        Y_H2 = 6.875e11;  % Conversion factor for hydrogen consumption (moles/volume)
+        Y_H2 = 3.875e11;  % Conversion factor for hydrogen consumption (moles/volume)
         gammak = [];
         mol_diff = [];
-        alphaH2 = 1.0946e-7;
-        alphaCO2 = 3.188e-6;
-        Psigrowthmax = 1.7e-5;
+        alphaH2 = 3.6e-7;
+        alphaCO2 = 1.98e-6;
+        Psigrowthmax = 1.338e-4;
         b_bact = 6.87E-11;
         Db = 10^(-8)*meter/second
         bDiffusionEffect = false;
@@ -360,7 +360,11 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
             cnames = model.getComponentNames();
             [cmass, chemistry] = model.getProps(state0, 'ComponentTotalMass', ...
                 'BacterialMass');
+
+            Density = model.getProps(state0, 'Density');
+            L_ix = model.getLiquidIndex();
             cmass = value(cmass); chemistry = value(chemistry);
+            rhoL = value(Density{L_ix});
 
             if ~iscell(cmass), cmass = {cmass}; end
             ncomp = model.getNumberOfComponents();
@@ -378,7 +382,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
             ix = strcmpi(names, 'bacteria');
             if any(ix)
                 scaleChemistry = dt./chemistry;
-                scale{ix} = scaleChemistry.*0.01;
+                scale{ix} = scaleChemistry./model.fluid.rhoWS;
             end
 
         end
