@@ -10,20 +10,29 @@ classdef BactPermeability < StateFunction
         function perm = BactPermeability(model)
             perm@StateFunction(model);
             if model.dynamicFlowTrans
-                perm = perm.dependsOn({'pressure', 'nbact'}, 'state');
+                perm = perm.dependsOn('pressure', 'state');
+                if model.bacteriamodel                
+                    perm = perm.dependsOn('nbact', 'state');
+                end
             end
             perm.label = 'K';
         end
        
-       function perm = evaluateOnDomain(prop, model, state)
-           perm = model.rock.perm;
-           if model.dynamicFlowTrans
-               [p, nbact] = model.getProps(state, 'pressure', 'nbact');
-               perm = perm(p,nbact);
-           end
-       end
+        function perm = evaluateOnDomain(prop, model, state)
+            perm = model.rock.perm;
+            if model.dynamicFlowTrans
+                if model.bacteriamodel
+                    [p, nbact] = model.getProps(state, 'pressure', 'nbact');
+                    perm = perm(p,nbact);
+                else
+                    p = model.getProps(state, 'pressure');
+                    perm = perm(p,0);
+
+                end
+            end
+        end
    end
-   
+
 end
 
 %{

@@ -71,16 +71,16 @@ model.fluid.krPts.og = [0, 1];   % Oil endpoints in gas-oil system
 %%% try dymanic 
 % Define bacterial concentration parameters
 phi0 = model.rock.poro; % Initial porosity
-nc = 5e5; % Critical bacterial concentration (adjust as needed)
+nc = 4e5; % Critical bacterial concentration (adjust as needed)
 dp = 1e-5; % Pore diameter (adjust as needed)
 
 % Initialize bacterial concentration in the state
 state0.nbact = zeros(model.G.cells.num, 1); % Initial bacterial concentration
 
 % Define porosity as a function of bacterial concentration
-model.rock.poro = @(p, nbact) phi0 ./ (1 + (nbact / nc).^2);
+model.rock.poro = @(p, nbact) phi0 ./ (1 + 0.*(nbact / nc).^2);
 
-pvMult_nbact = @(nbact) 1./ (1 + (nbact / nc).^2);
+pvMult_nbact = @(nbact) 1./ (1 + (0.*nbact / nc).^2);
 
 % Replace the original pvMultR function
 model.fluid.pvMultR = @(p, nbact) pvMult_nbact(nbact);
@@ -88,10 +88,10 @@ model.fluid.pvMultR = @(p, nbact) pvMult_nbact(nbact);
 % Define permeability as a function of porosity
 
 nbactMin = 1e3;
-nbactMax = 5e5;
-permMult = 1e-6;
+nbactMax = 4e5;
+permMult = 1e-5;
 tau = @(nbact) (min(max(nbact, nbactMin), nbactMax) - nbactMin)./(nbactMax - nbactMin);
-perm = @(p,nbact) model.rock.perm(:,1).*((1-tau(nbact)) + tau(nbact).*permMult);
+perm = @(p,nbact) model.rock.perm(:,1).*((1-0.*tau(nbact)) + 0.*tau(nbact).*permMult);
 
 model.rock.perm = perm;%@(p, nbact) (dp^2 / 180) * (model.rock.poro(p, nbact).^3) ./ (1 - model.rock.poro(p, nbact)).^2;
 
@@ -117,20 +117,67 @@ schedule.step.val = schedule.step.val/5;
  model.EOSModel.msalt=0;
  % Initial conditions
  z0 = [0.95, 1.0e-8, 0.1, 0.05-1.0e-8];
- schedule.control.W(1).components = [0, 0.95, 0.05, 0];
- schedule.control.W(2).components = [0, 0.95, 0.05, 0];
+ schedule.control.W(1).components = [0, 0.8, 0.2, 0];
+ schedule.control.W(2).components = [0, 0.8, 0.2, 0];
  T = 50 + 273.15;
  p = 75*barsa;
  nbact0 = 1.0e4;
  state0 = initCompositionalStateBacteria(model, p, T, [1, 0], z0, nbact0, model.EOSModel);
  model.verbose = false;
- problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact', 'name', name);
+ problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact_noclogging', 'name', name);
 %% Simulate the schedule
 % Note that as the problem has 500 control steps, this may take some time
 % (upwards of 4 minutes).
-simulatePackedProblem(problem,'restartStep',1);
+simulatePackedProblem(problem,'restartStep', 115);
 [ws, states, rep] = getPackedSimulatorOutput(problem);
 
+
+
+%%
+%% Compare with and without bectrial effects
+problemNoBact = problem;
+problemNoBact.BaseName = "simple_comp_SW_nobact";
+problemNoBact.OutputHandlers.states.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact";
+problemNoBact.OutputHandlers.wellSols.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact";
+problemNoBact.OutputHandlers.reports.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact";
+[wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
+namecp = model.EOSModel.getComponentNames();
+indH2=find(strcmp(namecp,'H2'));
+indCO2= find(strcmp(namecp,'CO2'));
+indCH4= find(strcmp(namecp,'C1'));
+nT = numel(states);
+% Initialize arrays to store total H2 mass
+totalH2_bact = zeros(numel(states), 1);
+totalH2_noBact = zeros(numel(statesNoBact), 1);
+
+for i = 1:numel(states)
+    % With bacterial effects
+    totalH2_bact(i) = sum(states{i}.FlowProps.ComponentTotalMass{indH2});
+
+    % Without bacterial effects
+    totalH2_noBact(i) = sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indH2});
+
+    % With bacterial effects
+    totalCO2_bact(i) = sum(states{i}.FlowProps.ComponentTotalMass{indCO2});
+
+    % Without bacterial effects
+    totalCO2_noBact(i) = sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indCO2});
+    % With bacterial effects
+    totalCH4_bact(i) = sum(states{i}.FlowProps.ComponentTotalMass{indCH4});
+
+    % Without bacterial effects
+    totalCH4_noBact(i) = sum(statesNoBact{i}.FlowProps.ComponentTotalMass{indCH4});
+end
+
+%% Calculate percentage of H2 loss
+H2_loss_percentage = ((totalH2_noBact - totalH2_bact) ./ totalH2_noBact) * 100;
+%% Calculate percentage of CO2 loss
+CO2_loss_percentage = ((totalCO2_noBact - totalCO2_bact) ./ totalCO2_noBact) * 100;
+%% Calculate percentage of CH4 production
+CH4_loss_percentage = ((totalCH4_bact - totalCH4_noBact) ./ totalCH4_noBact) * 100;
+
+%% Display final H2 loss
+fprintf('Total H2 loss due to bacterial effects: %.2f%%\n', H2_loss_percentage(end));
 %% Comparison plots with existing simulators
 % The same problem was defined into two other simulators: Eclipse 300
 % (which is a commercial simulator) and AD-GPRS (Stanford's research
@@ -188,7 +235,7 @@ end
 % that the prediction of phase behavior is accurate.
 
 colors = lines(ncomp + 2);
-for step = 180 % 1:n
+for step =  1:n
     figure(h); clf; hold on
     for i = 1:2
         s = data{i}{step};
