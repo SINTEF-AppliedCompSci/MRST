@@ -7,19 +7,28 @@ classdef BactPorosity < StateFunction
    
    methods
        
-        function poro = BactPorosity(model)
-            poro@StateFunction(model);
-            if model.dynamicFlowTrans
-                poro = poro.dependsOn({'pressure', 'nbact'}, 'state');
-            end
-            poro.label = 'Phi';
+       function poro = BactPorosity(model)
+           poro@StateFunction(model);
+           if model.dynamicFlowTrans
+               if model.bacteriamodel
+                   poro = poro.dependsOn({'pressure', 'nbact'}, 'state');
+               else
+                   poro = poro.dependsOn('pressure', 'state');
+               end
+           end
+           poro.label = 'Phi';
         end
        
        function poro = evaluateOnDomain(prop, model, state)
            poro = model.rock.poro;
            if model.dynamicFlowPv
-               [p, nbact] = model.getProps(state, 'pressure', 'nbact');
-               poro = poro(p,nbact);
+               if model.bacteriamodel
+                   [p, nbact] = model.getProps(state, 'pressure', 'nbact');
+                   poro = poro(p,nbact);
+               else
+                   p = model.getProps(state, 'pressure', 'nbact');
+                   poro = poro(p,0);
+               end
            end
        end
    end
