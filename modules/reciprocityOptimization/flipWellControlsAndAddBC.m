@@ -29,20 +29,20 @@ for step = 1:nSteps
         currentqWs = getFieldOrDefault(state{step}.wellSol(w), 'qWs', 0);
         currentqOs = getFieldOrDefault(state{step}.wellSol(w), 'qOs', 0);
         currentqGs = getFieldOrDefault(state{step}.wellSol(w), 'qGs', 0);
-        
+        sumq = currentqWs +currentqOs + currentqGs;
         % Flip control type and set new value
         if (strcmp(W(w).type, 'rate') && (w>0))
             W(w).type = 'bhp';               % Switch to BHP control
             W(w).val = currentBhp;           % Set BHP based on state pressure
-           % W(w).lims.qWs = currentqWs;           % Set BHP based on state pressure
-
+            W(w).lims  = [];           % Set BHP based on state pressure
+%             W(w).compi = [currentqWs./sumq currentqOs./sumq];
         elseif strcmp(W(w).type, 'bhp') 
             W(w).type = 'rate';                         
             % Switch to rate control
-            W(w).val = (currentqWs) + (currentqOs) + (currentqGs); % Sum of flow rates
-           % W(w).lims.bhp = state{step}.wellSol(w).bhp*1.002;           % Set BHP based on state pressure
-
-            W(w).sign = -1; 
+            W(w).val = sumq; % Sum of flow rates
+            W(w).lims  = [];           % Set BHP based on state pressure
+%            W(w).compi = [currentqWs./sumq currentqOs./sumq];
+%             W(w).sign = -1; 
         end
     end
     

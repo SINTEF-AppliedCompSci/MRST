@@ -41,7 +41,7 @@ drawnow
 scheduleWellNoBc = simpleSchedule(time_steps, 'W', W);
 problemWellNoBc  = packSimulationProblem(state0, model_f, scheduleWellNoBc, 'model_fine_scale_Well');
 problemWellNoBc.Modules(end-1:end) = [];
-simulatePackedProblem(problemWellNoBc, 'restartStep',18);
+simulatePackedProblem(problemWellNoBc);%, 'restartStep',1);
 [wellSols_f_WellNoBc, states_f_WellNoBc] = getPackedSimulatorOutput(problemWellNoBc);
 
 %% Run another fine-scale with Dirichlet boundary conditions
@@ -56,10 +56,10 @@ for i = 1:length(time_steps)
     bc{i} =  addBC([], bdf_f, 'pressure',        ...
             fpress,'sat', [states_f_WellNoBc{i}.s(cells_bdf,:)]);
 end
-scheduleWellBc = flipWellControlsAndAddBC(scheduleWellNoBc, states_f_WellNoBc, bc);
+scheduleWellBc = flipWellControlsAndAddBC(scheduleWellNoBc, states_f_WellNoBc, []);
 
 problemWellBc  = packSimulationProblem(state0, model_f, scheduleWellBc, 'model_fine_scale_WellBc');
-simulatePackedProblem(problemWellBc,'restartStep',18);
+simulatePackedProblem(problemWellBc);%,'restartStep',1);
 [wellSols_f_WellBc, states_f_WellBc] = getPackedSimulatorOutput(problemWellBc);
 %% Coarse-scale model
 % We make a coarse grid defined by partition, and perform a simple
@@ -77,7 +77,7 @@ model_c = imposeRelpermScaling(model_c, scaling{:});
 %model_c.toleranceCNV = 1e-6;
 % perform a simple upscaling of the schedule for the training runs
 schedule_training_WellNoBc   = simpleSchedule(time_steps(training_steps), 'W', W);
-schedule_training_c_WellNoBc = upscaleSchedule(model_c, schedule_training_WellNoBc,   'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
+schedule_training_c_WellNoBc = upscaleSchedule(model_c, schedule_training_WellNoBc,   'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'recompute');
 % another schedule
 schedule_training_WellBc.control = scheduleWellBc.control;
 for i = training_steps
@@ -103,7 +103,7 @@ state0_c.wellSol(1).pressure =states_f_WellNoBc{1}.wellSol(1).bhp;
 state0_c.wellSol(2).pressure =states_f_WellNoBc{1}.wellSol(2).bhp;
 state0_c.wellSol(3).pressure =states_f_WellNoBc{1}.wellSol(3).bhp;
 state0_c.wellSol(4).pressure =states_f_WellNoBc{1}.wellSol(4).bhp;
-schedule_c_WellNoBc = upscaleSchedule(model_c, scheduleWellNoBc, 'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
+schedule_c_WellNoBc = upscaleSchedule(model_c, scheduleWellNoBc, 'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'recompute');
 schedule_c_WellBc = upscaleSchedule(model_c, scheduleWellBc,   'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
 [wellSols_c_WellNoBc, states_c_WellNoBc] = simulateScheduleAD(state0_c, model_c, schedule_c_WellNoBc);
 [wellSols_c_WellBc, states_c_WellBc] = simulateScheduleAD(state0_c, model_c, schedule_c_WellBc);
