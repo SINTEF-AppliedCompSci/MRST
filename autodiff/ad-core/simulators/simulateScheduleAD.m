@@ -301,6 +301,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         [dt, done, currControl] = model.getTimeStep(itstep, schedule, state);
 
+        if done
+            break;
+        end
+
         clear headerinput
         if schedule_is_used
             headerinput.i = itstep;
@@ -312,10 +316,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         step_header(headerinput);
 
-        if done
-            break;
-        end
-        
         if prevControl ~= currControl
             if schedule_is_used
                 [forces, fstruct] = model.getDrivingForces(schedule.control(currControl));
