@@ -44,7 +44,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         % with H2-CO2-H2O-CH4
         compFluid 
         % Physical quantities and bounds
-        Y_H2 = 3.875e11;  % Conversion factor for hydrogen consumption (moles/volume)
+        Y_H2 = 1.0875e12;  % Conversion factor for hydrogen consumption (moles/volume)
         gammak = [];
         mol_diff = [];
         alphaH2 = 3.6e-7;

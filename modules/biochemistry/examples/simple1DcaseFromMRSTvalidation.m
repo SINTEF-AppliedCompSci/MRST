@@ -47,7 +47,7 @@ krG_original = arrayfun(model.fluid.krG, SG);  % Gas rel perm
 krOG_original = arrayfun(model.fluid.krOG, SO);  % Oil rel perm (gas-oil)
 
 % Define residual saturations
-swc = 0.05;  % Residual water saturation
+swc = 0.2;  % Residual water saturation
 sgr = 0.05;  % Residual gas saturation
 
 % Update water relative permeability
@@ -60,14 +60,22 @@ SG_shifted = max(SG - sgr, 0);  % Shift gas saturation
 krG_new = interp1(SG, krG_original, SG_shifted, 'linear', 0);  % Interpolate and set to 0 for sg <= sgr
 model.fluid.krG = @(sg) interp1(SG, krG_new, value(max(sg - sgr, 0)));
 
-% Oil relative permeability (no changes unless needed)
-model.fluid.krOW = @(so) interp1(SO, krOW_original, value(so));
-model.fluid.krOG = @(so) interp1(SO, krOG_original, value(so));
-model.fluid.krPts.w = [swc, 1];  % Water endpoints (residual and maximum)
-model.fluid.krPts.ow = [0, 1];   % Oil endpoints in water-oil system
-model.fluid.krPts.g = [sgr, 1];  % Gas endpoints (residual and maximum)
-model.fluid.krPts.og = [0, 1];   % Oil endpoints in gas-oil system
+% Define residual oil saturation
+sor = 0.1; % Example residual oil saturation
 
+% Shift oil saturation for relative permeability
+SO_shifted = max(SO - sor, 0); % Shift oil saturation
+krOW_new = interp1(SO, krOW_original, SO_shifted, 'linear', 0); % Interpolate
+krOG_new = interp1(SO, krOG_original, SO_shifted, 'linear', 0); % Interpolate
+
+% Update oil relative permeability functions
+model.fluid.krOW = @(so) interp1(SO, krOW_new, value(max(so - sor, 0)));
+model.fluid.krOG = @(so) interp1(SO, krOG_new, value(max(so - sor, 0)));
+model.fluid.krPts.w = [swc, 1];  % Water endpoints (residual and maximum)
+model.fluid.krPts.g = [sgr, 1];  % Gas endpoints (residual and maximum)
+% Define relative permeability endpoints
+model.fluid.krPts.ow = [0, 1 - swc]; % Oil endpoints in water-oil system
+model.fluid.krPts.og = [0, 1 - sgr]; % Oil endpoints in gas-oil system
 %%% try dymanic 
 % Define bacterial concentration parameters
 phi0 = model.rock.poro; % Initial porosity
@@ -117,8 +125,8 @@ schedule.step.val = schedule.step.val/5;
  model.EOSModel.msalt=0;
  % Initial conditions
  z0 = [0.95, 1.0e-8, 0.1, 0.05-1.0e-8];
- schedule.control.W(1).components = [0, 0.8, 0.2, 0];
- schedule.control.W(2).components = [0, 0.8, 0.2, 0];
+ schedule.control.W(1).components = [0, 0.95, 0.05, 0];
+ schedule.control.W(2).components = [0, 0.95, 0.05, 0];
  T = 50 + 273.15;
  p = 75*barsa;
  nbact0 = 1.0e8;
@@ -137,9 +145,9 @@ simulatePackedProblem(problem, 'restartStep',1);
 %% Compare with and without bectrial effects
 problemNoBact = problem;
 problemNoBact.BaseName = "simple_comp_SW_nobact_noclogging";
-problemNoBact.OutputHandlers.states.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\simple_comp_SW_nobact_noclogging";
-problemNoBact.OutputHandlers.wellSols.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\simple_comp_SW_nobact_noclogging";
-problemNoBact.OutputHandlers.reports.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\simple_comp_SW_nobact_noclogging";
+problemNoBact.OutputHandlers.states.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact_noclogging";
+problemNoBact.OutputHandlers.wellSols.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact_noclogging";
+problemNoBact.OutputHandlers.reports.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact_noclogging";
 [wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
 namecp = model.EOSModel.getComponentNames();
 indH2=find(strcmp(namecp,'H2'));
