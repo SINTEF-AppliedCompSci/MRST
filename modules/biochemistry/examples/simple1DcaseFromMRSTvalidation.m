@@ -1,9 +1,7 @@
-%% Validation of MRST against two other simulators
-% This example is a two-phase compositional problem in which CO2 is
-% injected into a mixture of CO2, Methane, and Decane. The problem consists
-% of 1000 cells and is one-dimensional for ease of visualization. The
-% problem is divided into a large number of time steps to ensure that the
-% different simulators take approximately the same timesteps.
+%% 1D case modified from Validation Case in  MRST
+% This example is a two-phase compositional problem in which H2 95% and 5% of CO2 is
+% injected into a mixture of CO2, Methane, and H2=. The problem consists
+% of 1000 cells and is one-dimensional for ease of visualization.
 %
 % The problem is challenging in terms of fluid physics because the pressure
 % is relatively low, which makes the phase behavior highly pressure
@@ -11,13 +9,11 @@
 % set to bottom-hole pressure controls, the fluid volume injected depends
 % on correctly calculating the mobility and densities in the medium.
 %
-% MRST uses the Peng-Robinson equation of state by default and the Lohrenz,
+% Compared to the validation case we the Soreide -Whitson EOS and the Lohrenz,
 % Bray, and Clark (LBC) correlation to determine viscosities for both
-% phases.
-%
-% This example is discussed in Section 8.5.1 in the second MRST book:
-% Advanced Modelling with the MATLAB Reservoir Simulation Toolbox (MRST),
-% Cambridge University Press, 2021.
+% phases. Here the overall compositional model is coupled to biochemistry
+% and porosity&permeability reduction models due to pore bio-clogging
+
 mrstModule add compositional deckformat ad-core ad-props
 
 %% Set up model
@@ -48,7 +44,7 @@ krOG_original = arrayfun(model.fluid.krOG, SO);  % Oil rel perm (gas-oil)
 
 % Define residual saturations
 swc = 0.2;  % Residual water saturation
-sgr = 0.05;  % Residual gas saturation
+sgr = 0.1;  % Residual gas saturation
 
 % Update water relative permeability
 SW_shifted = max(SW - swc, 0);  % Shift water saturation
@@ -61,7 +57,7 @@ krG_new = interp1(SG, krG_original, SG_shifted, 'linear', 0);  % Interpolate and
 model.fluid.krG = @(sg) interp1(SG, krG_new, value(max(sg - sgr, 0)));
 
 % Define residual oil saturation
-sor = 0.1; % Example residual oil saturation
+sor = 0.2; % Example residual oil saturation
 
 % Shift oil saturation for relative permeability
 SO_shifted = max(SO - sor, 0); % Shift oil saturation
@@ -71,35 +67,40 @@ krOG_new = interp1(SO, krOG_original, SO_shifted, 'linear', 0); % Interpolate
 % Update oil relative permeability functions
 model.fluid.krOW = @(so) interp1(SO, krOW_new, value(max(so - sor, 0)));
 model.fluid.krOG = @(so) interp1(SO, krOG_new, value(max(so - sor, 0)));
-model.fluid.krPts.w = [swc, 1];  % Water endpoints (residual and maximum)
-model.fluid.krPts.g = [sgr, 1];  % Gas endpoints (residual and maximum)
+model.fluid.krPts.w = [swc, 0.9];  % Water endpoints (residual and maximum)
+model.fluid.krPts.g = [sgr, 0.8];  % Gas endpoints (residual and maximum)
 % Define relative permeability endpoints
 model.fluid.krPts.ow = [0, 1 - swc]; % Oil endpoints in water-oil system
 model.fluid.krPts.og = [0, 1 - sgr]; % Oil endpoints in gas-oil system
 %%% try dymanic 
 % Define bacterial concentration parameters
-phi0 = model.rock.poro; % Initial porosity
-nc = 4e5; % Critical bacterial concentration (adjust as needed)
+poro0 = model.rock.poro; % Initial 
+perm0 = model.rock.perm(:,1); % Initial porosity
+
+nc = 5e6; % Critical bacterial concentration (adjust as needed)
 dp = 1e-5; % Pore diameter (adjust as needed)
 
 % Initialize bacterial concentration in the state
 state0.nbact = zeros(model.G.cells.num, 1); % Initial bacterial concentration
 
 % Define porosity as a function of bacterial concentration
-model.rock.poro = @(p, nbact) phi0 ./ (1 + 0.*(nbact / nc).^2);
-
-pvMult_nbact = @(nbact) 1./ (1 + (0.*nbact / nc).^2);
-
+cp = 1.5;
+%pvMult_nbact = @(nbact) 1./ (1 + cp.*(nbact / nc).^2);
+pvMult_nbact = @(nbact) 1 ./ (1 + cp .* log(1 + (nbact / nc).^2));
+poro = @(p, nbact) poro0 .*pvMult_nbact(nbact);
+model.rock.poro = poro;
 % Replace the original pvMultR function
 model.fluid.pvMultR = @(p, nbact) pvMult_nbact(nbact);
 
 % Define permeability as a function of porosity
 
-nbactMin = 1e3;
-nbactMax = 4e5;
-permMult = 1e-5;
-tau = @(nbact) (min(max(nbact, nbactMin), nbactMax) - nbactMin)./(nbactMax - nbactMin);
-perm = @(p,nbact) model.rock.perm(:,1).*((1-0.*tau(nbact)) + 0.*tau(nbact).*permMult);
+% nbactMin = 1e3;
+% nbactMax = 4e5;
+% permMult = 1e-5;
+% tau = @(nbact) (min(max(nbact, nbactMin), nbactMax) - nbactMin)./(nbactMax - nbactMin);
+tau = @(p, nbact) ((1-poro0)./(1-poro(p, nbact))).^2.*(poro(p, nbact)./poro0).^3;
+
+perm = @(p,nbact) perm0/2.*tau(p, nbact);
 
 model.rock.perm = perm;%@(p, nbact) (dp^2 / 180) * (model.rock.poro(p, nbact).^3) ./ (1 - model.rock.poro(p, nbact)).^2;
 
@@ -127,16 +128,16 @@ schedule.step.val = schedule.step.val/5;
  z0 = [0.95, 1.0e-8, 0.1, 0.05-1.0e-8];
  schedule.control.W(1).components = [0, 0.95, 0.05, 0];
  schedule.control.W(2).components = [0, 0.95, 0.05, 0];
- T = 50 + 273.15;
- p = 75*barsa;
+ T = 30 + 273.15;
+ p = 150*barsa;
  nbact0 = 1.0e8;
  state0 = initCompositionalStateBacteria(model, p, T, [1, 0], z0, nbact0, model.EOSModel);
  model.verbose = false;
- problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact_noclogging', 'name', name);
+ problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact_clogging', 'name', name);
 %% Simulate the schedule
 % Note that as the problem has 500 control steps, this may take some time
 % (upwards of 4 minutes).
-simulatePackedProblem(problem, 'restartStep',1);
+simulatePackedProblem(problem);
 [ws, states, rep] = getPackedSimulatorOutput(problem);
 
 
@@ -144,10 +145,10 @@ simulatePackedProblem(problem, 'restartStep',1);
 %%
 %% Compare with and without bectrial effects
 problemNoBact = problem;
-problemNoBact.BaseName = "simple_comp_SW_nobact_noclogging";
-problemNoBact.OutputHandlers.states.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact_noclogging";
-problemNoBact.OutputHandlers.wellSols.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact_noclogging";
-problemNoBact.OutputHandlers.reports.dataDirectory= "/home/elyes/Documents/Projects/MRST/core/output/simple_comp_SW_nobact_noclogging";
+problemNoBact.BaseName = "simple_comp_SW_bact_noclogging";
+problemNoBact.OutputHandlers.states.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\simple_comp_SW_bact_noclogging";
+problemNoBact.OutputHandlers.wellSols.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\simple_comp_SW_bact_noclogging";
+problemNoBact.OutputHandlers.reports.dataDirectory= "\\wsl.localhost\ubuntu\home\elyesa\Projects\MRST\core\output\simple_comp_SW_bact_noclogging";
 [wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
 namecp = model.EOSModel.getComponentNames();
 indH2=find(strcmp(namecp,'H2'));
