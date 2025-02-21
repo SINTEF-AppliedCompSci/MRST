@@ -142,10 +142,10 @@ simulatePackedProblem(problem);
 
 %% Simulate without clogging effects
 BaseName = 'simple_comp_SW_bact_noclogging';
-model.fluid.rock.perm = perm0;
-model.fluid.rock.poro = poro0;
+model.rock.perm = perm0;
+model.rock.poro = poro0;
 problemNoClog = packSimulationProblem(state0, model, schedule, BaseName, 'name', name);
-simulatePackedProblem(problemNoClog);
+simulatePackedProblem(problemNoClog, 'restartStep',1);
 [wsNoClog,statesNoClog] = getPackedSimulatorOutput(problemNoClog);
 
 %% Simulate without bacterial effects
