@@ -5,11 +5,11 @@
 % Key features:
 %   - Injection of 95% H2 and 5% CO2 into a reservoir with CO2, Methane, H2.
 %   - Incorporates bio-clogging effects (porosity and permeability reduction).
-%   - Uses Soreide-Whitson EOS and LBC viscosity correlation.
+%   - Uses Soreide-Whitson EOS asimnd LBC viscosity correlation.
 %   - Relative permeability modifications for residual saturations.
 %   - Bottom-hole pressure controls for wells.
 %==========================================================================
-
+clear all;
 %% Initialize MRST and Load Modules
 %--------------------------------------------------------------------------
 % Add required MRST modules for compositional simulation.
@@ -23,6 +23,9 @@ mrstModule add compositional deckformat ad-core ad-props;
 % Use overall composition mode
 [state0, model, schedule, ref] = setupSimpleCompositionalExample(false);
 schedule.step.val = schedule.step.val/5;
+schedule.step.val = schedule.step.val(1:400);
+schedule.step.control = schedule.step.control(1:400);
+
 % Set simulation name based on mode
 name = 'comp-bio-clogging';
 
@@ -99,6 +102,11 @@ tau = @(p, nbact) ((1 - poro0) ./ (1 - poro(p, nbact))).^2 .* (poro(p, nbact) ./
 perm = @(p, nbact) perm0 .* tau(p, nbact);
 model.rock.perm = perm;
 
+% Define densities
+model.fluid.rhoGS = 0.1;
+model.fluid.rhoOS = 999.0140;
+
+
 % Initialize bacterial concentration in the state
 state0.nbact = zeros(model.G.cells.num, 1);  % Initial bacterial concentration
 
@@ -119,40 +127,59 @@ arg = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
     'bDiffusionEffect', false, 'moleculardiffusion', false, ...
     'liquidPhase', 'O', 'vaporPhase', 'G'};
 model = BiochemistryModel(arg{:});
-
+minComp = 1.0e-8;
 % Set initial conditions
-z0 = [0.8, 1.0e-8, 0.2, 0.05 - 1.0e-8];  % Initial composition
-schedule.control.W(1).components = [0, 0.95, 0.05, 0];  % Inject 95% H2, 5% CO2
-schedule.control.W(2).components = [0, 0.95, 0.05, 0];  % Same for second well
+z0 = [0.84, 0.005, 0.005,0.15];  % Initial composition
+schedule.control.W(1).components = [0.001, 0.798, 0.2, 0.001];  % Inject 95% H2, 5% CO2
+schedule.control.W(2).components = [0.001, 0.798, 0.2, 0.001];  % Same for second well
+schedule.control.W(1).compi = [0,1];
+schedule.control.W(2).compi = [0,1];
+% schedule.control.W(1).val = 70;
+% schedule.control.W(2).val = 40;
 T = 40 + 273.15;  % Temperature (K)
-p = 40 * barsa;  % Pressure (Pa)
+p = 82 * barsa;  % Pressure (Pa)
 nbact0 = 1.0e6;  % Initial bacterial concentration
-state0 = initCompositionalStateBacteria(model, p, T, [1, 0], z0, nbact0, model.EOSModel);
+state0 = initCompositionalStateBacteria(model, p, T, [0, 1], z0, nbact0, model.EOSModel);
 
 %% Simulate the Schedule
 %--------------------------------------------------------------------------
 % Pack and simulate the problem.
 %--------------------------------------------------------------------------
-problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact_clogging', 'name', name);
-simulatePackedProblem(problem);
+problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact_clogging_test', 'name', name);
+simulatePackedProblem(problem, 'restartStep', 1);
 
 % Retrieve simulation results
 [ws, states, rep] = getPackedSimulatorOutput(problem);
 
 
-%% Simulate without clogging effects
+% %% Simulate without clogging effects
 BaseName = 'simple_comp_SW_bact_noclogging';
+% Set up the biochemistry model
+cp = 0;
 model.rock.perm = perm0;
 model.rock.poro = poro0;
+model.fluid.pvMultR =  @(p, nbact) 1;
+arg = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
+    'water', false, 'oil', true, 'gas', true, 'bacteriamodel', true, ...
+    'bDiffusionEffect', false, 'moleculardiffusion', false, ...
+    'liquidPhase', 'O', 'vaporPhase', 'G'};
+model = BiochemistryModel(arg{:});
 problemNoClog = packSimulationProblem(state0, model, schedule, BaseName, 'name', name);
-simulatePackedProblem(problemNoClog, 'restartStep',1);
+simulatePackedProblem(problemNoClog, 'restartStep', 1);
+
 [wsNoClog,statesNoClog] = getPackedSimulatorOutput(problemNoClog);
 
 %% Simulate without bacterial effects
 BaseName = 'simple_comp_SW_nobact';
+arg = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
+    'water', false, 'oil', true, 'gas', true, 'bacteriamodel', false, ...
+    'bDiffusionEffect', false, 'moleculardiffusion', false, ...
+    'liquidPhase', 'O', 'vaporPhase', 'G'};
+model = BiochemistryModel(arg{:});
+state0.nbact = 0;
 problemNoBact = packSimulationProblem(state0, model, schedule, BaseName, 'name', name);
 problemNoBact.SimulatorSetup.model.bacteriamodel = false;
-simulatePackedProblem(problemNoBact);
+simulatePackedProblem(problemNoBact, 'restartStep', 1);
 [wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
 
 %% Compare Three Simulations: H2 Loss, CO2 Consumption, and CH4 Production

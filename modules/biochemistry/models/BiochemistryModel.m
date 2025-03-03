@@ -44,7 +44,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         % with H2-CO2-H2O-CH4
         compFluid 
         % Physical quantities and bounds
-        Y_H2 = 1.0875e12;  % Conversion factor for hydrogen consumption (moles/volume)
+        Y_H2 = 1.090875e12;  % Conversion factor for hydrogen consumption (moles/volume)
         gammak = [];
         mol_diff = [];
         alphaH2 = 3.6e-7;
@@ -119,7 +119,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                 %   {'H2', 'Water', 'N2', 'CO2', 'CH4'});
                 if strcmp(model.metabolicReaction,'MethanogenicArchae')
                     compFluid = TableCompositionalMixture({'Hydrogen', 'Water','Nitrogen', 'CarbonDioxide', 'Methane'}, ...
-                    {'H2', 'Water', 'N2', 'CO2', 'C1'});
+                    {'H2', 'H2O', 'N2', 'CO2', 'C1'});
                     model.gammak = [-4.0, 2.0, 0.0, -1.0, 1.0];
                     eos =SoreideWhitsonEquationOfStateModel([], compFluid, 'sw');
                     model.EOSModel = eos;
@@ -382,7 +382,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
             ix = strcmpi(names, 'bacteria');
             if any(ix)
                 scaleChemistry = dt./chemistry;
-                scale{ix} = scaleChemistry./model.fluid.rhoWS;
+                scale{ix} = scaleChemistry./rhoL;
             end
 
         end
