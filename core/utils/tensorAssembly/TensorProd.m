@@ -89,6 +89,11 @@ classdef TensorProd
 
         chunksize = 100000; % Chunk size for the computation of the product
         verbose = false;
+
+        needIntersectTbl3 = false; % For the automatically generated pivot space, the index array tbl3 must be a projection of the pivot
+                                   % space. For some cases, one may want to use a tbl3 which is not a projection
+                                   % of the pivot space, and will require an extra mapping. Then, this option should be
+                                   % set to true, so that the intersection is computed.
         
     end
    
@@ -209,17 +214,29 @@ classdef TensorProd
                 [tbl3, dispind3] = projIndexArray(pivottbl, fds3);
                 dispind3 = dispind3.inds;
             else
+                
                 tbl3 = prod.tbl3;
                 fds3 = tbl3.fdnames;
                 
                 fds3 = fds3(~ismember(fds3, reducefds1));
                 fds3 = fds3(~ismember(fds3, reducefds2));
+
+                if prod.needIntersectTbl3
+
+                    [pivottbl, indstruct] = crossIndexArray(pivottbl, tbl3, fds3);
+                    disppivot = indstruct{1}.inds;
+
+                    dispind1 = dispind1(disppivot);
+                    dispind2 = dispind2(disppivot);
+                    
+                end
                 
                 map = TensorMap();
                 map.fromTbl = tbl3;
                 map.toTbl = pivottbl;
                 map.mergefds = fds3;
                 dispind3 = getDispatchInd(map);
+                
             end
             
             if prod.settbl3
