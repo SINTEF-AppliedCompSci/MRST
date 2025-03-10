@@ -22,7 +22,7 @@ mrstModule add compositional deckformat ad-core ad-props;
 %--------------------------------------------------------------------------
 % Use overall composition mode
 [state0, model, schedule, ref] = setupSimpleCompositionalExample(false);
-schedule.step.val = schedule.step.val/5;
+schedule.step.val = schedule.step.val/3;
 schedule.step.val = schedule.step.val(1:400);
 schedule.step.control = schedule.step.control(1:400);
 
@@ -88,7 +88,7 @@ poro0 = model.rock.poro;  % Initial porosity
 perm0 = model.rock.perm(:, 1);  % Initial permeability
 
 % Bacterial concentration parameters
-nc = 5e6;  % Critical bacterial concentration
+nc = 1e11;  % Critical bacterial concentration
 cp = 1.5;  % Clogging coefficient
 
 % Define porosity multiplier as a function of bacterial concentration
@@ -103,7 +103,7 @@ perm = @(p, nbact) perm0 .* tau(p, nbact);
 model.rock.perm = perm;
 
 % Define densities
-model.fluid.rhoGS = 0.1;
+model.fluid.rhoGS = 0.08988;
 model.fluid.rhoOS = 999.0140;
 
 
@@ -114,8 +114,8 @@ state0.nbact = zeros(model.G.cells.num, 1);  % Initial bacterial concentration
 %--------------------------------------------------------------------------
 % Define the compositional fluid model and initialize the simulation.
 %--------------------------------------------------------------------------
-compFluid = TableCompositionalMixture({'Water', 'Hydrogen', 'CarbonDioxide', 'Methane'}, ...
-    {'H2O', 'H2', 'CO2', 'C1'});
+compFluid = TableCompositionalMixture({'Water', 'Hydrogen', 'Methane', 'CarbonDioxide'}, ...
+    {'H2O', 'H2', 'C1', 'CO2'});
 
 % Define backend for ADI (Automatic Differentiation)
 diagonal_backend = DiagonalAutoDiffBackend('modifyOperators', true);
@@ -127,26 +127,35 @@ arg = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
     'bDiffusionEffect', false, 'moleculardiffusion', false, ...
     'liquidPhase', 'O', 'vaporPhase', 'G'};
 model = BiochemistryModel(arg{:});
+model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', false);
+model.operators.pv(1) = 10000;
+model.operators.pv(end) = 10000;
 minComp = 1.0e-8;
 % Set initial conditions
-z0 = [0.84, 0.005, 0.005,0.15];  % Initial composition
-schedule.control.W(1).components = [0.001, 0.798, 0.2, 0.001];  % Inject 95% H2, 5% CO2
-schedule.control.W(2).components = [0.001, 0.798, 0.2, 0.001];  % Same for second well
+z0 = [0.4, 0.445, 0.0,0.155];  % Initial composition
+schedule.control.W(1).components = [0.001, 0.958, 0.001, 0.05];  % Inject 95% H2, 5% CO2
+schedule.control.W(2).components = [0.001, 0.998, 0.001, 0.05];  % Same for second well
 schedule.control.W(1).compi = [0,1];
 schedule.control.W(2).compi = [0,1];
+schedule.control.W(2).type ='rate';
+schedule.control.W(2).val =0;
+schedule.control.W(1).type ='rate';
+schedule.control.W(1).val =0;
 % schedule.control.W(1).val = 70;
 % schedule.control.W(2).val = 40;
 T = 40 + 273.15;  % Temperature (K)
 p = 82 * barsa;  % Pressure (Pa)
-nbact0 = 1.0e6;  % Initial bacterial concentration
+nbact0 = 2.4e10;  % Initial bacterial concentration
 state0 = initCompositionalStateBacteria(model, p, T, [0, 1], z0, nbact0, model.EOSModel);
-
+state0.pressure(1) = 30*barsa();
+state0.pressure(end) = 90*barsa();
 %% Simulate the Schedule
 %--------------------------------------------------------------------------
 % Pack and simulate the problem.
 %--------------------------------------------------------------------------
 problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact_clogging_test', 'name', name);
-simulatePackedProblem(problem, 'restartStep', 1);
+simulatePackedProblem(problem);
+
 
 % Retrieve simulation results
 [ws, states, rep] = getPackedSimulatorOutput(problem);
@@ -164,8 +173,13 @@ arg = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
     'bDiffusionEffect', false, 'moleculardiffusion', false, ...
     'liquidPhase', 'O', 'vaporPhase', 'G'};
 model = BiochemistryModel(arg{:});
+model.operators.pv(1) = 10000;
+model.operators.pv(end) = 10000;
+model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', false);
+state0.pressure(2:end-1) = 60*barsa();
+
 problemNoClog = packSimulationProblem(state0, model, schedule, BaseName, 'name', name);
-simulatePackedProblem(problemNoClog, 'restartStep', 1);
+simulatePackedProblem(problemNoClog);
 
 [wsNoClog,statesNoClog] = getPackedSimulatorOutput(problemNoClog);
 
@@ -176,10 +190,15 @@ arg = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
     'bDiffusionEffect', false, 'moleculardiffusion', false, ...
     'liquidPhase', 'O', 'vaporPhase', 'G'};
 model = BiochemistryModel(arg{:});
+model.operators.pv(1) = 10000;
+model.operators.pv(end) = 10000;
+model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', false);
 state0.nbact = 0;
+state0.pressure(1) = 30*barsa();
+state0.pressure(end) = 90*barsa();
 problemNoBact = packSimulationProblem(state0, model, schedule, BaseName, 'name', name);
 problemNoBact.SimulatorSetup.model.bacteriamodel = false;
-simulatePackedProblem(problemNoBact, 'restartStep', 1);
+simulatePackedProblem(problemNoBact);
 [wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
 
 %% Compare Three Simulations: H2 Loss, CO2 Consumption, and CH4 Production
@@ -438,6 +457,103 @@ for scenario = 1:numel(data)
     % Add title for subplot
     title(names{scenario}, 'FontSize', 14);
     axis off;
+end
+%% Additional plots 
+additional_plots = true;
+if additional_plots
+    % Set this flag to control which states to plot (with or without bacterial effects/clogging)
+    plot_bacterial_effects = false;
+    plot_clogging_effects = false;
+
+    if plot_bacterial_effects
+        if plot_clogging_effects
+            states_to_plot = states;
+            title_fig = 'with cologging effects';
+        else
+            states_to_plot = statesNoClog;
+            title_fig = 'without cologging effects';
+        end
+    else
+        states_to_plot = statesNoBact;
+        title_fig = 'without bacterial effects';
+
+    end
+
+    step_1 = 18;
+    step_2 = 118;
+    step_3 = numel(data);
+    % Define time steps for plotting (adjust as needed)
+    time = sum(schedule.step.val) ./ year;
+    Time_Steps = cumsum(schedule.step.val)./year;
+    time_1 = sum(schedule.step.val(1:step_1))./ day;
+    time_2 = sum(schedule.step.val(1:step_2))./ year;
+
+    % Extract mole fractions of H2 (component 2) and CO2 (component 4) at three times
+    H2_mole_fraction_1 = states_to_plot{step_1}.components(:, idxH2);  % H2 at state 18
+    CO2_mole_fraction_1 = states_to_plot{step_1}.components(:, idxCO2); % CO2 at state 18
+
+    H2_mole_fraction_2 = states_to_plot{step_2}.components(:, idxH2); % H2 at state 118
+    CO2_mole_fraction_2 = states_to_plot{step_2}.components(:, idxCO2); % CO2 at state 118
+
+    H2_mole_fraction_end = states_to_plot{end}.components(:, idxH2);  % H2 at last state
+    CO2_mole_fraction_end = states_to_plot{end}.components(:, idxCO2); % CO2 at last state
+
+    % Plot mole fractions for H2 and CO2 at time steps 18, 118, and end
+    figure;
+    hold on;
+
+    % Plot H2 and CO2 at time step 18
+    plot(H2_mole_fraction_1, 'b-', 'LineWidth', 2);
+    plot(CO2_mole_fraction_1, 'r-', 'LineWidth', 2);
+
+    % Plot H2 and CO2 at time step 118
+    plot(H2_mole_fraction_2, 'b--', 'LineWidth', 2);
+    plot(CO2_mole_fraction_2, 'r--', 'LineWidth', 2);
+
+    % Plot H2 and CO2 at the last state
+    plot(H2_mole_fraction_end, 'b:', 'LineWidth', 2);
+    plot(CO2_mole_fraction_end, 'r:', 'LineWidth', 2);
+
+    % Add text annotations at the specified positions from the YMATRIX1 example
+    text('Parent', gca, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', ...
+        'FontSize', 12, 'String', ['(t = ', num2str(time_1), ' days)'], ...
+        'Position', [364.055299539171, 0.453455353745964, 0], 'Color', [0 0 1]);
+
+    text('Parent', gca, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', ...
+        'FontSize', 12, 'String', ['(t = ', num2str(time_1), ' days)'], ...
+        'Position', [619.815668202765, 0.153543239494181, 0], 'Color', [1 0 0]);
+
+    text('Parent', gca, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', ...
+        'FontSize', 12, 'String', ['(t = ', num2str(time_2), ' years)'], ...
+        'Position', [615.207373271889, 0.347607204917028, 0], 'Color', [0 0 1]);
+
+    text('Parent', gca, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', ...
+        'FontSize', 12, 'String', ['(t = ', num2str(time_2), ' years)'], ...
+        'Position', [405.529953917051, 0.112849626000941, 0], 'Color', [1 0 0]);
+
+    text('Parent', gca, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', ...
+        'FontSize', 12, 'String', ['(t = ', num2str(time), ' years)'], ...
+        'Position', [889.400921658986, 0.299282164580192, 0], 'Color', [0 0 1]);
+
+    text('Parent', gca, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', ...
+        'FontSize', 12, 'String', ['(t = ', num2str(time), ' years)'], ...
+        'Position', [986.175115207373, 0.106141052012196, 0], 'Color', [1 0 0]);
+
+    % Add labels and title
+    xlabel('grid', 'FontSize', 12);
+    ylabel('Mole Fraction', 'FontSize', 12);
+    title(title_fig, 'FontSize', 14);
+
+    % Display grid
+    grid off;
+    box on;
+    hold off;
+    set(gca, 'FontSize', 12);
+
+    % Create the legend for H2 and CO2 only
+    legend1 = legend('H2', 'CO2', 'Location', 'northeast');
+    set(legend1, 'Position', [0.739375000691839 0.431190477254846 0.13749999861632 0.0821428550141199]);
+
 end
 %%
 % <html>

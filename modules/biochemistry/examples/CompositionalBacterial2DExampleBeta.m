@@ -30,7 +30,10 @@ if (compFluid.getNumberOfComponents>2)
     state0.components(:,4) = state0.components(:,3);
     state0.components(:,2) = state0.components(:,3);
     state0.components(:,1) = 1- sum(state0.components(:,2:end),2);
-    state0.components =state0.components.*0+ [0.8480  1.0e-5  1.0e-5   0.1760-0.0240]  ;
+    state0.components =state0.components.*0+ [0.8480,  1.0e-5,  1.0e-5,   0.1760-0.0240];
+%     state0.components(model.rock.regions.saturation == 3,:) = state0.components(model.rock.regions.saturation == 3,:).*0 + [1.0-3.0e-8,  1.0e-8,  1.0e-8,   1.0e-8];
+%     state0.components(model.rock.regions.saturation == 3,:) = state0.components(model.rock.regions.saturation == 3,:).*0 + [1.0-3.0e-8,  1.0e-8,  1.0e-8,   1.0e-8];
+
     EOS = SoreideWhitsonEquationOfStateModel([], compFluid, 'sw');
     T0 = 44.35 * Kelvin; % Initial temperature in Kelvin
     T0 = 273.15 * Kelvin + T0; % Convert to absolute temperature
@@ -49,7 +52,7 @@ model.gravity = modelBo.gravity;
 
 %% Manually set up well compositions, temperature, and bacteria
 schedule = scheduleBo; % Load schedule from the black-oil model
-nbact0 = 10^6; % Initial number of bacteria
+nbact0 = 1.0e9; % Initial number of bacteria
 state0.T = state0.T.*0+T0;
 % Initialize component composition and pressure state
 composition = repmat([0.999, 0.001], model.G.cells.num, 1); % Initial composition
@@ -75,10 +78,10 @@ if (compFluid.getNumberOfComponents>2)
     for i = 1:length(schedule.control)
         % Set component mix for each control, adjusting for specific conditions
         schedule.control(i).W.compi = [0, 1]; % Well components
-        if (strcmp(schedule.control(i).W.name, 'cushion')&&i<10)
-            schedule.control(i).W.components = [0.0, 0.01, 0.99 0.0];
+        if (strcmp(schedule.control(i).W.name, 'cushion')&&i<25)
+            schedule.control(i).W.components = [0.0, 0.05, 0.95 0.0];
         else
-            schedule.control(i).W.components = [0.0, 0.999, 0.001, 0.0];
+            schedule.control(i).W.components = [0.0, 0.95, 0.05, 0.0];
         end
         schedule.control(i).W.T = T0; % Set temperature (not used, but necessary)
 
@@ -123,9 +126,9 @@ axis off tight;
 sgtitle('2D Dome-Shaped Aquifer'); 
 
 %% Add output functions to the model for various properties
-model.OutputStateFunctions{end + 1} = 'CapillaryPressure';
-model.OutputStateFunctions{end + 1} = 'SurfaceDensity';
-model.OutputStateFunctions{end + 1} = 'ShrinkageFactors';
+% model.OutputStateFunctions{end + 1} = 'CapillaryPressure';
+% model.OutputStateFunctions{end + 1} = 'SurfaceDensity';
+% model.OutputStateFunctions{end + 1} = 'ShrinkageFactors';
 model.outputFluxes = false;
 
 %% Initialize the nonlinear solver and select the linear solver
@@ -137,10 +140,11 @@ nls.LinearSolver = lsolve;
 problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
 
 %% Execute the simulation of the packed problem
-simulatePackedProblem(problem,'restartStep',1);
+%simulatePackedProblem(problem);
+[ws, states] = simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls);
 
 %% Get packed reservoir and well states
-% [ws, states] = getPackedSimulatorOutput(problem);
+%[ws, states] = getPackedSimulatorOutput(problem, 'restartStep', 1);
 %% Plot states
 % figure;
 % plotToolbar(model.G, states);

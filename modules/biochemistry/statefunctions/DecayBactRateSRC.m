@@ -8,39 +8,36 @@ classdef DecayBactRateSRC <  StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'nbact'}, 'state');
             gp = gp.dependsOn({'s'}, 'state');
-            gp = gp.dependsOn({'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
+            gp = gp.dependsOn({'PoreVolume'}, 'PVTPropertyFunctions');
             gp.label = 'Psi_decay';
         end
 
         function Psidecay = evaluateOnDomain(prop, model, state)
             Psidecay = 0;
             bbact = model.ReservoirModel.b_bact;
-            nMax = model.ReservoirModel.nbactMax;
+            nbMax = model.ReservoirModel.nbactMax;
             namecp = model.ReservoirModel.getComponentNames();
             pv = model.ReservoirModel.PVTPropertyFunctions.get(model.ReservoirModel, state, 'PoreVolume');
             s = model.ReservoirModel.getProps(state, 's');
             nbact = model.ReservoirModel.getProps(state, 'nbact');
-            rho = model.ReservoirModel.PVTPropertyFunctions.get(model.ReservoirModel, state, 'Density');
             L_ix = model.ReservoirModel.getLiquidIndex();
-            if ~iscell(rho)
-                rho = {rho};
-            end
+
             idx_H2 = find(strcmp(namecp, 'H2'), 1);     % Locate 'H2'
+            idx_CO2 = find(strcmp(namecp, 'CO2'));   % Locate 'CO2'
+
             if iscell(s)
                 sL = s{L_ix};
-                rhoL = rho{L_ix};
             else
                 sL = s(:,L_ix);
-                rhoL = rho(:,L_ix);
             end
-            if model.ReservoirModel.bacteriamodel && model.ReservoirModel.liquidPhase && (~isempty(idx_H2))
-                if iscell(rhoL)
+            if model.ReservoirModel.bacteriamodel && model.ReservoirModel.liquidPhase && (~isempty(idx_H2))&& (~isempty(idx_CO2))
+                if iscell(sL)
                     Voln = sL{1};
                 else
                     Voln = sL;
                 end
                 Voln = max(Voln, 1.0e-8);
-                Psidecay = pv.*bbact.*nbact.*(nbact.*Voln);
+                Psidecay = pv.*bbact.*nbact.*(nbact.*Voln)./nbMax;
             end
         end
     end
