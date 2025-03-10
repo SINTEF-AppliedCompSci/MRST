@@ -44,20 +44,23 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         % with H2-CO2-H2O-CH4
         compFluid 
         % Physical quantities and bounds
-        Y_H2 = 1.090875e12;  % Conversion factor for hydrogen consumption (moles/volume)
-        gammak = [];
+        Y_H2 = 3.90875e11; % in 1/mole(H2)
+        gammak   = [];
         mol_diff = [];
-        alphaH2 = 3.6e-7;
+        alphaH2  = 3.6e-7;
         alphaCO2 = 1.98e-6;
-        Psigrowthmax = 1.338e-4;
-        b_bact = 6.87E-11;
+
+        Psigrowthmax = 1.338e-4; % 1/s        
+        b_bact       = 1.35148e-6; % 1/s
+        
         Db = 10^(-8)*meter/second
         bDiffusionEffect = false;
         moleculardiffusion = false;
-        nbactMax = 6.88e11;
-        m_rate = 4.3e-10;
+        
+        nbactMax = 1e9; % 1/m^3
+        
         bacteriamodel = true;
-        metabolicReaction='MethanogenicArchae';
+        metabolicReaction = 'MethanogenicArchae';
 
     end
     
@@ -134,11 +137,10 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                     indH2O= find(strcmp(namecp,'H2O'));
                     indCO2=find(strcmp(namecp,'CO2'));
                     indC1= find(strcmp(namecp,'C1'));
-                    model.gammak(indH2)=-4.0;
-                    model.gammak(indH2O)=2.0;
-                    model.gammak(indCO2)=-1.0;
-                    model.gammak(indC1)=1.0;
-                    model.gammak = model.gammak;
+                    model.gammak(indH2)  = -4.0;
+                    model.gammak(indH2O) = 2.0;
+                    model.gammak(indCO2) = -1.0;
+                    model.gammak(indC1)  = 1.0;
                 end                 
             end
             model.compFluid = compFluid;
@@ -334,9 +336,9 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
 
         function state = initStateAD(model, state, vars, names, origin)        
             state = initStateAD@GenericOverallCompositionModel(model, state, vars, names, origin);
-            if model.bacteriamodel            
-                state = computeBactPopulation(model, state);
-            end
+%             if model.bacteriamodel            
+%                 state = computeBactPopulation(model, state);
+%             end
         end
         %-----------------------------------------------------------------%
         function [v_eqs, tolerances, names] = getConvergenceValues(model, problem, varargin)
@@ -382,7 +384,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
             ix = strcmpi(names, 'bacteria');
             if any(ix)
                 scaleChemistry = dt./chemistry;
-                scale{ix} = scaleChemistry./rhoL;
+                scale{ix} = scaleChemistry;
             end
 
         end
@@ -414,7 +416,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
 
             [state, report] = updateState@GenericOverallCompositionModel(model, state, problem, dz, drivingForces);
             if model.bacteriamodel
-                 state = model.capProperty(state, 'nbact', 08, 1.0e12);
+                state = model.capProperty(state, 'nbact', 1.0e-8, 1.0e12);
             end
         end
 
@@ -435,22 +437,65 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         end
 
         function state = computeBactPopulation(model, state)
-            % Coefficients of the quadratic equation: A*n^2 + B*n + C = 0
+            % COMPUTEBACTPOPULATION Computes bacterial population using a quadratic equation.
+            % This function estimates the bacterial concentration by solving the microbial
+            % growth equation as a quadratic polynomial for a single time step.
+            %
+            % INPUTS:
+            %   model - The simulation model containing bacterial properties.
+            %   state - The current simulation state.
+            %
+            % OUTPUT:
+            %   state - Updated simulation state with computed bacterial population.
+
+            % Extract properties
             s = model.getProps(state, 's');
-            if ~isa(s, 'ADI'), return; end
-            if iscell(s)
-                sW = s{model.getLiquidIndex};
-            else
-                sW = s(:, model.getLiquidIndex);
-            end
-            Psigrowth = model.Psigrowthmax;
-            dt_init = schedule.step.val(1);
+            x = model.getProps(state, 'x');
+            nbact = model.getProps(state, 'nbact');
+
+            % Identify component indices
+            namecp = model.EOSModel.getComponentNames();
+            idx_H2 = find(strcmp(namecp, 'H2'));
+            idx_CO2 = find(strcmp(namecp, 'CO2'));
+
+            % Extract values
+            L_ix = model.getLiquidIndex();
+            xH2 = x(:, idx_H2);
+            xCO2 = x(:, idx_CO2);
+            sL = s(:, L_ix);
+
+            % Model parameters
+            aH2 = model.alphaH2;
+            aCO2 = model.alphaCO2;
+            PsigrowthMax = model.Psigrowthmax;
+            nbMax = model.nbactMax;
             bbact = model.b_bact;
-            A = Psigrowth .* sW .* dt_init;
-            B = -(sW - bbact .* sW .* dt_init);
-            nbact  =-B./A;
-            nbact = max(nbact,0);
-            state = model.setProp(state, 'nbact', nbact);
+            dt = 288; % Time step (5 seconds)
+
+            % Compute coefficients for the quadratic equation
+            A = PsigrowthMax .* (xH2 ./ (aH2 + xH2)) .* (xCO2 ./ (aCO2 + xCO2));
+            B = bbact ./ nbMax;
+
+            % Quadratic equation: nbact_new - (1 + dt * A) * nbact + dt * B * nbact^2 = 0
+            a_quad = dt * B;
+            b_quad = -(1 + dt * A);
+            c_quad = nbact;
+
+            % Solve using quadratic formula
+            discriminant = b_quad.^2 - 4 * a_quad .* c_quad;
+
+            % Ensure discriminant is non-negative
+            discriminant = max(discriminant, 0);
+
+            nbact_new = (-b_quad + sqrt(discriminant)) ./ (2 * a_quad);
+
+            % Ensure non-negative values
+            nbact_new = max(nbact_new, 0);
+
+            % Update state with computed bacterial population
+            state = model.setProp(state, 'nbact', nbact_new);
+            state = model.capProperty(state, 'nbact', 08, 1.0e12);
+
         end
 
     end
