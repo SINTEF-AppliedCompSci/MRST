@@ -50,7 +50,12 @@ function output =  coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opt
 % we invert it directly and reduce to a cell-centered scheme.
 
 
-    opt = struct('useVirtual', false);
+    opt = struct('useVirtual'             , false, ...
+                 'includeBc'              , true , ...
+                 'assembleInvA11'         , true , ...
+                 'assembleStressOperators', true , ...
+                 'assembleDiv'            , true);
+    
     opt = merge_options(opt, varargin{:});
 
     useVirtual = opt.useVirtual;
@@ -163,7 +168,7 @@ function output =  coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opt
     else
         map = map.setup();
     end
-        
+    
     nnodepercell = map.eval(ones(cellnodetbl.num, 1));
 
     switch vectbl.num
@@ -450,154 +455,177 @@ function output =  coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opt
     
     A22 = prod.setupMatrix(nS);
 
-    if useVirtual
-        nodeinds = rldecode(mappings.node_from_nodeface, vectbl.num);
-    else
-        nodeinds = nodefacevectbl.get('nodes');
+    if opt.assembleInvA11
+        
+        if useVirtual
+            nodeinds = rldecode(mappings.node_from_nodeface, vectbl.num);
+        else
+            nodeinds = nodefacevectbl.get('nodes');
+        end
+        [nodes, sz] = rlencode(nodeinds, 1);
+        opt.invertBlocks = 'm';
+        bi = blockInverter(opt);
+        invA11 = bi(A11, sz);
+        
     end
-    [nodes, sz] = rlencode(nodeinds, 1);
-    opt.invertBlocks = 'm';
-    bi = blockInverter(opt);
-    invA11 = bi(A11, sz);
-
+    
     % Matrix for boundary conditions
-    
-    output = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls, mappings, 'useVirtual', useVirtual);
 
-    D      = output.D;
-    bcvals = output.bcvals;
+    if opt.includeBc
 
-    % We update the mappings and tables from the output of setupMpsaNodeFaceBc
-    tbls     = output.tbls;
-    mappings = output.mappings;
-    
-    % Matrix for the stress computation
-
-    prod = TensorProd();
-    prod.tbl1        = cell12nodefacevec122tbl;
-    prod.tbl2        = nodefacevectbl;
-    prod.tbl3        = cellnodevec12tbl;
-    prod.replacefds1 = {{'cells1', 'cells'}, {'vec2', 'redvec'}, {'vec11', 'vec1'}, {'vec12', 'vec2'}};
-    prod.replacefds2 = {{'vec', 'redvec'}};
-    prod.reducefds   = {'redvec', 'faces'};
-    prod.reducefds1  = {'cells2'};
-    prod.mergefds    = {'nodes'};
-
-    if useVirtual
-
-        prod.pivottbl = cell12nodefacevec122tbl;
-
-        N = tbls.cell12nodefacetbl.num;
-        [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, N], (1 : cell12nodefacevec122tbl.num)');
-
-        prod.dispind1 = (1 : cell12nodefacevec122tbl.num)';
-
-        N = nodefacetbl.num;
-        j = mappings.cell2nodeface_from_cell12nodeface(i);
-        j = mappings.nodeface_from_cellnodeface(j);
-        prod.dispind2 = sub2ind([d_num, N], vec2, j);
-
-        N = cellnodetbl.num;
-        j = mappings.cell1node_from_cell12nodeface(i);
-        prod.dispind3 = sub2ind([d_num, d_num, N], vec12, vec11, j);
+        output = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls, mappings, 'useVirtual', useVirtual);
         
-        prod.issetup = true;
+        D      = output.D;
+        bcvals = output.bcvals;
         
-    else
+        % We update the mappings and tables from the output of setupMpsaNodeFaceBc
+        tbls     = output.tbls;
+        mappings = output.mappings;
 
-        prod = prod.setup();
-        
     end
 
-    C1 = prod.setupMatrix(S);
+    if opt.assembleStressOperators
+        % Matrix for the stress computation
 
-    prod = TensorProd();
-    prod.tbl1        = cell12nodefacevec122tbl;
-    prod.tbl2        = cellvectbl;
-    prod.tbl3        = cellnodevec12tbl;
-    prod.replacefds1 = {{'cells1', 'cells'}, {'vec2', 'redvec'}, {'vec11', 'vec1'}, {'vec12', 'vec2'}};
-    prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
-    prod.reducefds   = {'vec2', 'cells2'};
-    prod.reducefds1  = {'faces'};
+        prod = TensorProd();
+        prod.tbl1        = cell12nodefacevec122tbl;
+        prod.tbl2        = nodefacevectbl;
+        prod.tbl3        = cellnodevec12tbl;
+        prod.replacefds1 = {{'cells1', 'cells'}, {'vec2', 'redvec'}, {'vec11', 'vec1'}, {'vec12', 'vec2'}};
+        prod.replacefds2 = {{'vec', 'redvec'}};
+        prod.reducefds   = {'redvec', 'faces'};
+        prod.reducefds1  = {'cells2'};
+        prod.mergefds    = {'nodes'};
 
-    if useVirtual
+        if useVirtual
 
-        prod.pivottbl = cell12nodefacevec122tbl;
+            prod.pivottbl = cell12nodefacevec122tbl;
 
-        N = tbls.cell12nodefacetbl.num;
-        [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, N], (1 : cell12nodefacevec122tbl.num)');
+            N = tbls.cell12nodefacetbl.num;
+            [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, N], (1 : cell12nodefacevec122tbl.num)');
 
-        prod.dispind1 = (1 : cell12nodefacevec122tbl.num)';
+            prod.dispind1 = (1 : cell12nodefacevec122tbl.num)';
 
-        N = celltbl.num;
-        j = mappings.cell2nodeface_from_cell12nodeface(i);
-        j = mappings.cell_from_cellnodeface(j);
-        prod.dispind2 = sub2ind([d_num, N], vec2, j);
+            N = nodefacetbl.num;
+            j = mappings.cell2nodeface_from_cell12nodeface(i);
+            j = mappings.nodeface_from_cellnodeface(j);
+            prod.dispind2 = sub2ind([d_num, N], vec2, j);
 
-        N = cellnodetbl.num;
-        j = mappings.cell1node_from_cell12nodeface(i);
-        prod.dispind3 = sub2ind([d_num, d_num, N], vec12, vec11, j);
-        
-        prod.issetup = true;
-        
-    else
+            N = cellnodetbl.num;
+            j = mappings.cell1node_from_cell12nodeface(i);
+            prod.dispind3 = sub2ind([d_num, d_num, N], vec12, vec11, j);
+            
+            prod.issetup = true;
+            
+        else
 
-        prod = prod.setup();
-        
+            prod = prod.setup();
+            
+        end
+
+        C1 = prod.setupMatrix(S);
+
+        prod = TensorProd();
+        prod.tbl1        = cell12nodefacevec122tbl;
+        prod.tbl2        = cellvectbl;
+        prod.tbl3        = cellnodevec12tbl;
+        prod.replacefds1 = {{'cells1', 'cells'}, {'vec2', 'redvec'}, {'vec11', 'vec1'}, {'vec12', 'vec2'}};
+        prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
+        prod.reducefds   = {'vec2', 'cells2'};
+        prod.reducefds1  = {'faces'};
+
+        if useVirtual
+
+            prod.pivottbl = cell12nodefacevec122tbl;
+
+            N = tbls.cell12nodefacetbl.num;
+            [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, N], (1 : cell12nodefacevec122tbl.num)');
+
+            prod.dispind1 = (1 : cell12nodefacevec122tbl.num)';
+
+            N = celltbl.num;
+            j = mappings.cell2nodeface_from_cell12nodeface(i);
+            j = mappings.cell_from_cellnodeface(j);
+            prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+            N = cellnodetbl.num;
+            j = mappings.cell1node_from_cell12nodeface(i);
+            prod.dispind3 = sub2ind([d_num, d_num, N], vec12, vec11, j);
+            
+            prod.issetup = true;
+            
+        else
+
+            prod = prod.setup();
+            
+        end
+
+        % note the sign
+        C2 = -prod.setupMatrix(S);
+
     end
-
-    % note the sign
-    C2 = -prod.setupMatrix(S);
     
-    %
-    % The divergence operator (integrated over the volume)
-    % is given by 
-    %
-    %  div[c] = sum (m[f,s] u_[f,n,i] n[c,f,i])
-    %
-    % where u:solution, n:normal, m:area
-    % indices : c:cell, f:face, n:node.
-    
-    % The facetNormals are already weighted with respect to area
-    
-    prod = TensorProd();
-    prod.tbl1 = cellnodefacevectbl;
-    prod.tbl2 = nodefacevectbl;
-    prod.tbl3 = celltbl;
-    prod.reducefds = {'faces', 'nodes', 'vec'};
-
-    if useVirtual
+    if opt.assembleDiv
         
-        prod.pivottbl = cellnodefacevectbl;
-
-        N = tbls.cellnodefacetbl.num;
-        [vec, i] = ind2sub([d_num, N], (1 : cellnodefacevectbl.num)');
-
-        prod.dispind1 = (1 : cellnodefacevectbl.num)';
-
-        N = nodefacevectbl.num;
-        j = mappings.nodeface_from_cellnodeface(i);
-        prod.dispind2 = sub2ind([d_num, N], vec, j);
-
-        prod.dispind3 = mappings.cell_from_cellnodeface(i);
+        %
+        % The divergence operator (integrated over the volume)
+        % is given by 
+        %
+        %  div[c] = sum (m[f,s] u_[f,n,i] n[c,f,i])
+        %
+        % where u:solution, n:normal, m:area
+        % indices : c:cell, f:face, n:node.
         
-        prod.issetup = true;
+        % The facetNormals are already weighted with respect to area
         
-    else
-        prod = prod.setup();
+        prod = TensorProd();
+        prod.tbl1 = cellnodefacevectbl;
+        prod.tbl2 = nodefacevectbl;
+        prod.tbl3 = celltbl;
+        prod.reducefds = {'faces', 'nodes', 'vec'};
+
+        if useVirtual
+            
+            prod.pivottbl = cellnodefacevectbl;
+
+            N = tbls.cellnodefacetbl.num;
+            [vec, i] = ind2sub([d_num, N], (1 : cellnodefacevectbl.num)');
+
+            prod.dispind1 = (1 : cellnodefacevectbl.num)';
+
+            N = nodefacevectbl.num;
+            j = mappings.nodeface_from_cellnodeface(i);
+            prod.dispind2 = sub2ind([d_num, N], vec, j);
+
+            prod.dispind3 = mappings.cell_from_cellnodeface(i);
+            
+            prod.issetup = true;
+            
+        else
+            prod = prod.setup();
+        end
+        
+        div = prod.setupMatrix(facetNormals);
+
     end
     
-    div = prod.setupMatrix(facetNormals);
-
     matrices = struct('A11'   , A11   , ...
                       'A12'   , A12   , ...
                       'A21'   , A21   , ...
-                      'A22'   , A22   , ...
-                      'D'     , D     , ...
-                      'invA11', invA11, ...
-                      'C1'    , C1    , ...
-                      'C2'    , C2    , ...
-                      'div'   , div );
+                      'A22'   , A22);
+
+    if opt.assembleInvA11
+        matrices.invA11 = invA11;
+    end
+
+    if opt.assembleStressOperators
+        matrices.C1 = C1;
+        matrices.C2 = C2;
+    end
+    
+    if opt.assembleDiv
+        matrices.div = div;
+    end
     
     extra = struct('g', g);
 
@@ -609,7 +637,11 @@ function output =  coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opt
                     'mappings'   , mappings   , ...
                     'indexarrays', indexarrays, ...
                     'matrices'   , matrices   , ...
-                    'bcvals'     , bcvals     , ...
                     'extra'      , extra);
 
+    if opt.includeBc
+        matrices.D    = D;
+        output.bcvals = bcvals;
+    end
+    
 end
