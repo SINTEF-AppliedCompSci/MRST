@@ -179,20 +179,25 @@ classdef IndexArray
             inds = tbl.inds(:, getinds);
             
         end    
-        
-        function tbl = removeInd(tbl, rmfdnames)
-        % remove the indices given by the names rmfdnames
+
+        function tbl = removeInd(tbl, rmfdname)
+            
             fdnames = tbl.fdnames;
-            inds = tbl.inds;
+            inds    = tbl.inds;
+
+            [isok, ind] = ismember(rmfdname, fdnames);
+            assert(isok, 'field does not exist');
+            
+            tbls.fdnames(ind) = [];
+            tbls.inds(:, ind) = [];
+            
+        end
+        
+        function tbl = removeInds(tbl, rmfdnames)
+        % remove the indices given by the names rmfdnames
             for i = 1 : numel(rmfdnames)
-                fdname = rmfdnames{i};
-                [isok, ind] = ismember(fdname, fdnames);
-                assert(isok, 'field does not exist');
-                fdnames(ind) = [];
-                inds(:, ind) = [];
+                tbl = tbl.removeInd(rmfdnames{i});
             end
-            tbl.fdnames = fdnames;
-            tbl.inds = inds;
         end    
 
         function tbl = addLocInd(tbl, locindname)
