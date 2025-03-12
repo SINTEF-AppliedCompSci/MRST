@@ -188,8 +188,8 @@ classdef IndexArray
             [isok, ind] = ismember(rmfdname, fdnames);
             assert(isok, 'field does not exist');
             
-            tbls.fdnames(ind) = [];
-            tbls.inds(:, ind) = [];
+            tbl.fdnames(ind) = [];
+            tbl.inds(:, ind) = [];
             
         end
         
