@@ -110,7 +110,7 @@ classdef TensorConvert
 
                 m = sparse(vsize, 1);
 
-                if tconv.verbose
+                if mrstVerbose() > 0
                     fprintf('number of chunks %d', nchunks);
                 end
                 
@@ -124,13 +124,13 @@ classdef TensorConvert
                     
                     m = m + sparse(ind, ones(numel(ind), 1), M(inds(ind)), pivottbl.num, 1);
 
-                    if tconv.verbose
+                    if mrstVerbose() > 0
                         fprintf('.');
                     end
                 
                 end
                 
-                if tconv.verbose
+                if mrstVerbose() > 0
                     fprintf('\n');
                 end
                     

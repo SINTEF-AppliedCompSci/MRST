@@ -275,7 +275,7 @@ classdef TensorProd
                 pivotsize = numel(dispind1);
                 nchunks   = ceil(pivotsize/chunksize);
 
-                if prod.verbose
+                if mrstVerbose() > 0
                     fprintf('number of chunks %d ', nchunks);
                 end
                 
@@ -295,12 +295,12 @@ classdef TensorProd
                     
                     prodAB = prodAB + accumarray(dispind3(ind), prodABc, [n3, 1]);
 
-                    if prod.verbose
+                    if mrstVerbose() > 0
                         fprintf('.');
                     end
                 end
                 
-                if prod.verbose
+                if mrstVerbose() > 0
                     fprintf('\n');
                 end
                 

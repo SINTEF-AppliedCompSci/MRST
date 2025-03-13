@@ -85,15 +85,15 @@ classdef TensorMap
         
         function map = TensorMap(varargin)
             
-            map.fromTbl = [];
-            map.toTbl = [];
+            map.fromTbl           = [];
+            map.toTbl             = [];
             map.replaceFromTblfds = [];
-            map.replaceToTblfds = [];
-            map.mergefds = [];
-            map.pivottbl = [];
-            map.dispind1 = [];
-            map.dispind2 = [];
-            map.issetup = false;
+            map.replaceToTblfds   = [];
+            map.mergefds          = [];
+            map.pivottbl          = [];
+            map.dispind1          = [];
+            map.dispind2          = [];
+            map.issetup           = false;
             
             map = merge_options(map, varargin{:}); 
             
@@ -197,7 +197,7 @@ classdef TensorMap
                     pivotsize = numel(dispind1);
                     nchunks   = ceil(pivotsize/chunksize);
                     
-                    if map.verbose
+                    if mrstVerbose() > 0
                         fprintf('number of chunks %d', nchunks);
                     end
 
@@ -214,13 +214,13 @@ classdef TensorMap
                         uc = u(dispind1(ind));
                         v = v + accumarray(dispind2(ind), uc, [toTbl.num, 1]);
 
-                        if map.verbose
+                        if mrstVerbose() > 0
                             fprintf('.');
                         end
                         
                     end
 
-                    if map.verbose
+                    if mrstVerbose() > 0
                         fprintf('\n');
                     end
 
