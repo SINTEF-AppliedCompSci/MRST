@@ -9,7 +9,7 @@ classdef GrowthBactRateSRC <  StateFunction
             gp = gp.dependsOn({'x'}, 'state');
             gp = gp.dependsOn({'s'}, 'state');
             gp = gp.dependsOn({'nbact'}, 'state');
-            gp = gp.dependsOn({'PoreVolume'}, 'PVTPropertyFunctions');
+            gp = gp.dependsOn({'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
             gp.label = 'Psi_growth';
         end
 
@@ -23,6 +23,8 @@ classdef GrowthBactRateSRC <  StateFunction
             if model.ReservoirModel.bacteriamodel&& model.ReservoirModel.liquidPhase && (~isempty(idx_H2)) && (~isempty(idx_CO2))
 
                 pv = model.ReservoirModel.PVTPropertyFunctions.get(model.ReservoirModel, state, 'PoreVolume');
+                rho = model.ReservoirModel.PVTPropertyFunctions.get(model.ReservoirModel, state, 'Density');
+
                 s = model.ReservoirModel.getProps(state, 's');
                 nbact = model.ReservoirModel.getProps(state, 'nbact');
 
@@ -34,15 +36,18 @@ classdef GrowthBactRateSRC <  StateFunction
                     xH2  = x{idx_H2};
                     xCO2 = x{idx_CO2};
                     sL = s{L_ix};
+                    rhoL = rho{L_ix};
+
                 else
                     xH2  = x(:, idx_H2);
                     xCO2 = x(:, idx_CO2);
                     sL = s(:,L_ix);
+                    rhoL = rho(:,L_ix);
                 end
                 if iscell(sL)
-                    Voln = sL{1};
+                    Voln = sL{1}.*rhoL{1};
                 else
-                    Voln = sL;
+                    Voln = sL.*rhoL;
                 end
                 
                 Voln = max(Voln, 1.0e-8);
