@@ -88,7 +88,7 @@ poro0 = model.rock.poro;  % Initial porosity
 perm0 = model.rock.perm(:, 1);  % Initial permeability
 
 % Bacterial concentration parameters
-nc = 1e11;  % Critical bacterial concentration
+nc = 200;  % Critical bacterial concentration
 cp = 1.5;  % Clogging coefficient
 
 % Define porosity multiplier as a function of bacterial concentration
@@ -133,6 +133,7 @@ model.operators.pv(end) = 10000;
 minComp = 1.0e-8;
 % Set initial conditions
 z0 = [0.4, 0.445, 0.0,0.155];  % Initial composition
+% We dont use well
 schedule.control.W(1).components = [0.001, 0.958, 0.001, 0.05];  % Inject 95% H2, 5% CO2
 schedule.control.W(2).components = [0.001, 0.998, 0.001, 0.05];  % Same for second well
 schedule.control.W(1).compi = [0,1];
@@ -141,27 +142,20 @@ schedule.control.W(2).type ='rate';
 schedule.control.W(2).val =0;
 schedule.control.W(1).type ='rate';
 schedule.control.W(1).val =0;
-% schedule.control.W(1).val = 70;
-% schedule.control.W(2).val = 40;
 T = 40 + 273.15;  % Temperature (K)
 p = 82 * barsa;  % Pressure (Pa)
-nbact0 = 2.4e10;  % Initial bacterial concentration
+nbact0 =100;  % Initial normalized bacteria density
 state0 = initCompositionalStateBacteria(model, p, T, [0, 1], z0, nbact0, model.EOSModel);
 state0.pressure(1) = 30*barsa();
 state0.pressure(end) = 90*barsa();
 %% Simulate the Schedule
-%--------------------------------------------------------------------------
-% Pack and simulate the problem.
-%--------------------------------------------------------------------------
 problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact_clogging_test', 'name', name);
 simulatePackedProblem(problem);
 
 
 % Retrieve simulation results
 [ws, states, rep] = getPackedSimulatorOutput(problem);
-
-
-% %% Simulate without clogging effects
+%% Simulate without clogging effects
 BaseName = 'simple_comp_SW_bact_noclogging';
 % Set up the biochemistry model
 cp = 0;

@@ -18,12 +18,16 @@ classdef BacterialMass < StateFunction & ComponentProperty
             nbact = model.getProps(state, 'nbact');
 
             pv = model.PVTPropertyFunctions.get(model, state, 'PoreVolume');
-            L_ix = model.getLiquidIndex();
+            rho = model.PVTPropertyFunctions.get(model, state, 'Density');
 
+            L_ix = model.getLiquidIndex();
+            if ~iscell(rho)
+                rho = {rho};
+            end
             if iscell(s)
-                Voln = s{L_ix};
+                Voln = s{L_ix}.*rho{L_ix};
             else
-                Voln = s(:, L_ix);
+                Voln = s(:, L_ix).*rho{L_ix};
             end
             Voln = max(Voln, 1.0e-8);
             mb = pv.*nbact.*Voln;

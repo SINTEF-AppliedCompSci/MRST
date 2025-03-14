@@ -8,7 +8,7 @@ classdef DecayBactRateSRC <  StateFunction
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'nbact'}, 'state');
             gp = gp.dependsOn({'s'}, 'state');
-            gp = gp.dependsOn({'PoreVolume'}, 'PVTPropertyFunctions');
+            gp = gp.dependsOn({'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
             gp.label = 'Psi_decay';
         end
 
@@ -18,6 +18,8 @@ classdef DecayBactRateSRC <  StateFunction
             nbMax = model.ReservoirModel.nbactMax;
             namecp = model.ReservoirModel.getComponentNames();
             pv = model.ReservoirModel.PVTPropertyFunctions.get(model.ReservoirModel, state, 'PoreVolume');
+            rho = model.ReservoirModel.PVTPropertyFunctions.get(model.ReservoirModel, state, 'Density');
+
             s = model.ReservoirModel.getProps(state, 's');
             nbact = model.ReservoirModel.getProps(state, 'nbact');
             L_ix = model.ReservoirModel.getLiquidIndex();
@@ -27,17 +29,19 @@ classdef DecayBactRateSRC <  StateFunction
 
             if iscell(s)
                 sL = s{L_ix};
+                rhoL = rho{L_ix};
             else
                 sL = s(:,L_ix);
+                rhoL = rho(:,L_ix);
             end
             if model.ReservoirModel.bacteriamodel && model.ReservoirModel.liquidPhase && (~isempty(idx_H2))&& (~isempty(idx_CO2))
                 if iscell(sL)
-                    Voln = sL{1};
+                    Voln = sL{1}.*rhoL{1};
                 else
-                    Voln = sL;
+                    Voln = sL.*rhoL;
                 end
                 Voln = max(Voln, 1.0e-8);
-                Psidecay = pv.*bbact.*nbact.*(nbact.*Voln)./nbMax;
+                Psidecay = pv.*bbact.*nbact.*(nbact.*Voln);
             end
         end
     end

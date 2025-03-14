@@ -8,15 +8,16 @@ clearvars;
 mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr
 
 %% Define the case name and read the Eclipse deck file
-name = 'H2_STORAGE_COMPOSITIONAL_2D_TRAP_BACT';
+name = 'H2_STORAGE_COMPOSITIONAL_2D_TRAP_BACT_50_50';
 %% Use H2STORAGE_RS_SALT.DATA for brine
-deck = readEclipseDeck('/home/elyes/Documents/Projects/MRST/modules/H2store/data/Illustrative_example/H2STORAGE_RS.DATA');
+deck = readEclipseDeck('\\wsl.localhost\Ubuntu\home\elyesa\Projects\MRST\modules\H2store\data\Illustrative_example\H2STORAGE_RS.DATA');
 
 %% Set up the simulation parameters and model components from the black-oil model
 [~, ~, state0Bo, modelBo, scheduleBo, ~] = H2_illustration_storage_example(deck);
 bacteriamodel = true;
 % Convert black-oil model to compositional model
 model = convertBlackOilModelToCompositionalModel(modelBo);
+%model.fluid.rhoGS = 1.4.*kilogram*meter^3;
 state0=convertBlackOilStateToCompositional(modelBo,state0Bo);
 state0.components = ensureMinimumFraction(state0.components,6.0e-4);
 
@@ -31,8 +32,6 @@ if (compFluid.getNumberOfComponents>2)
     state0.components(:,2) = state0.components(:,3);
     state0.components(:,1) = 1- sum(state0.components(:,2:end),2);
     state0.components =state0.components.*0+ [0.8480,  1.0e-5,  1.0e-5,   0.1760-0.0240];
-%     state0.components(model.rock.regions.saturation == 3,:) = state0.components(model.rock.regions.saturation == 3,:).*0 + [1.0-3.0e-8,  1.0e-8,  1.0e-8,   1.0e-8];
-%     state0.components(model.rock.regions.saturation == 3,:) = state0.components(model.rock.regions.saturation == 3,:).*0 + [1.0-3.0e-8,  1.0e-8,  1.0e-8,   1.0e-8];
 
     EOS = SoreideWhitsonEquationOfStateModel([], compFluid, 'sw');
     T0 = 44.35 * Kelvin; % Initial temperature in Kelvin
@@ -52,22 +51,11 @@ model.gravity = modelBo.gravity;
 
 %% Manually set up well compositions, temperature, and bacteria
 schedule = scheduleBo; % Load schedule from the black-oil model
-nbact0 = 1.0e9; % Initial number of bacteria
+nbact0 = 1.0e2; % Initial number of bacteria
 state0.T = state0.T.*0+T0;
-% Initialize component composition and pressure state
-composition = repmat([0.999, 0.001], model.G.cells.num, 1); % Initial composition
-composition(model.rock.regions.saturation == 1, :) = composition(model.rock.regions.saturation == 1, :) .* 0 + [0.999, 0.001]; % Update composition in saturated regions
-
-% state0.pressure = state0Bo.pressure; % Set pressure from initial black-oil state
-% state0.s = state0Bo.s; % Set saturation from initial state
-% state0.components = composition; % Set component concentration
-% state0.T = repmat(T0, model.G.cells.num, 1); % Set initial temperature
-% state0.nbact = repmat(nbact0, model.G.cells.num, 1); % Set initial bacteria count
-
 % Initialize compositional state with bacteria model
 if bacteriamodel
     state0 = initCompositionalStateBacteria(model, state0.pressure, T0, state0.s, state0.components, nbact0, EOS);
-%     state0.s =state0.s.*0+ [0.8000  0.2];
 else
      state0 = initCompositionalState(model, state0.pressure, T0, state0.s, state0.components, EOS);
 end
@@ -76,19 +64,18 @@ cells_bc = sum(model.G.faces.neighbors(bc.face, :), 2);
 %% Update schedule controls and boundary conditions
 if (compFluid.getNumberOfComponents>2)
     for i = 1:length(schedule.control)
-        % Set component mix for each control, adjusting for specific conditions
+        % We inject 50% H2 and 50% CO2 in the build-up phase
         schedule.control(i).W.compi = [0, 1]; % Well components
-        if (strcmp(schedule.control(i).W.name, 'cushion')&&i<25)
-            schedule.control(i).W.components = [0.0, 0.05, 0.95 0.0];
+        if (strcmp(schedule.control(i).W.name, 'cushion')&&i<11)
+            schedule.control(i).W.components = [0.0, 0.1, 0.9 0.0];
         else
             schedule.control(i).W.components = [0.0, 0.95, 0.05, 0.0];
         end
         schedule.control(i).W.T = T0; % Set temperature (not used, but necessary)
 
         % Update boundary conditions for each control
-        schedule.control(i).bc.components = repmat(state0.components(1,:), numel(cells_bc), 1); % Set boundary component concentrations
-        schedule.control(i).bc.sat = repmat(state0.s(1,:), numel(cells_bc), 1); % Set boundary saturation
-  %      schedule.control(i).bc.nbact = repmat(state0.nbact(1,:), numel(cells_bc), 1);
+        schedule.control(i).bc.components = repmat(state0.components(1,:), numel(cells_bc), 1);
+        schedule.control(i).bc.sat = repmat(state0.s(1,:), numel(cells_bc), 1);
         schedule.control(i).bc = [];
     end
 else
@@ -140,18 +127,27 @@ nls.LinearSolver = lsolve;
 problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
 
 %% Execute the simulation of the packed problem
-%simulatePackedProblem(problem);
-[ws, states] = simulateScheduleAD(state0, model, schedule, 'nonlinearsolver', nls);
+simulatePackedProblem(problem);
+%% Compare with and without bectrial effects
+modelNoBact = model;
+modelNoBact.bacteriamodel = false;
+state0NoBact = state0;
+state0NoBact.nbact = 0;
+nameNoBact = 'H2_STORAGE_COMPOSITIONAL_2D_TRAP_NOBACT_50_50';
+problemNoBact = packSimulationProblem(state0, modelNoBact, schedule, nameNoBact, 'NonLinearSolver', nls);
+%% Run the simulation
+simulatePackedProblem(problemNoBact, 'restartStep',1);
+%% Get reservoir and well states
+[ws,states] = getPackedSimulatorOutput(problem);
+[wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
+% Plot states
+figure;
+plotToolbar(model.G, states);
+plotToolbar(model.G, statesNoBact);
 
-%% Get packed reservoir and well states
-%[ws, states] = getPackedSimulatorOutput(problem, 'restartStep', 1);
-%% Plot states
-% figure;
-% plotToolbar(model.G, states);
-% 
-% %% Plot well output
-% figure;
-% plotWellSols(ws);
+%% Plot well output
+figure;
+plotWellSols({ws,wsNoBact});
 %% Copyright Notice
 %
 % <html>

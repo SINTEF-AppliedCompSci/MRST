@@ -36,8 +36,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         % Boolean indicating if we are considering bio-chemical
         % effects (for debugging). Default = true.
         bactrial = true; 
-        % Choice of bactrial primary variable. Possible values are 'dnbact'
-        % for Plankton  and 'anbact' for biofilm. Default is 'nbact'.
+        %  Default is 'nbact'.
         bacterialFormulation = 'bacterialmodel';
 
         % Compositional fluid mixutre. Default is a `Methanogenesis`
@@ -51,7 +50,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         alphaCO2 = 1.98e-6;
 
         Psigrowthmax = 1.338e-4; % 1/s        
-        b_bact       = 1.35148e-6; % 1/s
+        b_bact       = 2.35148e-6; % 1/s
         
         Db = 10^(-8)*meter/second
         bDiffusionEffect = false;
@@ -343,14 +342,17 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         %-----------------------------------------------------------------%
         function [v_eqs, tolerances, names] = getConvergenceValues(model, problem, varargin)
             % Get values for convergence check
-
             [v_eqs, tolerances, names] = getConvergenceValues@ReservoirModel(model, problem, varargin{:});
-            bacteriaIndex = strcmp(names, 'bacteria (cell)');
+            bacteriaIndex = find(strcmp(names, 'bacteria (cell)'));
             tolerances(bacteriaIndex) = 1.0e-3;
             if model.bacteriamodel
                 scale = model.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
                 ix    = ~cellfun(@isempty, scale);
                 v_eqs(ix) = cellfun(@(scale, x) norm(scale.*value(x), inf), scale(ix), problem.equations(ix));
+                % Reduce Tolerance
+                if (problem.iterationNo>10 && all(v_eqs(1:bacteriaIndex-1)<tolerances(1:bacteriaIndex-1)))
+                    tolerances(bacteriaIndex) = 0.8;
+                end
             end
         end
         
