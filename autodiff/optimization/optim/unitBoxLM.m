@@ -1,6 +1,6 @@
 function [v, u, history] = unitBoxLM(u0, f, varargin)
-% Levenberg-Marquardt-type optimization intended for scaled 
-% problems, i.e., 0<=u<=1 and f~O(1) 
+% Levenberg-Marquardt-type optimization intended for scaled
+% problems, i.e., 0<=u<=1 and f~O(1)
 % SYNOPSIS:
 % [v, u, history] = unitBoxLM(u0, f, ...)
 %
@@ -12,15 +12,15 @@ function [v, u, history] = unitBoxLM(u0, f, varargin)
 % update using 'radiusIncrease'/'radiusDecrease' and compute an
 % approximative corresponding lambda-value.
 %
-% 
+%
 % PARAMETERS
-% u0    : inital guess nx1 vector with 0<= u0 <= 1 
+% u0    : inital guess nx1 vector with 0<= u0 <= 1
 % f     : function handle s.t., [v,J] = f(u) returns
 %           v : nx1 vector of residuals
 %           J : nxm Jacobian such that J'*v is gradient of v.^2 wrt u
 % KEYWORD ARGUMENTS:
 %        See below
-% RETURNS:                          
+% RETURNS:
 % v       : Optimal or best objective value
 % u       : Control/parameter vector corresponding to v
 % history : Structure containing for each iteration:
@@ -59,7 +59,7 @@ opt = struct('lambdaInit',               0.01, ...
              'ratioThresholds',     [.25 .75], ... % bad | medium | good approx
              'scaledDamping',           false, ... % not recommended
              'updateStrategy',       'simple', ... % 'simple' or 'TR' (trust region)
-             'gradTol',                  1e-6, ... 
+             'gradTol',                  1e-6, ...
              'updateTol',                1e-6, ...
              'resTolAbs',                1e-5, ...
              'resTolRel',                   0, ...
@@ -69,7 +69,7 @@ opt = struct('lambdaInit',               0.01, ...
              'lsqTol',                      0, ... % if >0, use lsqminnorm
              'plotEvolution',            true, ...
              'verbose',                  true);
- 
+
 opt  = merge_options(opt, varargin{:});
 if isempty(opt.maxFunEvals)
     opt.maxFunEvals = 2*opt.maxIt;
@@ -89,10 +89,10 @@ cap = @(x)max(0, min(1, x));
 h   = initializeHistory(opt);
 it   = 0;
 if opt.plotEvolution
-    fig = figure; 
+    fig = figure;
 end
 accept = true;
-radius = nan; 
+radius = nan;
 while ~converged(it, h, opt)
     it   = it+1;
     uNew = cap(u+du);
@@ -106,7 +106,7 @@ while ~converged(it, h, opt)
     [h.val(it), h.lambda(it)] = deal(val, lambda);
     [h.u{it}, h.nIt(it)] = deal(uNew, h.nIt(it) + 1);
     if it > 1
-        % actual to predicted improvement ratio 
+        % actual to predicted improvement ratio
         rho = -(val-h.val(it-1))/(dur'*(lambda*Dr*dur - gr));
         h.rho(it) = rho;
         accept = rho > 0;
@@ -134,9 +134,9 @@ while ~converged(it, h, opt)
         isFree = ~(u==0 & g>0) & ~(u==1 & g<0); % free elems
         Jr = J(:, isFree);                      % reduced Jacobian
         gr = g(isFree);                         % reduced gradient
-        
+
         JJr  = Jr'*Jr;
-        if opt.scaledDamping 
+        if opt.scaledDamping
             dr   = diag(JJr);
             mval = 1e-3*max(dr);
             dr(dr<mval) = mval;
@@ -153,7 +153,7 @@ while ~converged(it, h, opt)
     end
     h.du(it) = norm(du);
     printInfo(h, it+~accept);
-end 
+end
 [v, u, history] = handleOutput(it, h);
 end
 
@@ -177,7 +177,7 @@ if flag
     ll = 65;
     prnt = @(s)fprintf('| %s%s |\n', s, repmat(' ', [1, ll-length(s)-4]));
     fprintf('%s\n', repmat('-', [1, ll]));
-    prnt('Optimization finnished:');
+    prnt('Optimization finished:');
     switch find(flags, 1)
         case 1
             s = sprintf('Reached maximal number of iterations (%d)', it);
@@ -185,7 +185,7 @@ if flag
             s = sprintf('Reached maximal number of function evaluations (%d)', sum(h.nIt(it)));
         case 3
             s = sprintf('Norm of projected gradient below tollerance (%7.2e < %7.2e)', h.pg(it), opt.gradTol);
-        case 4 
+        case 4
             s = sprintf('Norm of update below tollerance (%7.2e < %7.2e)', h.du(it), opt.updateTol);
         case 5
             s = sprintf('Absolute mismatch below tollerance (%7.2e < %7.2e)', h.val(it), opt.resTolAbs);
@@ -202,7 +202,7 @@ end
 %--------------------------------------------------------------------------
 function [du, lam, r] = computeUpdate(JJ, D, g, lam, r, opt)
 if opt.lsqTol > eps
-    lsqSolve = @(A,b)lsqminnorm(A, b, opt.lsqTol); 
+    lsqSolve = @(A,b)lsqminnorm(A, b, opt.lsqTol);
 else
     % backslash is probably OK and more efficient
     lsqSolve = @(A,b)mldivide(A,b);
@@ -239,12 +239,12 @@ else
     end
 end
 end
-    
+
 %--------------------------------------------------------------------------
 function [v, u, h] = handleOutput(it, h)
 % check that last computed value is the best, otherwise remove last it
 if it == 1
-    warning('Optimization finnished after first function evaluation');
+    warning('Optimization finished after first function evaluation');
 elseif h.val(it) > h.val(it-1)
     it = it-1;
 end
@@ -263,7 +263,7 @@ h = struct('val', nan(1, n), 'u', {cell(1, n)}, 'lambda', nan(1,n), ...
            'rho', nan(1, n), 'nIt', zeros(1, n), 'pg',    nan(1,n), ...
            'du',  nan(1, n));
 end
-  
+
 %--------------------------------------------------------------------------
 function fig = plotInfo(fig, it, hst)
 if ~ishandle(fig)
@@ -297,7 +297,7 @@ end
 title('Current scaled parameters');
 set(gca, 'YLim', [0, 1])
 drawnow
-end    
+end
 
 %--------------------------------------------------------------------------
 function printInfo(h, it)
