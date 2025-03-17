@@ -232,7 +232,7 @@ else
             lam = max(opt.lambdaMin, min(opt.lambdaMax, lam));
         end
         if it == 20
-            lam = lam0*opt.opt.lambdaIncrease;
+            lam = lam0*opt.lambdaIncrease;
             du  = -lsqSolve(JJ + lam*D, g);
             r   = norm(du);
         end
