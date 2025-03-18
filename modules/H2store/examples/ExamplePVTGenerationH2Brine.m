@@ -1,7 +1,8 @@
 % MRST Example: Setting Up H₂-Brine Fluid Properties for Black-Oil Simulation
 %
+%% One can also compile the Python scripts for faster generation 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -23,14 +24,18 @@ min_temp = 40;                % Minimum temperature in Celsius
 max_temp = 60;                % Maximum temperature in Celsius
 min_pressure = 1 * atm;       % Minimum pressure in Pa
 max_pressure = 45 * barsa();      % Maximum pressure in Pa
-nbp = 20;                     % Number of pressure points
-nbt = 20;                     % Number of temperature points
-ms = 0;                       % Scaling factor for solubility
-% Get the current script's directory
+nbp = 10;                     % Number of pressure points
+nbt = 10;                     % Number of temperature points
+ms = 0;                       % Salt molality [mol/kg]
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that for large nbp and nbt this example often takes a long time ', ...
+        'to run (runing the corresponding Python scripts is faster)']);
+
 currentDir = fileparts(mfilename('fullpath'));
 outputDisplay = false;
 % Define the target output directory relative to the current directory
-output_dir = fullfile(currentDir, 'data', 'H2STORAGE_RS');
+output_dir = fullfile(currentDir, 'PVT', 'PVT_H2STORAGE');
 
 % Check if the directory exists; if not, create it
 if ~exist(output_dir, 'dir')
@@ -52,17 +57,20 @@ disp('Generating solubility table...');
 [tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, output_dir);
 
 % Configure and Write Fluid Properties (PVT) Tables
-getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, ...
-    'rs', true, 'rv', true, ...
-    'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE', 'PVTGFile', 'PVTGH2BRINE', ...
-    'dir', 'UHS_BENCHMARK_RSRV');
+onlyRS = true;
+if onlyRS
+    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol,'rs', true, 'rv', false,'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE', 'PVTGFile', 'PVTGH2BRINE','dir', output_dir);
 
-disp('Writing fluid properties for miscible case with digas and evapoil...');
-getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', false, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'dir', output_dir)
-%% This 2ndpar generates gas-oil flow properties specific to a hydrogen-brine system, modeled over
+    disp('Writing fluid properties for miscible case with digas and disabled evapoil...');
+else
+    % generate RSRV
+    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', false, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'dir', output_dir);
+    disp('Writing fluid properties for miscible case with digas and evapoil...');
+end
+%% We generates gas-oil flow properties specific to a hydrogen-brine system, for 
 %% three distinct regions. We exemplify the system with three rock types: caprock, bedrock, and storage rock (aquifer).
 %% The output includes key properties: gas relative permeability (krG), oil relative permeability (krO),
-%% and capillary pressure at the gas-oil contact (pcOG). 
+%% and capillary pressure at the gas-oil contact (pcOG). UHS_BENCHMARK_RSRV
 %
 %% Relative permeability is modeled quadratically to capture the flow dynamics between gas and oil phases
 %% within each rock type, providing a more realistic representation of gas-brine interactions under 

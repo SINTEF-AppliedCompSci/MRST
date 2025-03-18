@@ -1,17 +1,20 @@
 -- Copyright (C) 2024 SINTEF DIGITAL
--- Current simulation results for the an illustrative example for H2 storage
--- init state, schedule and mesh satnum and actnum and poro and perm are taken from the main script 
--- Adapted from SINTEF/Olav by Elyes
+-- Simulation results for hydrogen (H2) storage in an Anticlinal Dome Aquifer.
+-- Initial state, schedule, mesh saturation (satnum), active cells (actnum),
+-- porosity (poro), and permeability (perm) are configured in the main script.
+-- This case models dissolved gas (disgas) and evaporated water interaction (evapoil) at low depth.
+-- For high-depth scenarios (1200 meters and initial pressure of 120 bar), use 'RSRV_PVT_DOME_HDEPTH.inc'.
+
 ----------------------------------------------------------------------------
 RUNSPEC
 ----------------------------------------------------------------------------
 
 DIMENS
-280 1 120 /
+1 1 1 /
 
 OIL
 GAS
--- H2STORE
+-- H2 STORAGE
 DISGAS
 -- DIFFUSE
 -- DISPER
@@ -25,15 +28,15 @@ EQLDIMS
 /
 
 WELLDIMS
-10 60 10 20 /
+/
 
 TABDIMS
-6 1* 101 101 /
+/
 
 UNIFOUT
 
 MESSAGES
-1* 1* 10 /
+/
 
 ----------------------------------------------------------------------------
 GRID
@@ -42,7 +45,7 @@ GRID
 INIT
 
 INCLUDE
-'CSP11A.GRDECL' /
+'DOME.GRDECL' /
 
 INCLUDE
 'PERM.inc' /
@@ -54,10 +57,6 @@ COPY
 PERMX PERMY /
 PERMX PERMZ /
 /
-
--- MULTIPLY
--- PERMZ 0.1 /
--- /
 
 ----------------------------------------------------------------------------
 EDIT
@@ -77,47 +76,38 @@ DENSITY
 
 DIFFC
 18.01528 2.016 4.5e-05 1* 1e-9  /
+INCLUDE
+'SGOF_DOME.txt' /
 
 INCLUDE
-'SGOF_H2STORAGE.txt' /
-
-
-INCLUDE
-'RS_PVT_H2STORAGE_SALT.inc' /
-
+'RSRV_PVT_DOME_HDEPTH.inc' /
 
 ----------------------------------------------------------------------------
 REGIONS
 ----------------------------------------------------------------------------
 
 INCLUDE
-'SATNUM_H2STORAGE.inc' /
+'SATNUM_DOME.inc' /
 
 ----------------------------------------------------------------------------
 SOLUTION
 ----------------------------------------------------------------------------
 
 RTEMPVD
-0   20.0
-1.2 20.0 /
+/
 
 RSVD
-0   0.0
-100 0.0 /
+/
 
-EQUIL
-0 1.1 1000 0 0 0 1 1 0 /
+RVVD
+/
 
 BC 
-1 280 1 1 1 1 Z- FREE /
+/
 /
 
 RPTRST
 BASIC=2 DEN KRG KRO/
-
-SUMMARY
-ALL
-PERFORMA
 
 ----------------------------------------------------------------------------
 SCHEDULE
