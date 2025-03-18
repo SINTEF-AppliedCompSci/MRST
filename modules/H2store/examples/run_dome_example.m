@@ -29,7 +29,7 @@
 mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui
 
 name = 'H2_STORAGE_RSRV_DOME';
-deck = readEclipseDeck('/home/elyes/Documents/Projects/MRST/modules/H2store/data/3d_dome_case/DOME_RSRV.DATA');
+deck = readEclipseDeck('./examples/data/3d_dome_case/DOME_RSRV.DATA');
 
 %% Initialize the dome case simulation with specified parameters
 [~, options, state0, model, schedule, ~] = dome_case_3d(deck);
@@ -160,7 +160,7 @@ xlabel('Time (months)');
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

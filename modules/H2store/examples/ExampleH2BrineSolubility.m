@@ -8,10 +8,12 @@
 %   hydrogen storage in saline aquifers. Advances in Water Resources, 191, 104772.
 %
 % SEE ALSO:
-%   `generateComponentTable`, `generateSolubilityTable`
+%   `generateComponentTable`, `generateSolubilityTable
+%
+%% One can also compile the Python scripts for faster generation 
 %
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -36,11 +38,17 @@ nbp          = 15;                % Number of pressure points
 nbt          = 15;                % Number of temperature points
 ms           = 0;                 % Salt molality [mol/kg]
 
+
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that for large nbp and nbt this example often takes a long time ', ...
+        'to run (runing the corresponding Python scripts is faster)']);
+
 % Get directory of current script
 currentDir = fileparts(mfilename('fullpath'));
 
 % Define target output directory and create if it doesn't exist
-output_dir = fullfile(currentDir, 'data', 'solubilitydata');
+output_dir = fullfile(currentDir, 'PVT', 'H2SolubilityTable');
 if ~exist(output_dir, 'dir')
     mkdir(output_dir);
 end
