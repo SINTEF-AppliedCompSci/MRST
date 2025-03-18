@@ -1,4 +1,5 @@
-function [G, states_3D, G_VE, states_VE, sat_VE3D, timing, wellcell, model, model_VE] = sloping_aquifer(varargin)
+function [G, states_3D, G_VE, states_VE, sat_VE3D, timing, wellcell, model, ...
+          model_VE, schedule, schedule_VE] = sloping_aquifer(varargin)
 %Undocumented Utility Function
 
 %{
@@ -33,7 +34,15 @@ options.cap_fringe = false;
 options.skip_3D = false;
 options.avg_perm = 400 * milli * darcy;
 options.avg_poro = 0.2;
+options.slope = 0.04;
+options.thickness = 20 * meter; 
+options.trap1_size = 20;
+options.trap2_size = 10;
 options.mass_injection_rate = 20 * kilo * 1e3 / year;
+options.migr_period = 2 * year;
+options.migr_steps = 12;
+
+
 
 options = merge_options(options, varargin{:});
 
@@ -47,13 +56,13 @@ if options.cross_sectional
     yres = 1; 
 end
 
-[xlen, ylen, zlen] = deal(2000 * meter, 600 * meter, 20 * meter);
+[xlen, ylen, zlen] = deal(2000 * meter, 600 * meter, options.thickness);
 
-G = make_testgrid([xres, yres, zres], ... % x, y and z resolution
-                  [xlen, ylen, zlen], ... % x, y and z lengths
-                  5, 0.04, 1000, ... % bend, slope and depth
-                  [0.5, 0.3, 20;     % trap 1 x-position, width and size
-                   0.75, 0.2, 10]);  % trap 2 x-position, width and size
+G = make_testgrid([xres, yres, zres], ...      % x, y and z resolution
+                  [xlen, ylen, zlen], ...      % x, y and z lengths
+                  5, options.slope, 1000, ...  % bend, slope and depth
+                  [0.5, 0.3, options.trap1_size;    % trap 1 x-position, width and size
+                   0.75, 0.2, options.trap2_size]); % trap 2 x-position, width and size
 
 %% Set up the rest of the simulation input data
 
@@ -152,11 +161,8 @@ else
     inj_steps = 12;
 end
 
-migr_period = 2 * year;
-migr_steps = 12;
-
 schedule = simple_injection_migration_schedule(W, bc, inj_period, inj_steps, ...
-                                               migr_period, migr_steps);
+                                               options.migr_period, options.migr_steps);
 
 % define VE fluid
 [G_VE, G] = topSurfaceGrid(G);
@@ -196,6 +202,7 @@ if ~options.skip_3D
     tic;
     [wellSol3D, states_3D] = simulateScheduleAD(initState, model, schedule);
     timing.sim3D = toc;
+    states_3D = [{initState}; states_3D];
 else
     states_3D = {};
     model = [];
@@ -214,12 +221,13 @@ bc_VE = open_boundary_conditions(G_VE, pfun, options.cross_sectional);
 W_VE = convertwellsVE(W, G, G_VE, rock_VE);
 
 schedule_VE = simple_injection_migration_schedule(...
-    W_VE, bc_VE, inj_period, inj_steps, migr_period, migr_steps);
+    W_VE, bc_VE, inj_period, inj_steps, options.migr_period, options.migr_steps);
 
 tic;
 [wellSol_VE, states_VE] = simulateScheduleAD(initState_VE, model_VE, ...
                                              schedule_VE);
 timing.simVE = toc;
+states_VE = [{initState_VE}; states_VE];
 
 sat_VE3D = {};
 invpc = []; % if reconstructing saturation in a sharp interface setting, do
