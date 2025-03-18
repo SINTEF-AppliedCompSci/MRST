@@ -32,12 +32,16 @@ clearvars;
 mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui
 
 % Define the name of the simulation for output files
-name = 'H2_STORAGE_RS_UHS_BENCHMARK_NEW';
+name = 'H2_STORAGE_RS_UHS_BENCHMARK';
 
 %% Read the Eclipse deck file containing the simulation data
-% Change input fil by UHS_BENCHMARK_RS_SALT.DATA for SALT EFFECTS
-deck = readEclipseDeck('/home/elyes/Documents/Projects/MRST/modules/H2store/data/uhs_benchmark/UHS_BENCHMARK_RS.DATA');
-
+% Change input file by UHS_BENCHMARK_RS_SALT.DATA for SALT EFFECTS
+deck = readEclipseDeck('./examples/data/uhs_benchmark/UHS_BENCHMARK_RS.DATA');
+% Note that the user can generate different PVT tables (see thermodynamics)
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that this example often takes a long time ', ...
+        'to run']);
 %% Prepare simulation parameters and initial state
 [~, options, state0, model, schedule, ~] = modified_uhs_benchmark(deck);
 

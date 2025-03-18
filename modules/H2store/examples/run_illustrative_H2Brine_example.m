@@ -38,9 +38,15 @@ clearvars;
 mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr
 
 %% Define the case name and read the Eclipse deck file
-name = 'H2_STORAGE_RS_New';
+name = 'H2_STORAGE_RS';
 %% Use H2STORAGE_RS_SALT.DATA for brine
-deck = readEclipseDeck('/home/elyes/Documents/Projects/MRST/modules/H2store/data/Illustrative_example/H2STORAGE_RS.DATA');
+deck = readEclipseDeck('./examples/data/Illustrative_example/H2STORAGE_RS.DATA');
+
+
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that this is a 10 cycle injection example which often takes some time ', ...
+        'to run: reduce cycles for example']);
 
 %% Set up the simulation parameters and model components
 [~, ~, state0, model, schedule, ~] = H2_illustration_storage_example(deck);
@@ -155,7 +161,7 @@ deck_mrst = model2Deck(model, schedule, 'deck', deck);
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
