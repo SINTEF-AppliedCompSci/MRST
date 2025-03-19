@@ -1,5 +1,5 @@
 %% Load necessary MRST modules
-mrstModule add deckformat vemmech
+mrstModule add deckformat
 
 %% Set up basic grid parameters
 dims = [10, 10, 10];
@@ -42,22 +42,24 @@ grdecl.ZCORN = reshape(grdecl.ZCORN, 1, []);
 grdecl = padGrdecl(grdecl, [0 0 1], [0 0; 0 0; [pad pad]]);
 grdecl = refineGrdecl(grdecl, [1 1 refine]);
 G = processGRDECL(grdecl);
-G.nodes.coords(:,3) = G.nodes.coords(:,3) - 450;  % Adjust Z-coordinates by shifting downwards
+shift = 450;
+G.nodes.coords(:,3) = G.nodes.coords(:,3) - shift;  % Adjust Z-coordinates by shifting downwards
 G = computeGeometry(G);
 
 %% Classify geological layers based on the Z-index
 [i, j, k] = ind2sub(G.cartDims, G.cells.indexMap);
 underrock = ismember(k, [1:8]);
-toprock = ismember(k, [25:32]);
 bedrock = ismember(k, [9:12]);
+toprock = ismember(k, [25:32]);
 caprock = ismember(k, [20:24]);
 aquifer = ~bedrock & ~caprock & ~underrock & ~toprock;
 
 %% Visualize geological layers with color coding
-plotGrid(G, caprock & G.cells.centroids(:,2) < 2500, 'FaceColor', 'b');
-plotGrid(G, bedrock & G.cells.centroids(:,2) < 2500, 'FaceColor', 'r');
-plotGrid(G, underrock & G.cells.centroids(:,2) < 2500, 'FaceColor', 'g');
-plotGrid(G, toprock & G.cells.centroids(:,2) < 2500, 'FaceColor', 'm');
-plotGrid(G, aquifer & G.cells.centroids(:,2) < 2500);
+yd = 2500;
+plotGrid(G, caprock & G.cells.centroids(:,2) < yd, 'FaceColor', 'b');
+plotGrid(G, bedrock & G.cells.centroids(:,2) < yd, 'FaceColor', 'r');
+plotGrid(G, underrock & G.cells.centroids(:,2) < yd, 'FaceColor', 'g');
+plotGrid(G, toprock & G.cells.centroids(:,2) < yd, 'FaceColor', 'm');
+plotGrid(G, aquifer & G.cells.centroids(:,2) < yd);
 title('Geological Layers of the Dome Aquifer');
 view(0, 180);
