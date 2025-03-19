@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = dome_case_3d(deck, varargin)
+function [description, options, state0, model, schedule,deck, plotOptions] = dome_case_3d(deck, varargin)
 % This function sets up a conceptual dome-shaped aquifer model for hydrogen storage, 
 % focusing on the differences between immiscible and black-oil modeling approaches. 
 %
@@ -55,10 +55,10 @@ K0 = 273.15 * Kelvin;    % Reference temperature in Kelvin
 
 % Define simulation options
 options = struct( ...
-    'rateCharge',       400000 * meter^3 / day,    ... % Charge rate
+    'rateCharge',       4.0e5 * meter^3 / day,    ... % Charge rate
     'rateIdle',         0.0 * kilogram / day,      ... % Idle rate
-    'rateCushion',      200000 * meter^3 / day,    ... % Cushion-H2 injection rate
-    'rateDischarge',    400000 * meter^3 / day,    ... % Discharge rate
+    'rateCushion',      2.0e5 * meter^3 / day,    ... % Cushion-H2 injection rate
+    'rateDischarge',    4.0e5 * meter^3 / day,    ... % Discharge rate
     'bhp',              35.0 * barsa,              ... % Produced bottom hole pressure (BHP)
     'tempCharge',       K0 + 50 * Kelvin,          ... % Charge temperature
     'tempDischarge',    K0 + 50 * Kelvin,          ... % Discharge temperature
@@ -68,11 +68,11 @@ options = struct( ...
     'timeIdle',         3 * day,                   ... % Idle time
     'timeShut',         90 * day,                  ... % Shut-in time
     'timeDischarge',    10 * day,                  ... % Discharging time
-    'dtCharge',         8.4 * hour,                ... % Time step during charging
-    'dtCushion',        8.4 * hour,                ... % Time step during cushioning
+    'dtCharge',         1*day,                ... % Time step during charging
+    'dtCushion',        1*day * hour,                ... % Time step during cushioning
     'dtIdle',           8.4 * hour,                ... % Time step during idle
     'dtShut',           8.4 * hour,                ... % Time step during shut-in
-    'dtDischarge',      8.4 * hour,                ... % Time step during discharging
+    'dtDischarge',      1 * day,                ... % Time step during discharging
     'numCycles',        4,                        ... % Number of operational cycles
     'chargeOnly',       0,                         ... % Flag to simulate only the charging phase
     'cushionOnly',      0,                         ... % Flag to simulate only the cushioning phase
@@ -133,7 +133,7 @@ deck = model.inputdata;
 
 %% blackoil model setup
 gravity reset on;
-model = GenericBlackOilModel(G, rock, fluid, 'water', false, 'disgas', true, 'vapoil', true, ...
+model = GenericBlackOilModel(G, rock, fluid, 'water', false, 'disgas', true, 'vapoil', false, ...
                              'gravity', [0, 0, -norm(gravity)], 'inputdata', deck);
 
 %% Setup schedule
@@ -175,9 +175,11 @@ function W = setUpWells(G, rock, fluid, options)
     W = [];
 
     %% Identify the cell indices for production wells based on coordinates
-    wc = find(abs(G.cells.centroids(:, 1) - 2500) < 0.45 & ...
-              abs(G.cells.centroids(:, 2) - 2500) < 0.2 & ...
-              G.cells.centroids(:, 3) > -600);
+    yd = 2500;
+    zd = 600;
+    wc = find(abs(G.cells.centroids(:, 1) - yd) < 0.45 & ...
+              abs(G.cells.centroids(:, 2) - yd) < 0.2 & ...
+              G.cells.centroids(:, 3) > -zd);
     wc = wc(1:2);
     %% Add  well to the well structure
     W = addWell(W, G, rock, wc, ...
