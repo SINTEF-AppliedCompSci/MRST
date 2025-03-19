@@ -73,7 +73,7 @@ options = struct( ...
     'dtIdle',           8.4 * hour,                ... % Time step during idle
     'dtShut',           8.4 * hour,                ... % Time step during shut-in
     'dtDischarge',      8.4 * hour,                ... % Time step during discharging
-    'numCycles',        10,                        ... % Number of operational cycles
+    'numCycles',        4,                        ... % Number of operational cycles
     'chargeOnly',       0,                         ... % Flag to simulate only the charging phase
     'cushionOnly',      0,                         ... % Flag to simulate only the cushioning phase
     'dischargeOnly',    0,                         ... % Flag to simulate only the discharging phase
@@ -178,10 +178,7 @@ function W = setUpWells(G, rock, fluid, options)
     wc = find(abs(G.cells.centroids(:, 1) - 2500) < 0.45 & ...
               abs(G.cells.centroids(:, 2) - 2500) < 0.2 & ...
               G.cells.centroids(:, 3) > -600);
-    
-    %% Select the first two cells for the injection/production wells
     wc = wc(1:2);
-
     %% Add  well to the well structure
     W = addWell(W, G, rock, wc, ...
                 'Name', 'Prod', ...
