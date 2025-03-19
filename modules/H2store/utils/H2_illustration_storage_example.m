@@ -61,7 +61,7 @@ options = struct( ...
     'dtIdle'       , 8.4 * hour          , ... % Timestep during idle phase
     'dtShut'       , 3*day          , ... % Timestep during shut-in phase
     'dtDischarge'  , 5*day          , ... % Timestep during discharge
-    'numCycles'    , 10                  , ... % Number of injection/production cycles
+    'numCycles'    , 5                  , ... % Number of injection/production cycles
     'chargeOnly'   , 0                   , ... % Simulate only charging period
     'cushionOnly'  , 0                   , ... % Simulate only cushion gas phase
     'dischargeOnly', 0                   , ... % Simulate only discharge period
