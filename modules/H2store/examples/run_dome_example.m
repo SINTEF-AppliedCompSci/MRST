@@ -32,7 +32,7 @@ name = 'H2_STORAGE_RSRV_DOME';
 deck = readEclipseDeck('./examples/data/3d_dome_case/DOME_RSRV.DATA');
 
 %% Initialize the dome case simulation with specified parameters
-[~, options, state0, model, schedule, ~] = dome_case_3d(deck);
+[~, options, state0, model, schedule, deck,~] = dome_case_3d(deck);
 
 %% Plot rock parameters
 figure;
