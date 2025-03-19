@@ -24,7 +24,7 @@ function [data_table, status, file_path] = generateComponentTable(min_temp, max_
     %   getFluidH2BrineProps, generateSolubilityTable.
 
     %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

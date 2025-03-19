@@ -11,7 +11,7 @@ function [description, options, state0, model, schedule, plotOptions] = modified
 % SEE ALSO:
 %   `MRSTExample`, `example_template`, `exampleSuiteTutorial`
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -116,7 +116,7 @@ function W = setUpWells(G, rock, options)
     %% We also reset the well in the highest point: we reset Well coordinates (wc) and radii (r)
     % ps this is slightly different from the benchmark
     wc = [5891; 9612; 13333; 17054; 20775; 24496; 28217; 31938; 35659; 39380; 43101];
-    r = [0.9479; 0.7354; 0.7338; 2.2337; 2.2337; 2.6778; 2.6722; 5.1490; 5.1491; 0.7834; 0.7834];
+    r  = [0.9479; 0.7354; 0.7338; 2.2337; 2.2337; 2.6778; 2.6722; 5.1490; 5.1491; 0.7834; 0.7834];
     
     %% Add production wells with specified parameters
     W = addWell([], G, rock, wc, 'Name', 'Prod', ...
@@ -327,11 +327,13 @@ function bc = setUpBc(G, options)
     f = boundaryFaces(G);
     
     %% Select lateral faces
-    f1 = (G.faces.normals(f, 3) > 2.48);
+    dis = 2.48;
+    f1 = (G.faces.normals(f, 3) > dis);
     faces = f(~f1);
 
     %% Calculate the displacement from a reference point (1140 units)
-    dx = bsxfun(@minus, G.faces.centroids(faces, :), 1140);
+    Depth = 1140;
+    dx = bsxfun(@minus, G.faces.centroids(faces, :), Depth);
     
     %% Calculate pressure drop due to gravity using omega and displacement
     rhoOS = 9.98e+02;
