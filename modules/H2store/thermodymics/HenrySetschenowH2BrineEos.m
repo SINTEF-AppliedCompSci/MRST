@@ -16,7 +16,7 @@ function xH2 = HenrySetschenowH2BrineEos(T, mNaCl, p)
 %   hydrogen storage in saline aquifers. Advances in Water Resources, 191, 104772.
 %
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

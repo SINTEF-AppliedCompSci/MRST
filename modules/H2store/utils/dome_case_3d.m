@@ -29,7 +29,7 @@ function [description, options, state0, model, schedule, plotOptions] = dome_cas
 %   `MRSTExample`, `example_template`, `exampleSuiteTutorial`.
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -99,19 +99,19 @@ dome_3d();
 
 %% We set up the Rock properties
 % porosity
-rock = makeRock(G, [1000 * milli * darcy, 1000 * milli * darcy, 100 * milli * darcy], 0.25);
+rock = makeRock(G, [1000, 1000, 100]*milli * darcy, 0.25);
 rock.poro(caprock)    = 0.1;    % Porosity of caprock
 rock.poro(bedrock)    = 0.1;    % Porosity of bedrock
-rock.poro(underrock)  = 0.15;  % Porosity of storage rock
+rock.poro(underrock)  = 0.15;   % Porosity of storage rock
 rock.poro(toprock)    = 0.15;   % Porosity of top rock
 
-% permeability
-rock.perm(caprock, :)   = 1.0e-04 * milli * darcy;   % Permeability of caprock
-rock.perm(bedrock, :)   = 1.0e-02 * milli * darcy;   % Permeability of bedrock
-rock.perm(toprock, :)   = 1.0e-03 * milli * darcy;   % Permeability of top rock
-rock.perm(underrock, :) = 1.0e-03 * milli * darcy; % Permeability of under rock
+% Layered permeability 
+rock.perm(caprock, :)   = 1.0e-04*milli*darcy;   % Permeability of caprock
+rock.perm(bedrock, :)   = 1.0e-02*milli*darcy;   % Permeability of bedrock
+rock.perm(toprock, :)   = 1.0e-03*milli*darcy;   % Permeability of top rock
+rock.perm(underrock, :) = 1.0e-03*milli*darcy; % Permeability of under rock
 
-%% We rest saturation regions
+%% We set saturation regions
 deck = convertDeckUnits(deck);
 deck.GRID.ACTNUM = ones(G.cells.num, 1);       % Active cells
 deck.REGIONS.SATNUM = repmat(1, G.cells.num, 1);  % Enforces size to match the number of cells

@@ -45,7 +45,7 @@ function getFluidH2BrineProps(tab_h2o, tab_h2, tab_sol, varargin)
 %   generateSolubilityTable, generateComponentTable.
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

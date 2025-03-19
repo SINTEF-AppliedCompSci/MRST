@@ -74,7 +74,7 @@ disp(['Generating component table for: ', comp_name]);
 disp('Generating solubility table for H2-brine mixture...');
 [tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, output_dir);
 % Load ePC-SAFT Data
-epcsaft = load('ePcSaftH2BrineData.mat');
+epcsaft = load('./thermodymics/PcSaftSolubilityTable/ePcSaftH2BrineData.mat');
 state = epcsaft.state;
 
 % Define constants

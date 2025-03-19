@@ -23,7 +23,7 @@ function rho = calculateRoweChouWaterDensity(T, S)
 %   Int. J. Hydrog. Energy (ISSN: 0360-3199) 48 (2), 696–708.
  
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
