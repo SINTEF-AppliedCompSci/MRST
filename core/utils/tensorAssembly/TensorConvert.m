@@ -18,8 +18,8 @@ classdef TensorConvert
         
         issetup % Flag is set to true is product has been set up.
         
-        chunksize = 100000; % Chunk size for the computation of the product
-        verbose = false;        
+        chunksize = 500000; % Chunk size for the computation of the product
+        
     end
     
     methods

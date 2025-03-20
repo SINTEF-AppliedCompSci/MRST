@@ -87,8 +87,7 @@ classdef TensorProd
         settbl3      % Flag is set to true if the resulting product table is created
         setpivottbl3 % Flag is set to true if the pivottbl table is created
 
-        chunksize = 100000; % Chunk size for the computation of the product
-        verbose = false;
+        chunksize = 500000; % Chunk size for the computation of the product
 
         needIntersectTbl3 = false; % For the automatically generated pivot space, the index array tbl3 must be a projection of the pivot
                                    % space. For some cases, one may want to use a tbl3 which is not a projection
@@ -272,7 +271,7 @@ classdef TensorProd
 
             if ~isempty(chunksize) && isa(A, 'double') && isa(B, 'double')
 
-                pivotsize = numel(dispind1);
+                pivotsize = numel(dispind1); % size is same for dispind1, dispind2 and dispind3
                 nchunks   = ceil(pivotsize/chunksize);
 
                 if mrstVerbose() > 0
