@@ -29,7 +29,8 @@ function [uu, extra] = VEM_linElast(G, C, el_bc, load, varargin)
 %                  'faces' : faces where the force is applied
 %                  'force' : value of the force that is applied
 %
-%   load     - loading term
+%   load - loading term. Function that takes coordinates (row dimension = spatial dimension (G.griddim)) and returns the
+%          volumetric force applied at that point
 %
 % OPTIONAL PARAMETERS:
 %  'linsolve'             - Linear solver
