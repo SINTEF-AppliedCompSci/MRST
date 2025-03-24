@@ -65,7 +65,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     file_path = fullfile(output_dir, file_name);
 
     % Define the command to run the Python script, passing parameters to control output
-    command = sprintf('python3 /home/elyes/Documents/Projects/MRST/modules/H2store/thermodymics/python_scripts/make_solubility_table_H2_salt.py -t1 %.1f -t2 %.1f -nt %d -p1 %.1f -p2 %.1f -np %d -sm %.1f -o %s', ...
+    command = sprintf('python3 ./thermodymics/python_scripts/make_solubility_table_H2_salt.py -t1 %.1f -t2 %.1f -nt %d -p1 %.1f -p2 %.1f -np %d -sm %.1f -o %s', ...
         min_temp, max_temp, nbt, min_pressure, max_pressure, nbp, ms, file_path);
 
     % Print the command for debugging
