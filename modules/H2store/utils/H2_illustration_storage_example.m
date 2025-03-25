@@ -56,11 +56,11 @@ options = struct( ...
     'timeIdle'     , 10 * day            , ... % Idle period between charge/discharge cycles
     'timeShut'     , 30 * day            , ... % Shut-in period (no activity)
     'timeDischarge', 30 * day            , ... % Duration of hydrogen production (discharge)
-    'dtCharge'     , 5*day          , ... % Timestep during charging
-    'dtCushion'    , 5*day          , ... % Timestep during cushion phase
+    'dtCharge'     , 3*day          , ... % Timestep during charging
+    'dtCushion'    , 3*day          , ... % Timestep during cushion phase
     'dtIdle'       , 8.4 * hour          , ... % Timestep during idle phase
     'dtShut'       , 3*day          , ... % Timestep during shut-in phase
-    'dtDischarge'  , 5*day          , ... % Timestep during discharge
+    'dtDischarge'  , 3*day          , ... % Timestep during discharge
     'numCycles'    , 5                  , ... % Number of injection/production cycles
     'chargeOnly'   , 0                   , ... % Simulate only charging period
     'cushionOnly'  , 0                   , ... % Simulate only cushion gas phase
@@ -471,10 +471,11 @@ function schedule = setUpSchedule(G0, rock, fluid, options)
 
     % Set up idle schedule
     W(1).type = 'rate';
-    W(1).val = options.rateIdle;
+    W(1).val = 0*kilogram/meter^3;
     W(1).name = 'shut';        
     W(1).T = options.tempCushion;
-    W(1).sign = -1;
+    W(1).sign = 0;
+    W(1).status = false;
 
     dtIdle = rampupTimestepsEnds(options.timeIdle, options.dtIdle);
     scheduleIdle = simpleSchedule(dtIdle, 'W', W);
@@ -488,6 +489,7 @@ function schedule = setUpSchedule(G0, rock, fluid, options)
     W(1).name = 'discharge';    
     W(1).val = -options.rateDischarge;
     W(1).sign = -1;
+    W(1).status = true;
 
     dtDischarge = rampupTimestepsEnds(options.timeDischarge, options.dtDischarge);
     scheduleDischarge = simpleSchedule(dtDischarge, 'W', W);

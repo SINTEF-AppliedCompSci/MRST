@@ -40,8 +40,9 @@ mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr
 %% Define the case name and read the Eclipse deck file
 name = 'H2_STORAGE_RS';
 %% Use H2STORAGE_RS_SALT.DATA for brine
-deck = readEclipseDeck('./examples/data/Illustrative_example/H2STORAGE_RS.DATA');
-
+baseDir = fileparts(mfilename('fullpath')); % Get directory of the script
+dataFile = fullfile(baseDir,  'data', 'Illustrative_example', 'H2STORAGE_RS.DATA');
+deck = readEclipseDeck(dataFile);
 
 %% Notice on Computational Cost
 warning('ComputationalCost:High', ...
@@ -82,7 +83,7 @@ nls.LinearSolver = lsolve;
 problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
 
 %% Execute the simulation of the packed problem
-simulatePackedProblem(problem,'restartStep',1);
+simulatePackedProblem(problem, 'restartStep',1);
 
 %% Get packed reservoir and well states
 [ws, states] = getPackedSimulatorOutput(problem);
@@ -98,14 +99,14 @@ plotWellSols(ws);
 LastSteps = getCyclesLastSteps(schedule);
 
 %% Compute gas volumes for different phases
-[totGV_charge, vH2InW_charge, vH2InG_charge] = computeGasVolumes(model, states, lastSteps.charge);
-[totGV_disc, vH2InW_disc, vH2InG_disc] = computeGasVolumes(model, states, lastSteps.discharge);
-[totGV_cush, vH2InW_cush, vH2InG_cush] = computeGasVolumes(model, states, lastSteps.cushion);
+[totGV_charge, vH2InW_charge, vH2InG_charge] = computeGasVolumes(model, states, LastSteps.charge);
+[totGV_disc, vH2InW_disc, vH2InG_disc] = computeGasVolumes(model, states, LastSteps.discharge);
+[totGV_cush, vH2InW_cush, vH2InG_cush] = computeGasVolumes(model, states, LastSteps.cushion);
 
 %% Add plots for H2 volume in Water, Gas, and Total Gas Volumes
 figure; 
 subplot(2, 2, 1);
-plotCellData(model.G, states{lastSteps.cushion(1)}.s(:, 2));
+plotCellData(model.G, states{LastSteps.cushion(1)}.s(:, 2));
 title('s_G');
 colorbar;
 subplot(2, 2, 2);
@@ -122,11 +123,13 @@ title('Total V_{H2}');
 colorbar;
 sgtitle('V_{H2} after build-up phase'); 
 %% Compute Hydrogen Loss Due to Dissolution in Percentage
-hydrogenLossPercentage = zeros(1, length(lastSteps.discharge));
+month = 30*day;
+Time = cumsum(schedule.step.val)/month;
+hydrogenLossPercentage = zeros(1, length(LastSteps.discharge));
 % Loop through each step of the discharge cycle
-for step = 1:length(lastSteps.discharge)
-    totalGasVolume = sum(totGV_all{step});  % Total gas volume in the reservoir
-    dissolvedHydrogenVolume = sum(vH2InW_all{step});  % Volume of hydrogen dissolved in water
+for step = 1:length(LastSteps.discharge)
+    totalGasVolume = sum(totGV_disc{step});  % Total gas volume in the reservoir
+    dissolvedHydrogenVolume = sum(vH2InW_disc{step});  % Volume of hydrogen dissolved in water
     if totalGasVolume > 0  % Check to avoid division by zero
         hydrogenLossPercentage(step) = (dissolvedHydrogenVolume / totalGasVolume) * 100;  % Percentage calculation
     else
@@ -135,16 +138,16 @@ for step = 1:length(lastSteps.discharge)
 end
 % Plot the hydrogen loss percentage over the discharge steps
 figure;  % Create a new figure
-plot(hydrogenLossPercentage, 'LineWidth', 2, 'Color', 'b');
+plot(Time(LastSteps.discharge), hydrogenLossPercentage, 'LineWidth', 2, 'Color', 'b');
 xlabel('Discharge Steps');
 ylabel('Hydrogen Loss Percentage (%)');
-title('Hydrogen Loss Due to Dissolution Over Cycles');
+title('Hydrogen Loss Due to Dissolution');
 grid on;
 
 %% Plot xH2 Over Time
 rhoOS = model.fluid.rhoOS;  % Density of oil-saturated phase
 rhoGS = model.fluid.rhoGS;  % Density of gas-saturated phase
-StepsOfCycles = sort([lastSteps.cushion, lastSteps.charge, lastSteps.discharge, lastSteps.shut]); % Combine all steps
+StepsOfCycles = sort([LastSteps.cushion, LastSteps.charge, LastSteps.discharge, LastSteps.shut]); % Combine all steps
 for i = 1:length(StepsOfCycles) % Loop through each step of the cycles
     % Calculate xH2 based on the current state's solution ratio (rs)
     xH2 = rhoGS .* states{i}.rs ./ (rhoOS + rhoGS .* states{i}.rs); 
@@ -154,9 +157,6 @@ for i = 1:length(StepsOfCycles) % Loop through each step of the cycles
     colorbar; 
     pause(0.01);
 end
-%% write to deck
-deck.RUNSPEC.TITLE ='Illustrative_H2_storage';
-deck_mrst = model2Deck(model, schedule, 'deck', deck);
 %% Copyright Notice
 %
 % <html>
