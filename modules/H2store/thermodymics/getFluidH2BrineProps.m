@@ -67,18 +67,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 mrstModule add deckformat
 %% Define default options
 % Default options
-    opts = struct('rs', true, ...
-                   'rv', true, ...
-                   'plot', false, ...
-                   'nusat', 10, ...
-                   'dir', '', ...
-                   'units', 'metric', ...
-                   'PVTGFile', 'PVTG.txt', ...
-                   'PVDOFile', 'PVDO.txt', ...
-                   'PVTOFile', 'PVTO.txt');
+opts = struct('rs', true, ...
+    'rv', true, ...
+    'plot', false, ...
+    'nusat', 10, ...
+    'dir', '', ...
+    'units', 'metric', ...
+    'PVTGFile', 'PVTG.txt', ...
+    'PVDOFile', 'PVDO.txt', ...
+    'PVTOFile', 'PVTO.txt');
 
-    % Merge user-defined options
-    opts = merge_options(opts, varargin{:});
+% Merge user-defined options
+opts = merge_options(opts, varargin{:});
 %% Set directory for output files; create if it does not exist
 if ~isempty(opts.dir) && ~isfolder(opts.dir)
     mkdir(opts.dir);
@@ -93,18 +93,18 @@ dissolve_gas = opts.rs;
 vaporize_water = opts.rv;
 
 % Extract temperature
-T = tab_h2.x_Temperature__C_(1); % Assuming reservoir temperature is the first
+T = tab_h2.("# temperature [°C]")(1); % Assuming reservoir temperature is the first
 
 %% Extract and align pressures from the tables based on temperature
-tab_sol = tab_sol(abs(tab_sol.x_Temperature__C_ - T) < eps, :);
-tab_h2o = tab_h2o(abs(tab_h2o.x_Temperature__C_ - T) < eps, :);
-tab_h2 = tab_h2(abs(tab_h2.x_Temperature__C_ - T) < eps, :);
+tab_sol = tab_sol(abs(tab_sol.Temperature_C - T) < eps, :);
+tab_h2o = tab_h2o(abs(tab_h2o.("# temperature [°C]") - T) < eps, :);
+tab_h2 = tab_h2(abs(tab_h2.("# temperature [°C]") - T) < eps, :);
 
 
 %% Extract pressure values for consistency check
-p_sol = tab_sol.phasePressure_Pa_;
-p_h2o = tab_h2o.pressure_Pa_;
-p_h2 = tab_h2.pressure_Pa_;
+p_sol = tab_sol.Pressure_Pa;
+p_h2o = tab_h2o.("pressure [Pa]");
+p_h2 = tab_h2.("pressure [Pa]");
 
 % Define pressure range and temperature
 pressureRange = [min(p_sol), max(p_sol)];
@@ -131,8 +131,8 @@ molar_mass_h2 = 2.016e-3; % kg/mol
 molar_mass_h2o = 18.01528e-3; % kg/mol
 
 %% Handle dissolved gas and vaporized water phases
-x_H2 = max(tab_sol.x_H2___ .* dissolve_gas, 1e-8);
-y_h2o = tab_sol.y_H2O___ .* vaporize_water;
+x_H2 = max(tab_sol.x_H2 .* dissolve_gas, 1e-8);
+y_h2o = tab_sol.y_H2O .* vaporize_water;
 X_H2 = mole_fraction_to_mass_fraction(x_H2, molar_mass_h2, molar_mass_h2o);
 Y_h2o = mole_fraction_to_mass_fraction(y_h2o, molar_mass_h2o, molar_mass_h2);
 
@@ -144,10 +144,10 @@ if do_plot
 end
 
 %% Retrieve densities and viscosities
-pure_water_density = tab_h2o.density_kg_m3_;
-pure_gas_density = tab_h2.density_kg_m3_;
-water_viscosity = tab_h2o.viscosity_Pa_s_;
-gas_viscosity = tab_h2.viscosity_Pa_s_;
+pure_water_density = tab_h2o.("density [kg/m3]");
+pure_gas_density = tab_h2.("density [kg/m3]");
+water_viscosity = tab_h2o.("viscosity [Pa.s]");
+gas_viscosity = tab_h2.("viscosity [Pa.s]");
 
 %% Compute saturated water density
 saturated_water_density = water_density(T, pure_water_density, X_H2);
@@ -473,13 +473,6 @@ end
 
 function mf = mole_fraction_to_mass_fraction(x, molar_mass_self, molar_mass_other)
 % Converts mole fraction to mass fraction.
-% Inputs:
-% x: Mole fraction (scalar)
-% molar_mass_self: Molar mass of the component (kg/mol)
-% molar_mass_other: Molar mass of the other component (kg/mol)
-% Outputs:
-% mf: Mass fraction (scalar)
-
 % Calculate the mass fraction
 mf = (x * molar_mass_self) ./ (x .* molar_mass_self + (1 - x) .* molar_mass_other); % Mass fraction
 end

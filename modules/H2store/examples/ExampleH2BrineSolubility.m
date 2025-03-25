@@ -10,7 +10,6 @@
 % SEE ALSO:
 %   `generateComponentTable`, `generateSolubilityTable
 %
-%% One can also compile the Python scripts for faster generation 
 %
 %{
 Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
@@ -42,7 +41,7 @@ ms           = 0;                 % Salt molality [mol/kg]
 %% Notice on Computational Cost
 warning('ComputationalCost:High', ...
        ['Please be advised that for large nbp and nbt this example often takes a long time ', ...
-        'to run (runing the corresponding Python scripts is faster)']);
+        'to run']);
 
 % Get directory of current script
 currentDir = fileparts(mfilename('fullpath'));
@@ -62,17 +61,16 @@ outputDisplay = false; % Set to true to display generated tables
 % Generate H2O pure Component Table from NIST
 comp_name = 'H2O';
 disp(['Generating component table for: ', comp_name]);
-[tab_H2O, status_H2O, file_path_H2O] = generateComponentTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, comp_name, output_dir, 'outputDisplay', true);
-
+tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
 % Generate H2 pure Component Table from NIST
 pause(0.1);  % Ensure smooth execution between commands
 comp_name = 'H2';
 disp(['Generating component table for: ', comp_name]);
-[tab_H2, status_H2, file_path_H2] = generateComponentTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, comp_name, output_dir,'outputDisplay', true);
-
+tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
 % We use the Redlick Kwong Eos to obtain the solubility
 disp('Generating solubility table for H2-brine mixture...');
-[tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, output_dir);
+%[tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, output_dir);
+tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'display_output', true,'output_dir',output_dir);
 % Load ePC-SAFT Data
 epcsaft = load('./thermodymics/PcSaftSolubilityTable/ePcSaftH2BrineData.mat');
 state = epcsaft.state;
@@ -82,8 +80,8 @@ n = nbt;                         % Number of temperature points
 indexH2 = 2;                      % Index of H2 component in liquid phase
 indexH2O = 1;                   % Index of water in vapor phase
 
-pressure = reshape(tab_sol.phasePressure_Pa_, [], n);
-temperature = reshape(tab_sol.x_Temperature__C_, [], n) + 273.15;  % Convert to Kelvin
+pressure = reshape(tab_sol.Pressure_Pa, [], n);
+temperature = reshape(tab_sol.Temperature_C, [], n) + 273.15;  % Convert to Kelvin
 
 %% Solubility of H2 in Brine as a Function of Pressure and Temperature
 figure;
@@ -100,7 +98,7 @@ for j = 1:4
     plot(state.T(i:n:n * n), state.X_L(i:n:n * n, indexH2), ...
         'Color', plotColors{j}, 'LineStyle', '-', 'LineWidth', 1.5);
     % Plot RK-EoS results with dashed lines for the same pressures
-    plot(state.T(i:n:n * n), tab_sol.x_H2___(i:n:n * n), ...
+    plot(state.T(i:n:n * n), tab_sol.x_H2(i:n:n * n), ...
         'Color', plotColors{j}, 'LineStyle', '--', 'LineWidth', 1.5);
     % Set legend for each plot iteration
     eval(['P' num2str(j) ' = [''ePC-SAFT ' P_legend ' MPa''];']);
@@ -128,7 +126,7 @@ for j = 1:4
     plot(state.T(i:n:n * n), state.X_V(i:n:n * n, indexH2O), ...
         'Color', plotColors{j}, 'LineStyle', '-', 'LineWidth', 1.5);
     % Plot RK-EoS results with dashed lines for the same pressures
-    plot(state.T(i:n:n * n), tab_sol.y_H2O___(i:n:n * n), ...
+    plot(state.T(i:n:n * n), tab_sol.y_H2O(i:n:n * n), ...
         'Color', plotColors{j}, 'LineStyle', '--', 'LineWidth', 1.5);
     % Set legend for each plot iteration
     eval(['P' num2str(j) ' = [''ePC-SAFT ' P_legend ' MPa''];']);
@@ -142,7 +140,7 @@ title('H2O Solubility in Gas: ePC-SAFT vs. RK-EoS', 'FontSize', 12);
 hold off;
 %% Plot the Amount of H2 in Water
 figure;
-contourf(temperature, convertTo(pressure, mega*Pascal), reshape(tab_sol.x_H2___, [], n), 'LineStyle', 'none');
+contourf(temperature, convertTo(pressure, mega*Pascal), reshape(tab_sol.x_H2, [], n), 'LineStyle', 'none');
 colorbar; % Add a color bar for reference
 title('H2 Solubility in Water (RK eos)', 'FontSize', 14);
 xlabel('Temperature (K)', 'FontSize', 14);
@@ -152,7 +150,7 @@ grid on; % Add grid for better readability
 
 %% Plot the Amount of H2O in H2
 figure;
-contourf(temperature, convertTo(pressure, mega*Pascal), reshape(tab_sol.y_H2O___, [], n), 'LineStyle', 'none');
+contourf(temperature, convertTo(pressure, mega*Pascal), reshape(tab_sol.y_H2O, [], n), 'LineStyle', 'none');
 colorbar; % Add a color bar for reference
 title('H2O Vaporization in H2 (RK eos)', 'FontSize', 14);
 xlabel('Temperature (K)', 'FontSize', 14);
@@ -185,8 +183,8 @@ mWater = 0.0180153;  % Molar mass of H2O (kg/mol)
 Joule = 8.314472;  % Ideal gas constant (J/(mol*K))
 
 %% Extract RK-EoS table columns and convert units for comparison
-Temperature__K_ = tab_sol.x_Temperature__C_ + 273.15;  % Convert to Kelvin
-Pressure_Pa_ = tab_sol.phasePressure_Pa_;
+Temperature__K_ = tab_sol.Temperature_C + 273.15;  % Convert to Kelvin
+Pressure_Pa_ = tab_sol.Pressure_Pa;
 
 %% Calculate density of hydrogen using the Brill and Beggs correlation
 ZH2 = calculateBrillBreggsZfactorHydrogen(Temperature__K_, Pressure_Pa_);
@@ -209,7 +207,7 @@ for j = 1:4
         'Color', plotColors{j}, 'LineStyle', '-', 'LineWidth', 1.5);
     
     % Plot NIST results for H2 with dashed lines for the same pressures
-    plot(Temperature__K_(i:n:n * n), tab_H2.density_kg_m3_(i:n:n * n), ...
+    plot(Temperature__K_(i:n:n * n), tab_H2.("density [kg/m3]")(i:n:n * n), ...
         'Color', plotColors{j}, 'LineStyle', '--', 'LineWidth', 1.5);
     
     % Plot Brill & Beggs correlation results for H2 with dash-dot lines
@@ -260,11 +258,31 @@ ylabel('Density (kg/m³)', 'FontSize', 14);
 legend({P1, R1, S1, P2, R2, S2, P3, R3, S3, P4, R4, S4}, 'FontSize', 10, 'Location', 'best');
 title('Water Density', 'FontSize', 12);
 hold off;
-% Obtain NIST data for pure components at 1 atm
+%% Obtain NIST data for pure components at std conditions
+%% We follow ECLIPSE for the std conditions
 % Retrieve NIST data for pure hydrogen (H2)
+% In Eclipse std conditions for gases are 1 atm and 0 C
 comp_name = 'H2';
-[tab_h2pure, ~, ~] = generatePureComponentTable(min_temp, max_temp, nbt, comp_name, output_dir);
+tab_H2_pure =  generatePureComponentProperties('min_temp',-3, 'max_temp',3, 'n_temp', 3, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
+
 % Retrieve NIST data for pure water (H2O)
 comp_name = 'H2O';
-[tab_h2opure, ~, ~] = generatePureComponentTable(min_temp, max_temp, nbt, comp_name, output_dir);
+% In Eclipse std conditions for liquids are 1 atm and 15 C to 25 C
+tab_H2O_pure =  generatePureComponentProperties('min_temp',15, 'max_temp',25, 'n_temp', 10, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
 % Note: The data is calculated at standard atmospheric pressure (1 atm)
+figure;
+title('H2O density at std conditions', 'FontSize', 12);
+% Plotting H2O density
+plot(tab_H2O_pure.("# temperature [°C]"), tab_H2O_pure.("density [kg/m3]"));
+xlabel('Temperature [°C]', 'FontSize', 10);
+ylabel('Density [kg/m3]', 'FontSize', 10);
+legend('H2O Density', 'Location', 'Best');
+grid on;
+figure;
+% Plotting H2 density
+title('H2 density at std conditions', 'FontSize', 12);
+plot(tab_H2_pure.("# temperature [°C]"), tab_H2_pure.("density [kg/m3]"));
+xlabel('Temperature [°C]', 'FontSize', 10);
+ylabel('Density [kg/m3]', 'FontSize', 10);
+legend('H2 Density', 'Location', 'Best');
+grid on;
