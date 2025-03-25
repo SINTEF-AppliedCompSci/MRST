@@ -126,14 +126,15 @@ deck.GRID.PORO    =  rock.poro;
 deck.GRID.PERMX   = rock.perm(:,1);
 deck.GRID.PERMY   = rock.perm(:,2);
 deck.GRID.PERMZ   = rock.perm(:,3);
-%% Deck conversion and initialization
+
+%% Deck conversion and initializationclose
 [~, model, ~] = initEclipseProblemAD(deck,'G',G,'getSchedule',false,'getInitialState', false);
 fluid = model.fluid;
 deck = model.inputdata;
 
 %% blackoil model setup
 gravity reset on;
-model = GenericBlackOilModel(G, rock, fluid, 'water', false, 'disgas', true, 'vapoil', false, ...
+model = GenericBlackOilModel(G, rock, fluid, 'water', false, 'disgas', true, 'vapoil', true, ...
                              'gravity', [0, 0, -norm(gravity)], 'inputdata', deck);
 
 %% Setup schedule
