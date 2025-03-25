@@ -26,11 +26,12 @@
 % data is also available and can create data files for varying 
 % salinity conditions.
 
-mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui
+mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui vemmech
 
 name = 'H2_STORAGE_RSRV_DOME';
-deck = readEclipseDeck('./examples/data/3d_dome_case/DOME_RSRV.DATA');
-
+baseDir = fileparts(mfilename('fullpath')); % Get directory of the script
+dataFile = fullfile(baseDir,  'data', '3d_dome_case', 'DOME_RSRV.DATA');
+deck = readEclipseDeck(dataFile);
 %% Initialize the dome case simulation with specified parameters
 [~, options, state0, model, schedule, deck,~] = dome_case_3d(deck);
 
@@ -69,7 +70,7 @@ nls.LinearSolver = lsolve;
 problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
 
 %% Run the simulation
-simulatePackedProblem(problem);
+simulatePackedProblem(problem, 'restartStep',1);
 %% gGet reservoir and well states
 [ws,states] = getPackedSimulatorOutput(problem);
 %% Plot well states
