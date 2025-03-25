@@ -1,6 +1,5 @@
 % MRST Example: Setting Up H₂-Brine Fluid Properties for Black-Oil Simulation
 %
-%% One can also compile the Python scripts for faster generation 
 %{
 Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
@@ -30,7 +29,7 @@ ms = 0;                       % Salt molality [mol/kg]
 %% Notice on Computational Cost
 warning('ComputationalCost:High', ...
        ['Please be advised that for large nbp and nbt this example often takes a long time ', ...
-        'to run (runing the corresponding Python scripts is faster)']);
+        'to run']);
 
 currentDir = fileparts(mfilename('fullpath'));
 outputDisplay = false;
@@ -44,18 +43,16 @@ end
 % Generate H2O Component Table
 comp_name = 'H2O';
 disp(['Generating component table for: ', comp_name]);
-[tab_H2O, status_H2O, file_path_H2O] = generateComponentTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, comp_name, output_dir, 'outputDisplay', true);
-
+tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
 % Generate H2 Component Table
 pause(0.5);  % Ensure smooth execution between commands
 comp_name = 'H2';
 disp(['Generating component table for: ', comp_name]);
-[tab_H2, status_H2, file_path_H2] = generateComponentTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, comp_name, output_dir,'outputDisplay', true);
-
+tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
 % Generate Solubility Table
 disp('Generating solubility table...');
-[tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, output_dir);
-
+% [tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, output_dir);
+tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'display_output', true,'output_dir',output_dir);
 % Configure and Write Fluid Properties (PVT) Tables
 onlyRS = true;
 if onlyRS
@@ -64,7 +61,7 @@ if onlyRS
     disp('Writing fluid properties for miscible case with digas and disabled evapoil...');
 else
     % generate RSRV
-    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', false, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'dir', output_dir);
+    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', true, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'dir', output_dir);
     disp('Writing fluid properties for miscible case with digas and evapoil...');
 end
 %% We generates gas-oil flow properties specific to a hydrogen-brine system, for 
