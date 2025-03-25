@@ -5,12 +5,7 @@ mrstModule add ad-core ad-blackoil deckformat agglom upscaling coarsegrid...
 %% Setup reference model
 test    = TestCase('egg_wo', 'realization', 1);
 problem = test.getPackedSimulationProblem();
-% problem.SimulatorSetup.model.toleranceCNV = 1.0e-7;
-problem.SimulatorSetup.model.useCNVConvergence = false;
-% problem.SimulatorSetup.model.nonlinearTolerance=1.0e-9;
-% problem.SimulatorSetup.model.toleranceMB =1.0e-9;
-% problem.SimulatorSetup.model.FacilityModel.toleranceWellBHP = 80000;
-% problem.SimulatorSetup.model.FacilityModel.toleranceWellRate = 5.0e-8;
+problem.SimulatorSetup.model.toleranceCNV = 1.0e-7;
 % We focus on the first 60 steps
 schedule = problem.SimulatorSetup.schedule;
 
@@ -28,8 +23,7 @@ schedule = perturbedSimpleSchedule(dt, 'W', Wref, ...
 problem.SimulatorSetup.schedule = schedule;
 
 % Simulate
-simulatePackedProblem(problem,  'restartStep',1);
-problem.SimulatorSetup.model.OutputStateFunctions{end+1} = 'ComponentTotalFlux';
+simulatePackedProblem(problem);
 
 
 % We create a new schdule that incoporated filpped well controls
@@ -38,10 +32,8 @@ modelRef    = problem.SimulatorSetup.model;
 schedule_new = flipWellControlsAndAddBC(schedule, statesRef, []);
 problem_new  = packSimulationProblem(problem.SimulatorSetup.state0, problem.SimulatorSetup.model, schedule_new, 'egg_wo_new');
 problem_new.SimulatorSetup.schedule = schedule_new;
-problem_new.SimulatorSetup.model.OutputStateFunctions{end+1} = 'ComponentTotalFlux';
-problem_new.SimulatorSetup.model.useCNVConvergence = false;
 problemNew.Name = 'egg_wo_new';
-simulatePackedProblem(problem_new, 'restartStep',1);
+simulatePackedProblem(problem_new);
 [wsRef_new, statesRef_new] = getPackedSimulatorOutput(problem_new);
 modelRef_new    = problem_new.SimulatorSetup.model;
 %% Coarse-scale model for the RATE-Inj-BHP-Prod problem
@@ -78,7 +70,7 @@ pts_new = modelCoarse_new.fluid.krPts;
 scaling_new = {'SWL',   pts_new.w(1), 'SWCR', pts_new.w(2), 'SWU', pts_new.w(3), ...
            'SOWCR', pts_new.ow(2), 'KRW',  pts_new.w(4), 'KRO', pts_new.ow(4)};
 modelCoarse_new = imposeRelpermScaling(modelCoarse_new, scaling_new{:});
-% modelCoarse_new.toleranceCNV = 1e-6;  % tighter tolerance to improve gradient accuracy
+modelCoarse_new.toleranceCNV = 1e-6;  % tighter tolerance to improve gradient accuracy
 
 %% Plot reference and coarse model grids with wells
 figure, subplot(1,2,1)
@@ -100,7 +92,7 @@ scheduleCoarse = upscaleSchedule(modelCoarse, schedule, 'wellUpscaleMethod', 'su
 
 % BHP-Inj-RATE-Prod
 stateCoarse0_new   = upscaleState(modelCoarse_new, modelRef_new, test.state0);
-scheduleCoarse_new = upscaleSchedule(modelCoarse_new, schedule_new);
+scheduleCoarse_new = upscaleSchedule(modelCoarse_new, schedule_new, 'wellUpscaleMethod', 'sum');
 [wsCoarse_new, statesCoarse_new] = simulateScheduleAD(stateCoarse0_new, modelCoarse_new, scheduleCoarse_new);
 % plot
 plotWellSols({wsRef, wsCoarse, wsCoarse_new}, ...
@@ -117,15 +109,15 @@ pv_new = modelCoarse_new.operators.pv;
 % procedure to a large extent
 config = {...
      %name           include    scaling              boxlims   relativeLimits  
-    'porevolume',       1,     'linear',    [.001*pv, 3.5*pv],              []   
-    'conntrans',        1,        'log',                  [],     [1e-3, 1e3]      
-    'transmissibility', 1,        'log',                  [],     [1e-3  1e3]  
+    'porevolume',       1,     'linear',    [.01*pv, 1.5*pv],              []   
+    'conntrans',        1,        'log',                  [],     [1e-2, 1e2]      
+    'transmissibility', 1,        'log',                  [],     [1e-2  1e2]  
     'swl',              1,     'linear',             [0, .3],              []
     'swcr',             1,     'linear',             [0, .4],              []
-    'swu',              1,     'linear',             [.57, 1],              []
+    'swu',              1,     'linear',             [.7, 1],              []
     'sowcr',            1,     'linear',             [0, .4],              []
-    'krw',              1,     'linear',           [.05, 1.5],              []
-    'kro',              1,     'linear',           [.05, 1.5],              []};
+    'krw',              1,     'linear',           [.5, 1.5],              []
+    'kro',              1,     'linear',           [.5, 1.5],              []};
 parameters = [];
 for k = 1:size(config,1)
     if config{k, 2} == 0, continue, end
@@ -136,15 +128,15 @@ end
 
 config_new = {...
      %name           include    scaling              boxlims   relativeLimits  
-    'porevolume',       1,     'linear',    [.001*pv, 3.5*pv],              []   
-    'conntrans',        1,        'log',                  [],     [1e-3, 1e3]      
-    'transmissibility', 1,        'log',                  [],     [1e-3  1e3]  
+    'porevolume',       1,     'linear',    [.01*pv_new, 1.5*pv_new],              []   
+    'conntrans',        1,        'log',                  [],     [1e-2, 1e2]      
+    'transmissibility', 1,        'log',                  [],     [1e-2  1e2] 
     'swl',              1,     'linear',             [0, .3],              []
     'swcr',             1,     'linear',             [0, .4],              []
-    'swu',              1,     'linear',             [.57, 1],              []
+    'swu',              1,     'linear',             [.7, 1],              []
     'sowcr',            1,     'linear',             [0, .4],              []
-    'krw',              1,     'linear',           [.05, 1.5],              []
-    'kro',              1,     'linear',           [.05, 1.5],              []};
+    'krw',              1,     'linear',           [.5, 1.5],              []
+    'kro',              1,     'linear',           [.5, 1.5],              []};
 parameters_new = [];
 for k = 1:size(config_new,1)
     if config_new{k, 2} == 0, continue, end
@@ -192,7 +184,7 @@ mismatchFn2 = @(model, states, schedule, states_ref, compDer, tstep, state) ...
 objh2 = @(p) evaluateMatchSummands(p, mismatchFn2, setup_init, parameters, statesRef);
 % The calibration can be improved by taking a large number of iterations,
 % but here we set a limit of 20 iterations
-[v2, p_opt2, history2] = unitBoxLM(p_opt1, objh2, 'maxIt', 20);
+[v2, p_opt2, history2] = unitBoxLM(pvec, objh2, 'maxIt', 20);
 
 %% Model calibration Levenberg-Marquard (using full Jacobian)  for BHP-RATE problem
 mismatchFn2_new = @(model, states, schedule, states_ref, compDer, tstep, state) ...
@@ -202,40 +194,32 @@ mismatchFn2_new = @(model, states, schedule, states_ref, compDer, tstep, state) 
 objh2_new = @(p) evaluateMatchSummands(p, mismatchFn2, setup_init_new, parameters_new, statesRef_new);
 % The calibration can be improved by taking a large number of iterations,
 % but here we set a limit of 20 iterations
-[v2_new, p_opt2_new, history2_new] = unitBoxLM(p_opt1_new, objh2_new, 'maxIt', 20);
+[v2_new, p_opt2_new, history2_new] = unitBoxLM(pvec_new, objh2_new, 'maxIt', 20);
 
-%% Model calibration using twin players
-obj_twin = @(model_1, states_1, schedule_1, model_2, states_2, schedule_2,states_c, compDer, tstep, state1,state2)...
-matchObservedTwinModelsOW(model_1, states_1, schedule_1, model_2, states_2, schedule_2,states_c,[],[],[],[], ...
-'computePartials', compDer, 'tstep', tstep, 'state1', state1,'state2', state2, ...
-'from_states', false, weighting{:}, 'mismatchSum', false);
-objh_twin = @(p) evaluateMatchTwinModelsSummands(p, obj_twin,  setup_init,setup_init_new, parameters, statesRef,[],[]);
-[v_twin, p_opt_twin, history_twin] = unitBoxLM(pvec, objh_twin, 'maxIt', 25);
-
-% %% Model calibration Alternating BHP-RATE & RATE-BHP problem
-% pvec_init = pvec;
-% maxIt_alt = 5;
-% maxIt = 5;
-% [v1_alt, p_opt1_alt, history1_alt] = unitBoxBFGS(pvec_init, objh, 'objChangeTol', 1e-5, ...
-%                                   'maxIt', 10, 'logPlot', true);
-% for i = 1:maxIt_alt
-%     [v2_new, p_opt2_new, history2_new] = unitBoxLM(p_opt1_alt, objh2_new, 'maxIt', maxIt);
-%     [v2, p_opt2, history2] = unitBoxLM(p_opt2_new, objh2, 'maxIt', maxIt);
-%     p_opt1_alt = p_opt2;
-% end
+%% Model calibration Alternating BHP-RATE & RATE-BHP problem
+pvec_init = pvec;
+maxIt_alt = 5;
+maxIt = 5;
+[v1_alt, p_opt1_alt, history1_alt] = unitBoxBFGS(pvec_init, objh, 'objChangeTol', 1e-5, ...
+                                  'maxIt', 10, 'logPlot', true);
+for i = 1:maxIt_alt
+    [v2_new, p_opt2_new, history2_new] = unitBoxLM(p_opt1_alt, objh2_new, 'maxIt', maxIt);
+    [v2, p_opt2, history2] = unitBoxLM(p_opt2_new, objh2, 'maxIt', maxIt);
+    p_opt1_alt = p_opt2;
+end
 
 %% Compare convergence history
-% figure
-% semilogy(abs(history1.val(1:20))', '-o', 'LineWidth', 2);
-% hold on
-% semilogy(abs(history2.val(1:20))', '-o', 'LineWidth', 2);
-% 
-% semilogy(abs(history1_new.val(1:20))', '-.o', 'LineWidth', 2);
-% hold on
-% semilogy(abs(history2_new.val(1:20))', '-.o', 'LineWidth', 2);
-% set(gca, 'Fontsize', 12); grid on
-% xlabel('Iteration'), ylabel('Residual')
-% legend({'QN-RATE-BHP', 'LM-RATE-BHP', 'QN-BHP-RATE', 'LM-BHP-RATE'})
+figure
+semilogy(abs(history1.val(1:20))', '-o', 'LineWidth', 2);
+hold on
+semilogy(abs(history2.val(1:20))', '-o', 'LineWidth', 2);
+
+semilogy(abs(history1_new.val(1:20))', '-.o', 'LineWidth', 2);
+hold on
+semilogy(abs(history2_new.val(1:20))', '-.o', 'LineWidth', 2);
+set(gca, 'Fontsize', 12); grid on
+xlabel('Iteration'), ylabel('Residual')
+legend({'QN-RATE-BHP', 'LM-RATE-BHP', 'QN-BHP-RATE', 'LM-BHP-RATE'})
 
 %% Create new coarse model setups with the optimized parameters, and rerun 
 %  for the optimized parameters
@@ -249,12 +233,6 @@ setup_opt2_new = updateSetupFromScaledParameters(setup_init_new, parameters_new,
 [wellSols_opt2, states_opt2] = simulateScheduleAD(setup_opt2.state0, setup_opt2.model, setup_opt2.schedule);
 [wellSols_opt2_new, states_opt2_new] = simulateScheduleAD(setup_opt2_new.state0, setup_opt2_new.model, setup_opt2_new.schedule);
 
-
-setup_opt_twin = updateSetupFromScaledParameters(setup_init, parameters, p_opt_twin);
-setup_opt_twin_new = updateSetupFromScaledParameters(setup_init_new, parameters_new, p_opt_twin);
-[wellSols_opt_twin, states_opt_twin] = simulateScheduleAD(setup_opt_twin.state0, setup_opt_twin.model, setup_opt_twin.schedule);
-[wellSols_opt_twin_new, states_opt_twin_new] = simulateScheduleAD(setup_opt_twin_new.state0, setup_opt_twin_new.model, setup_opt_twin_new.schedule);
-
 % compare reference, initial coarse and optimized coarse model outputs
 plotWellSols({wsRef, wsCoarse, wellSols_opt1, wellSols_opt2}, ...
               repmat({schedule.step.val}, 1, 4), ...
@@ -264,14 +242,9 @@ plotWellSols({wsRef_new, wsCoarse_new, wellSols_opt1_new, wellSols_opt2_new}, ..
               repmat({schedule.step.val}, 1, 4), ...
               'datasetnames', {'reference','coarse initial','coarse tuned (Q-N)', 'coarse tuned (L-M)'});
 
-
-plotWellSols({wsRef_new, wsCoarse_new, wellSols_opt_twin, wellSols_opt_twin_new}, ...
-              repmat({schedule.step.val}, 1, 4), ...
-              'datasetnames', {'reference','coarse initial','coarse tuned (Q-N)', 'coarse tuned (L-M)'});
-% 
-% plotWellSols({wsRef_new, wellSols_opt2, wellSols_opt2_new}, ...
-%               repmat({schedule.step.val}, 1, 3), ...
-%               'datasetnames', {'reference','coarse tuned (Q-N)', 'coarse tuned (L-M)'});
+plotWellSols({wsRef_new, wellSols_opt2, wellSols_opt2_new}, ...
+              repmat({schedule.step.val}, 1, 3), ...
+              'datasetnames', {'reference','coarse tuned (Q-N)', 'coarse tuned (L-M)'});
 
 %% Plot the pore volume updates
 % fetch pore volume differences in initial and tuned coarse models
@@ -292,23 +265,20 @@ s_new = perturbedSimpleSchedule(dt, 'W', Wref, ...
 [ws_new1, states_new1] = simulateScheduleAD(problem.SimulatorSetup.state0, modelRef, s_new, ...
     'NonLinearSolver', problem.SimulatorSetup.NonLinearSolver);
 s_new = flipWellControlsAndAddBC(s_new, states_new1,[]);
-for i = 1:length(setup_opt_twin_new.schedule.step.val)
-    ctrl = setup_opt_twin_new.schedule.step.control(i);
-    w_opt = setup_opt_twin_new.schedule.step.control(i).W;
-    w_old = scheduleCoarse_new.step.control(i).W;   
+for i = 1:length(setup_opt2.schedule.control)
+    w_opt = setup_opt2.schedule.control(i).W;
+    w_old = scheduleCoarse.control(i).W;   
     s_opt{i} = simpleSchedule(dt(i), 'W', w_opt);
-    s_old{i} = simpleSchedule(dt(i), 'W', w_old);
+    s_old = simpleSchedule(dt, 'W', w_old);
     for kw = 1:numel(Wref)
        % s_opt{i}.control.W(kw).val = s_new.control(i).W(kw).val;
-        s_old{i}.control(1).W(kw).val = s_new.control(ctrl).W(kw).val;
+        s_old.control(1).W(kw).val = s_new.control(i).W(kw).val;
     end
 end
-ss= combineSchedules(s_opt{:});
-ss_old= combineSchedules(s_old{:});
-ws_coarse_new1 = simulateScheduleAD(setup_opt_twin_new.state0, setup_opt_twin_new.model, ss);
-ws_coarse_old1 = simulateScheduleAD(stateCoarse0_new, modelCoarse_new, ss_old);
+ws_coarse_new1 = simulateScheduleAD(setup_opt2.state0, setup_opt2.model, s_opt);
+ws_coarse_old1 = simulateScheduleAD(stateCoarse0, modelCoarse, s_old);
 plotWellSols({ws_new1,  ws_coarse_old1, ws_coarse_new1}, ...
-    {ss_old.step.val, ss_old.step.val,ss.step.val}, ...
+    {s_old.step.val, s_old.step.val,s_opt.step.val}, ...
     'datasetnames', {'reference','coarse initial','coarse tuned'});
 
 %% Copyright Notice

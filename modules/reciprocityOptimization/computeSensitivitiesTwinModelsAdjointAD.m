@@ -136,7 +136,7 @@ end
 % run adjoint
 for step = nstep_1:-1:1
     fprintf('Solving reverse mode step %d of %d\n', nstep_1 - step + 1, nstep_1);
-    [lami1, lambda1,rep1,lami2,lambda2,rep2]= setup_1.model.solveAdjointTwinModels(setup_2.model,linsolve, getState_1,getState_2, ...
+    [lami1, lambda1,rep1,lami2,lambda2,rep2]= setup_1.model.solveAdjointTwinModels(setup_1.model,linsolve, getState_1,getState_2, ...
         getObjective, setup_1.schedule,setup_2.schedule, lambda1,lambda2, step, 'colIx', colIx{step});
     [eqdth1, modelParam_1] = partialWRTparam(modelParam_1, getState_1, scheduleParam_1, step, param);
 
@@ -365,8 +365,8 @@ if isempty(matchMap)
     assert(numel(accum.steps)==ns, 'Mismatch: number of time steps');
     % build collumn index
     [mw, mt] = deal(max(accum.wells), max(accum.types));
-    colIx = applyFunction(@plus, repmat({(1:mw*(mt+2)+6)'}, [ns, 1]), ...
-                          num2cell((mw*(mt+2)+6)*(accum.steps-1)));
+    colIx = applyFunction(@plus, repmat({(1:mw*(mt)+4)'}, [ns, 1]), ...
+                          num2cell((mw*(mt)+4)*(accum.steps-1)));
     [colIx{accum.steps<=0}] = deal({});
     ncol = max(colIx{end});
 else

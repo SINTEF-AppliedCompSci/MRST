@@ -44,14 +44,15 @@ gravity off;
 perturbStep = [ones(1,4), round(.5+(2:(nstep-3))/2)]';
 rng(0)
 scheduleRef = perturbedSimpleSchedule(dt, 'W', Wref, ...
-    'pressureFac', .01, 'rateFac', .4, 'perturbStep', perturbStep);
-modelRef.toleranceCNV = 1e-6;
+    'pressureFac', .05, 'rateFac', .6, 'perturbStep', perturbStep);
+% modelRef.toleranceCNV = 1e-6;
+modelRef.useCNVConvergence = false; 
 modelRef.nonlinearTolerance=1.0e-9;
 modelRef.FacilityModel.toleranceWellBHP = 90000;
-modelRef.FacilityModel.toleranceWellRate = 1.0e-7;
-modelRef.nonlinearTolerance =1.0e-7;
+modelRef.FacilityModel.toleranceWellRate = 1.0e-8;
+modelRef.nonlinearTolerance = 1.0e-7;
 [wellSolsRef, statesRef] = simulateScheduleAD(state0, modelRef, scheduleRef);
-
+modelRef.OutputStateFunctions{end+1} = 'ComponentTotalFlux';
 figure(1)
 subplot(1,2,2); cla;
 plotCellData(modelRef.G, modelRef.rock.poro,'EdgeColor','none');
@@ -104,6 +105,7 @@ InitModel.nonlinearTolerance=1.0e-8;
 InitModel.FacilityModel.toleranceWellBHP = 9000;
 InitModel.FacilityModel.toleranceWellRate = 1.0e-8;
 InitModel.FacilityModel.nonlinearTolerance =1.0e-8;
+InitModel.OutputStateFunctions{end+1} = 'ComponentTotalFlux';
 % We run first two simulations with compatible schedule_1 and schedule_2
 % with initial parameters
 modelBhpRate = InitModel;
@@ -142,7 +144,7 @@ obj = @(model_1, states_1, schedule_1, model_2, states_2, schedule_2,states_c, d
 objh = @(p)evaluateMatchTwinModels(p, obj, setup_modelBhpRate,setup_modelRateBhp, params_modelBhpRate, statesRef,well_cells,well_data);
 % run optimization
 [v, p_opt, history] = unitBoxBFGS(p0, objh, 'objChangeTol', 1e-7, 'gradTol', 1e-7, ...
-                                 'maxIt', itBFGS, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 20);
+                                 'maxIt', itBFGS, 'lbfgsStrategy', 'dynamic', 'lbfgsNum', 5);
 
 %% Re-run simulation for optimal parameters for full time-horizon
 setup_opt = updateSetupFromScaledParameters(setup_modelBhpRate, params_modelBhpRate, p_opt);

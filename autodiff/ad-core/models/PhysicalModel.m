@@ -64,7 +64,7 @@ properties
 end
 
 properties (Access = protected)
-    stateFunctionEvaluationMode = 'lazy';
+    stateFunctionEvaluationMode = 'full';
     stateFunctionGraph = [];
 end
 

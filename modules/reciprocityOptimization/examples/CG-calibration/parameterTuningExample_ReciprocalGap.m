@@ -38,7 +38,7 @@ plotWell(model_f.G,W,'Color','k'); axis off tight
 drawnow
 
 %% Run simulation for fine-scale model
-scheduleWellNoBc = simpleSchedule(time_steps, 'W', W);
+scheduleWellNoBc = simpleSchedule(time_steps, 'W', scheduleWellNoBc.control.W);
 problemWellNoBc  = packSimulationProblem(state0, model_f, scheduleWellNoBc, 'model_fine_scale_Well');
 problemWellNoBc.Modules(end-1:end) = [];
 simulatePackedProblem(problemWellNoBc);%, 'restartStep',1);
@@ -98,11 +98,10 @@ plotWell(model_f.G, W, 'Color', 'k'); axis off tight
 
  %% Simulate initial upscaled coarse model for full time
 state0_c   = upscaleState(model_c, model_f, state0);
-state0_c   = upscaleState(model_c, model_f, state0);
-state0_c.wellSol(1).pressure =states_f_WellNoBc{1}.wellSol(1).bhp;
-state0_c.wellSol(2).pressure =states_f_WellNoBc{1}.wellSol(2).bhp;
-state0_c.wellSol(3).pressure =states_f_WellNoBc{1}.wellSol(3).bhp;
-state0_c.wellSol(4).pressure =states_f_WellNoBc{1}.wellSol(4).bhp;
+% state0_c.wellSol(1).pressure =states_f_WellNoBc{1}.wellSol(1).bhp;
+% state0_c.wellSol(2).pressure =states_f_WellNoBc{1}.wellSol(2).bhp;
+% state0_c.wellSol(3).pressure =states_f_WellNoBc{1}.wellSol(3).bhp;
+% state0_c.wellSol(4).pressure =states_f_WellNoBc{1}.wellSol(4).bhp;
 schedule_c_WellNoBc = upscaleSchedule(model_c, scheduleWellNoBc, 'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'recompute');
 schedule_c_WellBc = upscaleSchedule(model_c, scheduleWellBc,   'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
 [wellSols_c_WellNoBc, states_c_WellNoBc] = simulateScheduleAD(state0_c, model_c, schedule_c_WellNoBc);

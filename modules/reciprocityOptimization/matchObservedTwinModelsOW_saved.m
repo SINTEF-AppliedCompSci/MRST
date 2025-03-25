@@ -21,6 +21,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 opt     = struct('WaterRateWeight',     [] , ...
                  'OilRateWeight',       [] , ...
+                 'GasRateWeight',       [] , ...
                  'BHPWeight',           [] , ...
                  'ComputePartials',     false, ...
                  'tStep' ,              [], ...
@@ -29,6 +30,7 @@ opt     = struct('WaterRateWeight',     [] , ...
                  'from_states',         false,...% can be false for generic models
                  'matchOnlyProducers',  false, ...
                  'mismatchSum',         true, ...
+                 'EnergyMinimization', true, ...
                  'accumulateWells',       [], ...
                  'accumulateTypes',       []);
              
@@ -36,7 +38,7 @@ opt     = merge_options(opt, varargin{:});
 
 dts   = schedule_1.step.val;
 totTime = sum(dts);
-
+nc = model_1.G.cells.num;
 tSteps = opt.tStep;
 if isempty(tSteps) %do all
     numSteps = numel(dts);
@@ -58,11 +60,12 @@ for step = 1:numSteps
     end
     qWs_obs = vertcatIfPresent(sol_obs.wellSol, 'qWs', nw);
     qOs_obs = vertcatIfPresent(sol_obs.wellSol, 'qOs', nw);
+    qGs_obs = vertcatIfPresent(sol_obs.wellSol, 'qGs', nw);
     bhp_obs = vertcatIfPresent(sol_obs.wellSol, 'bhp', nw);
     status_obs = vertcat(sol_obs.wellSol.status);
-    
-    [ww, wo, wp] = getWeights(qWs_obs, qOs_obs, bhp_obs, opt);
-    
+
+    [ww, wo, wg, wp] = getWeights(qWs_obs, qOs_obs, qGs_obs, bhp_obs, opt);
+
     if opt.ComputePartials
         if(opt.from_states)
             init=true;
@@ -75,142 +78,121 @@ for step = 1:numSteps
 
         end
 
-        if isa(state_1.pressure, 'ADI')
+        % Extract well and field variables for state_1
+        if isa(state_1, 'ADI')
+            qWs_1 = model_1.FacilityModel.getProp(state_1, 'qWs');
+            qOs_1 = model_1.FacilityModel.getProp(state_1, 'qOs');
+            qGs_1 = model_1.FacilityModel.getProp(state_1, 'qGs');
+            bhp_1 = model_1.FacilityModel.getProp(state_1, 'bhp');
 
-            qWs_1 = model_1.FacilityModel.getProp(state_1,'qWs');
-            qOs_1 = model_1.FacilityModel.getProp(state_1,'qOs');
-            bhp_1 = model_1.FacilityModel.getProp(state_1,'bhp');
-            assert(not(isnumeric(qWs_1)));
+            pressure_1 = model_1.FacilityModel.getProp(state_1, 'pressure');
+            saturation_1 = model_1.FacilityModel.getProp(state_1, 's');
+
+            assert(isnumeric(qWs_1));
+            status_1 = vertcat(state_1.wellSol.status);
         else
-            state_1 = states_1{tSteps(step)};        
-            [qWs_1, qOs_1, bhp_1] = deal( vertcatIfPresent(state_1.wellSol, 'qWs', nw), ...
-                                vertcatIfPresent(state_1.wellSol, 'qOs', nw), ...
-                                vertcatIfPresent(state_1.wellSol, 'bhp', nw) );
+            state_1 = states_1{tSteps(step)};
+            [qWs_1, qOs_1, qGs_1, bhp_1] = deal( ...
+                vertcatIfPresent(state_1.wellSol, 'qWs', nw), ...
+                vertcatIfPresent(state_1.wellSol, 'qOs', nw), ...
+                vertcatIfPresent(state_1.wellSol, 'qGs', nw), ...
+                vertcatIfPresent(state_1.wellSol, 'bhp', nw) );
+
+            [pressure_1, saturation_1] = model_1.getProps(state_1,'pressure','s');
+            
+            assert(isnumeric(qWs_1));
+            status_1 = vertcat(state_1.wellSol.status);
         end
 
+        % Extract well and field variables for state_2
+        if isa(state_2, 'ADI')
+            qWs_2 = model_2.FacilityModel.getProp(state_2, 'qWs');
+            qOs_2 = model_2.FacilityModel.getProp(state_2, 'qOs');
+            qGs_2 = model_2.FacilityModel.getProp(state_2, 'qGs');
+            bhp_2 = model_2.FacilityModel.getProp(state_2, 'bhp');
 
-        if isa(state_2.pressure, 'ADI')
+            pressure_2 = model_2.FacilityModel.getProp(state_2, 'pressure');
+            saturation_2 = model_2.FacilityModel.getProp(state_2, 's');
+
+            assert(isnumeric(qWs_2));
+            status_2 = vertcat(state_2.wellSol.status);
+        else
+            state_2 = states_2{tSteps(step)};
+            [qWs_2, qOs_2, qGs_2, bhp_2] = deal( ...
+                vertcatIfPresent(state_2.wellSol, 'qWs', nw), ...
+                vertcatIfPresent(state_2.wellSol, 'qOs', nw), ...
+                vertcatIfPresent(state_2.wellSol, 'qGs', nw), ...
+                vertcatIfPresent(state_2.wellSol, 'bhp', nw) );
+
+
+            [pressure_2, saturation_2] = model_2.getProps(state_2,'pressure','s');
+
+            assert(isnumeric(qWs_2));
+            status_2 = vertcat(state_2.wellSol.status);
+        end        
         
-            qWs_2 = model_2.FacilityModel.getProp(state_2,'qWs'); 
-            qOs_2 = model_2.FacilityModel.getProp(state_2,'qOs');
-            bhp_2 = model_2.FacilityModel.getProp(state_2,'bhp'); 
-            assert(not(isnumeric(qWs_2))); 
-           
-        else
-            state_2 = states_2{tSteps(step)};        
-            [qWs_2, qOs_2, bhp_2] = deal( vertcatIfPresent(state_2.wellSol, 'qWs', nw), ...
-                                vertcatIfPresent(state_2.wellSol, 'qOs', nw), ...
-                                vertcatIfPresent(state_2.wellSol, 'bhp', nw) );
-        end
 
+
+    else
+        % Extract well and field variables for state_1 (non-ADI case)
+        state_1 = states_1{tSteps(step)};
+        [qWs_1, qOs_1, qGs_1, bhp_1] = deal( ...
+            vertcatIfPresent(state_1.wellSol, 'qWs', nw), ...
+            vertcatIfPresent(state_1.wellSol, 'qOs', nw), ...
+            vertcatIfPresent(state_1.wellSol, 'qGs', nw), ...
+            vertcatIfPresent(state_1.wellSol, 'bhp', nw));
+
+        [pressure_1, saturation_1] = model_1.getProps(state_1,'pressure','s');
+
+        assert(isnumeric(qWs_1));
         status_1 = vertcat(state_1.wellSol.status);
+
+        % Extract well and field variables for state_2 (non-ADI case)
+        state_2 = states_2{tSteps(step)};
+        [qWs_2, qOs_2, qGs_2, bhp_2] = deal( ...
+            vertcatIfPresent(state_2.wellSol, 'qWs', nw), ...
+            vertcatIfPresent(state_2.wellSol, 'qOs', nw), ...
+            vertcatIfPresent(state_2.wellSol, 'qGs', nw), ...
+            vertcatIfPresent(state_2.wellSol, 'bhp', nw));
+
+
+        [pressure_2, saturation_2] = model_2.getProps(state_2,'pressure','s');
+
+        assert(isnumeric(qWs_2));
         status_2 = vertcat(state_2.wellSol.status);
 
-     else
-        state_1 = states_1{tSteps(step)};
-        [qWs_1, qOs_1, bhp_1] = deal( vertcatIfPresent(state_1.wellSol, 'qWs', nw), ...
-                                vertcatIfPresent(state_1.wellSol, 'qOs', nw), ...
-                                vertcatIfPresent(state_1.wellSol, 'bhp', nw) );
-       assert(isnumeric(qWs_1));
-       status_1 = vertcat(state_1.wellSol.status);
-
-       state_2 = states_2{tSteps(step)};
-       [qWs_2, qOs_2, bhp_2] = deal( vertcatIfPresent(state_2.wellSol, 'qWs', nw), ...
-                                vertcatIfPresent(state_2.wellSol, 'qOs', nw), ...
-                                vertcatIfPresent(state_2.wellSol, 'bhp', nw) );
-       assert(isnumeric(qWs_2));
-       status_2 = vertcat(state_2.wellSol.status);
     end
      
-    if ~all(status_1) || ~all(status_2) ||~all(status_obs) 
+    if ~all(status_1) || ~all(status_2) ||~all(status_obs)
         [bhp_1, bhp_obs] = expandToFull(bhp_1, bhp_obs, status_1, status_obs, true);
         [qWs_1, qWs_obs] = expandToFull(qWs_1, qWs_obs, status_1, status_obs, false);
         [qOs_1, qOs_obs] = expandToFull(qOs_1, qOs_obs, status_1, status_obs, false);
-        
+
         [bhp_2, bhp_obs] = expandToFull(bhp_2, bhp_obs, status_2, status_obs, true);
         [qWs_2, qWs_obs] = expandToFull(qWs_2, qWs_obs, status_2, status_obs, false);
         [qOs_2, qOs_obs] = expandToFull(qOs_2, qOs_obs, status_2, status_obs, false);
     end
+    if opt.EnergyMinimization
+        %% compute an energy norm in the global domain to add to the objective function
+        cTotFlux1 = states_1{step}.FacilityFluxProps.ComponentTotalFlux;
+        cTotFlux2 = states_2{step}.FacilityFluxProps.ComponentTotalFlux;
+        cTotMass1 = states_2{step}.FlowProps.ComponentTotalMass;
+        cTotMass2 = states_2{step}.FlowProps.ComponentTotalMass;
+        Div = model_1.operators.Div;
+        for i = 1:length(cTotMass1)
+            L2_error = dts(step)./ (totTime).*(sum(Div(cTotFlux1{i}-cTotFlux2{i})).^2+ sum((cTotMass1{i}-cTotMass2{i})./dts(step)).^2);
+        end
+    end
+
+
     dt = dts(step);
-    % one can satbilize optimization also using pressure  in connection cells
-     dp =[];
-     ds  =[];
-     dp_cells = [];
-     ds_cells = [];
-     cells_data = 1:1:model_1.G.cells.num;
-    if isa(state_1.pressure, 'ADI')&&isa(state_2.pressure, 'ADI')
-    for w = 1:length(schedule_1.control(1).W)
-        cells_w_step_schedule1 = schedule_1.control(schedule_1.step.control(step)).W(w).cells;
-        cells_w_step_schedule2 = schedule_2.control(schedule_2.step.control(step)).W(w).cells;
-        nbc = length(cells_w_step_schedule1);
-        dp =[dp;sum(state_1.pressure(cells_w_step_schedule1)-state_2.pressure(cells_w_step_schedule2))./nbc];
-        ds =[ds;sum(state_1.s{2}(cells_w_step_schedule1)-state_2.s{2}(cells_w_step_schedule2))./nbc]; 
-    end
-       dp_cells = model_2.operators.Grad(state_1.pressure - state_2.pressure)./(sum(model_1.operators.Grad(value(state_1.pressure)).^2)).^0.5;    
-       ds_cells = (state_1.s{2}(cells_data) - state_2.s{2}(cells_data))./sum(value(state_1.s(cells_data,2)).^2).^0.5;
 
-    end
-       
-    if isa(state_1.pressure, 'ADI')&&~isa(state_2.pressure, 'ADI')
-    for w = 1:length(schedule_1.control(1).W)
-        cells_w_step_schedule1 = schedule_1.control(schedule_1.step.control(step)).W(w).cells;
-        cells_w_step_schedule2 = schedule_2.control(schedule_2.step.control(step)).W(w).cells;
-        nbc = length(cells_w_step_schedule1);
-        dp =[dp;sum((state_1.pressure(cells_w_step_schedule1)-state_2.pressure(cells_w_step_schedule2)))./nbc];
-        ds =[ds;sum(state_1.s{2}(cells_w_step_schedule1)-state_2.s(cells_w_step_schedule2,2))./nbc];        
-    end
-
-    dp_cells = model_1.operators.Grad(state_1.pressure-state_2.pressure)./(sum(model_1.operators.Grad(state_2.pressure).^2)).^0.5;
-    ds_cells = (state_1.s{2}(cells_data)-state_2.s(cells_data,2))./sum(state_2.s(cells_data,2).^2).^0.5;
-    end
-
-       
-    if ~isa(state_1.pressure, 'ADI')&&~isa(state_2.pressure, 'ADI')
-    for w = 1:length(schedule_1.control(1).W)
-        cells_w_step_schedule1 = schedule_1.control(schedule_1.step.control(step)).W(w).cells;
-        cells_w_step_schedule2 = schedule_2.control(schedule_2.step.control(step)).W(w).cells;
-        nbc = length(cells_w_step_schedule1);
-        dp =[dp;sum((state_1.pressure(cells_w_step_schedule1)-state_2.pressure(cells_w_step_schedule2)))./nbc];
-        ds =[ds;sum(state_1.s(cells_w_step_schedule1,2)-state_2.s(cells_w_step_schedule2,2))./nbc];        
-    end
-
-        dp_cells =model_1.operators.Grad(state_1.pressure-state_2.pressure)./norm(model_1.operators.Grad(state_1.pressure));
-        ds_cells =(state_1.s(cells_data,2)-state_2.s(cells_data,2))./norm(state_1.s(cells_data,2));
-    end
-
-    if ~isa(state_1.pressure, 'ADI')&&isa(state_2.pressure, 'ADI')
-    for w = 1:length(schedule_1.control(1).W)
-
-        cells_w_step_schedule1 = schedule_1.control(schedule_1.step.control(step)).W(w).cells;
-        cells_w_step_schedule2 = schedule_2.control(schedule_2.step.control(step)).W(w).cells;
-        nbc = length(cells_w_step_schedule1);
-        dp =[dp;sum((state_1.pressure(cells_w_step_schedule1)-state_2.pressure(cells_w_step_schedule2)))./nbc];
-        ds =[ds;sum(state_1.s(cells_w_step_schedule1,2)-state_2.s{2}(cells_w_step_schedule2))./nbc];        
-    end
-
-        dp_cells =(model_2.operators.Grad(state_1.pressure-state_2.pressure))./norm(model_2.operators.Grad(state_1.pressure));
-        ds_cells =(state_1.s(cells_data,2)-state_2.s{2}(cells_data))./norm((state_1.s(cells_data,2)));
-    end
-    epsPT= 1.0e-3;
-    epsPv= 1.0e-3;
-%     dist_bd_pressure = (states_1{step}.pressure(bd_cells)-states_2{step}.pressure(bd_cells))./(states_1{step}.pressure(bd_cells));
-%     dist_bd_flux = states_1{step}.flux(bd_faces)-states_2{step}.flux(bd_faces);
     if opt.mismatchSum
-      scalingFactor = dt / (totTime * nnz(matchCases));  
-obj{step} = scalingFactor * sum( ...
-    matchCases .* ( ...
-        (qWs_1 - qWs_2).^2 ./ max(qWs_1.^2 + qWs_2.^2, eps) + ...
-        (qOs_1 - qOs_2).^2 ./ max(qOs_1.^2 + qOs_2.^2, eps) + ...
-        (bhp_2 - bhp_1).^2 ./ max(bhp_2.^2 + bhp_1.^2, eps) ...
-    ) ...
-);
-%+...
-%                          0.01.*matchCases.*ds.^2+1.*wp.*wp.*matchCases.*dp.^ 2)+...
-%                          2000.5.*(dt/(totTime))*sum(dp_cells.^2)+200.5.*(dt/(totTime)).*sum(ds_cells.^2)+...
-%                          epsPv.*wp.*(dt/(totTime))*(sum((model_2.operators.Grad(model_1.operators.pv).^2)));%+...
-%                epsPT.*wp.*(dt/(totTime))*(sum((abs(model_2.operators.Grad(model_1.operators.pv)))))+...
-%                +0.1.*wo.*(dt/(totTime*nnz(matchCases))).*norm(model_2.operators.pv(well_cells)-well_data)./norm(well_cells)+...
-%                0.5.*10.*(dt/(totTime*nnz(matchCases)))*sum(abs(abs(dist_bd_pressure.*dist_bd_flux)));
+      dtFactor  = dt / (totTime * nnz(matchCases));  
+     obj{step} = dtFactor*sum( ...
+                        (ww*matchCases.*(qWs_1-qWs_2)).^2 + ...
+                        (wo*matchCases.*(qOs_1-qOs_2)).^2 + ...
+                        (wp*matchCases.*(bhp_1-bhp_2)).^2 );
     else
         % output summands f_i^2 
         fac = dt/(totTime*nnz(matchCases));
@@ -244,14 +226,21 @@ end
 %--------------------------------------------------------------------------
 
 function v = vertcatIfPresent(sol, fn, nw)
-if isfield(sol, fn)
-    v = vertcat(sol.(fn));
-    assert(numel(v)==nw);
-    v = v(vertcat(sol.status));
-else
-    v = zeros(nnz(sol.status),1);
+    if isfield(sol, fn)
+        v = vertcat(sol.(fn));
+        % Ensure v has the correct size
+        if numel(v) < nw
+            v = [v; zeros(nw - numel(v), 1)];
+        end
+        % Apply status filtering
+        v = v(vertcat(sol.status));
+    else
+        v = zeros(nnz(vertcat(sol.status)), 1);
+    end
+    % Final assertion to ensure correctness
+    assert(numel(v) == nnz(vertcat(sol.status)), 'Mismatch in well count');
 end
-end
+
 
 %--------------------------------------------------------------------------
 
@@ -275,39 +264,50 @@ end
 end
 %--------------------------------------------------------------------------
 
-function  [ww, wo, wp] = getWeights(qWs, qOs, bhp, opt)
-ww = opt.WaterRateWeight;
-wo = opt.OilRateWeight;
-wp = opt.BHPWeight;
+function [ww, wo, wg, wp] = getWeights(qWs, qOs, qGs, bhp, opt)
+    ww = opt.WaterRateWeight;
+    wo = opt.OilRateWeight;
+    wg = opt.GasRateWeight;
+    wp = opt.BHPWeight;
 
-rw = sum(abs(qWs)+abs(qOs));
+    rw = sum(abs(qWs)) + sum(abs(qOs)) + sum(abs(qGs));
 
-if isempty(ww)
-    % set to zero if all are zero
-    if sum(abs(qWs))==0
-        ww = 0;
-    else
-        ww = 1/rw;
+    if isempty(ww)
+        % Set to zero if all water rates are zero
+        if sum(abs(qWs)) == 0
+            ww = 0;
+        else
+            ww = 1 / rw;
+        end
+    end
+
+    if isempty(wo)
+        % Set to zero if all oil rates are zero
+        if sum(abs(qOs)) == 0
+            wo = 0;
+        else
+            wo = 1 / rw;
+        end
+    end
+
+    if isempty(wg)
+        % Set to zero if all gas rates are zero
+        if sum(abs(qGs)) == 0
+            wg = 0;
+        else
+            wg = 1 / rw;
+        end
+    end
+
+    if isempty(wp)
+        % Set to zero if all BHP values are the same
+        dp = max(bhp) - min(bhp);
+        if dp == 0
+            wp = 0;
+        else
+            wp = 1 / dp;
+        end
     end
 end
 
-if isempty(wo)
-    % set to zero if all are zero
-    if sum(abs(qOs))==0
-        wo = 0;
-    else
-        wo = 1/rw;
-    end
-end
-
-if isempty(wp)
-    % set to zero all are same
-    dp = max(bhp)-min(bhp);
-    if dp == 0
-        wp = 0;
-    else
-        wp = 1/dp;
-    end
-end
-end
 
