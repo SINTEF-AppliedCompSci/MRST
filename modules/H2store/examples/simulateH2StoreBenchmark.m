@@ -48,12 +48,12 @@ name = 'H2_STORAGE_RS_UHS_BENCHMARK';
 %% Read the Eclipse deck file containing the simulation data
 % Change input file by UHS_BENCHMARK_RS_SALT.DATA for SALT EFFECTS
 baseDir = fileparts(mfilename('fullpath'));
-dataFile = fullfile(baseDir,  'data', 'uhs_benchmark', 'UHS_BENCHMARK_RS.DATA');
+dataFile = fullfile(baseDir,  'data', 'UHSModifiedBenchmark', 'UHS_BENCHMARK_RS.DATA');
 deck = readEclipseDeck(dataFile);
 % Note that the user can generate different PVT tables (see thermodynamics)
 
 %% Prepare simulation parameters and initial state
-[~, options, state0, model, schedule, ~] = modified_uhs_benchmark(deck);
+[~, options, state0, model, schedule, ~] = ModelForUHSModifiedBenchmark(deck);
 
 %% Add custom output functions to the model for additional diagnostics
 model.OutputStateFunctions{end + 1} = 'CapillaryPressure';  % Output capillary pressure
