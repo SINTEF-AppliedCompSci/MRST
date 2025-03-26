@@ -41,7 +41,7 @@ mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr
 name = 'H2_STORAGE_RS';
 %% Use H2STORAGE_RS_SALT.DATA for brine
 baseDir = fileparts(mfilename('fullpath')); % Get directory of the script
-dataFile = fullfile(baseDir,  'data', 'Illustrative_example', 'H2STORAGE_RS.DATA');
+dataFile = fullfile(baseDir,  'data', 'Simple2DAquifer', 'H2STORAGE_RS.DATA');
 deck = readEclipseDeck(dataFile);
 
 %% Notice on Computational Cost
@@ -50,7 +50,7 @@ warning('ComputationalCost:High', ...
         'to run: reduce cycles for example']);
 
 %% Set up the simulation parameters and model components
-[~, ~, state0, model, schedule, ~] = H2_illustration_storage_example(deck);
+[~, ~, state0, model, schedule, ~] = ModelForSimple2DAquifer(deck);
 
 %% Plot Grid with Wells, Permeability, and Porosity
 figure;

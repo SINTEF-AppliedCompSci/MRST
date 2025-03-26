@@ -34,10 +34,10 @@ warning('ComputationalCost:High', ...
 
 name = 'H2_STORAGE_RSRV_DOME';
 baseDir = fileparts(mfilename('fullpath')); % Get directory of the script
-dataFile = fullfile(baseDir,  'data', '3d_dome_case', 'DOME_RSRV.DATA');
+dataFile = fullfile(baseDir,  'data', 'AnticlinalDomeAquifer', 'DOME_RSRV.DATA');
 deck = readEclipseDeck(dataFile);
 %% Initialize the dome case simulation with specified parameters
-[~, options, state0, model, schedule, deck,~] = dome_case_3d(deck);
+[~, options, state0, model, schedule, deck,~] = ModelForDome3DAquifer(deck);
 
 %% Plot rock parameters
 figure;

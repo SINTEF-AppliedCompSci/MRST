@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = H2_illustration_storage_example(deck,varargin)
+function [description, options, state0, model, schedule, plotOptions] = ModelForSimple2DAquifer(deck,varargin)
 % This example simulates the injection and behavior of hydrogen (H₂) in a 2D saline aquifer 
 % using the black-oil model. The aquifer has a dome-shaped structure defined by the function 
 % F(x) = σ + r*sin(π*x), with parameters σ = 25 and r = 5. 

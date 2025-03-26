@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule,deck, plotOptions] = dome_case_3d(deck, varargin)
+function [description, options, state0, model, schedule,deck, plotOptions] = ModelForDome3DAquifer(deck, varargin)
 % This function sets up a conceptual dome-shaped aquifer model for hydrogen storage, 
 % focusing on the differences between immiscible and black-oil modeling approaches. 
 %
