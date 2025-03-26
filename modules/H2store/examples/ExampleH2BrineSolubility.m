@@ -39,10 +39,9 @@ ms           = 0;                 % Salt molality [mol/kg]
 
 
 %% Notice on Computational Cost
-warning('ComputationalCost:High', ...
+warning('ComputationalCost:Medium', ...
        ['Please be advised that for large nbp and nbt this example often takes a long time ', ...
-        'to run']);
-
+        'to run: this script will extract datan from https://webbook.nist.gov']);
 % Get directory of current script
 currentDir = fileparts(mfilename('fullpath'));
 
@@ -80,8 +79,8 @@ n = nbt;                         % Number of temperature points
 indexH2 = 2;                      % Index of H2 component in liquid phase
 indexH2O = 1;                   % Index of water in vapor phase
 
-pressure = reshape(tab_sol.Pressure_Pa, [], n);
-temperature = reshape(tab_sol.Temperature_C, [], n) + 273.15;  % Convert to Kelvin
+pressure = reshape(tab_sol.("pressure [Pa]"), [], n);
+temperature = reshape(tab_sol.("# temperature [°C]"), [], n) + 273.15;  % Convert to Kelvin
 
 %% Solubility of H2 in Brine as a Function of Pressure and Temperature
 figure;
@@ -183,8 +182,8 @@ mWater = 0.0180153;  % Molar mass of H2O (kg/mol)
 Joule = 8.314472;  % Ideal gas constant (J/(mol*K))
 
 %% Extract RK-EoS table columns and convert units for comparison
-Temperature__K_ = tab_sol.Temperature_C + 273.15;  % Convert to Kelvin
-Pressure_Pa_ = tab_sol.Pressure_Pa;
+Temperature__K_ = tab_sol.("# temperature [°C]") + 273.15;  % Convert to Kelvin
+Pressure_Pa_ = tab_sol.("pressure [Pa]");
 
 %% Calculate density of hydrogen using the Brill and Beggs correlation
 ZH2 = calculateBrillBreggsZfactorHydrogen(Temperature__K_, Pressure_Pa_);

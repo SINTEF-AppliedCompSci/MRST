@@ -27,9 +27,9 @@ nbp = 10;                     % Number of pressure points
 nbt = 10;                     % Number of temperature points
 ms = 0;                       % Salt molality [mol/kg]
 %% Notice on Computational Cost
-warning('ComputationalCost:High', ...
+warning('ComputationalCost:Medium', ...
        ['Please be advised that for large nbp and nbt this example often takes a long time ', ...
-        'to run']);
+        'to run: this script will extract datan from https://webbook.nist.gov']);
 
 currentDir = fileparts(mfilename('fullpath'));
 outputDisplay = false;

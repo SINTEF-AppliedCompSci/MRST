@@ -1,7 +1,15 @@
 %% Modified 3D Benchmark of Hydrogen Storage Cycling in an Aquifer
-% This example adapts a benchmarking simulation originally designed to test gas conversion 
+% This example adapts a benchmarking simulation originally designed to test gas conversion
 % in gas storage systems, focusing on cyclic hydrogen (H₂) storage in an aquifer.
-
+% original Benchmark:
+% Hogeweg, S., Strobel, G., & Hagemann, B. (2022). Benchmark study for the simulation of underground
+% hydrogen storage operations. Comput Geosci, 26, 1367–1378.
+% https://doi.org/10.1007/s10596-022-10163-5
+%
+% For further details on this case, refer to:
+% Ahmed, E., et al. (2024). Phase behavior and black-oil simulations of hydrogen storage in saline aquifers. 
+% Advances in Water Resources, 191, 104772.
+%
 % Key modifications include:
 % - The initial state is filled with water, incorporating hydrostatic boundary pressure 
 %   due to the low compressibility of water.
@@ -28,20 +36,22 @@
 % scenario that extends over 10 cycles.
 
 clearvars;
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that this example takes a long time ', ...
+        'to run']);
 %% Necessary MRST modules for simulation
 mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui
 
 % Define the name of the simulation for output files
 name = 'H2_STORAGE_RS_UHS_BENCHMARK';
-
 %% Read the Eclipse deck file containing the simulation data
 % Change input file by UHS_BENCHMARK_RS_SALT.DATA for SALT EFFECTS
-deck = readEclipseDeck('./examples/data/uhs_benchmark/UHS_BENCHMARK_RS.DATA');
+baseDir = fileparts(mfilename('fullpath'));
+dataFile = fullfile(baseDir,  'data', 'uhs_benchmark', 'UHS_BENCHMARK_RS.DATA');
+deck = readEclipseDeck(dataFile);
 % Note that the user can generate different PVT tables (see thermodynamics)
-%% Notice on Computational Cost
-warning('ComputationalCost:High', ...
-       ['Please be advised that this example often takes a long time ', ...
-        'to run']);
+
 %% Prepare simulation parameters and initial state
 [~, options, state0, model, schedule, ~] = modified_uhs_benchmark(deck);
 
@@ -60,7 +70,10 @@ nls.LinearSolver = lsolve;                                     % Assign the line
 problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
 
 %% Run the simulation
-simulatePackedProblem(problem,'restartStep',1507);
+tic;
+simulatePackedProblem(problem,'restartStep',1);
+elapsedTime = toc;
+fprintf('Simulation completed in %.2f seconds. \n', elapsedTime);
 %% gGet reservoir and well states
 [ws,states] = getPackedSimulatorOutput(problem);
 %% Plot well states

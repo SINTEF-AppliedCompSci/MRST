@@ -92,17 +92,14 @@ do_plot = opts.plot;
 dissolve_gas = opts.rs;
 vaporize_water = opts.rv;
 
-% Extract temperature
-T = tab_h2.("# temperature [°C]")(1); % Assuming reservoir temperature is the first
-
 %% Extract and align pressures from the tables based on temperature
-tab_sol = tab_sol(abs(tab_sol.Temperature_C - T) < eps, :);
-tab_h2o = tab_h2o(abs(tab_h2o.("# temperature [°C]") - T) < eps, :);
-tab_h2 = tab_h2(abs(tab_h2.("# temperature [°C]") - T) < eps, :);
-
+T = tab_h2.("# temperature [°C]")(1);
+tab_sol = filterTableByTemperature(tab_sol, T);
+tab_h2o = filterTableByTemperature(tab_h2o, T);
+tab_h2 = filterTableByTemperature(tab_h2, T);
 
 %% Extract pressure values for consistency check
-p_sol = tab_sol.Pressure_Pa;
+p_sol = tab_sol.("pressure [Pa]");
 p_h2o = tab_h2o.("pressure [Pa]");
 p_h2 = tab_h2.("pressure [Pa]");
 
@@ -112,30 +109,20 @@ fprintf('Tabulating PVT data for pressure range: [%.2f, %.2f] Pa at temperature:
     pressureRange(1), pressureRange(2), T);
 
 % Assert that the filtered tables are non-empty
-assert(~isempty(tab_sol), 'No matching temperature found in tab_sol for the specified T.');
-assert(~isempty(tab_h2o), 'No matching temperature found in tab_h2o for the specified T.');
-assert(~isempty(tab_h2), 'No matching temperature found in tab_h2 for the specified T.');
-assert(height(tab_sol) == height(tab_h2o) && height(tab_sol) == height(tab_h2), ...
-    'Filtered tables do not have the same x-size (number of pressure points); check pressure range.');
+assert(~isempty(tab_sol) && ~isempty(tab_h2o) && ~isempty(tab_h2), 'Filtered tables are empty.');
+assert(height(tab_sol) == height(tab_h2o) && height(tab_sol) == height(tab_h2), 'Mismatch in table sizes.');
 
 % Check if pressures are consistent within a tolerance of 0.001 Pa
-tolerance = 0.001;
-assert(all(abs(p_sol - p_h2o) < tolerance), 'Mismatch in pressures between H2O and solution.');
-assert(all(abs(p_sol - p_h2) < tolerance), 'Mismatch in pressures between H2 and solution.');
+tolerance = 1e-3;
+assert(all(abs(p_sol - p_h2o) < tolerance), 'Error: Pressure mismatch detected between H2O and solution.');
+assert(all(abs(p_sol - p_h2) < tolerance), 'Error: Pressure mismatch detected between H2 and solution.');
 
 %% Convert pressure to bar
 p = p_sol ./ barsa;
 
-%% Constants for H2 and H2O molar masses
-molar_mass_h2 = 2.016e-3; % kg/mol
-molar_mass_h2o = 18.01528e-3; % kg/mol
-
 %% Handle dissolved gas and vaporized water phases
-x_H2 = max(tab_sol.x_H2 .* dissolve_gas, 1e-8);
-y_h2o = tab_sol.y_H2O .* vaporize_water;
-X_H2 = mole_fraction_to_mass_fraction(x_H2, molar_mass_h2, molar_mass_h2o);
-Y_h2o = mole_fraction_to_mass_fraction(y_h2o, molar_mass_h2o, molar_mass_h2);
-
+[x_H2, y_h2o] = computeMoleFractions(tab_sol, dissolve_gas, vaporize_water);
+[X_H2, Y_h2o] = convertMoleToMassFraction(x_H2, y_h2o);
 %% Plot phase properties if plotting is enabled
 if do_plot
     figure(1); clf;
@@ -144,17 +131,12 @@ if do_plot
 end
 
 %% Retrieve densities and viscosities
-pure_water_density = tab_h2o.("density [kg/m3]");
-pure_gas_density = tab_h2.("density [kg/m3]");
-water_viscosity = tab_h2o.("viscosity [Pa.s]");
-gas_viscosity = tab_h2.("viscosity [Pa.s]");
+[pure_water_density, pure_gas_density, water_viscosity, gas_viscosity] = extractFluidProperties(tab_h2o, tab_h2);
 
-%% Compute saturated water density
-saturated_water_density = water_density(T, pure_water_density, X_H2);
-
-% Plot densities if enabled
+%% Plot densities if enabled
 if do_plot
     figure(1); clf; hold on;
+    saturated_water_density = WaterDensity(T, pure_water_density, X_H2);
     subplot(1, 2, 1); plot(p, pure_water_density, 'DisplayName', 'Pure Water');
     plot(p, saturated_water_density, 'DisplayName', 'H2 Saturated Water');
     legend; title('Water Density');
@@ -184,8 +166,8 @@ if vaporize_water
 end
 
 %% Compute shrinkage factors for liquid and gas
-bO = shrinkage_factor(water_density(T, pure_water_density, X_H2), Y_h2o, rhoOS, rhoGS);
-bG = shrinkage_factor(pure_gas_density, Y_h2o, rhoGS, rhoOS);
+bO = shrinkageFactor(WaterDensity(T, pure_water_density, X_H2), Y_h2o, rhoOS, rhoGS);
+bG = shrinkageFactor(pure_gas_density, Y_h2o, rhoGS, rhoOS);
 
 if do_plot
     figure(1); clf; hold on
@@ -208,6 +190,7 @@ if vaporize_water
 end
 end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function writeIMMISC(p, b, mu, title, opts)
 % Function to write immiscible properties to a text file
@@ -303,7 +286,7 @@ pure_water_density = [rhoW_min; pure_water_density]; % Extend water density
 water_viscosity = [water_viscosity(1); water_viscosity]; % Extend water viscosity
 
 % Compute shrinkage factor
-bO_sat = shrinkage_factor(water_density(T, pure_water_density, X_h2_sat), X_h2_sat, rhoOS, rhoGS);
+bO_sat = shrinkageFactor(WaterDensity(T, pure_water_density, X_h2_sat), X_h2_sat, rhoOS, rhoGS);
 
 % Loop through each Rs and write data
 M = numel(Rs);
@@ -325,8 +308,8 @@ for i = 1:M
     % Write data for each unsaturated pressure point
     for j = 1:nusat
         rho_w_j = interp1(p, pure_water_density, p_usat(j), 'linear', 'extrap'); % Interpolate water density
-        rho_w_dissolved = water_density(T, rho_w_j, X_h2); % Calculate density with dissolved hydrogen
-        bO_usat = shrinkage_factor(rho_w_dissolved, X_h2, rhoOS, rhoGS); % Calculate shrinkage factor
+        rho_w_dissolved = WaterDensity(T, rho_w_j, X_h2); % Calculate density with dissolved hydrogen
+        bO_usat = shrinkageFactor(rho_w_dissolved, X_h2, rhoOS, rhoGS); % Calculate shrinkage factor
         rho_new = bO_usat * (rhoOS + Rs(i) * rhoGS); % New density calculation
         assert(abs(rho_w_dissolved - rho_new) < 1e-3, 'Density mismatch exceeds tolerance.');
 
@@ -373,7 +356,7 @@ fprintf(fn, '-- PRES       RV       FVF       VISC\n');
 fprintf(fn, 'PVTG\n');
 
 % Calculate shrinkage factor once before using it
-bG = shrinkage_factor(pure_gas_density, Y_h2o, rhoGS, rhoOS);
+bG = shrinkageFactor(pure_gas_density, Y_h2o, rhoGS, rhoOS);
 % Get conversion factors
 u = unitConversionFactors('si', opts.units);
 uk = u.press;           % Pressure conversion factor
@@ -401,7 +384,7 @@ end
 
 
 
-function rho = h2_density_in_water(T)
+function rho = HydrogenDensityInWater(T)
 % Computes the density of hydrogen in water based on temperature.
 % Inputs:
 % T: Temperature in Celsius (scalar)
@@ -409,14 +392,14 @@ function rho = h2_density_in_water(T)
 % rho: Density of hydrogen in water (kg/m^3)
 
 % Calculate the partial volume of H2 in water at temperature T
-V = h2_partial_volume_in_water(T);
+V = PartialVolumeOfH2InWater(T);
 M = 2.016e-3; % Molar mass of H2 (kg/mol)
 
 % Calculate the density of H2
 rho = M ./ V; % Density (kg/m^3)
 end
 
-function V = h2_partial_volume_in_water(T)
+function V = PartialVolumeOfH2InWater(T)
 % Computes the partial volume of hydrogen in water based on temperature.
 % Inputs:
 % T: Temperature in Celsius (scalar)
@@ -435,7 +418,7 @@ T_K = T + 273.15;
 V = (a + b .* T_K + c .* T_K.^2) ./ 1e6; % Convert from cm^3/mol to m^3/mol
 end
 
-function rhoW = water_density(T, pure_water_density, X_h2)
+function rhoW = WaterDensity(T, pure_water_density, X_h2)
 % Computes the density of a water-hydrogen mixture based on temperature and composition.
 % Inputs:
 % T: Temperature in Celsius (scalar)
@@ -448,13 +431,13 @@ function rhoW = water_density(T, pure_water_density, X_h2)
 X_h2o = 1 - X_h2;
 
 % Compute the volume contributions from water and hydrogen
-vol = X_h2o ./ pure_water_density + X_h2 ./ h2_density_in_water(T);
+vol = X_h2o ./ pure_water_density + X_h2 ./ HydrogenDensityInWater(T);
 
 % Calculate the density of the mixture
 rhoW = 1 ./ vol; % Density (kg/m^3)
 end
 
-function bO = shrinkage_factor(rhoO, X_h2, rhoOS, rhoGS)
+function bO = shrinkageFactor(rhoO, X_h2, rhoOS, rhoGS)
 % Computes the shrinkage factor for a mixture of oil and gas based on density and composition.
 % Inputs:
 % rhoO: Density of the oil phase (kg/m^3)
@@ -471,8 +454,31 @@ Rs = rhoOS .* X_h2./ (rhoGS.*(1-X_h2));
 bO = rhoO ./ (rhoOS + Rs * rhoGS); % Dimensionless factor
 end
 
-function mf = mole_fraction_to_mass_fraction(x, molar_mass_self, molar_mass_other)
+function mf = moleFractionToMassFraction(x, molar_mass_self, molar_mass_other)
 % Converts mole fraction to mass fraction.
 % Calculate the mass fraction
 mf = (x * molar_mass_self) ./ (x .* molar_mass_self + (1 - x) .* molar_mass_other); % Mass fraction
+end
+
+function [X_H2, Y_h2o] = convertMoleToMassFraction(x_H2, y_h2o)
+    molar_mass_h2 = 2.016e-3;
+    molar_mass_h2o = 18.01528e-3;
+    X_H2 = moleFractionToMassFraction(x_H2, molar_mass_h2, molar_mass_h2o);
+    Y_h2o = moleFractionToMassFraction(y_h2o, molar_mass_h2o, molar_mass_h2);
+end
+
+function [x_H2, y_h2o] = computeMoleFractions(tab_sol, dissolve_gas, vaporize_water)
+    x_H2 = max(tab_sol.x_H2 .* dissolve_gas, 1e-8);
+    y_h2o = tab_sol.y_H2O .* vaporize_water;
+end
+
+function table_filtered = filterTableByTemperature(table, T)
+    table_filtered = table(abs(table.("# temperature [°C]") - T) < eps, :);
+end
+
+function [rho_w, rho_g, mu_w, mu_g] = extractFluidProperties(tab_h2o, tab_h2)
+    rho_w = tab_h2o.('density [kg/m3]');
+    rho_g = tab_h2.('density [kg/m3]');
+    mu_w = tab_h2o.('viscosity [Pa.s]');
+    mu_g = tab_h2.('viscosity [Pa.s]');
 end
