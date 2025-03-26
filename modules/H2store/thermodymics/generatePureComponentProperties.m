@@ -1,4 +1,4 @@
-function tab_comp = make_purecomponent_table_H2(varargin)
+function tab_comp = generatePureComponentProperties(varargin)
 % MAKE_PURECOMPONENT_TABLE_H2 Generate tables for H2O and H2 pure fluid properties
 %
 % SYNOPSIS:

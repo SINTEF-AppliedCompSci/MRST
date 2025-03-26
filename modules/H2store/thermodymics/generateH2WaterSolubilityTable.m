@@ -1,4 +1,4 @@
-function solubilityTable = generateSolubilityTableMatlab(varargin)
+function solubilityTable = generateH2WaterSolubilityTable(varargin)
 % This function generate a solubility table for a given component
 % (e.g., H2O or H2) across a specified temperature and pressure range.
 %
@@ -126,7 +126,7 @@ end
 
 fclose(fid);
 % Create a table and display it in the console
-solubilityTable = array2table(outputTable, 'VariableNames', {'Temperature_C', 'Pressure_Pa', 'y_H2O', 'x_H2'});
+solubilityTable = array2table(outputTable, 'VariableNames', {'# temperature [°C]', 'pressure [Pa]', 'y_H2O', 'x_H2'});
 if opts.display_output
     disp(solubilityTable);
 end
