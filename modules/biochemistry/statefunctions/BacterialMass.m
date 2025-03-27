@@ -9,7 +9,7 @@ classdef BacterialMass < StateFunction & ComponentProperty
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'nbact'}, 'state');
             gp = gp.dependsOn({'s'}, 'state');
-            gp = gp.dependsOn({'PoreVolume'}, 'PVTPropertyFunctions');
+            gp = gp.dependsOn({'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
             gp.label = 'M_{bio}';
         end
         function mb = evaluateOnDomain(prop, model, state)

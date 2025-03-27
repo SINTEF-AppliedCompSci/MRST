@@ -56,7 +56,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         bDiffusionEffect = false;
         moleculardiffusion = false;
         
-        nbactMax = 1e9; % 1/m^3
+        nbactMax = 1e8; % 1/m^3
         
         bacteriamodel = true;
         metabolicReaction = 'MethanogenicArchae';
@@ -344,14 +344,16 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
             % Get values for convergence check
             [v_eqs, tolerances, names] = getConvergenceValues@ReservoirModel(model, problem, varargin{:});
             bacteriaIndex = find(strcmp(names, 'bacteria (cell)'));
-            tolerances(bacteriaIndex) = 1.0e-3;
+            tolerances(bacteriaIndex) = 1.0e-1;
             if model.bacteriamodel
                 scale = model.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
                 ix    = ~cellfun(@isempty, scale);
                 v_eqs(ix) = cellfun(@(scale, x) norm(scale.*value(x), inf), scale(ix), problem.equations(ix));
                 % Reduce Tolerance
-                if (problem.iterationNo>10 && all(v_eqs(1:bacteriaIndex-1)<tolerances(1:bacteriaIndex-1)))
-                    tolerances(bacteriaIndex) = 0.8;
+                iter = problem.iterationNo;
+                maxIter = model.EOSNonLinearSolver.LinearSolver.maxIterations;
+                if (v_eqs(bacteriaIndex) > tolerances(bacteriaIndex) && (iter+5>maxIter))
+                     % tolerances(bacteriaIndex) = 0.75*tolerances(bacteriaIndex).*iter;
                 end
             end
         end
@@ -360,15 +362,17 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
             % Get scaling for the residual equations to determine convergence
 
             scale = cell(1, numel(eqs));
-
             cnames = model.getComponentNames();
-            [cmass, chemistry] = model.getProps(state0, 'ComponentTotalMass', ...
-                'BacterialMass');
 
-            Density = model.getProps(state0, 'Density');
-            L_ix = model.getLiquidIndex();
-            cmass = value(cmass); chemistry = value(chemistry);
-            rhoL = value(Density{L_ix});
+            if model.bacteriamodel
+                [cmass, chemistry] = model.getProps(state0, 'ComponentTotalMass', ...
+                    'BacterialMass');
+                cmass = value(cmass);
+                chemistry = value(chemistry);
+            else
+                cmass= model.getProps(state0, 'ComponentTotalMass');
+                cmass = value(cmass);
+            end
 
             if ~iscell(cmass), cmass = {cmass}; end
             ncomp = model.getNumberOfComponents();
@@ -383,11 +387,19 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                 if ~any(ix), continue; end
                 scale{ix} = scaleMass;
             end
-            ix = strcmpi(names, 'bacteria');
-            if any(ix)
-                scaleChemistry = dt./chemistry;
-                scale{ix} = scaleChemistry;
+            if model.bacteriamodel
+                ix = strcmpi(names, 'bacteria');
+                if any(ix)
+                    scaleChemistry = dt./max(chemistry, 1e-5);
+                    scale{ix} = scaleChemistry;
+                end
             end
+
+        end
+
+        function scaling = getScalingFactorsCPR(model, problem, names, solver) %#ok
+
+            scaling = model.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
 
         end
         %-----------------------------------------------------------------%
@@ -415,11 +427,12 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         end
 
         function [state, report] = updateState(model, state, problem, dz, drivingForces)
-
-            [state, report] = updateState@GenericOverallCompositionModel(model, state, problem, dz, drivingForces);
             if model.bacteriamodel
-                state = model.capProperty(state, 'nbact', 1.0e-8, 1.0e12);
+                state = model.capProperty(state, 'nbact', 1.0e-8, 100);
+                state = model.capProperty(state, 's', 1.0e-8, 1); 
+                state.components = ensureMinimumFraction(state.components, model.EOSModel.minimumComposition);
             end
+            [state, report] = updateState@GenericOverallCompositionModel(model, state, problem, dz, drivingForces);
         end
 
 
