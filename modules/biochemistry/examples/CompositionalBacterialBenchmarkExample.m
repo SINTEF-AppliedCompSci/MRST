@@ -11,24 +11,25 @@ deck.PROPS.EOS ='PR';
 deck = convertDeckUnits(deck);
 compFluid = TableCompositionalMixture({'water', 'Methane','Nitrogen','CarbonDioxide','Ethane','Propane','n-butane','Hydrogen'}, ...
 {'H2O', 'C1', 'N2', 'CO2', 'C2','C3','NC4','H2'});
-[~, model, schedule, nls] = initEclipseProblemAD(deck,'getSchedule',true,'getInitialState', false);
+[~, model, schedule, ~] = initEclipseProblemAD(deck,'getSchedule',true,'getInitialState', false);
 
 %% We use SW EOS
 eos =SoreideWhitsonEquationOfStateModel([], compFluid, 'sw');
 model.EOSModel =eos;
 model.water = false;
 %% Update fluid model to consider oil as water phase
-[rhow,rhog]=deal(model.fluid.rhoWS,0.081688* kilogram/meter^3); %density kilogram/meter^3;
+[rhow,rhog]=deal(model.fluid.rhoWS,1.481688* kilogram/meter^3); %density kilogram/meter^3;
 [viscow,viscog]=deal(model.fluid.muWr,0.0094234*centi*poise);%viscosity
 [cfw,cfg]=deal(model.fluid.cW,8.1533e-3/barsa); %compressibility
 % fluid
 fluid=initSimpleADIFluid('phases', 'OG', 'mu',[viscow,viscog],...
                          'rho',[rhow,rhog],'pRef',0*barsa(),...
-                         'c',[cfw,cfg],'n',[2,2],'smin',[0.2,0.05]);
+                         'c',[cfw,cfg],'n',[2,2],'smin',[0.2,0.1]);
 fluid.krG = model.fluid.krG;
 fluid.krO = model.fluid.krW;
-fluid.krPts.g = model.fluid.krPts.g;
-fluid.krPts.o = model.fluid.krPts.w;
+fluid.krPts.g = [0.1, 0.1, 0.8, 1.0]; % Ensures Sg_min = 0.05
+fluid.krPts.w = [0.2, 0.3, 0.8, 1.0];  % Ensures Sw_min = 0.2
+model.fluid.krPts.og = [0, 1 - 0.1];  % Oil endpoints (gas-oil)
 fluid.pcOG = model.fluid.pcWG;
 model.fluid = fluid;
 
@@ -39,8 +40,16 @@ s0 = [0.2 0.8];
 % z0 = deck.PROPS.ZMFVD{1}(2:end);
 G = model.G;
 InitCompositionForBenchmark();
+z0 = z0./sum(z0,2);
+z0(:,1) = z0(:,1)+ 0.08;
+z0(:,2) = z0(:,2)-0.08;
+z0(:,4)=z0(:,4)+z0(:,end);
+z0(:,end)=0;
+z0 =[0.9023 0.07015 0.00405 0.020210 0.00272 0.0004 0.0002 0.0000];
 diagonal_backend = DiagonalAutoDiffBackend('modifyOperators', true);
 mex_backend = DiagonalAutoDiffBackend('modifyOperators', true, 'useMex', true, 'rowMajor', true);
+sparse_backend = SparseAutoDiffBackend();
+
 if bacteriamodel
     compFluid = model.EOSModel.CompositionalMixture;
     arg = {model.G, model.rock, model.fluid, compFluid,...
@@ -49,7 +58,7 @@ if bacteriamodel
         'vaporPhase', 'G'}; % water=liquid, gas=vapor
     model = BiochemistryModel(arg{:});
     model.outputFluxes = false;
-    nbact0 = 100;
+    nbact0 = 40;
     state0 = initCompositionalStateBacteria(model, P0.*ones(G.cells.num,1) , T0, s0, z0, nbact0, eos);
 else
     model.EOSModel =eos;
@@ -61,24 +70,26 @@ for i=1:length(schedule.control)
 end
 
 %% Set up the linear and nonlinear solvers
-lsolve = selectLinearSolverAD(model);                          % Select the linear solver for the model
-nls = NonLinearSolver();                                       % Create a nonlinear solver object
-nls.LinearSolver = lsolve;                                     % Assign the linear solver to the nonlinear solver
+linsolve = selectLinearSolverAD(model);
+disp(linsolve)
+nls = NonLinearSolver('LinearSolver', linsolve);
+nls.timeStepSelector.maxTimestep = 1*day;
+% Assign the linear solver to the nonlinear solver
 
-name = 'UHS_BENCHMARK_COMPOSITIONAL_BACT_TRUE_HIGH_H2_MOD';
+name = 'UHS_BENCHMARK_COMPOSITIONAL_BACT_TRUE_HIGH_H2_MOD_2_constZ0';
 %% Pack the simulation problem with the initial state, model, and schedule 
 problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
 %% Run the simulation
-simulatePackedProblem(problem, 'restartStep',1);
+simulatePackedProblem(problem);
 %% Compare with and without bectrial effects
 modelNoBact = model;
 modelNoBact.bacteriamodel = false;
 state0NoBact = state0;
 state0NoBact.nbact = 0;
-nameNoBact = 'UHS_BENCHMARK_COMPOSITIONAL_BACT_FALSE_HIGH_H2_MOD';
+nameNoBact = 'UHS_BENCHMARK_COMPOSITIONAL_BACT_FALSE_HIGH_H2_MOD_constZ0';
 problemNoBact = packSimulationProblem(state0, modelNoBact, schedule, nameNoBact, 'NonLinearSolver', nls);
 %% Run the simulation
-simulatePackedProblem(problemNoBact,  'restartStep',1);
+simulatePackedProblem(problemNoBact);
 %% Get reservoir and well states
 [ws,states] = getPackedSimulatorOutput(problem);
 [wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
