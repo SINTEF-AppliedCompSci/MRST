@@ -6,7 +6,7 @@ function solubilityTable = generateH2BrineSolubilityTable(varargin)
 %   solubilityTable = generateSolubilityTableMatlab('min_temp', 0, 'max_temp', 100, ...
 %                                                    'n_temp', 11, 'min_press', 1e5, ...
 %                                                    'max_press', 1e7, 'n_press', 10, ...
-%                                                    'ms', ms, 'output_dir', dir, ...
+%                                                    'ms', ms, 'outputPath', dir, ...
 %                                                    'outputDisplay', true);
 %
 % DESCRIPTION:
@@ -23,7 +23,7 @@ function solubilityTable = generateH2BrineSolubilityTable(varargin)
 %   'max_press'    - Maximum pressure in Pascals (default: 1e7 Pa)
 %   'n_press'      - Number of pressure points (default: 10)
 %   'ms'           - salt molality (e.g., 5 mole)
-%   'output_dir'   - Directory to store the output file (default: current directory)
+%   'outputPath'   - Directory to store the output file (default: mrst output)
 %
 % OPTIONAL PARAMETERS:
 %   'outputDisplay' - If true, the generated solubility table is displayed in the
@@ -36,7 +36,7 @@ function solubilityTable = generateH2BrineSolubilityTable(varargin)
 %                                                   'n_temp', 11, 'min_press', 1e5, ...
 %                                                   'max_press', 1e7, 'n_press', 10, ...
 %                                                   'ms', model_data, ...
-%                                                   'output_dir', '/path/to/output', ...
+%                                                   'outputPath', '/path/to/output', ...
 %                                                   'outputDisplay', true, ...
 %                                                   'file_name', 'solubility_h2o.csv');
 %
@@ -65,10 +65,10 @@ opts = struct(...
     'n_temp', 11, ...           % Default: 11 points
     'min_press', 1e5, ...       % Default: 1 bar (1e5 Pa)
     'max_press', 1e7, ...       % Default: 100 bar (1e7 Pa)
-    'ms', 0, ...                % Default: water
+    'ms', 0, ...                % Default: 0 (water)
     'n_press', 10, ...          % Default: 10 points
-    'display_output', false, ...% Default: false (auto-generated)
-    'output_dir', '.' ...       % Default: current directory
+    'outputDisplay', false, ... % Default: false (auto-generated)
+    'outputPath', '.' ...       % Default: mrst output dir
     );
 opts = merge_options(opts,varargin{:});
 % Generate temperature and pressure ranges
@@ -83,16 +83,21 @@ pressures = linspace(min_pressure_barsa, max_pressure_barsa, n_press);
 % salt molality
 ms = opts.ms;
 % Construct the subdirectory path
-if ~isfolder(opts.output_dir)
-    mkdir(output_dir); % Create the directory if it doesn't exist
+if isempty(opts.outputPath)
+    opts.outputPath = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'H2SolubilityTable');
 end
 % Construct the filename based on the defined parameters
 fileName = sprintf('SolubilityValues_%.1f_to_%.1f_bar_%.1f_to_%.1f_C_%.1f.csv', ...
     min_pressure_barsa, max_pressure_barsa, ...
     min_temp, max_temp, ms);
+
+if ~exist(opts.outputPath, 'dir')
+    mkdir(opts.outputPath);
+end
 % Full file path
-filePath = fullfile(opts.output_dir, fileName);
-% Get H2 densities for the requested temperature and pressure ranges
+filePath = fullfile(opts.outputPath, fileName);
+%
+%% Get H2 densities for the requested temperature and pressure ranges
 densities = getH2Densities(temperatures, pressures);
 
 % Open output file
@@ -129,7 +134,7 @@ end
 fclose(fid);
 % Create a table and display it in the console
 solubilityTable = array2table(outputTable, 'VariableNames', {'# temperature [°C]', 'pressure [Pa]', 'y_H2O', 'x_H2'});
-if opts.display_output
+if opts.outputDisplay
     disp(solubilityTable);
 end
 end

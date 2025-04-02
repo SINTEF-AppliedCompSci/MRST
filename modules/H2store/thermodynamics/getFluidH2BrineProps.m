@@ -71,22 +71,23 @@ opts = struct('rs', true, ...
     'rv', true, ...
     'plot', false, ...
     'nusat', 10, ...
-    'dir', '', ...
+    'outputPath', '', ...
     'units', 'metric', ...
-    'PVTGFile', 'PVTG.txt', ...
-    'PVDOFile', 'PVDO.txt', ...
-    'PVTOFile', 'PVTO.txt');
+    'PVTGFile', 'PVTG_UHS.txt', ...
+    'PVDOFile', 'PVDO_UHS.txt', ...
+    'PVTOFile', 'PVTO_UHS.txt');
 
 % Merge user-defined options
 opts = merge_options(opts, varargin{:});
-%% Set directory for output files; create if it does not exist
-if ~isempty(opts.dir) && ~isfolder(opts.dir)
-    mkdir(opts.dir);
+
+% Ensure the output directory exists
+if isempty(opts.outputPath)
+    opts.outputPath = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'PVT_H2STORAGE');
 end
 
-%% Assert that the directory exists now
-assert(isfolder(opts.dir), 'The specified directory could not be created or does not exist.');
-
+if ~exist(opts.outputPath, 'dir')
+    mkdir(opts.outputPath);
+end
 %% Configuration parameters
 do_plot = opts.plot;
 dissolve_gas = opts.rs;
@@ -202,7 +203,7 @@ function writeIMMISC(p, b, mu, title, opts)
 %   opts  - Options structure containing directory path and units
 
 % Construct the output file path
-file_path = fullfile(opts.dir, opts.PVDOFile); % Use the filename from opts
+file_path = fullfile(opts.outputPath, opts.PVDOFile); % Use the filename from opts
 fn = fopen(file_path, 'w');
 
 % Check if the file was opened successfully
@@ -255,7 +256,7 @@ function writePVTO(p, Rs, pure_water_density, water_viscosity, T, X_h2_sat, Y_h2
 % opts: Options structure containing directory path and units
 
 % Prepare file path and open the file for writing
-file_path = fullfile(opts.dir, opts.PVTOFile); % Use the filename from opts
+file_path = fullfile(opts.outputPath, opts.PVTOFile); % Use the filename from opts
 fn = fopen(file_path, 'w');
 
 nusat = opts.nusat;
@@ -343,7 +344,7 @@ function writePVTG(p, Rv, pure_gas_density, gas_viscosity, Y_h2o, rhoGS, rhoOS, 
 % opts: Options structure containing directory path and units
 
 % Prepare file path and open the file for writing
-file_path = fullfile(opts.dir, opts.PVTGFile); % Use the filename from opts
+file_path = fullfile(opts.outputPath, opts.PVTGFile); % Use the filename from opts
 fn = fopen(file_path, 'w');
 
 % Check if the file was opened successfully

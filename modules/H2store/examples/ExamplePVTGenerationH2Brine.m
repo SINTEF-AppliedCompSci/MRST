@@ -26,42 +26,48 @@ max_pressure = 45 * barsa();      % Maximum pressure in Pa
 nbp = 10;                     % Number of pressure points
 nbt = 10;                     % Number of temperature points
 ms = 0;                       % Salt molality [mol/kg]
+outputDisplay = false;        % Set to true to display generated tables
+
 %% Notice on Computational Cost
 warning('ComputationalCost:Medium', ...
        ['Please be advised that for large nbp and nbt this example often takes a long time ', ...
-        'to run: this script will extract datan from https://webbook.nist.gov']);
+        'to run: this script will extract data from https://webbook.nist.gov']);
 
-currentDir = fileparts(mfilename('fullpath'));
-outputDisplay = false;
 % Define the target output directory relative to the current directory
-output_dir = fullfile(currentDir, 'PVT', 'PVT_H2STORAGE');
-
+outputPathSol = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'H2SolubilityTable');
 % Check if the directory exists; if not, create it
-if ~exist(output_dir, 'dir')
-    mkdir(output_dir);
+if ~exist(outputPathSol, 'dir')
+    mkdir(outputPathSol);
 end
 % Generate H2O Component Table
 comp_name = 'H2O';
 disp(['Generating component table for: ', comp_name]);
-tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
+tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', true,'outputPath',outputPathSol);
 % Generate H2 Component Table
 pause(0.5);  % Ensure smooth execution between commands
 comp_name = 'H2';
 disp(['Generating component table for: ', comp_name]);
-tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
+tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', true,'outputPath',outputPathSol);
 % Generate Solubility Table
 disp('Generating solubility table...');
-% [tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, output_dir);
-tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'display_output', true,'output_dir',output_dir);
+% [tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, outputPath);
+tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'outputDisplay', true,'outputPath',outputPathSol);
 % Configure and Write Fluid Properties (PVT) Tables
-onlyRS = true;
+onlyRS = false;
+% Define the target output directory relative to the current directory
+outputPathPvt = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'PVT_H2STORAGE');
+% Check if the directory exists; if not, create it
+if ~exist(outputPathPvt, 'dir')
+    mkdir(outputPathPvt);
+end
+
 if onlyRS
-    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol,'rs', true, 'rv', false,'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE', 'PVTGFile', 'PVTGH2BRINE','dir', output_dir);
+    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol,'rs', true, 'rv', false,'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE', 'PVTGFile', 'PVTGH2BRINE','outputPath', outputPathPvt);
 
     disp('Writing fluid properties for miscible case with digas and disabled evapoil...');
 else
     % generate RSRV
-    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', true, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'dir', output_dir);
+    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', true, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'outputPath', outputPathPvt);
     disp('Writing fluid properties for miscible case with digas and evapoil...');
 end
 %% We generates gas-oil flow properties specific to a hydrogen-brine system, for 
@@ -74,7 +80,7 @@ end
 %% varying reservoir conditions.
 %% Generate SGOF (Gas-Oil Flow) Properties Table
 disp('Generating gas-oil flow properties for hydrogen-brine system with three regions');
-getFluidH2BrineSGOF('n', 100, 'plot', true, 'dir', output_dir, 'filename', 'SGOF_H2STORAGE.txt', ...
+getFluidH2BrineSGOF('n', 100, 'plot', true, 'outputPath', outputPathPvt, 'fileName', 'SGOF_UHS.txt', ...
                       'units', 'metric', 'nreg', 3, 'sw_imm', [0.1, 0.1, 0.1], ...
                       'sg_imm', [0.05, 0.1, 0.1], 'c_a1', 3.5, 'c_a2', 3.5, 'c_a3', 1.5, ...
                       'Pe', [0.4, 5, 10], 'P_c_max', [9.5e4, 9.5e4, 9.5e4]);

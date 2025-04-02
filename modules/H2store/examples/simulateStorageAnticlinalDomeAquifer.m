@@ -33,8 +33,7 @@ warning('ComputationalCost:High', ...
         'to run']);
 
 name = 'H2_STORAGE_RSRV_DOME';
-baseDir = fileparts(mfilename('fullpath')); % Get directory of the script
-dataFile = fullfile(baseDir,  'data', 'AnticlinalDomeAquifer', 'DOME_RSRV.DATA');
+dataFile = fullfile(ROOTDIR,'..','modules','H2store','examples',  'data','AnticlinalDomeAquifer', 'DOME_RSRV.DATA');
 deck = readEclipseDeck(dataFile);
 %% Initialize the dome case simulation with specified parameters
 [~, options, state0, model, schedule, deck,~] = ModelForDome3DAquifer(deck);

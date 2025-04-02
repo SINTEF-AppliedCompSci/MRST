@@ -36,23 +36,16 @@ max_pressure = 20 * mega * Pascal;% [Pa]
 nbp          = 15;                % Number of pressure points
 nbt          = 15;                % Number of temperature points
 ms           = 0;                 % Salt molality [mol/kg]
-
+outputDisplay = false; % Set to true to display generated tables
 
 %% Notice on Computational Cost
 warning('ComputationalCost:Medium', ...
        ['Please be advised that for large nbp and nbt this example often takes a long time ', ...
-        'to run: this script will extract datan from https://webbook.nist.gov']);
-% Get directory of current script
-currentDir = fileparts(mfilename('fullpath'));
+        'to run: this script will extract data from https://webbook.nist.gov']);
 
 % Define target output directory and create if it doesn't exist
-output_dir = fullfile(currentDir, 'PVT', 'H2SolubilityTable');
-if ~exist(output_dir, 'dir')
-    mkdir(output_dir);
-end
+outputPath = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'H2SolubilityTable');
 
-% Display options
-outputDisplay = false; % Set to true to display generated tables
 
 % This configuration prepares solubility data for the H2-brine system
 % under RK-EOS in the context of saline aquifer storage.
@@ -60,18 +53,19 @@ outputDisplay = false; % Set to true to display generated tables
 % Generate H2O pure Component Table from NIST
 comp_name = 'H2O';
 disp(['Generating component table for: ', comp_name]);
-tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
+tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', true,'outputPath',outputPath);
 % Generate H2 pure Component Table from NIST
 pause(0.1);  % Ensure smooth execution between commands
 comp_name = 'H2';
 disp(['Generating component table for: ', comp_name]);
-tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
+tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', true,'outputPath',outputPath);
 % We use the Redlick Kwong Eos to obtain the solubility
 disp('Generating solubility table for H2-brine mixture...');
-%[tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, output_dir);
-tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'display_output', true,'output_dir',output_dir);
+%[tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, outputPath);
+tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'outputDisplay', true,'outputPath',outputPath);
 % Load ePC-SAFT Data
-epcsaft = load('./thermodymics/PcSaftSolubilityTable/ePcSaftH2BrineData.mat');
+epcsaft = load(fullfile(ROOTDIR,'..','modules','H2store','thermodynamics',...
+    'PcSaftSolubilityTable','ePcSaftH2BrineData.mat'));
 state = epcsaft.state;
 
 % Define constants
@@ -262,12 +256,12 @@ hold off;
 % Retrieve NIST data for pure hydrogen (H2)
 % In Eclipse std conditions for gases are 1 atm and 0 C
 comp_name = 'H2';
-tab_H2_pure =  generatePureComponentProperties('min_temp',-3, 'max_temp',3, 'n_temp', 3, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
+tab_H2_pure =  generatePureComponentProperties('min_temp',-3, 'max_temp',3, 'n_temp', 3, 'comp_name', comp_name,'outputDisplay', true,'outputPath',outputPath);
 
 % Retrieve NIST data for pure water (H2O)
 comp_name = 'H2O';
 % In Eclipse std conditions for liquids are 1 atm and 15 C to 25 C
-tab_H2O_pure =  generatePureComponentProperties('min_temp',15, 'max_temp',25, 'n_temp', 10, 'comp_name', comp_name,'display_output', true,'output_dir',output_dir);
+tab_H2O_pure =  generatePureComponentProperties('min_temp',15, 'max_temp',25, 'n_temp', 10, 'comp_name', comp_name,'outputDisplay', true,'outputPath',outputPath);
 % Note: The data is calculated at standard atmospheric pressure (1 atm)
 figure;
 title('H2O density at std conditions', 'FontSize', 12);

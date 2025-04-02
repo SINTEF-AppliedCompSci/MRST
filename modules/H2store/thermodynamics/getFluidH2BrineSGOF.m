@@ -14,7 +14,7 @@ function getFluidH2BrineSGOF(varargin)
     %   'n'         - Number of saturation points (default: 100)
     %   'plot'      - Boolean to enable/disable plotting (default: true)
     %   'dir'       - Directory for saving the output file (default: '')
-    %   'filename'  - Name of the output file (default: 'SGOF_H2STORAGE.txt')
+    %   'fileName'  - Name of the output file (default: 'SGOF_H2STORAGE.txt')
     %   'units'     - Unit system for output values ('metric' or 'imperial', default: 'metric')
     %   'nreg'      - Number of regions (default: 1)
     %   'sw_imm'    - Array of immiscible water saturations for each region (default: [0.1])
@@ -42,58 +42,62 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
+
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+    
     % Parse input arguments and set defaults
-    opt = struct('n', 100, ...
-                 'plot', true, ...
-                 'dir', '', ...
-                 'filename', 'SGOF_H2STORAGE.txt', ...
-                 'units', 'metric', ...
-                 'nreg', 1, ...  % Default changed to 1 region
-                 'sw_imm', 0.1, ...  % Default for single region
-                 'sg_imm', 0.1, ...  % Default for single region
-                 'c_a1', 2, ...
-                 'c_a2', 2, ...
-                 'c_a3', 1.5, ...
-                 'Pe', 0.4, ...  % Default for single region
-                 'P_c_max', 9.5e4);  % Default for single region
-             
-    opt = merge_options(opt, varargin{:});
-    u = unitConversionFactors('si', opt.units);
+    opts = struct('n', 100, ...
+        'plot', true, ...
+        'outputPath', '', ...
+        'fileName', 'SGOF_UHS.txt', ...
+        'units', 'metric', ...
+        'nreg', 1, ...  % Default changed to 1 region
+        'sw_imm', 0.1, ...  % Default for single region
+        'sg_imm', 0.1, ...  % Default for single region
+        'c_a1', 2, ...
+        'c_a2', 2, ...
+        'c_a3', 1.5, ...
+        'Pe', 0.4, ...  % Default for single region
+        'P_c_max', 9.5e4);  % Default for single region
+
+    opts = merge_options(opts, varargin{:});
+    u = unitConversionFactors('si', opts.units);
 
     % Ensure the output directory exists
-    if ~isempty(opt.dir) && ~isfolder(opt.dir)
-        mkdir(opt.dir);
+    if isempty(opts.outputPath)
+        opts.outputPath = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'PVT_H2STORAGE');
     end
-
+    if ~exist(opts.outputPath, 'dir')
+        mkdir(opts.outputPath);
+    end
     % Prepare figures if plotting is enabled
-    if opt.plot
+    if opts.plot
         figure(1); clf; % krO and krG plots
         figure(2); clf; % pcOG plot
     end
 
     % Open file for writing
-    fn = fopen(fullfile(opt.dir, opt.filename), 'w');
+    fn = fopen(fullfile(opts.outputPath, opts.fileName), 'w');
     fprintf(fn, '-- SG    KRG    KROG   PCOG\n');
     fprintf(fn, 'SGOF\n');
 
     % Compute properties for each region
-    for reg = 1:opt.nreg
-        s0 = opt.sg_imm(reg);  % Single value for immiscible gas saturation
-        sat = [0, linspace(s0, 1, opt.n-1)]; % Saturation points
+    for reg = 1:opts.nreg
+        s0 = opts.sg_imm(reg);  % Single value for immiscible gas saturation
+        sat = [0, linspace(s0, 1, opts.n-1)]; % Saturation points
         sg = scale_saturation(sat, s0); % Scaled gas saturation
-        so = scale_saturation(1 - sat, opt.sw_imm(reg)); % Scaled oil saturation
-        krg = sg.^opt.c_a2; % Gas relative permeability
-        kro = so.^opt.c_a1; % Oil relative permeability
-        pc_og_bar = opt.Pe(reg) * so.^(1 - opt.c_a3); % Pressure at gas-oil contact
+        so = scale_saturation(1 - sat, opts.sw_imm(reg)); % Scaled oil saturation
+        krg = sg.^opts.c_a2; % Gas relative permeability
+        kro = so.^opts.c_a1; % Oil relative permeability
+        pc_og_bar = opts.Pe(reg) * so.^(1 - opts.c_a3); % Pressure at gas-oil contact
 
-        pcmax = opt.P_c_max(reg);
+        pcmax = opts.P_c_max(reg);
         pc_og = pcmax * erf((pc_og_bar / pcmax) * (sqrt(pi) / 2)); % Adjusted pressure
 
         % Plotting results if enabled
-        if opt.plot
+        if opts.plot
             figure(1);
             subplot(1, 2, 1); hold on;
             title('krO');
@@ -102,39 +106,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             title('krG');
             plot(sat, krg);
             figure(2);
-            subplot(1, opt.nreg, reg); hold on;
+            subplot(1, opts.nreg, reg); hold on;
             title('pcOG');
             plot(sat, pc_og_bar, 'o');
             plot(sat, pc_og);
         end
-        
+
         % Write computed properties to file
-        for i = 1:opt.n
+        for i = 1:opts.n
             fprintf(fn, '%1.8f %1.8f %1.8f %1.8f\n', sat(i), krg(i), kro(i), pc_og(i) * u.press);
         end
         fprintf(fn, '/\n');
     end
-    
+
     % Display completion message
-    disp([opt.filename ' written!']);
+    disp([opts.fileName ' written!']);
     fclose(fn); % Close the output file
 end
 
 function s_scaled = scale_saturation(s, s_imm)
-    % scale_saturation - Scale saturation values.
-    %
-    % This function scales the saturation values to a normalized range
-    % between 0 and 1 based on the immiscible saturation limit.
-    %
-    % Syntax:
-    %   s_scaled = scale_saturation(s, s_imm)
-    %
-    % Input Parameters:
-    %   s (array)   - Saturation values to be scaled.
-    %   s_imm (scalar) - Immiscible saturation threshold.
-    %
-    % Output:
-    %   s_scaled (array) - Scaled saturation values, clipped to a minimum of 0.
-    
-    s_scaled = max((s - s_imm) / (1 - s_imm), 0);
+% scale_saturation - Scale saturation values.
+%
+% This function scales the saturation values to a normalized range
+% between 0 and 1 based on the immiscible saturation limit.
+%
+% Syntax:
+%   s_scaled = scale_saturation(s, s_imm)
+%
+% Input Parameters:
+%   s (array)   - Saturation values to be scaled.
+%   s_imm (scalar) - Immiscible saturation threshold.
+%
+% Output:
+%   s_scaled (array) - Scaled saturation values, clipped to a minimum of 0.
+
+s_scaled = max((s - s_imm) / (1 - s_imm), 0);
 end

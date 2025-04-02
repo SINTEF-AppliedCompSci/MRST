@@ -6,8 +6,8 @@ function tab_comp = generatePureComponentProperties(varargin)
 %                                      'n_temp', 3, 'min_press', 1e5,
 %                                      'max_press', 1e5, 'n_press', 2,
 %                                      'comp_name', 'H2O',
-%                                      'display_output', false,
-%                                      'output_dir', dir)
+%                                      'outputDisplay', false,
+%                                      'outputPath', dir)
 %
 % DESCRIPTION:
 %   This function generates a table for the fluid properties of a given
@@ -23,17 +23,17 @@ function tab_comp = generatePureComponentProperties(varargin)
 %   'comp_name'   - Name of the component (default: 'H2O')
 %
 % OPTIONAL PARAMETERS:
-%   'display_output'  - If true, displays the generated table. Default: false
-%   'output_dir'      - Directory where the output file is saved. Default: current directory.
-%   'output_file'     - File name for the generated table.
+%   'outputDisplay'  - If true, displays the generated table. Default: false
+%   'outputPath'      - Directory where the output file is saved. Default: current directory.
+%   'fileName'     - File name for the generated table.
 %
 % EXAMPLE USAGE:
 %   tab_comp = MAKE_PURECOMPONENT_TABLE_H2('min_temp', 0, 'max_temp', 0, ...
 %                                       'n_temp', 3, 'min_press', 1e5, ...
 %                                       'max_press', 1e5, 'n_press', 2, ...
 %                                       'comp_name', 'H2O', ...
-%                                       'output_dir', '/path/to/output', ...
-%                                       'output_file', 'water');
+%                                       'outputPath', '/path/to/output', ...
+%                                       'fileName', 'water');
 %
 % COPYRIGHT:
 %   Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
@@ -53,7 +53,7 @@ function tab_comp = generatePureComponentProperties(varargin)
 %   along with MRST. If not, see <http://www.gnu.org/licenses/>.
 
 % Input parameters
-opt = struct(...
+opts = struct(...
     'min_temp', 0, ...           % Default: 0°C
     'max_temp', 100, ...         % Default: 100°C
     'n_temp', 3, ...             % Default: 3 points
@@ -61,18 +61,18 @@ opt = struct(...
     'max_press', 1*1e5, ...      % Default: 1 atm (1e5 Pa)
     'n_press', 2, ...            % Default: 2 points
     'comp_name', 'H2O', ...      % Default: 'H2O'
-    'display_output', false, ... % Default: false (auto-generated)
-    'output_dir', '.', ...       % Default: current directory
-    'file_name', 'component_table.csv' ...  % Default: 'component_table.csv'
+    'outputDisplay', false, ...  % Default: false (auto-generated)
+    'outputPath', '', ...       % Default: mrst output directory
+    'fileName', '' ...           % Default: see below
     );
 
 % Merge user inputs with the defaults
-opt = merge_options(opt, varargin{:});
+opts = merge_options(opts, varargin{:});
 
 % Rest of the function remains the same...
-minTemp = opt.min_temp;
-maxTemp = opt.max_temp;
-nTemp = opt.n_temp;
+minTemp = opts.min_temp;
+maxTemp = opts.max_temp;
+nTemp = opts.n_temp;
 
 if nTemp == 1
     delta_temperature = 0;
@@ -80,28 +80,33 @@ else
     delta_temperature = (maxTemp - minTemp) / (nTemp - 1);
 end
 
-minPress = opt.min_press;
-maxPress = opt.max_press;
-nPress = opt.n_press;
+minPress = opts.min_press;
+maxPress = opts.max_press;
+nPress = opts.n_press;
 
-fprintf('Component: %s\n', opt.comp_name);
+fprintf('Component: %s\n', opts.comp_name);
 fprintf('Temperature at std conditions: %.1f to %.1f °C (%d points)\n', minTemp, maxTemp, nTemp);
 fprintf('Pressure at std conditions: %.1f', minPress);
 
 delta_pressure = nPress;
-compName = opt.comp_name;
+compName = opts.comp_name;
 
 % Set output filename
-fileName = sprintf('%s_pure_values_%.1f_to_%.1f_bar_%.1f_to_%.1f_C.csv', ...
-        lower(compName), minPress, maxPress, minTemp, maxTemp);
-
-% Ensure the output directory exists
-if ~exist(opt.output_dir, 'dir')
-    mkdir(opt.output_dir);
+if isempty(opts.fileName)
+    opts.fileName = sprintf('%svalues_%.1f_to_%.1f_bar_%.1f_to_%.1f_C.csv', ...
+    lower(compName), minPress, maxPress, minTemp, maxTemp);
 end
 
+% Ensure the output directory exists
+if isempty(opts.outputPath)
+    opts.outputPath = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'H2SolubilityTable');
+end
+
+if ~exist(opts.outputPath, 'dir')
+    mkdir(opts.outputPath);
+end
 % Full path to the output file
-filePath = fullfile(opt.output_dir, fileName);
+filePath = fullfile(opts.outputPath, opts.fileName);
 
 % Open the output file
 outFile = fopen(filePath, 'w');
@@ -196,9 +201,9 @@ for i = 1:nTemp
 end
 
 fclose(outFile);
-fprintf('A file %s has been generated in %s.\n', fileName, opt.output_dir);
+fprintf('A file %s has been generated in %s.\n', opts.fileName, opts.outputPath);
 try
-    if opt.display_output
+    if opts.outputDisplay
         tab_comp = readtable(filePath,  'VariableNamingRule', 'preserve');
         display(tab_comp);
         disp('Table read successfully:');
