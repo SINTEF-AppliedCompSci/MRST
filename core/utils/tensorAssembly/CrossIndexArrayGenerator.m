@@ -7,10 +7,13 @@ classdef CrossIndexArrayGenerator
         mergefds    % Field names for merging
 
         replacefds1 % Possibility to change field names of first table
-                    % (before setting up map)
+                    % (before setting up gen)
         replacefds2 % Possibility to change field names of second table
-                    % (before setting up map)
+                    % (before setting up gen)
 
+        sortfds                   % Field names for sorting (if empty, no sorting is done)
+        sortKeepAllFields = true; % If true, all fields are kept in the sorted table
+        
         %% dispactch mappings updated during setup
         tbl
         ind1
@@ -25,16 +28,17 @@ classdef CrossIndexArrayGenerator
 
         function gen = CrossIndexArrayGenerator(varargin)
 
-            map.tbl1 = [];
-            map.tbl2 = [];
-            map.replacefds1 = [];
-            map.replacefds2 = [];
-            map.mergefds = [];
+            gen.tbl1        = [];
+            gen.tbl2        = [];
+            gen.replacefds1 = [];
+            gen.replacefds2 = [];
+            gen.mergefds    = [];
+            gen.sortfds     = [];
+            
+            gen = merge_options(gen, varargin{:}); 
 
-            map = merge_options(map, varargin{:}); 
-
-            if isempty(map.mergefds)
-                map.mergefds = {};
+            if isempty(gen.mergefds)
+                gen.mergefds = {};
             end            
 
         end
@@ -55,10 +59,17 @@ classdef CrossIndexArrayGenerator
             end
 
             [tbl, indstruct] = crossIndexArray(tbl1, tbl2, mergefds, gen.opts{:});
-            
+
             gen.tbl = tbl;
             gen.ind1 = indstruct{1}.inds;
             gen.ind2 = indstruct{2}.inds;
+            
+            if ~isempty(gen.sortfds)
+                [tbl, dispind] = sortIndexArray(tbl, gen.sortfds, 'keepAllFields', gen.sortKeepAllFields);
+                gen.tbl = tbl;
+                gen.ind1 = gen.ind1(dispind);
+                gen.ind2 = gen.ind2(dispind);
+            end
             
         end
 

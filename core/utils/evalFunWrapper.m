@@ -1,26 +1,26 @@
 function [status, str] = evalFunWrapper(fn, args, varargin)
-% Utility to launch (mrst-)function evaluation in seperate matlab session 
+% Utility to launch (mrst-)function evaluation in seperate matlab session
 %
 % SYNOPSIS:
 %   evalFunWrapper(fn, args, varargin)
 %
 % DESCRIPTION:
-%   This function launches a seperate matlab session and perfoms the evaluation 
+%   This function launches a seperate matlab session and perfoms the evaluation
 %       feval(fn, args{:})
 %   by invoking evalFunStandalone
 %
 % PARAMETERS:
 %   fn      - function handle of non-anonymous function. Corresponding
-%             m-file must be on matlab/mrst-path (see option moduleList).  
-%   args    - list of function arguments. Supported arguments are strings, 
-%             function handles, cellstrings and doubles. Numeric arguments 
-%             must be scalar or on row form. 
+%             m-file must be on matlab/mrst-path (see option moduleList).
+%   args    - list of function arguments. Supported arguments are strings,
+%             function handles, cellstrings and doubles. Numeric arguments
+%             must be scalar or on row form.
 %
 % OPTIONAL PARAMETERS
-%  progressFileNm  - If non-empty a file with name progressFileNm will be 
+%  progressFileNm  - If non-empty a file with name progressFileNm will be
 %                    written before launcing new session. File is deleted
 %                    when new session is done computing fn. File name
-%                    should include full path. 
+%                    should include full path.
 %  moduleList      - List of mrst-modules that will be added in new session
 %                    Default is currently active modules
 %
@@ -32,16 +32,16 @@ function [status, str] = evalFunWrapper(fn, args, varargin)
 %  singleCompThread - Option indicating whether new session should be run
 %                     using single computational thread (default true)
 %
-%  matlabBinary    - Command to start external Matlab-session. Default is  
+%  matlabBinary    - Command to start external Matlab-session. Default is
 %                    fullfile(matlabroot(), 'bin', 'matlab'), e.g., same
 %                    Matlab-version as the one currently running.
 %
 %  matlabOpts      - String of matlab startup options. Default: see below
-% 
-%  exitWhenDone    - Exit/quit new session when computation is done 
+%
+%  exitWhenDone    - Exit/quit new session when computation is done
 %                    (default true)
 % RETURNS:
-%   status         - when run in background, status will be 0. 
+%   status         - when run in background, status will be 0.
 %
 % EXAMPLE:
 %   evalFunWrapper(@arrayfun, {@why, 1:20}, 'exitWhenDone', false)
@@ -74,13 +74,13 @@ opt = struct('progressFileNm',       '', ...
              'singleCompThread',   true, ...
              'matlabBinary',         '', ...
              'matlabOpts',           '', ...
-             'exitWhenDone',       true);         
+             'exitWhenDone',       true);
 opt = merge_options(opt, varargin{:});
 
 if isempty(opt.moduleList)
     opt.moduleList = mrstModule();
 end
-       
+
 assert(iscell(args), 'Function arguments must come in a list (cell)');
 
 % warn if function is anonymous as this is not recommended
@@ -88,7 +88,7 @@ if isa(fn, 'function_handle')
     checkFunction(fn)
 end
 
-% write progress file 
+% write progress file
 fnm = opt.progressFileNm;
 if ~isempty(fnm)
     flag = writeProgressFile(fnm);
@@ -103,11 +103,11 @@ if isempty(mbin)
     mbin = fullfile(matlabroot(), 'bin', 'matlab');
     % Support folder names with spaces (e.g., 'Program Files' on win)
     mbin = strcat('"', mbin, '"');
-    % If 'matlabBinary' is defaulted on a Windows-system, force background-option 
-    % to be false to avoid opening of additional cmd.exe-window(s). To enable 
-    % backgrounds-calls on Windows-systems (e.g., such that main command-window 
-    % will wait for external session to finnish) setting option 'matlabBinary'
-    % to 'matlab' can be used, allthough this will launch default version 
+    % If 'matlabBinary' is defaulted on a Windows-system, force background-option
+    % to be false to avoid opening of additional cmd.exe-window(s). To enable
+    % backgrounds-calls on Windows-systems (e.g., such that main command-window
+    % will wait for external session to finish) setting option 'matlabBinary'
+    % to 'matlab' can be used, allthough this will launch default version
     % (as of R2020b/Windows 10 Enterprise/Pro).
     if ispc
         opt.background = false;
@@ -208,7 +208,7 @@ if ~strcmp(cl, 'char')
 end
 end
 
-%% 
+%%
 function s = quote(c)
 if ischar(c)
     s = ['''', c, ''''];
@@ -252,12 +252,10 @@ for k = 1:numel(varargout)
 end
 end
 
-%% 
+%%
 function checkFunction(fn)
 fnh = functions(fn);
 if strcmp(fnh.type, 'anonymous'), ...
     warning('Passing anonymous functions to external sessions is not recommended: \n   %s  ', fnh.function);
 end
 end
-
-

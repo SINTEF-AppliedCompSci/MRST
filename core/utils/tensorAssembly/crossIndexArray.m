@@ -177,6 +177,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     n2 = tbl2.num;
     
     if (opt.optpureproduct | opt.virtual)
+        
         assert(isempty(crossfields), 'cannot use optpureproduct option in this case');
         % check fieldnames do not intersect
         isnotok = any(ismember(fdnames1, fdnames2)) | any(ismember(fdnames2, ...
@@ -188,15 +189,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         n2 = tbl2.num;
 
         if opt.virtual
+
             tbl = IndexArray([], 'fdnames', fdnames, 'isvirtual', true, 'num', n1*n2);
-            return
+            
+        else
+            
+            mat2 = repmat(tbl2.inds, n1, 1);
+            mat1 = rldecode(tbl1.inds, n2*ones(n1, 1));
+            mat = [mat1, mat2];
+            
+            tbl = IndexArray([], 'fdnames', fdnames, 'inds', mat);
+            
         end
-        
-        mat2 = repmat(tbl2.inds, n1, 1);
-        mat1 = rldecode(tbl1.inds, n2*ones(n1, 1));
-        mat = [mat1, mat2];
-        
-        tbl = IndexArray([], 'fdnames', fdnames, 'inds', mat);
         
         if nargout > 1
             

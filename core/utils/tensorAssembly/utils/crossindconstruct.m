@@ -17,7 +17,7 @@ function [crossind1, crossind2] = crossindconstruct(nb1, nb2)
 %        ind2 = [1; 2; 3] % the definition of ind2 is  (1 : sum(nb2))'
 %
 %        crossind1 = [1; 1; 1; 2; 2; 2];
-%        crossind2 = [1; 2; 1; 2; 1; 2];
+%        crossind2 = [1; 2; 3; 1; 2; 3];
 %
 %   2) dim(nb1) = dim(nb2) > 1: We repeat the previous construction for
 %      each pair in nb1 and nb2 and concacenate the result::
@@ -26,8 +26,8 @@ function [crossind1, crossind2] = crossindconstruct(nb1, nb2)
 %        ind1 = [1; 2; 3; 4; 5] % the definition of ind1 is  (1 : sum(nb1))'
 %        ind2 = [1; 2; 3; 4]    % the definition of ind2 is  (1 : sum(nb2))'
 %
-%        crossind1 = [1; 1; 1; 2; 2; 2; 3; 3; 4; 4; 5; 5];
-%        crossind2 = [1; 2; 1; 2; 1; 2; 3; 4; 3; 4; 3; 4];
+%        crossind1 = [1; 1; 2; 2; 3; 3; 4; 4; 5; 5];
+%        crossind2 = [1; 2; 1; 2; 3; 4; 3; 4; 3; 4];
 %
 % PARAMETERS:
 %   nb1 - integer vector gives number of repetition for first table
@@ -37,8 +37,6 @@ function [crossind1, crossind2] = crossindconstruct(nb1, nb2)
 %   crossind1 - first index vector
 %   crossind2 - second index vector
 %
-% EXAMPLE:
-%   `computeVagTrans`.
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

@@ -24,8 +24,10 @@ function [S, operators] = VEM_assemble(G, C, varargin)
 %              calc.
 %
 % RETURNS:
-%   S         - full VEM system matrix, including rows/columns for
-%   Dirichlet nodes. operators - will contain the fields:
+%   S         - full VEM system matrix, including rows/columns for Dirichlet nodes.
+%
+%   operators - will contain the fields:
+%    
 %               - D      - matrix of normalized strain energies for each
 %                          cell
 %               - WC     - matrix for projection of basis functions onto

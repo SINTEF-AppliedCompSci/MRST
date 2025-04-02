@@ -6,7 +6,7 @@
 %      explicit time stepping. This was the original formulation in the
 %      vertical average module.
 %   2) Using s as variable and using tpfa an implicit transport from the
-%      mrst core. 
+%      mrst core.
 %
 %   the example also set up a compate deck file which can be written and
 %   may be used for simulation by tradition solvers
@@ -14,8 +14,8 @@
 clear
 gravity on
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
-%% Quantities to vary:                        %%  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Quantities to vary:                        %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 n = 30; %100; %100;
 L = 2000; %5000;
@@ -26,7 +26,7 @@ total_time=100*year; %500*year;
 nsteps=20; % number of steps
 dt = total_time/nsteps; % total_time/1000;
 injection_time=total_time/10; % injection time
-%n_flux = 1; 
+%n_flux = 1;
 perm = 100;
 K=perm*milli*darcy();
 phi= 0.1;
@@ -42,7 +42,7 @@ theta = -1*pi/180; %1*pi/180;
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Make a deck struct   
+%% Make a deck struct
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     cartdims = [n 1 dim3];
     nc=prod(cartdims);
@@ -53,14 +53,14 @@ theta = -1*pi/180; %1*pi/180;
     %only for eclipse
     deck.RUNSPEC.WATER=1;
     %deck.RUNSPEC.FIELD=1;
-    deck.RUNSPEC.METRIC=1; 
+    deck.RUNSPEC.METRIC=1;
     deck.RUNSPEC.TABDIMS=[1     1    20    50    20    50     1    20    20     1    10     1    -1     0     1];
     deck.RUNSPEC.WELLDIMS=[5 10 2 1 5 10 5 4 3 0 1 1];
     deck.RUNSPEC.AQUDIMS=[0 0 0 0 10 10 0 0];
     deck.RUNSPEC.START=734139;
     % one sat num region
     deck.REGIONS.SATNUM=ones(nc,1);
-    %define props    
+    %define props
     %deck.PROPS.SWOF{1}=[s,s.^alpha,(1-s).^alpha,s*0];
     chop = @(x) min(max(0,x),1);
     s_wc = 0.0; %0.2;
@@ -71,10 +71,10 @@ theta = -1*pi/180; %1*pi/180;
     %swof = [s, chop(s_star.^alpha), chop((1-s_star).^alpha), s*drho*norm(g)*0.0];
     %swof = [swof; [1.0 1.0 0.0 0.0]];
     deck.PROPS.SWOF{1} = swof;
-    
+
     pres = convertTo(convertFrom(6000, psia), barsa);
     deck.SOLUTION.PRESSURE=ones(nc,1)*pres;
-     
+
     %deck.PROPS.DENSITY=[900 1000 0.044000000000000];
     deck.PROPS.DENSITY = [600 1000 1];
     deck.PROPS.ROCK=[100 1.0e-6 NaN NaN NaN NaN];
@@ -92,16 +92,16 @@ theta = -1*pi/180; %1*pi/180;
     deck.GRID=grdeclSloping([n, 1, dim3],[L dy H],'theta',theta,'amp',H/5,'lambda',L/4);
     deck.GRID.ZCORN=deck.GRID.ZCORN+depth;
     deck.GRID.ACTNUM=int32(ones(nc,1));
-    
+
     deck.GRID.PORO=ones(nc,1)*phi;
     deck.GRID.PERMX=ones(nc,1)*perm;
     deck.GRID.PERMY=ones(nc,1)*perm;
     deck.GRID.PERMZ=ones(nc,1)*perm;
-    
+
     grdecl = grdeclSloping([n, 1, dim3],[L dy H],'theta',theta,'amp',H/5,'lambda',L/4);
-    
+
     %
-   
+
     sr=0.3;sw=0.3;
     deck.SOLUTION.SWAT=ones(nc,1);
     deck.SOLUTION.SOIL=ones(nc,1).*0.0;
@@ -135,7 +135,7 @@ deck.SCHEDULE.control(2).WCONINJE{3}='SHUT';
 deck.SCHEDULE.step.val=ones(nsteps,1)*dt/day;
 deck.SCHEDULE.step.val=[deck.SCHEDULE.step.val,deck.SCHEDULE.step.val*40];
 
-%% deck is finnished
+%% deck is finished
 %writeDeck('test_slope',deck);
 % convert units
 deck_converted=convertDeckUnits(deck);
@@ -176,17 +176,17 @@ require deckformat
 W_3D = processWells(g,rock,deck_converted.SCHEDULE.control(1));
 W_3D_2ph=W_3D;
 % change resv to rate which is used in the 2ph simulations
-for i=1:numel(W_3D)    
+for i=1:numel(W_3D)
    if(strcmp(W_3D(i).type,'resv'))
     W_3D_2ph(i).type='rate';
    end
-   %  well indices is correct since they are calculated in 3D which 
+   %  well indices is correct since they are calculated in 3D which
    % include the height in the WI
 end
 % make VE wels for s and h formulation
 % we will use mimetic for the h formulation with ip_simple innerproduct
 W_h = convertwellsVE(W_3D_2ph, g, g_top, rock2d,'ip_simple');
-% we will use tpfa method for the s formulation 
+% we will use tpfa method for the s formulation
 W_s = convertwellsVE_s(W_3D_2ph, g, g_top, rock2d,'ip_tpf');
 % correct the definition of input value according to solver
 for i=1:numel(W_h)
@@ -213,7 +213,7 @@ end
 n=1;
 problem{n}.fluid      = initVEFluidHForm(g_top, 'mu', mu, 'rho', rho,'sr',sr,'sw',sw); %fluid
 problem{n}.sol        = initResSol(g_top, 0);% initial state
-S=computeMimeticIPVE(g_top,rock2d,'Innerproduct','ip_simple'); % inner product 
+S=computeMimeticIPVE(g_top,rock2d,'Innerproduct','ip_simple'); % inner product
 problem{n}.W=W_h;% well
 problem{n}.bc=bc_h; % boundary condition
 problem{n}.src=src_h; % sources
@@ -224,7 +224,7 @@ problem{n}.psolver =@(sol,fluid,W,bc, src)...
 problem{n}.tsolver =@(sol,fluid,dt,W,bc, src)...
    explicitTransportVE(sol, g_top, dt, rock, fluid, ...
    'computeDt', true, 'intVert_poro', false,'intVert',false,'wells',W,'bc',bc, 'src', src);
-problem{n}.compute_h=false; % this solver compute h 
+problem{n}.compute_h=false; % this solver compute h
 problem{n}.compute_sat=true; % this solver do not compute saturation so we have to do that separately to compeare
 problem{n}.col='r'; % color for the plotting
 % generic twophase solver
@@ -232,7 +232,7 @@ problem{n}.col='r'; % color for the plotting
 n=2;
 problem{n}.fluid = initSimpleVEFluid_s('mu' , mu , 'rho', rho, ...
                            'height'  , g_top.cells.H,...
-                           'sr', [sr, sw]);                        
+                           'sr', [sr, sw]);
 problem{n}.sol        = initResSolVE(g_top, 0);
 T=computeTrans(g_top,rock2d);
 cellno = gridCellNo(g_top);
@@ -248,7 +248,7 @@ problem{n}.compute_h=true;
 problem{n}.compute_sat=false;
 problem{n}.col='gs';
 
-   
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -271,7 +271,7 @@ fig1=figure(1);
 fig2=figure(2);
 fig3=figure(3);
 t = 0;
-while t < total_time   
+while t < total_time
    set(0, 'CurrentFigure', fig1);clf
    set(0, 'CurrentFigure', fig2);clf
    set(0, 'CurrentFigure', fig3);clf
@@ -297,18 +297,18 @@ while t < total_time
       problem{kk}.p_time=problem{kk}.p_time+tmp;
       %% transport solve
       tmp=tic;
-      nn=1;    
-       for ii=1:nn  
-         
+      nn=1;
+       for ii=1:nn
+
          if(t>injection_time)
            %problem{kk}.sol.flux(:) = 0;% uncomment if forsing zero total
            %flow
          end
-         problem{kk}.sol = problem{kk}.tsolver(problem{kk}.sol,problem{kk}.fluid,dt/nn,W,bc, src);      
+         problem{kk}.sol = problem{kk}.tsolver(problem{kk}.sol,problem{kk}.fluid,dt/nn,W,bc, src);
       end
       tmp=toc(tmp);
       problem{kk}.t_time=problem{kk}.t_time+tmp;
-      
+
       if(problem{kk}.compute_h)
          % if the solver do not compute h, h_max calculate it
          [h,h_max]=problem{kk}.fluid.sat2height(problem{kk}.sol);
@@ -320,46 +320,46 @@ while t < total_time
       if(problem{kk}.compute_sat)
           % if the solver do not compute s, s_max calculate it
           problem{kk}.sol.s =  (problem{kk}.sol.h*(1-sw)+(problem{kk}.sol.h_max-problem{kk}.sol.h)*sr)./g_top.cells.H;
-          problem{kk}.sol.s_max =  problem{kk}.sol.h_max*(1-sw)./g_top.cells.H; 
+          problem{kk}.sol.s_max =  problem{kk}.sol.h_max*(1-sw)./g_top.cells.H;
       end
-      
-   
-      
-      
+
+
+
+
       if(g_top.cartDims(2)==1)
          % plot saturation and max_h
          set(0, 'CurrentFigure', fig1);
-         
+
          subplot(2, 2, 1)
-         hold on 
+         hold on
          plot(g_top.cells.centroids(:,1), problem{kk}.sol.h,problem{kk}.col)
          if(kk==1);axh=axis();else axis(axh);end
          ylim([0 H])
          title('Height');xlabel('x'); ylabel('h');
-         
+
          subplot(2, 2, 2)
          hold on
          plot(g_top.cells.centroids(:,1), problem{kk}.sol.h_max,problem{kk}.col)
          if(kk==1);axh_max=axis();else axis(axh_max);end
          ylim([0 H])
-         title('Max Height');xlabel('x'); ylabel('h_max') ;  
-         
-         subplot(2, 2, 3)
-         hold on 
-         plot(g_top.cells.centroids(:,1), problem{kk}.sol.s(:,1),problem{kk}.col)
-         if(kk==1);axs=axis();else axis(axs);end         
-         ylim([0 1])
-         title('Saturation');xlabel('x'); ylabel('s') 
-         
-         subplot(2, 2, 4)
-         hold on 
-         plot(g_top.cells.centroids(:,1), problem{kk}.sol.s_max(:,1),problem{kk}.col)
-         if(kk==1);axs_max=axis();else axis(axs_max);end         
-         ylim([0 1])
-         title('Max Saturation');xlabel('x'); ylabel('s_max')         
+         title('Max Height');xlabel('x'); ylabel('h_max') ;
 
-         
-         
+         subplot(2, 2, 3)
+         hold on
+         plot(g_top.cells.centroids(:,1), problem{kk}.sol.s(:,1),problem{kk}.col)
+         if(kk==1);axs=axis();else axis(axs);end
+         ylim([0 1])
+         title('Saturation');xlabel('x'); ylabel('s')
+
+         subplot(2, 2, 4)
+         hold on
+         plot(g_top.cells.centroids(:,1), problem{kk}.sol.s_max(:,1),problem{kk}.col)
+         if(kk==1);axs_max=axis();else axis(axs_max);end
+         ylim([0 1])
+         title('Max Saturation');xlabel('x'); ylabel('s_max')
+
+
+
          set(0, 'CurrentFigure', fig2);
          hold on
          plot(g_top.cells.centroids(:,1),problem{kk}.sol.pressure/barsa,problem{kk}.col)
@@ -368,15 +368,15 @@ while t < total_time
             % the second phase pressure for the incompressible solvers
             plot(g_top.cells.centroids(:,1),(problem{kk}.sol.pressure-problem{kk}.fluid.pc(problem{kk}.sol))/barsa,['-',problem{kk}.col])
          else
-            plot(g_top.cells.centroids(:,1),(problem{kk}.sol.pressure-norm(gravity)*deck.PROPS.DENSITY(1)*problem{kk}.sol.h)/barsa,['s',problem{kk}.col]) 
+            plot(g_top.cells.centroids(:,1),(problem{kk}.sol.pressure-norm(gravity)*deck.PROPS.DENSITY(1)*problem{kk}.sol.h)/barsa,['s',problem{kk}.col])
          end
          xlabel('x')
          ylabel('pressure')
          title('Comparing pressure for the different solvers')
-         
+
         %   1) for the injection period the well indexs which is not exact
         %      for a 1D calculation effect the result.
-         
+
          set(0, 'CurrentFigure', fig3);
          hold on
          if(kk==1)
@@ -387,19 +387,19 @@ while t < total_time
             text(g_top.cells.centroids(mind,1),g_top.cells.z(mind)+g_top.cells.H(mind)+5,'Bottom surface')
             mind=floor(g_top.cells.num/4);
             text(g_top.cells.centroids(mind,1)-50,g_top.cells.z(mind)+problem{kk}.sol.h(mind)-2,'Free CO2','Color','b')
-            text(g_top.cells.centroids(mind,1),g_top.cells.z(mind)+problem{kk}.sol.h_max(mind)+1,'Max CO2','Color','r') 
+            text(g_top.cells.centroids(mind,1),g_top.cells.z(mind)+problem{kk}.sol.h_max(mind)+1,'Max CO2','Color','r')
          end
          plot(g_top.cells.centroids(:,1),g_top.cells.z+problem{kk}.sol.h,'b')
          plot(g_top.cells.centroids(:,1),g_top.cells.z+problem{kk}.sol.h_max,'r')
          set(gca,'FontSize',16)
          box on;axis tight
-         
+
          title('Surfaces')
          xlabel('x')
          ylabel('depth')
-         
-         
-      else         
+
+
+      else
          subplot(numel(problem),2,(2*(kk-1))+1)
          pcolor(X,Y,reshape(problem{kk}.sol.h,g_top.cartDims))
          if(kk==1)
@@ -413,14 +413,14 @@ while t < total_time
          caxis(cxs)
          title(['Max Height',num2str(kk)]);colorbar,shading interp
       end
-         
+
    end
    set(0, 'CurrentFigure', fig1);
    drawnow;
    set(0, 'CurrentFigure', fig2);
    drawnow;
    set(0, 'CurrentFigure', fig3);
-   
+
    drawnow;
    t=t+dt;
 end
@@ -458,4 +458,3 @@ text(1850,-3,'Pressure at top')
 %        co2 and water
 %      - The tpfa with the given fluid calculate the extrapolated
 %        water pressure at the top
-

@@ -58,16 +58,23 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-try
-   disp(' -> Reading Johansen.mat');
-   datadir = fullfile(mrstPath('co2lab-common'),'data','mat');
-   load(fullfile(datadir,'Johansen'));
-   return;
-catch %#ok<*CTCH>
-   disp(' -> Reading failed, constructing grid models');
+opt = merge_options(struct('do_plot', false, 'refineDims', [], ...
+    'remakeGrid',false, 'customRock',  []), varargin{:});
+
+datadir = fullfile(mrstPath('co2lab-common'),'data','mat');
+
+if opt.remakeGrid
+   disp(' -> Remaking grid');
+else
+   try
+      disp(' -> Reading Johansen.mat');      
+      load(fullfile(datadir,'Johansen'));
+      return;
+   catch %#ok<*CTCH>
+      disp(' -> Reading failed, constructing grid models');
+   end
 end
 
-opt = merge_options(struct('do_plot', false), varargin{:});
    
 %% Load model and construct VE grid
 % Load grid geometry - you will most likely have to change the path,
@@ -91,32 +98,47 @@ sector = fullfile(jdir, sector);
 grdecl = readGRDECL([sector '.grdecl']);
 
 % Load permeability and porosity
-K = reshape(load([sector, '_Permeability.txt'])', [], 1);
-p = reshape(load([sector, '_Porosity.txt'])',     [], 1);
-grdecl.PERMX=K;grdecl.PERMY=K;grdecl.PERMZ=0.1*K;
-grdecl.PORO=p;
+if ~isempty(opt.customRock)
+    grdecl.PERMX = opt.customRock.perm(:,1)/milli/darcy;
+    grdecl.PERMY = opt.customRock.perm(:,2)/milli/darcy;
+    grdecl.PERMZ = opt.customRock.perm(:,3)/milli/darcy;
+    grdecl.PORO = opt.customRock.poro;
+else 
+    K = reshape(load([sector, '_Permeability.txt'])', [], 1);
+    p = reshape(load([sector, '_Porosity.txt'])',     [], 1);
+    grdecl.PERMX=K;grdecl.PERMY=K;grdecl.PERMZ=0.1*K;
+    grdecl.PORO=p;
+end
+K = grdecl.PERMX;
+p = grdecl.PORO;
 clear sector;
 
 % Remove shale layers Dunhil and Amundsen
 disp(' -> Constructing grids ...');
 grdecl.ACTNUM(K.*milli*darcy<0.11 *milli*darcy) = 0;
 
+% Refine grdecl
+if ~isempty(opt.refineDims) && prod(opt.refineDims) > 1
+    grdecl = refineGrdecl(grdecl, opt.refineDims);
+end
+
+
 % Construct grid structure. By removing Dunhil and Amundsen, the grid will
 % consist of multiple components. We choose the largest one as our
 % reservoir.
 G = processGRDECL(grdecl);
 G = computeGeometry(G(1));
-clear grdecl
+% clear grdecl
 
 % Construct VE grid
 [Gt, G] = topSurfaceGrid(G);
 
 % Construct structure with petrophyiscal data. Vertical permeability is set
 % to 0.1 times the horizontal permeability. NB!
-rock.perm = bsxfun(@times, [1 1 0.1], K(G.cells.indexMap)).*milli*darcy;
-rock.poro = p(G.cells.indexMap);
+rock.perm = bsxfun(@times, [1 1 0.1], grdecl.PERMX(G.cells.indexMap)).*milli*darcy;
+rock.poro = grdecl.PORO(G.cells.indexMap);
 rock2D    = averageRock(rock, Gt);
-clear p K;
+clear p K grdecl;
 
 %% FIND FAULT - set inner boundary
 % The main fault is assumed to be sealing and must therefore be represented
