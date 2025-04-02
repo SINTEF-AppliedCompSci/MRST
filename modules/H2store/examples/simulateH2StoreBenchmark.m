@@ -41,7 +41,7 @@ warning('ComputationalCost:High', ...
        ['Please be advised that this example takes a long time ', ...
         'to run']);
 %% Necessary MRST modules for simulation
-mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui
+mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui test-suite
 
 % Define the name of the simulation for output files
 name = 'H2_STORAGE_RS_UHS_BENCHMARK';

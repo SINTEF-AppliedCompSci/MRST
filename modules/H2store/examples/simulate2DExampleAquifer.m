@@ -35,7 +35,7 @@
 %--------------------------------------------------------------------------
 
 clearvars; 
-mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr
+mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr test-suite spe10
 
 %% Define the case name and read the Eclipse deck file
 name = 'H2_STORAGE_RS';
