@@ -63,7 +63,7 @@ disp('Generating solubility table for H2-brine mixture...');
 %[tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, outputPath);
 tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'outputDisplay', true,'outputPath',outputPath);
 % Load ePC-SAFT Data
-epcsaft = load(fullfile(ROOTDIR,'..','modules','H2store','thermodynamics',...
+epcsaft = load(fullfile(ROOTDIR,'..','modules','h2store','examples','data',...
     'PcSaftSolubilityTable','ePcSaftH2BrineData.mat'));
 state = epcsaft.state;
 
