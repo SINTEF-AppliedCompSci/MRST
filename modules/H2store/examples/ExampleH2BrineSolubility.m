@@ -46,7 +46,6 @@ warning('ComputationalCost:Medium', ...
 % Define target output directory and create if it doesn't exist
 outputPath = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'H2SolubilityTable');
 
-
 % This configuration prepares solubility data for the H2-brine system
 % under RK-EOS in the context of saline aquifer storage.
 

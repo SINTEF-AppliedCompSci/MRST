@@ -63,7 +63,6 @@ end
 
 if onlyRS
     getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol,'rs', true, 'rv', false,'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE', 'PVTGFile', 'PVTGH2BRINE','outputPath', outputPathPvt);
-
     disp('Writing fluid properties for miscible case with digas and disabled evapoil...');
 else
     % generate RSRV
