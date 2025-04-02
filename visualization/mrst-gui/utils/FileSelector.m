@@ -92,7 +92,7 @@ classdef FileSelector < UIItem
 
             s = update_settings(s, opt);
             pathSelector.String = s.settings.recentPaths;
-            pathSelector.Value = 1;
+            pathSelector.Value = s.settings.lastSelected;
 
             if opt.standalone
                 dp = get(0, 'DefaultFigurePosition');
@@ -118,6 +118,7 @@ classdef FileSelector < UIItem
         function closeFigure(s, src, event)
             if s.settings.save
                 tmp = s.settings;
+                tmp.lastSelected = s.pathSelector.Value;
                 save(s.settings.settingsFile, '-struct', 'tmp');
             end
             delete(s.Parent);
@@ -208,11 +209,13 @@ ok = true;
 if isfile(fn)
     s.settings = load(fn);
     ok = (isfield(s.settings, 'settingsFile') && ischar(s.settings.settingsFile)) && ...
-         (isfield(s.settings, 'recentPaths') && iscell(s.settings.recentPaths));
+         (isfield(s.settings, 'recentPaths') && iscell(s.settings.recentPaths)) && ...
+         (isfield(s.settings, 'lastSelected') && isscalar(s.settings.lastSelected));
 end
 if ~isfile(fn) || ~ok
     s.settings = struct('settingsFile', opt.settingsFile, ...
-                        'recentPaths', {{}});
+                        'recentPaths', {{}}, ...
+                        'lastSelected', 1);
     if ~ok
         warning('Unexpected format of settings in %s. Not used.\n', fn);
     end
