@@ -80,11 +80,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     if ~exist(opts.outputPath, 'dir')
         mkdir(opts.outputPath);
     end
-    % Prepare figures if plotting is enabled
-    if opts.plot
-        figure(1); clf; % krO and krG plots
-        figure(2); clf; % pcOG plot
-    end
 
     % Open file for writing
     fn = fopen(fullfile(opts.outputPath, opts.fileName), 'w');
@@ -106,19 +101,39 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
         % Plotting results if enabled
         if opts.plot
-            figure(1);
+            % Plot Relative Permeabilities
+            figure;
+
+            % Plot krO (Oil Relative Permeability)
             subplot(1, 2, 1); hold on;
-            title('krO');
-            plot(1 - sat, kro);
+            plot(1 - sat, kro, 'LineWidth', 2);
+            title('Oil Relative Permeability (krO)');
+            xlabel('Saturation');
+            ylabel('krO');
+            grid on;
+            legend('krO');
+
+            % Plot krG (Gas Relative Permeability)
             subplot(1, 2, 2); hold on;
-            title('krG');
-            plot(sat, krg);
+            plot(sat, krg, 'LineWidth', 2);
+            title('Gas Relative Permeability (krG)');
+            xlabel('Saturation');
+            ylabel('krG');
+            grid on;
+            legend('krG');
+
+            % Plot Capillary Pressure (pcOG) for multiple regions
             figure(2);
             subplot(1, opts.nreg, reg); hold on;
-            title('pcOG');
-            plot(sat, pc_og_bar, 'o');
-            plot(sat, pc_og);
+            title(['Capillary Pressure (pcOG) - Region ', num2str(reg)]);
+            plot(sat, pc_og_bar, 'o', 'MarkerSize', 6, 'DisplayName', 'pcOG (Bar)');
+            plot(sat, pc_og, 'LineWidth', 2, 'DisplayName', 'pcOG');
+            xlabel('Saturation');
+            ylabel('pcOG (Pa)');
+            grid on;
+            legend;
         end
+
 
         % Write computed properties to file
         for i = 1:opts.n

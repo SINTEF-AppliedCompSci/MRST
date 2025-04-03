@@ -117,7 +117,7 @@ assert(height(tab_sol) == height(tab_h2o) && height(tab_sol) == height(tab_h2), 
 % Check if pressures are consistent within a tolerance of 0.001 Pa
 tolerance = 1e-3;
 assert(all(abs(p_sol - p_h2o)./barsa() < tolerance), 'Error: Pressure mismatch detected between H2O and solution.');
-assert(all(abs(p_sol - p_h2)/barsa() < tolerance), 'Error: Pressure mismatch detected between H2 and solution.');
+assert(all(abs(p_sol - p_h2)./barsa() < tolerance), 'Error: Pressure mismatch detected between H2 and solution.');
 
 %% Convert pressure to bar
 p = p_sol ./ barsa;
@@ -127,9 +127,18 @@ p = p_sol ./ barsa;
 [X_H2, Y_h2o] = convertMoleToMassFraction(x_H2, y_h2o);
 %% Plot phase properties if plotting is enabled
 if do_plot
-    figure(1); clf;
-    subplot(1, 2, 1); plot(p_sol, x_H2); title('x_H2 in liquid');
-    subplot(1, 2, 2); plot(p_sol, y_h2o); title('y_H2O in vapor');
+    figure;
+    subplot(1, 2, 1);
+    plot(p_sol, x_H2, 'LineWidth', 2);
+    xlabel('Pressure (Pa)');
+    ylabel('x_{H2} (Liquid Mole Fraction)');
+    title('x_{H2} in Liquid');
+
+    subplot(1, 2, 2);
+    plot(p_sol, y_h2o, 'LineWidth', 2);
+    xlabel('Pressure (Pa)');
+    ylabel('y_{H2O} (Vapor Mole Fraction)');
+    title('y_{H2O} in Vapor');
 end
 
 %% Retrieve densities and viscosities
@@ -139,10 +148,23 @@ end
 if do_plot
     figure; hold on;
     saturated_water_density = WaterDensity(T, pure_water_density, X_H2);
-    subplot(1, 2, 1); plot(p, pure_water_density, 'DisplayName', 'Pure Water');
-    plot(p, saturated_water_density, 'DisplayName', 'H2 Saturated Water');
-    legend; title('Water Density');
-    subplot(1, 2, 2); plot(p, pure_gas_density); title('Gas Density');
+
+    subplot(1, 2, 1);
+    plot(p, pure_water_density, 'LineWidth', 2, 'DisplayName', 'Pure Water');
+    hold on;
+    plot(p, saturated_water_density, 'LineWidth', 2, 'DisplayName', 'H2 Saturated Water');
+    xlabel('Pressure (Pa)');
+    ylabel('Density (kg/m^3)');
+    title('Water Density');
+    legend;
+    hold off;
+
+    subplot(1, 2, 2);
+    plot(p, pure_gas_density, 'LineWidth', 2);
+    xlabel('Pressure (Pa)');
+    ylabel('Density (kg/m^3)');
+    title('Gas Density');
+
     hold off;
 end
 
@@ -161,23 +183,24 @@ end
 
 if do_plot
     figure;
-
     % Plot R_s if dissolve_gas is true
     if dissolve_gas
         subplot(2, 1, 1); % 2 rows, 1 column, first plot
-        plot(p_sol, R_s);
+        plot(p_sol, R_s, 'LineWidth', 2);
         title('Saturated R_s');
-        xlabel('Pressure');
-        ylabel('R_s');
+        xlabel('Pressure (Pa)');
+        ylabel('R_s (kg/m³)');
+        grid on;
     end
 
     % Plot R_v if vaporize_water is true
     if vaporize_water
         subplot(2, 1, 2); % 2 rows, 1 column, second plot
-        plot(p_sol, R_v);
+        plot(p_sol, R_v, 'LineWidth', 2);
         title('Saturated R_v');
-        xlabel('Pressure');
-        ylabel('R_v');
+        xlabel('Pressure (Pa)');
+        ylabel('R_v (kg/m³)');
+        grid on;
     end
 end
 
@@ -186,14 +209,25 @@ bO = shrinkageFactor(WaterDensity(T, pure_water_density, X_H2), Y_h2o, rhoOS, rh
 bG = shrinkageFactor(pure_gas_density, Y_h2o, rhoGS, rhoOS);
 
 if do_plot
-    figure; hold on
-    subplot(1, 2, 1)
-    plot(p, bG);
+    figure; hold on;
+
+    % Plot b_g (Gas Formation Volume Factor)
+    subplot(1, 2, 1);
+    plot(p, bG, 'LineWidth', 2);
     title('Saturated b_g');
-    subplot(1, 2, 2)
-    plot(p, bO);
+    xlabel('Pressure (Pa)');
+    ylabel('b_g (m³/Sm³)');
+    grid on;
+
+    % Plot b_o (Oil Formation Volume Factor)
+    subplot(1, 2, 2);
+    plot(p, bO, 'LineWidth', 2);
     title('Saturated b_o');
+    xlabel('Pressure (Pa)');
+    ylabel('b_o (m³/Sm³)');
+    grid on;
 end
+
 
 %% Write fluid property tables based on dissolution state
 if dissolve_gas
