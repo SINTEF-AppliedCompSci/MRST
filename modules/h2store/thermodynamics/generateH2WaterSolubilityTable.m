@@ -24,6 +24,8 @@ function solubilityTable = generateH2WaterSolubilityTable(varargin)
 %   'n_press'      - Number of pressure points (default: 10)
 %   'ms'           - salt molality (e.g., 5 mole)
 %   'outputPath'   - Directory to store the output file (default: current directory)
+%   'reCompute'    - recomoute table (default: true)
+
 %
 % OPTIONAL PARAMETERS:
 %   'outputDisplay' - If true, the generated solubility table is displayed in the
@@ -68,6 +70,7 @@ opts = struct(...
     'ms', 0, ...                % Default: water
     'n_press', 10, ...          % Default: 10 points
     'outputDisplay', false, ... % Default: false (auto-generated)
+    'reCompute', true, ...      % Default: true
     'outputPath', '.' ...       % Default: mrst output dir
     );
 opts = merge_options(opts,varargin{:});
@@ -92,14 +95,40 @@ fileName = sprintf('SolubilityValues_%.1f_to_%.1f_bar_%.1f_to_%.1f_C_%.1f.csv', 
     min_pressure_barsa, max_pressure_barsa, ...
     min_temp, max_temp, ms);
 
-if ~exist(opts.outputPath, 'dir')
-    mkdir(opts.outputPath);
-end
 % Full file path
 filePath = fullfile(opts.outputPath, fileName);
 %
+recompute = opts.reCompute;
+% Check if the file already exists
+if exist(filePath, 'file')&&~recompute
+    fprintf('File %s already exists. Loading data...\n', fileName);
+    try
+        solubilityTable = readtable(filePath, 'VariableNamingRule', 'preserve', 'ReadVariableNames', true);
+        solubilityTable.Properties.VariableNames = {'# temperature [°C]', 'pressure [Pa]', 'y_H2O', 'x_H2'};
+      
+        if opts.outputDisplay
+            disp('Solubility Table read successfully:');
+            display(solubilityTable);
+        end
+        return; % Exit the function as the table already exists
+    catch ME
+        warning('Failed to read existing file: %s. Proceeding with table generation.', ME.message);
+    end
+end
+
+if ~exist(opts.outputPath, 'dir')
+    mkdir(opts.outputPath);
+end
 %% Get H2 densities for the requested temperature and pressure ranges
-densities = getH2Densities(temperatures, pressures);
+%% Get H2 densities for the requested temperature and pressure ranges
+mH2 = 2.016e-3;  % Molar mass of H2 (kg/mol)
+Joule = 8.314472;  % Ideal gas constant (J/(mol*K))
+
+T_K =temperatures'+273.15;
+ZH2 = calculateBrillBreggsZfactorHydrogen(T_K, pressures);
+rhoH2_corr = pressures .* mH2 ./ (ZH2 .* Joule .* T_K);
+% one can also extract NIST data
+% rhoH2_corr = getH2Densities(temperatures, pressures);
 
 % Open output file
 fid = fopen(filePath, 'w');
@@ -117,7 +146,7 @@ for i = 1:n_temp
     T = temperatures(i);
     for j = 1:n_press
         p = pressures(j);
-        rhoH2 = densities(i, j);
+        rhoH2 = rhoH2_corr(i, j);
         % Convert temperature to Kelvin for function calls
         A = computeA(T + 273.15, p, rhoH2);
         B = computeB(T + 273.15, p, rhoH2);
@@ -126,7 +155,7 @@ for i = 1:n_temp
         x_H2 = B.*(1 - y_H2O);
         % Output solubilities to file
         outputTable = [outputTable; T, p, y_H2O, x_H2];
-        fprintf(fid, '%.2f, %.2e, %.4e, %.4e\n', T, p, y_H2O, x_H2);
+        fprintf(fid, '%.5e, %.5e, %.4e, %.4e\n', T, p, y_H2O, x_H2);
     end
 end
 

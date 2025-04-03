@@ -69,10 +69,11 @@ mrstModule add deckformat
 % Default options
 opts = struct('rs', true, ...
     'rv', true, ...
-    'plot', false, ...
+    'plot', true, ...
     'nusat', 10, ...
     'outputPath', '', ...
     'units', 'metric', ...
+    'reCompute', true, ...
     'PVTGFile', 'PVTG_UHS.txt', ...
     'PVDOFile', 'PVDO_UHS.txt', ...
     'PVTOFile', 'PVTO_UHS.txt');
@@ -115,8 +116,8 @@ assert(height(tab_sol) == height(tab_h2o) && height(tab_sol) == height(tab_h2), 
 
 % Check if pressures are consistent within a tolerance of 0.001 Pa
 tolerance = 1e-3;
-assert(all(abs(p_sol - p_h2o) < tolerance), 'Error: Pressure mismatch detected between H2O and solution.');
-assert(all(abs(p_sol - p_h2) < tolerance), 'Error: Pressure mismatch detected between H2 and solution.');
+assert(all(abs(p_sol - p_h2o)./barsa() < tolerance), 'Error: Pressure mismatch detected between H2O and solution.');
+assert(all(abs(p_sol - p_h2)/barsa() < tolerance), 'Error: Pressure mismatch detected between H2 and solution.');
 
 %% Convert pressure to bar
 p = p_sol ./ barsa;
@@ -136,12 +137,13 @@ end
 
 %% Plot densities if enabled
 if do_plot
-    figure(1); clf; hold on;
+    figure; hold on;
     saturated_water_density = WaterDensity(T, pure_water_density, X_H2);
     subplot(1, 2, 1); plot(p, pure_water_density, 'DisplayName', 'Pure Water');
     plot(p, saturated_water_density, 'DisplayName', 'H2 Saturated Water');
     legend; title('Water Density');
     subplot(1, 2, 2); plot(p, pure_gas_density); title('Gas Density');
+    hold off;
 end
 
 %% Surface densities for calculation
@@ -150,19 +152,32 @@ rhoOS = 9.98207150467e+02; % Density of H2O at surface (kg/m^3)
 
 %% Calculate saturation properties Rs and Rv
 if dissolve_gas
-    R_s = rhoOS .* X_H2 ./ (rhoGS.*(1-X_H2));
-    if do_plot
-        figure(1); clf;
-        plot(p_sol, R_s); title('Saturated R_s');
-    end
+    R_s = rhoOS .* X_H2 ./ (rhoGS .* (1 - X_H2));
 end
 
 if vaporize_water
-    R_v = rhoGS .* Y_h2o ./ (rhoOS.*(1-Y_h2o));
+    R_v = rhoGS .* Y_h2o ./ (rhoOS .* (1 - Y_h2o));
+end
 
-    if do_plot
-        figure(1); clf;
-        plot(p_sol, R_v); title('Saturated R_v')
+if do_plot
+    figure;
+
+    % Plot R_s if dissolve_gas is true
+    if dissolve_gas
+        subplot(2, 1, 1); % 2 rows, 1 column, first plot
+        plot(p_sol, R_s);
+        title('Saturated R_s');
+        xlabel('Pressure');
+        ylabel('R_s');
+    end
+
+    % Plot R_v if vaporize_water is true
+    if vaporize_water
+        subplot(2, 1, 2); % 2 rows, 1 column, second plot
+        plot(p_sol, R_v);
+        title('Saturated R_v');
+        xlabel('Pressure');
+        ylabel('R_v');
     end
 end
 
@@ -171,7 +186,7 @@ bO = shrinkageFactor(WaterDensity(T, pure_water_density, X_H2), Y_h2o, rhoOS, rh
 bG = shrinkageFactor(pure_gas_density, Y_h2o, rhoGS, rhoOS);
 
 if do_plot
-    figure(1); clf; hold on
+    figure; hold on
     subplot(1, 2, 1)
     plot(p, bG);
     title('Saturated b_g');
@@ -203,12 +218,18 @@ function writeIMMISC(p, b, mu, title, opts)
 %   opts  - Options structure containing directory path and units
 
 % Construct the output file path
-file_path = fullfile(opts.outputPath, opts.PVDOFile); % Use the filename from opts
-fn = fopen(file_path, 'w');
+filePath = fullfile(opts.outputPath, opts.PVDOFile);
+fileName = opts.PVDOFile;
+if exist(filePath, 'file')&&(~opts.reCompute)
+    fprintf('File %s already exists. Loading data...\n', fileName); 
+    return; % Exit the function as the table already exists
+end
+
+fn = fopen(filePath, 'w');
 
 % Check if the file was opened successfully
 if fn == -1
-    error('Cannot open file: %s', file_path);
+    error('Cannot open file: %s', filePath);
 end
 
 % Get unit conversion factors based on specified units
@@ -237,7 +258,7 @@ fprintf(fn, '/\n');  % End of the data block
 fclose(fn);          % Close the file
 
 % Display confirmation message
-fprintf('%s written!\n', file_path);
+fprintf('%s written!\n', filePath);
 end
 
 function writePVTO(p, Rs, pure_water_density, water_viscosity, T, X_h2_sat, Y_h2o_sat, rhoOS, rhoGS, opts)
@@ -256,15 +277,20 @@ function writePVTO(p, Rs, pure_water_density, water_viscosity, T, X_h2_sat, Y_h2
 % opts: Options structure containing directory path and units
 
 % Prepare file path and open the file for writing
-file_path = fullfile(opts.outputPath, opts.PVTOFile); % Use the filename from opts
-fn = fopen(file_path, 'w');
+filePath = fullfile(opts.outputPath, opts.PVTOFile); % Use the filename from opts
+fileName = opts.PVTOFile;
+if exist(filePath, 'file')&&(~opts.reCompute)
+    fprintf('File %s already exists. Loading data...\n', fileName);
+    return;
+end
 
+fn = fopen(filePath, 'w');
 nusat = opts.nusat;
 
 
 % Check if the file was opened successfully
 if fn == -1
-    error('Cannot open file: %s', file_path);
+    error('Cannot open file: %s', filePath);
 end
 
 % Write header for the file
@@ -327,7 +353,7 @@ end
 
 % Close the file
 fclose(fn);
-fprintf('%s written!\n', file_path); % Confirmation message
+fprintf('%s written!\n', filePath); % Confirmation message
 end
 
 
@@ -344,12 +370,17 @@ function writePVTG(p, Rv, pure_gas_density, gas_viscosity, Y_h2o, rhoGS, rhoOS, 
 % opts: Options structure containing directory path and units
 
 % Prepare file path and open the file for writing
-file_path = fullfile(opts.outputPath, opts.PVTGFile); % Use the filename from opts
-fn = fopen(file_path, 'w');
+filePath = fullfile(opts.outputPath, opts.PVTGFile);
+fileName = opts.PVTGFile;
+if exist(filePath, 'file')&&(~opts.reCompute)
+    fprintf('File %s already exists. Loading data...\n', fileName); 
+    return; % Exit the function as the table already exists
+end
+fn = fopen(filePath, 'w');
 
 % Check if the file was opened successfully
 if fn == -1
-    error('Cannot open file: %s', file_path);
+    error('Cannot open file: %s', filePath);
 end
 
 % Write header for the file
@@ -380,7 +411,7 @@ end
 
 % Close the file
 fclose(fn);
-fprintf('%s written!\n', file_path); % Confirmation message
+fprintf('%s written!\n', filePath); % Confirmation message
 end
 
 

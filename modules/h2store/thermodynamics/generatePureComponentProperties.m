@@ -102,11 +102,27 @@ if isempty(opts.outputPath)
     opts.outputPath = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'H2SolubilityTable');
 end
 
+% Full path to the output file
+filePath = fullfile(opts.outputPath, opts.fileName);
+
+% Check if the file already exists
+if exist(filePath, 'file')
+    fprintf('File %s already exists. Loading data...\n', opts.fileName);
+    try
+        tab_comp = readtable(filePath, 'VariableNamingRule', 'preserve');
+        if opts.outputDisplay
+            disp('Component Table read successfully:');
+            display(tab_comp);
+        end
+        return; % Exit the function as the table already exists
+    catch ME
+        warning('Failed to read existing file: %s. Proceeding with table generation.', ME.message);
+    end
+end
+
 if ~exist(opts.outputPath, 'dir')
     mkdir(opts.outputPath);
 end
-% Full path to the output file
-filePath = fullfile(opts.outputPath, opts.fileName);
 
 % Open the output file
 outFile = fopen(filePath, 'w');
@@ -192,7 +208,7 @@ for i = 1:nTemp
         enthalpy = data.("Enthalpy (kJ/kg)")(isNotPhaseTransition) * 1000;   % Convert to J/kg
         
         for j = 1:length(pressure)
-            fprintf(outFile, ' %.11e, %.11e, %.11e, %.11e, %.11e\n', ...
+            fprintf(outFile, ' %.4e, %.4e, %.11e, %.11e, %.11e\n', ...
                 temperature, pressure(j), density(j), viscosity(j), enthalpy(j));
         end
     catch ME

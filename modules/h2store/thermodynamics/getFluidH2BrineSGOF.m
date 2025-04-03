@@ -15,6 +15,7 @@ function getFluidH2BrineSGOF(varargin)
     %   'plot'      - Boolean to enable/disable plotting (default: true)
     %   'dir'       - Directory for saving the output file (default: '')
     %   'fileName'  - Name of the output file (default: 'SGOF_H2STORAGE.txt')
+    %   'reCompute' - recomoute table (default: true)
     %   'units'     - Unit system for output values ('metric' or 'imperial', default: 'metric')
     %   'nreg'      - Number of regions (default: 1)
     %   'sw_imm'    - Array of immiscible water saturations for each region (default: [0.1])
@@ -51,6 +52,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opts = struct('n', 100, ...
         'plot', true, ...
         'outputPath', '', ...
+        'reCompute', true, ...
         'fileName', 'SGOF_UHS.txt', ...
         'units', 'metric', ...
         'nreg', 1, ...  % Default changed to 1 region
@@ -68,6 +70,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Ensure the output directory exists
     if isempty(opts.outputPath)
         opts.outputPath = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'PVT_H2STORAGE');
+    end
+
+    filePath = fullfile(opts.outputPath, opts.fileName);
+    if exist(filePath, 'file')&&(~opts.reCompute)
+        fprintf('File %s already exists. Loading data...\n', opts.fileName);
+        return; % Exit the function as the table already exists
     end
     if ~exist(opts.outputPath, 'dir')
         mkdir(opts.outputPath);

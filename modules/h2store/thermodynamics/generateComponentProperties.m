@@ -107,11 +107,28 @@ if isempty(opts.outputPath)
     opts.outputPath = fullfile(mrstOutputDirectory(), 'UHS_PVT', 'H2SolubilityTable');
 end
 
+% Full path to the output file
+filePath = fullfile(opts.outputPath, opts.fileName);
+
+% Check if the file already exists
+if exist(filePath, 'file')
+    fprintf('File %s already exists. Loading data...\n', opts.fileName);
+    try
+        tab_comp = readtable(filePath, 'VariableNamingRule', 'preserve');
+        if opts.outputDisplay
+            disp('Component Table read successfully:');
+            display(tab_comp);
+        end
+        return; % Exit the function as the table already exists
+    catch ME
+        warning('Failed to read existing file: %s. Proceeding with table generation.', ME.message);
+    end
+end
+
 if ~exist(opts.outputPath, 'dir')
     mkdir(opts.outputPath);
 end
-% Full path to the output file
-filePath = fullfile(opts.outputPath, opts.fileName);
+
 % Open the output file
 outFile = fopen(filePath, 'w');
 if outFile == -1

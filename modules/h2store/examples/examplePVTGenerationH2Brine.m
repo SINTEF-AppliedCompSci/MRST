@@ -26,7 +26,8 @@ max_pressure = 45 * barsa();      % Maximum pressure in Pa
 nbp = 10;                     % Number of pressure points
 nbt = 10;                     % Number of temperature points
 ms = 0;                       % Salt molality [mol/kg]
-outputDisplay = false;        % Set to true to display generated tables
+outputDisplay = true;         % Set to true to display generated tables
+recompute = true;             % recompuete PVT and SGOF tables
 
 %% Notice on Computational Cost
 warning('ComputationalCost:Medium', ...
@@ -42,16 +43,16 @@ end
 % Generate H2O Component Table
 comp_name = 'H2O';
 disp(['Generating component table for: ', comp_name]);
-tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', true,'outputPath',outputPathSol);
+tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', outputDisplay,'outputPath',outputPathSol);
 % Generate H2 Component Table
 pause(0.5);  % Ensure smooth execution between commands
 comp_name = 'H2';
 disp(['Generating component table for: ', comp_name]);
-tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', true,'outputPath',outputPathSol);
+tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', outputDisplay,'outputPath',outputPathSol);
 % Generate Solubility Table
 disp('Generating solubility table...');
 % [tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, outputPath);
-tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'outputDisplay', true,'outputPath',outputPathSol);
+tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'outputDisplay', outputDisplay,'outputPath',outputPathSol,'reCompute', recompute);
 % Configure and Write Fluid Properties (PVT) Tables
 onlyRS = false;
 % Define the target output directory relative to the current directory
@@ -62,11 +63,11 @@ if ~exist(outputPathPvt, 'dir')
 end
 
 if onlyRS
-    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol,'rs', true, 'rv', false,'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE', 'PVTGFile', 'PVTGH2BRINE','outputPath', outputPathPvt);
+    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol,'rs', true, 'rv', false,'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE', 'PVTGFile', 'PVTGH2BRINE','outputPath', outputPathPvt, 'reCompute', recompute);
     disp('Writing fluid properties for miscible case with digas and disabled evapoil...');
 else
     % generate RSRV
-    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', true, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'outputPath', outputPathPvt);
+    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', true, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'outputPath', outputPathPvt, 'reCompute', recompute);
     disp('Writing fluid properties for miscible case with digas and evapoil...');
 end
 %% We generates gas-oil flow properties specific to a hydrogen-brine system, for 
@@ -82,7 +83,12 @@ disp('Generating gas-oil flow properties for hydrogen-brine system with three re
 getFluidH2BrineSGOF('n', 100, 'plot', true, 'outputPath', outputPathPvt, 'fileName', 'SGOF_UHS.txt', ...
                       'units', 'metric', 'nreg', 3, 'sw_imm', [0.1, 0.1, 0.1], ...
                       'sg_imm', [0.05, 0.1, 0.1], 'c_a1', 3.5, 'c_a2', 3.5, 'c_a3', 1.5, ...
-                      'Pe', [0.4, 5, 10], 'P_c_max', [9.5e4, 9.5e4, 9.5e4]);
+                      'Pe', [0.4, 5, 10], 'P_c_max', [9.5e4, 9.5e4, 9.5e4], 'reCompute', recompute);
 
 % Display completion message
 disp('H₂-Brine fluid properties setup for black-oil simulation is complete.');
+
+% Force recompute tables
+if ~recompute
+    disp('You have changed P, T, or ms! Make sure "recompute" is set to true to recalculate tables.');
+end
