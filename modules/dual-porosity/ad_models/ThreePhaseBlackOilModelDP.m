@@ -219,7 +219,7 @@ methods
     % --------------------------------------------------------------------%
     function state = validateState(model, state)
         % Check parent class
-        state = validateState@ReservoirModel(model, state);
+        state = validateState@DualPorosityReservoirModel(model, state);
         nc = model.G.cells.num;
         if model.disgas
             % RS must be supplied for all cells. This may cause an error.
