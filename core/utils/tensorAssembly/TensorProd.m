@@ -278,25 +278,31 @@ classdef TensorProd
                     fprintf('number of chunks %d ', nchunks);
                 end
                 
-                prodAB = sparse(n3, 1);
+                prodAB = zeros(n3, 1);
                 
                 for ichunk = 1 : nchunks
 
                     if ichunk < nchunks
                         ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
+                        if ichunk == 1
+                            prodABc = zeros(chunksize, 1);
+                            pind = (1 : chunksize)';
+                        end
                     else
+                        npind = pivotsize - (nchunks - 1)*chunksize;
+                        prodABc = zeros(npind, 1);
+                        pind = (1 : npind)';
                         ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
                     end
-                    
-                    Ac = A(dispind1(ind));
-                    Bc = B(dispind2(ind));
-                    prodABc = Ac.*Bc;
+
+                    prodABc(pind) = A(dispind1(ind)).*B(dispind2(ind));
                     
                     prodAB = prodAB + accumarray(dispind3(ind), prodABc, [n3, 1]);
 
                     if mrstVerbose() > 0
                         fprintf('.');
                     end
+                    
                 end
                 
                 if mrstVerbose() > 0

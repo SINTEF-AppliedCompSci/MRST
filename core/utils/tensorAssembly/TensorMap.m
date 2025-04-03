@@ -211,8 +211,7 @@ classdef TensorMap
                             ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
                         end
 
-                        uc = u(dispind1(ind));
-                        v = v + accumarray(dispind2(ind), uc, [toTbl.num, 1]);
+                        v = v + accumarray(dispind2(ind), u(dispind1(ind)), [toTbl.num, 1]);
 
                         if mrstVerbose() > 0
                             fprintf('.');
