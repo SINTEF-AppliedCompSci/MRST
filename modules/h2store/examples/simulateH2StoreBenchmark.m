@@ -52,7 +52,7 @@ deck = readEclipseDeck(dataFile);
 % Note that the user can generate different PVT tables (see thermodynamics)
 
 %% Prepare simulation parameters and initial state
-[~, options, state0, model, schedule, ~] = ModelForUHSModifiedBenchmark(deck);
+[~, options, state0, model, schedule, ~] = modelForUHSModifiedBenchmark(deck);
 
 %% Add custom output functions to the model for additional diagnostics
 model.OutputStateFunctions{end + 1} = 'CapillaryPressure';  % Output capillary pressure

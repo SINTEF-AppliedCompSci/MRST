@@ -49,7 +49,7 @@ warning('ComputationalCost:High', ...
         'to run: reduce cycles for example']);
 
 %% Set up the simulation parameters and model components
-[~, ~, state0, model, schedule, ~] = ModelForSimple2DAquifer(deck);
+[~, ~, state0, model, schedule, ~] = modelForSimple2DAquifer(deck);
 
 %% Plot Grid with Wells, Permeability, and Porosity
 figure;
