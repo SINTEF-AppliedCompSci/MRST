@@ -1,0 +1,105 @@
+-- Copyright (C) 2024 SINTEF DIGITAL
+-- Current simulation results for the modifieh UHS Benchmark for H2 storage
+-- Adapted from "Hogeweg, S., Strobel, G., & Hagemann, B. (2022). Benchmark study for the simulation of underground 
+-- hydrogen storage operations. Comput Geosci, 26, 1367–1378. 
+-- https://doi.org/10.1007/s10596-022-10163-5"
+-- by Elyes
+
+----------------------------------------------------------------------------
+RUNSPEC
+----------------------------------------------------------------------------
+
+DIMENS
+61 61 12 /
+
+OIL
+GAS
+-- H2STORE
+DISGAS
+-- DIFFUSE
+-- DISPER
+
+METRIC
+
+START
+17 'Feb' 2023 /
+
+EQLDIMS
+/
+
+DIMENS                                
+  61 61 12 /
+
+TABDIMS
+  1 1 100 /
+
+----------------------------------------------------------------------------
+GRID
+----------------------------------------------------------------------------
+
+INIT
+
+INCLUDE
+'UHS_Benchmark_GRID.GRDECL' /
+
+INCLUDE                               
+'UHS_Benchmark_PROP_PERMX.GRDECL' /
+
+INCLUDE                               
+'UHS_Benchmark_PROP_PERMY.GRDECL' /
+
+INCLUDE                               
+'UHS_Benchmark_PROP_PERMZ.GRDECL' /
+
+INCLUDE                               
+'UHS_Benchmark_PROP_PORO.GRDECL' /
+
+----------------------------------------------------------------------------
+PROPS
+----------------------------------------------------------------------------
+
+--        OIL   WATER   GAS
+DENSITY
+9.98207150467e+02 1.0 0.0851
+/
+
+DIFFC
+18.01528 2.016 4.5e-05 1* 1e-9  /
+
+INCLUDE
+'SGOF_UHS_BENCHMARK.txt' /
+
+
+INCLUDE
+'RS_PVT_UHS_BENCHMARK.inc' /
+
+
+----------------------------------------------------------------------------
+REGIONS
+----------------------------------------------------------------------------
+
+INCLUDE
+'UHS_Benchmark_PROP_SATNUM.GRDECL' /
+
+----------------------------------------------------------------------------
+SOLUTION
+----------------------------------------------------------------------------
+
+RTEMPVD
+0   20.0
+1.2 20.0 /
+
+RSVD
+0   0.0
+100 0.0 /
+
+EQUIL
+ 1210 1* 1210 0.1 0 0 1* 1* 0 2 1*
+/
+
+----------------------------------------------------------------------------
+SCHEDULE
+----------------------------------------------------------------------------
+
+INCLUDE                               
+'UHS_Benchmark_SCH.INC' /
