@@ -33,14 +33,15 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    % Load necessary modules
-    mrstModule add vem mpfa mpsaw vemmech libgeometry
-
     close all
-    dosave = true;
-    savecount = 1; % counter for setting up filenames.
+
+    dosave       = true;
     filerootname = 'mpsaconvoutput';
+    useVirtual   = true;
+    blocksize    = 100;
     
+    savecount = 1; % counter for setting up filenames.
+
     % params setting
     % nref     : degree of refinement
     % Nd       : dimension (2D or 3D)
@@ -60,7 +61,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'gridtype', 1, ... % Cartesian
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         hold on
         plotConvTest(output, params);
@@ -83,7 +84,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'gridtype', 2, ... % Triangular grid, 90 degree angles
                         'eta'     , 1/3);
         
-        output = mpsaPaperConvergenceFunc(params);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -107,7 +108,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'gridtype', 3, ... % Triangular grid, equi - alternate
                         'eta'     , 1/3);
         
-        output = mpsaPaperConvergenceFunc(params);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -129,7 +130,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'gridtype', 4, ... % Triangular grid equi - non alternate
                         'eta'     , 1/3);
         
-        output = mpsaPaperConvergenceFunc(params);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -151,7 +152,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -173,7 +174,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                         'gridtype', 1, ... % Cartesian
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -188,15 +189,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % New Case
     dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 4, ...
+        params = struct('nref'    , 3, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 0, ...
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'blocksize', ...
-                                          500);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -211,15 +211,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % New Case
     dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 5, ...
+        params = struct('nref'    , 3, ...
                         'Nd'      , 3, ...
                         'kappa'   , 10, ...
                         'alpha'   , 0, ...
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'blocksize', ...
-                                          500);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -234,15 +233,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % New Case
     dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 5, ...
+        params = struct('nref'    , 3, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 10, ...
                         'gridtype', 1, ... % Cartesian Grid
                         'eta'     , 0);
         
-        output = mpsaPaperConvergenceFunc(params, 'blocksize', ...
-                                          500);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -257,15 +255,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % New Case
     dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 5, ...
+        params = struct('nref'    , 3, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 0, ... % tetras
                         'gridtype', 5, ... 
                         'eta'     , 1/3);
         
-        output = mpsaPaperConvergenceFunc(params, 'blocksize', ...
-                                          100);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -280,14 +277,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % New Case
     dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 5, ...
+        params = struct('nref'    , 3, ...
                         'Nd'      , 3, ...
                         'kappa'   , 10, ...
                         'alpha'   , 0, ... 
                         'gridtype', 5, ... % tetras
                         'eta'     , 1/4);
         
-        output = mpsaPaperConvergenceFunc(params, 'blocksize', 100);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave
@@ -302,14 +299,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % New Case
     dothiscase = true;
     if dothiscase
-        params = struct('nref'    , 5, ...
+        params = struct('nref'    , 3, ...
                         'Nd'      , 3, ...
                         'kappa'   , 1, ...
                         'alpha'   , 10, ... % tetras
                         'gridtype', 5, ... 
                         'eta'     , 1/4);
         
-        output = mpsaPaperConvergenceFunc(params, 'blocksize', 100);
+        output = mpsaPaperConvergenceFunc(params, 'blocksize', blocksize, 'useVirtual', useVirtual);
         figure
         plotConvTest(output, params);
         if dosave

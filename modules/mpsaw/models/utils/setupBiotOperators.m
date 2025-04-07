@@ -1,4 +1,4 @@
-function operators = setupBiotOperators(model)
+function operators = setupBiotOperators(model, varargin)
 %Undocumented Utility Function
 
 %{
@@ -20,7 +20,11 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
 
+    useVirtual = opt.useVirtual;
+    
     G = model.G;
     mech  = model.mech;
     fluid = model.fluid;
@@ -37,16 +41,16 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     perm = model.rock.perm;
 
     assert(numel(perm) == G.cells.num, 'only isotropic perm for the moment (for simplicity)');
-    [tbls, mappings] = setupStandardTables(G, 'useVirtual', false);
+    [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
-    celltbl = tbls.celltbl;
-    colrowtbl = tbls.colrowtbl;
-    cellcolrowtbl = tbls.cellcolrowtbl;
+    celltbl      = tbls.celltbl;
+    vec12tbl     = tbls.vec12tbl;
+    cellvec12tbl = tbls.cellvec12tbl;
 
     prod = TensorProd();
-    prod.tbl1 = colrowtbl;
+    prod.tbl1 = vec12tbl;
     prod.tbl2 = celltbl;
-    prod.tbl3 = cellcolrowtbl;
+    prod.tbl3 = cellvec12tbl;
     prod = prod.setup();
 
     K = prod.eval([1; 0; 0; 1], perm);
@@ -76,9 +80,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     drivingforces = struct('mechanics', loadstruct, ...
                            'fluid'    , fluidforces);
 
-    [tbls, mappings] = setupStandardTables(G);
+    [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
-    assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'addAdOperators', true);
+    assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'useVirtual', useVirtual, 'addAdOperators', true);
 
     operators = assembly.adoperators;
     operators.pv = pv;

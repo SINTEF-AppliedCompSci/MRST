@@ -33,9 +33,12 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct( 'blocksize', [], ...
-                  'bcetazero', false);
+    opt = struct('blocksize' , []   , ...
+                 'bcetazero' , false, ...
+                 'useVirtual', false);
     opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
     
     Nd = params.Nd;
     nref = params.nref;
@@ -61,7 +64,10 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
         Nc = G.cells.num;
         
-        output = runBiotConvSim(G, params, 'bcetazero', opt.bcetazero, 'blocksize', opt.blocksize);
+        output = runBiotConvSim(G, params                  , ...
+                                'bcetazero' , opt.bcetazero, ...
+                                'blocksize' , opt.blocksize, ...
+                                'useVirtual', useVirtual);
         
         % Computed displacement at cell centers
         unum = output.u;

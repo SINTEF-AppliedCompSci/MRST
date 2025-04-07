@@ -1,4 +1,4 @@
-function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opts)
+function output =  coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opts, varargin)
 % Assembly of MPSA-weak
 %
 % Reference paper:
@@ -8,508 +8,640 @@ function [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, t
 % 2017
 
 %{
-Copyright 2020 University of Bergen and SINTEF Digital, Mathematics & Cybernetics.
+  Copyright 2020 University of Bergen and SINTEF Digital, Mathematics & Cybernetics.
 
-This file is part of the MPSA-W module for the MATLAB Reservoir Simulation Toolbox (MRST).
+  This file is part of the MPSA-W module for the MATLAB Reservoir Simulation Toolbox (MRST).
 
-The MPSA-W module is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+  The MPSA-W module is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-The MPSA-W module is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+  The MPSA-W module is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU General Public License
+  along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    % the solution is given by the system
-    %
-    % A = [[A11, A12, -D];
-    %      [A21, A22,  0];
-    %      [D' , 0  ,  0]];
-    %
-    % u = [u (displacement at nodefacecoltbl);
-    %      u (displacement at cellcoltbl);
-    %      lagmult (forces in the linear directions at the boundary)];
-    %
-    % f = [extforce (force at nodefacecoltbl);
-    %      force    (volumetric force at cellcoltbl);
-    %      bcvals   (for the linear form at the boundary)];
-    %
-    % A*u = f
-    %
-    % Note: extforce is sparse and should only give contribution at facets
-    % that are at the boundary
-    %
-    % By construction of the method, the matrix A11 is block-diagonal. Hence,
-    % we invert it directly and reduce to a cell-centered scheme.
-        
-    bcetazero = opts.bcetazero;
-    eta = opts.eta;
+% the solution is given by the system
+%
+% A = [[A11, A12, -D];
+%      [A21, A22,  0];
+%      [D' , 0  ,  0]];
+%
+% u = [u (displacement at nodefacecoltbl);
+%      u (displacement at cellcoltbl);
+%      lagmult (forces in the linear directions at the boundary)];
+%
+% f = [extforce (force at nodefacecoltbl);
+%      force    (volumetric force at cellcoltbl);
+%      bcvals   (for the linear form at the boundary)];
+%
+% A*u = f
+%
+% Note: extforce is sparse and should only give contribution at facets
+% that are at the boundary
+%
+% By construction of the method, the matrix A11 is block-diagonal. Hence,
+% we invert it directly and reduce to a cell-centered scheme.
+
+
+    opt = struct('useVirtual'             , false, ...
+                 'includeBc'              , true , ...
+                 'assembleInvA11'         , true , ...
+                 'assembleStressOperators', true , ...
+                 'assembleDiv'            , true);
     
-    coltbl      = tbls.coltbl;
-    colrowtbl   = tbls.colrowtbl;
-    col2row2tbl = tbls.col2row2tbl;
+    opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
+    
+    bcetazero = opts.bcetazero;
+    eta       = opts.eta;
+    
+    vectbl      = tbls.vectbl;
+    vec12tbl    = tbls.vec12tbl;
+    vec1212tbl  = tbls.vec1212tbl;
     celltbl     = tbls.celltbl;
     nodetbl     = tbls.nodetbl;
     cellnodetbl = tbls.cellnodetbl;
     nodefacetbl = tbls.nodefacetbl;
-    cellcoltbl  = tbls.cellcoltbl;
-    nodecoltbl  = tbls.nodecoltbl;
+    cellvectbl  = tbls.cellvectbl;
     
-    nodefacecoltbl        = tbls.nodefacecoltbl;
-    cellnodefacetbl       = tbls.cellnodefacetbl;
-    cellnodecoltbl        = tbls.cellnodecoltbl;
-    cellnodecolrowtbl     = tbls.cellnodecolrowtbl;
-    cellnodefacecoltbl    = tbls.cellnodefacecoltbl;
-    cellnodefacecolrowtbl = tbls.cellnodefacecolrowtbl;
-    nodecolrowtbl         = tbls.nodecolrowtbl;
-    cellcol2row2tbl       = tbls.cellcol2row2tbl;
-    cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
+    dim = vectbl.num;
+    
+    nodefacevectbl           = tbls.nodefacevectbl;
+    cellnodevec12tbl         = tbls.cellnodevec12tbl;
+    cellnodefacetbl          = tbls.cellnodefacetbl;
+    cellnodefacevectbl       = tbls.cellnodefacevectbl;
+    cellvec1212tbl           = tbls.cellvec1212tbl;
+    cellnodefacevec122tbl    = tbls.cellnodefacevec122tbl;
+    cell12nodetbl            = tbls.cell12nodetbl;
+    cell12nodefacevec122tbl  = tbls.cell12nodefacevec122tbl;
+    cell12nodeface12vec12tbl = tbls.cell12nodeface12vec12tbl;
 
-    cell_from_cellnode         = mappings.cell_from_cellnode;
-    node_from_cellnode         = mappings.node_from_cellnode;
-    cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
-    nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
-    
-    % Some shortcuts
-    c_num     = celltbl.num;
-    n_num     = nodetbl.num;
-    cnf_num   = cellnodefacetbl.num;
-    cnfc_num  = cellnodefacecoltbl.num;
-    cn_num    = cellnodetbl.num;
-    cncr_num  = cellnodecolrowtbl.num;
-    nf_num    = nodefacetbl.num;
-    nfc_num   = nodefacecoltbl.num;
-    cnfcr_num = cellnodefacecolrowtbl.num;
-    d_num     = coltbl.num;
-    cc2r2_num = cellcol2row2tbl.num; %shortcut
-    c2r2_num  = col2row2tbl.num; %shortcut
+    if useVirtual
         
-    dim = coltbl.num;
+        d_num   = vectbl.num;
+        c_num   = celltbl.num;
+        cnf_num = cellnodefacetbl.num;
+
+        cell_from_cellnode                      = mappings.cell_from_cellnode;
+        face_from_cellface                      = mappings.face_from_cellface;
+        cell_from_cellface                      = mappings.cell_from_cellface;
+        node_from_cellnode                      = mappings.node_from_cellnode;
+        cell_from_cellnodeface                  = mappings.cell_from_cellnodeface;
+        cellnode_from_cellnodeface              = mappings.cellnode_from_cellnodeface;
+        nodeface_from_cellnodeface              = mappings.nodeface_from_cellnodeface;
+        
+    end
     
     % Construction of tensor g (as defined in paper eq 4.1.2)
-    
-    g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', bcetazero);
-    
-    % Construction of the gradient operator
-    %
+    % g belongs to cellnodefacevectbl
+    g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);    
 
-    % Construction of gradnodeface_T : nodefacecoltbl -> cellnodecolrowtbl
-    %
-    % The nodefacecol part of the grad operator from nodefacecoltbl to cellnodecolrowtbl is obtained for any u in
-    % nodefacecoltbl by using v = prod.eval(g, u) where prod is defined below and this is how we set the corresponding
-    % tensor.
-    %
-    prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = nodefacecoltbl;
-    prod.tbl3 = cellnodecolrowtbl;
-    prod.replacefds2 = {'coldim', 'rowdim'};
-    prod.reducefds   = {'faces'};
-    prod.mergefds    = {'nodes'};
-
-    prod.pivottbl = cellnodefacecolrowtbl;
-    [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
-    
-    prod.dispind1 = sub2ind([d_num, cnf_num], c, i);
-    prod.dispind2 = sub2ind([d_num, cnf_num], r, nodeface_from_cellnodeface(i));
-    prod.dispind3 = sub2ind([d_num, d_num, cn_num], r, c, cellnode_from_cellnodeface(i));
-    prod.issetup = true;
-    
-    gradnodeface_T = SparseTensor('matlabsparse', true);
-    gradnodeface_T = gradnodeface_T.setFromTensorProd(g, prod);
-
-    % Construction of gradcell_T : cellcoltbl -> cellnodecolrowtbl
-    %
-    % The cellcol part of the grad operator from cellcoltbl to cellnodecolrowtbl is
-    % obtained for any u in cellcoltbl by using v = prod.eval(greduced, u)
-    % where greduced and prod are defined below
-    %
-    map = TensorMap();
-    map.fromTbl = cellnodefacecoltbl;
-    map.toTbl = cellnodecoltbl;
-    map.mergefds = {'cells', 'nodes', 'coldim'};
-
-    map.pivottbl = cellnodefacecoltbl;
-    map.dispind1 = (1 : cnfc_num)';
-    [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-    map.dispind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
-    map.issetup = true;
-
-    % note minus sign
-    greduced = - map.eval(g);
+    %% Computation of Cg
     
     prod = TensorProd();
-    prod.tbl1 = cellnodecoltbl;
-    prod.tbl2 = cellcoltbl;
-    prod.tbl3 = cellnodecolrowtbl;
-    prod.replacefds2 = {'coldim', 'rowdim'};
-    prod.mergefds = {'cells'};
-
-    prod.pivottbl = cellnodecolrowtbl;
-    [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-    prod.dispind1 = sub2ind([d_num, cn_num], c, i);
-    prod.dispind2 = sub2ind([d_num, c_num], r, cell_from_cellnode(i));
-    prod.dispind3 = (1 : cncr_num);
-    prod.issetup = true;
-
-    % prod = prod.setup();
-    
-    gradcell_T = SparseTensor('matlabsparse', true);
-    gradcell_T = gradcell_T.setFromTensorProd(greduced, prod);
-
-    % Construction of the divergence operator
-    %
-    % setup the facet normals
-
-    facetNormals = computeFacetNormals(G, cellnodefacetbl);
-    
-    % divnodeface_T : cellnodecolrowtbl -> nodefacecoltbl
-    %
-    % The nodefacecol part of the divergence operator from cellnodecolrowtbl to
-    % nodefacecoltbl is obtained for any u in cellnodecolrowtbl by evaluating the
-    % expression divnodeface_T.eval(d, u) where d and divnodeface_T are defined
-    % below
-    %
-    d = facetNormals;
-    prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = cellnodecolrowtbl;
-    prod.replacefds1 = {'coldim', 'rowdim'};
-    prod.replacefds2 = {'coldim', 'rowdim', 'interchange'};
-    prod.reducefds = {'rowdim', 'cells'};
-    prod.mergefds = {'nodes'};
-    prod.tbl3 = nodefacecoltbl;
-
-    prod.pivottbl = cellnodefacecolrowtbl;
-    [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
-    prod.dispind1 = sub2ind([d_num, cnf_num], r, i);
-    prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, cellnode_from_cellnodeface(i));
-    prod.dispind3 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
-    prod.issetup = true;
-
-    divnodeface_T = SparseTensor('matlabsparse', true);
-    divnodeface_T = divnodeface_T.setFromTensorProd(d, prod);
-
-    % divcell_T : cellnodecolrowtbl -> cellcoltbl
-    %
-    % the cellcol part of the divergence operator from cellnodecolrowtbl to
-    % cellcoltbl is obtained for any u in cellnodecolrowtbl by evaluating the
-    % expression divcell_T.eval(dreduced, u) where dreduced and divcell_T
-    % are defined below
-    %
-
-    fds = {'cells', 'nodes', 'coldim'};
-    % note the minus sign below (see formula in paper)
-    map = TensorMap();
-    map.fromTbl = cellnodefacecoltbl;
-    map.toTbl = cellnodecoltbl;
-    map.mergefds = {'cells', 'nodes', 'coldim'};
-    
-    map.pivottbl = cellnodefacecoltbl;
-    map.dispind1 = (1 : cnfc_num)';
-    [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-    map.dispind2 = sub2ind([d_num, cn_num], c, cellnode_from_cellnodeface(i));
-    map.issetup = true;
-
-    dreduced = - map.eval(facetNormals);
-
-    prod = TensorProd();
-    prod.tbl1 = cellnodecoltbl;
-    prod.tbl2 = cellnodecolrowtbl;
-    prod.tbl3 = cellcoltbl;
-    prod.replacefds1 = {'coldim', 'rowdim'};
-    prod.replacefds2 = {'coldim', 'rowdim', 'interchange'};
-    prod.reducefds   = {'rowdim', 'nodes'};
+    prod.tbl1        = cellvec1212tbl;
+    prod.tbl2        = cellnodefacevectbl;
+    prod.tbl3        = cellnodefacevec122tbl;
+    prod.replacefds1 = {{'vec21', 'vec2'}};
+    prod.replacefds2 = {{'vec', 'vec22'}};
+    prod.reducefds   = {'vec22'};
     prod.mergefds    = {'cells'};
 
-    prod.pivottbl = cellnodecolrowtbl;
-    [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-    prod.dispind1 = sub2ind([d_num, cn_num], r, i);
-    prod.dispind2 = sub2ind([d_num, d_num, cn_num], c, r, i);
-    prod.dispind3 = sub2ind([d_num, c_num], c, cell_from_cellnode(i));
-    prod.issetup = true;
+    if useVirtual
+        cellnodefacevec1212tbl = crossIndexArray(cellnodefacetbl, vec1212tbl, {}, 'optpureproduct', true, 'virtual', true);
+        prod.pivottbl = cellnodefacevec1212tbl;
+        [vec22, vec21, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, d_num, cnf_num], (1 : cellnodefacevec1212tbl.num)');
+
+        prod.dispind1 = sub2ind([d_num, d_num, d_num, d_num, c_num], vec22, vec21, vec12, vec11 , cell_from_cellnodeface(i));
+        prod.dispind2 = sub2ind([d_num, cnf_num], vec22, i);
+        % order in cellnodefacevec122tbl is cellnodefac, vec11, vec12, vec2
+        prod.dispind3 = sub2ind([d_num, d_num, d_num, cnf_num], vec21, vec12, vec11 , i);
+        
+        prod.issetup = true;
+        
+    else
+        prod = prod.setup();
+    end
     
-    divcell_T = SparseTensor('matlabsparse', true);
-    divcell_T = divcell_T.setFromTensorProd(dreduced, prod);
+    Cg = prod.eval(C, g); % Cg is in cellnodefacevec122tbl
 
-    % Construction of transpose operator for matrices at nodes (that are
-    % elements of nodecolrowtbl)
-    %
-    %  trans_T: nodecolrowtbl -> nodecolrowtbl
+    %% Setup transpose CgT
 
-    clear symcol2row2tbl;
-    symcol2row2tbl.coldim2 = colrowtbl.get('coldim');
-    symcol2row2tbl.rowdim2 = colrowtbl.get('rowdim');
-    symcol2row2tbl.coldim1 = colrowtbl.get('rowdim');
-    symcol2row2tbl.rowdim1 = colrowtbl.get('coldim');
-    symcol2row2tbl = IndexArray(symcol2row2tbl);
-
-    prod = TensorProd();
-    prod.tbl1 = symcol2row2tbl;
-    prod.tbl2 = nodecolrowtbl;
-    prod.tbl3 = nodecolrowtbl;
-    prod.replacefds1 = {{'coldim1', 'coldim'}, ...
-                        {'rowdim1', 'rowdim'}};
-    prod.replacefds2 = {{'coldim', 'coldim2'}, ...
-                        {'rowdim', 'rowdim2'}};
-    prod.reducefds = {'coldim2', 'rowdim2'};
-
-    symnodecol2row2tbl = crossIndexArray(nodetbl, symcol2row2tbl, {});
-    nc2r2_num = symnodecol2row2tbl.num; % shortcut
-
-    % (note the definition of symcol2row2tbl above)
-    prod.pivottbl = symnodecol2row2tbl;
-    [r, c, i] = ind2sub([d_num, d_num, n_num], (1 : nc2r2_num)');
-    c2 = c;
-    r2 = r;
-    c1 = r;
-    r1 = c;
-    prod.dispind1 = sub2ind([d_num, d_num], r, c);
-    prod.dispind2 = sub2ind([d_num, d_num, n_num], r2, c2, i);
-    prod.dispind3 = sub2ind([d_num, d_num, n_num], r1, c1, i);
-    prod.issetup = true;
-
-    trans_T = SparseTensor('matlabsparse', true);
-    trans_T = trans_T.setFromTensorProd(ones(symcol2row2tbl.num, 1), prod);
-
-    % Construction of nodal average for cellnode tensor
-    %
-    % transnodeaverage_T : cellnodecolrowtbl -> nodecolrowtbl
-    %
-    % (later this operator is dispatched to cells)
-    %
-
-    % Compute number of cell per node
     map = TensorMap();
-    map.fromTbl = cellnodetbl;
-    map.toTbl = nodetbl;
+    map.fromTbl           = cellnodefacevec122tbl;
+    map.toTbl             = cellnodefacevec122tbl;
+    map.replaceFromTblfds = {{'vec11', 'vec12', 'interchange'}};
+    map.mergefds          = {'cells', 'nodes', 'faces', 'vec11', 'vec12', 'vec2'};
+
+    if useVirtual
+        map.pivottbl = cellnodefacevec122tbl;
+        % order in cellnodefacevec122tbl is cellnodefac, vec11, vec12, vec2
+        [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, cnf_num], (1 : cellnodefacevec122tbl.num)');
+        map.dispind1 = (1 : cellnodefacevec122tbl.num)';
+        map.dispind2 = sub2ind([d_num, d_num, d_num, cnf_num], vec2, vec11, vec12 , i);
+        map.issetup = true;
+    else
+        map = map.setup();
+    end
+
+    CgT = map.eval(Cg); 
+    
+    % Compute number of cell per node, nnodepercell in nodetbl
+    map = TensorMap();
+    map.fromTbl  = cellnodetbl;
+    map.toTbl    = nodetbl;
     map.mergefds = {'nodes'};
-    map = map.setup();
+
+    if useVirtual
+        map.pivottbl = cellnodetbl;
+        map.dispind1 = (1 : cellnodetbl.num)';
+        map.dispind2 = node_from_cellnode;
+        map.issetup = true;
+    else
+        map = map.setup();
+    end
     
     nnodepercell = map.eval(ones(cellnodetbl.num, 1));
-    
-    map = TensorMap();
-    map.fromTbl = nodetbl;
-    map.toTbl = cellnodetbl;
-    map.mergefds = {'nodes'};
-    map = map.setup();
-    
-    coef = map.eval(1./nnodepercell);
 
-    % we eliminitate the places (at the boundaries) where the local reconstruction
-    % is ill-posed: nodes with one cell in 2d (corners of a Cartesian grid) and
-    % nodes with less the two nodes in 3d (edges of a Cartesian grid);
-
-    switch dim
+    switch vectbl.num
       case 2
         maxnnodepercell = 1;
       case 3
         maxnnodepercell = 2;
     end
 
-    clear fixnodetbl
-    fixnodetbl.nodes = find(nnodepercell <= maxnnodepercell);
-    fixnodetbl = IndexArray(fixnodetbl);
+    fixnodes = find(nnodepercell <= maxnnodepercell);
+    
+    fixbc1 = ones(nodetbl.num, 1);
+    fixbc1(fixnodes) = 2;
+    
+    fixbc2 = ones(nodetbl.num, 1);
+    fixbc2(fixnodes) = 0;
 
-    coef(coef >= 1/maxnnodepercell) = 0;
+    icell12nodetbl = cellnodetbl;
+    icell12nodetbl = replacefield(icell12nodetbl, {{'cells', 'cells1'}});
+    icell12nodetbl = icell12nodetbl.addInd('cells2', cellnodetbl.get('cells'));
+
+    map = TensorMap();
+    map.fromTbl  = icell12nodetbl;
+    map.toTbl    = cell12nodetbl;
+    map.mergefds = {'cells1', 'cells2', 'nodes'};
+    map = map.setup();
+
+    a = map.eval(ones(icell12nodetbl.num, 1));
+
+    map = TensorMap();
+    map.fromTbl           = cellnodetbl;
+    map.toTbl             = cell12nodetbl;
+    map.replaceFromTblfds = {{'cells', 'cells1'}};
+    map.mergefds          = {'cells1', 'nodes'};
+    map = map.setup();
+
+    aT = map.eval(ones(cellnodetbl.num, 1));
 
     prod = TensorProd();
-    prod.tbl1 = cellnodetbl;
-    prod.tbl2 = cellnodecolrowtbl;
-    prod.tbl3 = nodecolrowtbl;
-    prod.reducefds = {'cells'};
+    prod.tbl1     = nodetbl;
+    prod.tbl2     = cell12nodetbl;
+    prod.tbl3     = cell12nodetbl;
     prod.mergefds = {'nodes'};
-
-    prod.pivottbl = cellnodecolrowtbl;
-    [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-    prod.dispind1 = i;
-    prod.dispind2 = (1 : cncr_num)';
-    prod.dispind3 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
-    prod.issetup = true;
-
-    % prod = prod.setup();
+    prod = prod.setup();
     
-    nodeaverage_T = SparseTensor('matlabsparse', true);
-    nodeaverage_T = nodeaverage_T.setFromTensorProd(coef, prod);
-
-    transnodeaverage_T = trans_T*nodeaverage_T;
-
-    % We need to dispatch this tensor to cellnodecolrowtbl.
-    % Now we have
-    % transnodeaverage_T : cellnodecolrowtbl -> cellnodecolrowtbl
-
-    map = TensorMap();
-    map.fromTbl = nodecolrowtbl;
-    map.toTbl = cellnodecolrowtbl;
-    map.mergefds = {'nodes', 'coldim', 'rowdim'};
+    a  = 0.5*prod.eval(fixbc1, a);
+    aT = 0.5*prod.eval(fixbc2./nnodepercell, aT);
     
-    map.pivottbl = cellnodecolrowtbl;
-    [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-    map.dispind1 = sub2ind([d_num, d_num, n_num], r, c, node_from_cellnode(i));
-    map.dispind2 = (1 : cncr_num)';
-    map.issetup = true;
-    % map = map.setup();
+    %% Setup of S
     
-    celldispatch_T = SparseTensor('matlabsparse', true);
-    celldispatch_T = celldispatch_T.setFromTensorMap(map);
-
-    transnodeaverage_T = celldispatch_T*transnodeaverage_T;
-
-    % We need to multiply by 2 at the place where we discarded the symmetry requirement
-
-    coef = ones(nodetbl.num, 1);
-    coef(fixnodetbl.get('nodes')) = 2;
-
-    map = TensorMap();
-    map.fromTbl = nodetbl;
-    map.toTbl = cellnodecolrowtbl;
-    map.mergefds = {'nodes'};
-
-    map.pivottbl = cellnodecolrowtbl;
-    [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
-    map.dispind1 = node_from_cellnode(i);
-    map.dispind2 = (1 : cncr_num)';
-    map.issetup = true;
-    % map = map.setup();
-    
-    coef = map.eval(coef);
-
     prod = TensorProd();
-    prod.tbl1 = cellnodecolrowtbl;
-    prod.tbl2 = cellnodecolrowtbl;
-    prod.mergefds = {'cells', 'nodes', 'coldim', 'rowdim'};
-    prod.tbl3 = cellnodecolrowtbl;
-
-    prod.pivottbl = cellnodecolrowtbl;
-    cncr_num = cellnodecolrowtbl.num; %shortcut
-    prod.dispind1 = (1 : cncr_num)';
-    prod.dispind2 = (1 : cncr_num)';
-    prod.dispind3 = (1 : cncr_num)';
-    prod.issetup = true;
-    % prod = prod.setup();
-
-    bcfix_T = SparseTensor('matlabsparse', true);
-    bcfix_T = bcfix_T.setFromTensorProd(coef, prod);
-
-    % Construction of the stiffness operator
-    %
-    % C_T : cellnodecolrowtbl -> cellnodecolrowtbl
-    %
+    prod.tbl1        = cell12nodetbl;
+    prod.tbl2        = cellnodefacevec122tbl;
+    prod.tbl3        = cell12nodefacevec122tbl;
+    prod.replacefds2 = {{'cells', 'cells2'}};
+    prod.mergefds    = {'cells2', 'nodes'};
     
-    map = TensorMap();
-    map.fromTbl = cellcol2row2tbl;
-    map.toTbl = cellnodecol2row2tbl;
-    map.mergefds = {'cells', 'coldim1', 'coldim2', 'rowdim1', 'rowdim2'};
+    if useVirtual
 
-    map.pivottbl = cellnodecol2row2tbl;
-    cnc2r2_num = cellnodecol2row2tbl.num; %shortcut
-    [c2r2, i] = ind2sub([c2r2_num, cn_num], (1 : cnc2r2_num)');
-    map.dispind1 = sub2ind([c2r2_num, c_num], c2r2, cell_from_cellnode(i));
-    map.dispind2 = (1 : cnc2r2_num)';
-    map.issetup = true;
-    % map = map.setup();
+        prod.pivottbl = cell12nodefacevec122tbl;
 
-    C = map.eval(C);
+        cell12nodefacetbl = tbls.cell12nodefacetbl;
+        cell12nodetbl     = tbls.cell12nodetbl;
+        
+        N = cell12nodefacetbl.num;
+        [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, N], (1 : cell12nodefacevec122tbl.num)');
 
+        prod.dispind1 = mappings.cell12node_from_cell12nodeface(i);
+        
+        N = cellnodefacetbl.num;
+        prod.dispind2 = sub2ind([d_num, d_num, d_num,  N], vec2, vec12, vec11 , mappings.cell2nodeface_from_cell12nodeface(i));
+
+        prod.dispind3 = (1 : cell12nodefacevec122tbl.num)';
+        
+        prod.issetup = true;
+        
+    else
+        prod = prod.setup();
+    end
+
+    S = prod.eval(a, Cg) + prod.eval(aT, CgT); % S is in cell12nodefacevec122tbl
+    
+    %% We multiply S by the normals to obtain nS
+
+    % Setup normals at facets (get vector in cellnodefacevectbl)
+    
+    facetNormals = computeFacetNormals(G, cellnodefacetbl);
+    
     prod = TensorProd();
-    prod.tbl1 = cellnodecol2row2tbl;
-    prod.tbl2 = cellnodecolrowtbl;
-    prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
-    prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
-    prod.mergefds = {'cells', 'nodes'};
-    prod.reducefds = {'coldim2', 'rowdim2'};
-    prod.tbl3 = cellnodecolrowtbl;
+    prod.tbl1        = cellnodefacevectbl;
+    prod.tbl2        = cell12nodefacevec122tbl;
+    prod.tbl3        = cell12nodeface12vec12tbl;
+    prod.replacefds1 = {{'faces', 'faces1'}, {'vec', 'redvec'}, {'cells', 'cells1'}};
+    prod.replacefds2 = {{'faces', 'faces2'}, {'vec11', 'vec1'}, {'vec12', 'redvec'}};
+    prod.reducefds   = {'redvec'};
+    prod.mergefds    = {'cells1', 'nodes'};
 
-    prod.pivottbl = cellnodecol2row2tbl;
-    d = d_num; %shortcut
-    [r2, c2, r1, c1, i] = ind2sub([d, d, d, d, cn_num], (1 : cnc2r2_num)');
-    prod.dispind1 = (1 : cnc2r2_num)';
-    prod.dispind2 = sub2ind([d, d, cn_num], r1, c1, i);
-    prod.dispind3 = sub2ind([d, d, cn_num], r2, c2, i);
+
+    vec122tbl = tbls.vec122tbl;
+
+    cell12nodeface12vec122tbl = crossIndexArray(tbls.cell12nodeface12tbl, vec122tbl, {}, ...
+                                                'optpureproduct', true, ...
+                                                'virtual', true);        
+    prod.pivottbl = cell12nodeface12vec122tbl;
+    
+    map1 = mappings.cell1nodeface1_from_cell12nodeface12;
+    map2 = mappings.cell12nodeface2_from_cell12nodeface12;
+
+    [v2, v12, v11, i] = ind2sub([dim, dim, dim, tbls.cell12nodeface12tbl.num], (1 : cell12nodeface12vec122tbl.num)');
+
+    prod.dispind1 = sub2ind([dim, tbls.cellnodefacetbl.num], v12, map1(i));
+    prod.dispind2 = sub2ind([dim, dim, dim, tbls.cell12nodefacetbl.num], v2, v12, v11, map2(i));
+    prod.dispind3 = sub2ind([dim, dim, tbls.cell12nodeface12tbl.num], v2, v11, i);
+
     prod.issetup = true;
-    % prod = prod.setup();
+
+    nS = prod.eval(facetNormals, S);
+
+    %% Setup of the matrices A11, A12, A21, A22
+
+    % Setup of A11
     
-    C_T = SparseTensor('matlabsparse', true);
-    C_T = C_T.setFromTensorProd(C, prod);
+    prod = TensorProd();
+    prod.tbl1        = cell12nodeface12vec12tbl;
+    prod.tbl2        = nodefacevectbl;
+    prod.tbl3        = nodefacevectbl;
+    prod.replacefds1 = {{'faces1', 'faces'}, {'vec1', 'vec'}};
+    prod.replacefds2 = {{'faces', 'faces2'}, {'vec', 'vec2'}};
+    prod.reducefds   = {'faces2', 'vec2'};
+    prod.reducefds1  = {'cells1', 'cells2'};
+    prod.mergefds    = {'nodes'};
 
-    % Assembly
+    if useVirtual
 
-    Cgradnodeface_T = bcfix_T*C_T*gradnodeface_T;
-    transaverCgradnodeface_T = transnodeaverage_T*Cgradnodeface_T;
+        prod.pivottbl = cell12nodeface12vec12tbl;
 
-    combCgradnodeface_T = 0.5*(Cgradnodeface_T + transaverCgradnodeface_T);
+        N = tbls.cell12nodeface12tbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cell12nodeface12vec12tbl.num)');
 
-    Cgradcell_T = bcfix_T*C_T*gradcell_T;
-    transaverCgradcell_T = transnodeaverage_T*Cgradcell_T;
+        prod.dispind1 = (1 : cell12nodeface12vec12tbl.num)';
+        
+        N = nodefacetbl.num;
+        j = mappings.cell12nodeface2_from_cell12nodeface12(i);
+        j = mappings.cell2nodeface_from_cell12nodeface(j);
+        j = nodeface_from_cellnodeface(j);
+        prod.dispind2 = sub2ind([d_num, N], vec2, j);
 
-    combCgradcell_T = 0.5*(Cgradcell_T + transaverCgradcell_T);
+        N = nodefacetbl.num;
+        j = mappings.cell1nodeface1_from_cell12nodeface12(i);
+        j = nodeface_from_cellnodeface(j);
+        prod.dispind3 = sub2ind([d_num, N], vec1, j);
+        
+        prod.issetup = true;
+        
+    else
 
-    C1 = combCgradnodeface_T.getMatrix();
-    C2 = combCgradcell_T.getMatrix();
+        prod = prod.setup();
+        
+    end
     
-    A11 = divnodeface_T*combCgradnodeface_T;
-    A12 = divnodeface_T*combCgradcell_T;
-    A21 = divcell_T*combCgradnodeface_T;
-    A22 = divcell_T*combCgradcell_T;
+    A11 = prod.setupMatrix(nS);
 
-    A11 = A11.getMatrix();
-    A12 = A12.getMatrix();
-    A21 = A21.getMatrix();
-    A22 = A22.getMatrix();
+    % Setup of A12
+    
+    prod = TensorProd();
+    prod.tbl1        = cell12nodeface12vec12tbl;
+    prod.tbl2        = cellvectbl;
+    prod.tbl3        = nodefacevectbl;
+    prod.replacefds1 = {{'faces1', 'faces'}, {'vec1', 'vec'}};
+    prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
+    prod.reducefds   = {'cells2', 'vec2'};
+    prod.reducefds1  = {'cells1', 'faces2'};
 
-    [nodes, sz] = rlencode(nodefacecoltbl.get('nodes'), 1);
-    opt.invertBlocks = 'mex';
-    bi = blockInverter(opt);
-    invA11 = bi(A11, sz);
+    if useVirtual
 
+        prod.pivottbl = cell12nodeface12vec12tbl;
+
+        N = tbls.cell12nodeface12tbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cell12nodeface12vec12tbl.num)');
+
+        prod.dispind1 = (1 : cell12nodeface12vec12tbl.num)';
+        
+        N = celltbl.num;
+        j = mappings.cell12nodeface2_from_cell12nodeface12(i);
+        j = mappings.cell12node_from_cell12nodeface(j);
+        j = mappings.cell2node_from_cell12node(j);
+        j = cell_from_cellnode(j);
+        prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+        N = nodefacetbl.num;
+        j = mappings.cell1nodeface1_from_cell12nodeface12(i);
+        j = mappings.nodeface_from_cellnodeface(j);
+        prod.dispind3 = sub2ind([d_num, N], vec1, j);
+        
+        prod.issetup = true;
+        
+    else
+
+        prod = prod.setup();
+        
+    end
+    
+    % note the sign
+    A12 = - prod.setupMatrix(nS);
+    
+    % Setup of A21
+    
+    prod = TensorProd();
+    prod.tbl1        = cell12nodeface12vec12tbl;
+    prod.tbl2        = nodefacevectbl;
+    prod.tbl3        = cellvectbl;
+    prod.replacefds1 = {{'vec1', 'vec'}, {'cells1', 'cells'}};
+    prod.replacefds2 = {{'vec', 'vec2'}, {'faces', 'faces2'}};
+    prod.reducefds   = {'nodes', 'faces2', 'vec2'};
+    prod.reducefds1  = {'faces1', 'cells2'};
+
+    if useVirtual
+
+        prod.pivottbl = cell12nodeface12vec12tbl;
+
+        N = tbls.cell12nodeface12tbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cell12nodeface12vec12tbl.num)');
+
+        prod.dispind1 = (1 : cell12nodeface12vec12tbl.num)';
+
+        N = nodefacetbl.num;
+        j = mappings.cell12nodeface2_from_cell12nodeface12(i);
+        j = mappings.cell2nodeface_from_cell12nodeface(j);
+        j = mappings.nodeface_from_cellnodeface(j);
+        prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+        N = celltbl.num;
+        j = mappings.cell1nodeface1_from_cell12nodeface12(i);
+        j = mappings.cell_from_cellnodeface(j);
+        prod.dispind3 = sub2ind([d_num, N], vec1, j);
+        
+        prod.issetup = true;
+        
+    else
+
+        prod = prod.setup();
+        
+    end
+    % note the sign
+    A21 = - prod.setupMatrix(nS);
+    
+    % Setup of A22
+    
+    prod = TensorProd();
+    prod.tbl1        = cell12nodeface12vec12tbl;
+    prod.tbl2        = cellvectbl;
+    prod.tbl3        = cellvectbl;
+    prod.replacefds1 = {{'vec1', 'vec'}, {'cells1', 'cells'}};
+    prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
+    prod.reducefds   = {'vec2', 'cells2'};
+    prod.reducefds1  = {'faces1', 'faces2', 'nodes'};
+    if useVirtual
+
+        prod.pivottbl = cell12nodeface12vec12tbl;
+
+        N = tbls.cell12nodeface12tbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cell12nodeface12vec12tbl.num)');
+
+        prod.dispind1 = (1 : cell12nodeface12vec12tbl.num)';
+
+        N = celltbl.num;
+        j = mappings.cell12nodeface2_from_cell12nodeface12(i);
+        j = mappings.cell2nodeface_from_cell12nodeface(j);
+        j = mappings.cell_from_cellnodeface(j);
+        prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+        N = celltbl.num;
+        j = mappings.cell1nodeface1_from_cell12nodeface12(i);
+        j = mappings.cell_from_cellnodeface(j);
+        prod.dispind3 = sub2ind([d_num, N], vec1, j);
+        
+        prod.issetup = true;
+        
+    else
+
+        prod = prod.setup();
+        
+    end
+    
+    A22 = prod.setupMatrix(nS);
+
+    if opt.assembleInvA11
+        
+        if useVirtual
+            nodeinds = rldecode(mappings.node_from_nodeface, vectbl.num);
+        else
+            nodeinds = nodefacevectbl.get('nodes');
+        end
+        [nodes, sz] = rlencode(nodeinds, 1);
+        opt.invertBlocks = 'm';
+        bi = blockInverter(opt);
+        invA11 = bi(A11, sz);
+        
+    end
+    
     % Matrix for boundary conditions
-    [D, bcvals] = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls);
+
+    if opt.includeBc
+
+        output = setupMpsaNodeFaceBc(bc, G, nnodesperface, tbls, mappings, 'useVirtual', useVirtual);
+        
+        D      = output.D;
+        bcvals = output.bcvals;
+        
+        % We update the mappings and tables from the output of setupMpsaNodeFaceBc
+        tbls     = output.tbls;
+        mappings = output.mappings;
+
+    end
+
+    if opt.assembleStressOperators
+        % Matrix for the stress computation
+
+        prod = TensorProd();
+        prod.tbl1        = cell12nodefacevec122tbl;
+        prod.tbl2        = nodefacevectbl;
+        prod.tbl3        = cellnodevec12tbl;
+        prod.replacefds1 = {{'cells1', 'cells'}, {'vec2', 'redvec'}, {'vec11', 'vec1'}, {'vec12', 'vec2'}};
+        prod.replacefds2 = {{'vec', 'redvec'}};
+        prod.reducefds   = {'redvec', 'faces'};
+        prod.reducefds1  = {'cells2'};
+        prod.mergefds    = {'nodes'};
+
+        if useVirtual
+
+            prod.pivottbl = cell12nodefacevec122tbl;
+
+            N = tbls.cell12nodefacetbl.num;
+            [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, N], (1 : cell12nodefacevec122tbl.num)');
+
+            prod.dispind1 = (1 : cell12nodefacevec122tbl.num)';
+
+            N = nodefacetbl.num;
+            j = mappings.cell2nodeface_from_cell12nodeface(i);
+            j = mappings.nodeface_from_cellnodeface(j);
+            prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+            N = cellnodetbl.num;
+            j = mappings.cell1node_from_cell12nodeface(i);
+            prod.dispind3 = sub2ind([d_num, d_num, N], vec12, vec11, j);
+            
+            prod.issetup = true;
+            
+        else
+
+            prod = prod.setup();
+            
+        end
+
+        C1 = prod.setupMatrix(S);
+
+        prod = TensorProd();
+        prod.tbl1        = cell12nodefacevec122tbl;
+        prod.tbl2        = cellvectbl;
+        prod.tbl3        = cellnodevec12tbl;
+        prod.replacefds1 = {{'cells1', 'cells'}, {'vec2', 'redvec'}, {'vec11', 'vec1'}, {'vec12', 'vec2'}};
+        prod.replacefds2 = {{'vec', 'vec2'}, {'cells', 'cells2'}};
+        prod.reducefds   = {'vec2', 'cells2'};
+        prod.reducefds1  = {'faces'};
+
+        if useVirtual
+
+            prod.pivottbl = cell12nodefacevec122tbl;
+
+            N = tbls.cell12nodefacetbl.num;
+            [vec2, vec12, vec11, i] = ind2sub([d_num, d_num, d_num, N], (1 : cell12nodefacevec122tbl.num)');
+
+            prod.dispind1 = (1 : cell12nodefacevec122tbl.num)';
+
+            N = celltbl.num;
+            j = mappings.cell2nodeface_from_cell12nodeface(i);
+            j = mappings.cell_from_cellnodeface(j);
+            prod.dispind2 = sub2ind([d_num, N], vec2, j);
+
+            N = cellnodetbl.num;
+            j = mappings.cell1node_from_cell12nodeface(i);
+            prod.dispind3 = sub2ind([d_num, d_num, N], vec12, vec11, j);
+            
+            prod.issetup = true;
+            
+        else
+
+            prod = prod.setup();
+            
+        end
+
+        % note the sign
+        C2 = -prod.setupMatrix(S);
+
+    end
     
-    %
-    % The divergence operator (integrated over the volume)
-    % is given by 
-    %
-    %  div[c] = sum (m[f,s] u_[f,n,i] n[c,f,i])
-    %
-    % where u:solution, n:normal, m:area
-    % indices : c:cell, f:face, n:node.
-    
-    % The facetNormals are already weighted with respect to area
-    
-    prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = nodefacecoltbl;
-    prod.tbl3 = celltbl;
-    prod.reducefds = {'faces', 'nodes', 'coldim'};
-    % prod = prod.setup();
-    
-    prod.pivottbl = cellnodefacecoltbl;
-    prod.dispind1 = (1 : cnfc_num)';
-    [c, i] = ind2sub([d_num, cnf_num], (1 : cnfc_num)');
-    prod.dispind2 = sub2ind([d_num, nf_num], c, nodeface_from_cellnodeface(i));
-    prod.dispind3 = cell_from_cellnode(cellnode_from_cellnodeface(i));
-    prod.issetup = true;
-    
-    div_T = SparseTensor;
-    div_T = div_T.setFromTensorProd(facetNormals, prod);
-    div = div_T.getMatrix();
+    if opt.assembleDiv
+        
+        %
+        % The divergence operator (integrated over the volume)
+        % is given by 
+        %
+        %  div[c] = sum (m[f,s] u_[f,n,i] n[c,f,i])
+        %
+        % where u:solution, n:normal, m:area
+        % indices : c:cell, f:face, n:node.
+        
+        % The facetNormals are already weighted with respect to area
+        
+        prod = TensorProd();
+        prod.tbl1 = cellnodefacevectbl;
+        prod.tbl2 = nodefacevectbl;
+        prod.tbl3 = celltbl;
+        prod.reducefds = {'faces', 'nodes', 'vec'};
+
+        if useVirtual
+            
+            prod.pivottbl = cellnodefacevectbl;
+
+            N = tbls.cellnodefacetbl.num;
+            [vec, i] = ind2sub([d_num, N], (1 : cellnodefacevectbl.num)');
+
+            prod.dispind1 = (1 : cellnodefacevectbl.num)';
+
+            N = nodefacevectbl.num;
+            j = mappings.nodeface_from_cellnodeface(i);
+            prod.dispind2 = sub2ind([d_num, N], vec, j);
+
+            prod.dispind3 = mappings.cell_from_cellnodeface(i);
+            
+            prod.issetup = true;
+            
+        else
+            prod = prod.setup();
+        end
+        
+        div = prod.setupMatrix(facetNormals);
+
+    end
     
     matrices = struct('A11'   , A11   , ...
                       'A12'   , A12   , ...
                       'A21'   , A21   , ...
-                      'A22'   , A22   , ...
-                      'D'     , D     , ...
-                      'invA11', invA11, ...
-                      'C1'    , C1    , ...
-                      'C2'    , C2    , ...
-                      'div'   , div);
+                      'A22'   , A22);
+
+    if opt.assembleInvA11
+        matrices.invA11 = invA11;
+    end
+
+    if opt.assembleStressOperators
+        matrices.C1 = C1;
+        matrices.C2 = C2;
+    end
+    
+    if opt.assembleDiv
+        matrices.div = div;
+    end
     
     extra = struct('g', g);
+
+    tbls.cell12nodeface12vec12tbl = cell12nodeface12vec12tbl;
+    
+    indexarrays = struct('nS', nS);
+
+    output = struct('tbls'       , tbls       , ...
+                    'mappings'   , mappings   , ...
+                    'indexarrays', indexarrays, ...
+                    'matrices'   , matrices   , ...
+                    'extra'      , extra);
+
+    if opt.includeBc
+        matrices.D    = D;
+        output.bcvals = bcvals;
+    end
+    
 end

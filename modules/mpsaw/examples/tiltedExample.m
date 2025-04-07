@@ -1,8 +1,6 @@
 clear all
 close all
 
-mrstModule add mpsaw vemmech mpfa
-
 N = 20;
 G = cartGrid([N, N], [1 , 1]);
 angle = 10/180*pi;
@@ -19,8 +17,8 @@ mu     = ones(nc, 1);
 prop = struct('lambda', lambda, ...
               'mu', mu);
 
-useVirtual = false;
-[tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
+useVirtual = true;
+[tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
 
 extfaces{1} = bcfaces.ymin;
 n = numel(extfaces{1});
@@ -32,43 +30,77 @@ n = numel(extfaces{2});
 linforms{2} = repmat([cos(angle), sin(angle)], n, 1);
 linformvals{2} = zeros(n, 1);
 
-nodefacecoltbl  = tbls.nodefacecoltbl;
-coltbl  = tbls.coltbl;
-facetbl.faces = (1 : G.faces.num)';
-facetbl = IndexArray(facetbl);
-facecoltbl  = crossIndexArray(facetbl, coltbl, {});
+nodefacevectbl = tbls.nodefacevectbl;
+vectbl         = tbls.vectbl;
+facevectbl     = tbls.facevectbl;
+facetbl        = tbls.facetbl;
 
 extfacetbl.faces = bcfaces.ymax;
 extfacetbl = IndexArray(extfacetbl);
-extfacecoltbl = crossIndexArray(extfacetbl, coltbl, {});
+
+if useVirtual
+    face_from_extface = extfacetbl.get('faces');
+end
+
+extfacevectbl = crossIndexArray(extfacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
 
 normals = G.faces.normals;
 normals = reshape(normals', [], 1);
 
 map = TensorMap();
-map.fromTbl = facecoltbl;
-map.toTbl = extfacecoltbl;
-map.mergefds = {'faces', 'coldim'};
-map = map.setup();
+map.fromTbl  = facevectbl;
+map.toTbl    = extfacevectbl;
+map.mergefds = {'faces', 'vec'};
+
+if useVirtual
+
+    map.pivottbl = extfacevectbl;
+    [vec, i] = ind2sub([vectbl.num, extfacetbl.num], (1 : extfacevectbl.num)');
+    map.dispind1 = sub2ind([vectbl.num, facetbl.num], vec, face_from_extface(i));
+    map.dispind2 = (1 : extfacevectbl.num)';
+    map.issetup = true;
+    
+else
+    
+    map = map.setup();
+    
+end
+
 extFacetNormals = map.eval(normals);
 
 map = TensorMap();
-map.fromTbl = extfacecoltbl;
-map.toTbl = nodefacecoltbl;
-map.mergefds = {'faces', 'coldim'};
+map.fromTbl  = extfacevectbl;
+map.toTbl    = nodefacevectbl;
+map.mergefds = {'faces', 'vec'};
 
-map = map.setup();
+if useVirtual
+    
+    nodefacetbl = tbls.nodefacetbl;
+    [extnodefacetbl, indstruct] = crossIndexArray(extfacetbl, nodefacetbl, {'faces'});
+    extface_from_extnodeface  = indstruct{1}.inds;
+    nodeface_from_extnodeface = indstruct{2}.inds;
+    extnodefacevectbl = crossIndexArray(extnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
+    
+    map.pivottbl = extnodefacevectbl;
+    [vec, i] = ind2sub([vectbl.num, extnodefacetbl.num], (1 : extnodefacevectbl.num)');
+    map.dispind1 = sub2ind([vectbl.num, extfacetbl.num], vec, extface_from_extnodeface(i));
+    map.dispind2 = sub2ind([vectbl.num, nodefacetbl.num], vec, nodeface_from_extnodeface(i));
+    map.issetup = true;
+    
+else
+    map = map.setup();
+end
 
 extforce = map.eval(-extFacetNormals);
 
-cellcoltbl = tbls.cellcoltbl;
-force = zeros(cellcoltbl.num, 1);
+cellvectbl = tbls.cellvectbl;
+force = zeros(cellvectbl.num, 1);
 
 bc.extfaces    = vertcat(extfaces{:});
 bc.linform     = vertcat(linforms{:});
 bc.linformvals = vertcat(linformvals{:});
 
-bc = setupFaceBC(bc, G, tbls);
+bc = setupFaceBC(bc, G, tbls, mappings, 'useVirtual', useVirtual);
 
 loadstruct.bc = bc;
 loadstruct.extforce = extforce;
@@ -78,7 +110,7 @@ eta = 1/3;
 bcetazero = false;
 
 assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, 'bcetazero', ...
-                        bcetazero, 'extraoutput', true);
+                         bcetazero, 'extraoutput', true, 'useVirtual', useVirtual);
 
 B   = assembly.B  ;
 rhs = assembly.rhs;
@@ -86,12 +118,12 @@ rhs = assembly.rhs;
 sol = B\rhs;
 
 % displacement values at cell centers.
-n = cellcoltbl.num;
+n = cellvectbl.num;
 
 ucell = sol(1 : n);
 lagmult = sol(n + 1 : end);
 
-unode = computeNodeDisp(ucell, tbls);
+unode = computeNodeDisp(ucell, tbls, mappings, 'useVirtual', useVirtual);
 
 dim = G.griddim;
 ucell = reshape(ucell, dim, [])';

@@ -43,12 +43,12 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     alpha  = params.alpha;
     rho    = params.rho;
 
-    [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
+    [tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
-    coltbl         = tbls.coltbl;
-    colrowtbl      = tbls.colrowtbl;
+    vectbl         = tbls.vectbl;
+    vec12tbl       = tbls.vec12tbl;
     nodefacetbl    = tbls.nodefacetbl;
-    nodefacecoltbl = tbls.nodefacecoltbl;
+    nodefacevectbl = tbls.nodefacevectbl;
 
     Nc = G.cells.num; 
     Nf = G.faces.num; 
@@ -84,21 +84,43 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     dirfaces  = bcfaces(isdir);  % Dirichlet faces
     neumfaces = bcfaces(~isdir); % Neumann faces
 
-    bcdirfacetbl.faces = dirfaces;
+    bcdirfacetbl.faces  = dirfaces;
     bcdirfacetbl = IndexArray(bcdirfacetbl);
-    bcdirnodefacetbl = crossIndexArray(bcdirfacetbl, nodefacetbl, {'faces'});
-    bcdirnodefacecoltbl = crossIndexArray(bcdirnodefacetbl, coltbl, {}, 'optpureproduct', true);
+    [bcdirnodefacetbl, indstruct] = crossIndexArray(bcdirfacetbl, nodefacetbl, {'faces'});
+    if useVirtual
+        d_num   = vectbl.num;
+        bcdirface_from_bcdirnodeface = indstruct{1}.inds;
+        nodeface_from_bcdirnodeface  = indstruct{2}.inds;
+    end
+    bcdirnodefacevectbl = crossIndexArray(bcdirnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
 
-    [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
+    [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, mappings, ...
+                                                   'bcetazero', opt.bcetazero, ...
+                                                   'useVirtual', useVirtual);
 
     map = TensorMap();
-    map.fromTbl = nodefacecoltbl;
-    map.toTbl = bcdirnodefacecoltbl;
-    map.mergefds = {'nodes', 'faces', 'coldim'};
-    map = map.setup();
+    map.fromTbl  = nodefacevectbl;
+    map.toTbl    = bcdirnodefacevectbl;
+    map.mergefds = {'nodes', 'faces', 'vec'};
 
+    if useVirtual
+        map.pivottbl = bcdirnodefacevectbl;
+
+        N = bcdirnodefacetbl.num; 
+        [vec, i] = ind2sub([d_num, N], (1 : bcdirnodefacevectbl.num)');
+
+        map.dispind1 = sub2ind([d_num, nodefacetbl.num], vec , nodeface_from_bcdirnodeface(i));
+        map.dispind2 = (1 : bcdirnodefacevectbl.num)';
+        
+        map.issetup = true;
+        
+    else
+        map = map.setup();
+    end
+
+    
     bcdirnodefacecents = map.eval(nodefacecents);
-    % Here, we assume a given structure of bcnodefacecoltbl:
+    % Here, we assume a given structure of bcnodefacevectbl:
     bcdirnodefacecents = reshape(bcdirnodefacecents, Nd, [])';
     bcnum = bcdirnodefacetbl.num;
 
@@ -132,34 +154,61 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     bcneumfacetbl.faces = neumfaces;
     bcneumfacetbl = IndexArray(bcneumfacetbl);
-    bcneumnodefacetbl = crossIndexArray(bcneumfacetbl, nodefacetbl, {'faces'});
-    bcneumnodefacecoltbl = crossIndexArray(bcneumnodefacetbl, coltbl, {}, 'optpureproduct', true);
+    [bcneumnodefacetbl, indstruct] = crossIndexArray(bcneumfacetbl, nodefacetbl, {'faces'});
+    if useVirtual
+        bcneumface_from_bcneumnodeface = indstruct{1}.inds;
+        nodeface_from_bcneumnodeface   = indstruct{2}.inds;
+    end
+    bcneumnodefacevectbl = crossIndexArray(bcneumnodefacetbl, vectbl, {}, ...
+                                           'optpureproduct' , true  , ...
+                                           'virtual'        , useVirtual);
     voigttbl.voigtdim = (1 : vdim)';
     voigttbl = IndexArray(voigttbl);
-    bcneumnodefacevoigttbl = crossIndexArray(bcneumnodefacetbl, voigttbl, {}, 'optpureproduct', true);    
-    colrowvoigttbl = colrowtbl;
+    bcneumnodefacevoigttbl = crossIndexArray(bcneumnodefacetbl, voigttbl, {}, ...
+                                             'optpureproduct', true         , ...
+                                             'virtual', useVirtual);    
+    vec12voigttbl = vec12tbl;
     switch Nd
       case 2
-        voigtind = [1; 3; 3; 2];
+        voigt_from_vec12 = [1; 3; 3; 2];
       case 3
-        voigtind = [1; 6; 5; 6; 2; 4; 5; 4; 3];
+        voigt_from_vec12 = [1; 6; 5; 6; 2; 4; 5; 4; 3];
       otherwise
         error('d not recognized');
     end
-    colrowvoigttbl = colrowvoigttbl.addInd('voigtdim', voigtind);
+    vec12voigttbl = vec12voigttbl.addInd('voigtdim', voigt_from_vec12);
 
-    bcneumnodefacevoigttbl = crossIndexArray(bcneumnodefacetbl, voigttbl, {}, 'optpureproduct', true);
-    bcneumnodefacecolrowvoigttbl = crossIndexArray(bcneumnodefacetbl, colrowvoigttbl, {}, 'optpureproduct', true);
+    
+    bcneumnodefacevec12voigttbl = crossIndexArray(bcneumnodefacetbl, vec12voigttbl, {}, ...
+                                                  'optpureproduct', true              , ...
+                                                  'virtual'    , useVirtual);
 
     % Evaluate analytical stress at bcneumnodefacecents (continuity points at boundary)
 
-    % We get the continuity points where the stress should be evaluated, they belong to bcnemnodefacecoltbl
+    % We get the continuity points where the stress should be evaluated, they belong to bcnemnodefacevectbl
     map = TensorMap();
-    map.fromTbl = nodefacecoltbl;
-    map.toTbl = bcneumnodefacecoltbl;
-    map.mergefds = {'nodes',  'faces', 'coldim'};
-    map = map.setup();
+    map.fromTbl  = nodefacevectbl;
+    map.toTbl    = bcneumnodefacevectbl;
+    map.mergefds = {'nodes',  'faces', 'vec'};
 
+    if useVirtual
+        
+        map.pivottbl = bcneumnodefacevectbl;
+
+        N = bcneumnodefacetbl.num; 
+        [vec, i] = ind2sub([d_num, N], (1 : bcneumnodefacevectbl.num)');
+
+        map.dispind1 = sub2ind([d_num, nodefacetbl.num], vec, nodeface_from_bcneumnodeface(i));
+        map.dispind2 = (1 : bcneumnodefacevectbl.num)';
+        
+        map.issetup = true;
+        
+    else
+        
+        map = map.setup();
+        
+    end
+    
     bcneumnodefacecents = map.eval(nodefacecents);
     bcneumnodefacecents = reshape(bcneumnodefacecents, Nd, [])';
     for idim = 1 : Nd
@@ -174,40 +223,98 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     stress = horzcat(stress{:});
     stress = reshape(stress', [], 1);
 
-    % Map stress to bcneumnodefacecolrowvoigttbl
+    % Map stress to bcneumnodefacevec12voigttbl
     map = TensorMap();
-    map.fromTbl = bcneumnodefacevoigttbl;
-    map.toTbl = bcneumnodefacecolrowvoigttbl;
+    map.fromTbl  = bcneumnodefacevoigttbl;
+    map.toTbl    = bcneumnodefacevec12voigttbl;
     map.mergefds = {'nodes', 'faces', 'voigtdim'};
-    map = map.setup();
+
+    if useVirtual
+        
+        map.pivottbl = bcneumnodefacevec12voigttbl;
+
+        N = bcneumnodefacetbl.num; 
+        [v, i] = ind2sub([vec12tbl.num, N], (1 : bcneumnodefacevec12voigttbl.num)');
+
+        map.dispind1 = sub2ind([voigttbl.num, bcneumnodefacetbl.num], voigt_from_vec12(v), i);
+        map.dispind2 = (1 : bcneumnodefacevec12voigttbl.num)';
+        
+        map.issetup = true;
+        
+    else
+        
+        map = map.setup();
+        
+    end
 
     stress = map.eval(stress);
 
-    % Fetch the normals in bcneumnodefacecoltbl
+    % Fetch the normals in bcneumnodefacevectbl
     cellnodefacetbl = tbls.cellnodefacetbl;
-    cellnodefacecoltbl = tbls.cellnodefacecoltbl;
-    % facetNormals is in cellnodefacecoltbl;
+    cellnodefacevectbl = tbls.cellnodefacevectbl;
+    % facetNormals is in cellnodefacevectbl;
     facetNormals =  computeFacetNormals(G, cellnodefacetbl);
 
     map = TensorMap();
-    map.fromTbl = cellnodefacecoltbl;
-    map.toTbl = bcneumnodefacecoltbl;
-    map.mergefds = {'nodes', 'faces', 'coldim'};
-    map = map.setup();
-    % now facetNormals is in bcneumnodefacecoltbl
+    map.fromTbl  = cellnodefacevectbl;
+    map.toTbl    = bcneumnodefacevectbl;
+    map.mergefds = {'nodes', 'faces', 'vec'};
+
+    if useVirtual
+
+        [bcneumcellnodefacetbl, indstruct] = crossIndexArray(cellnodefacetbl, bcneumnodefacetbl, {'nodes', 'faces'});
+        cellnodeface_from_bcneumcellnodefacetbl   = indstruct{1}.inds;
+        bcneumnodeface_from_bcneumcellnodefacetbl = indstruct{2}.inds;
+        bcneumcellnodefacevectbl = crossIndexArray(bcneumcellnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
+        
+        map.pivottbl = bcneumcellnodefacevectbl;
+
+        N = bcneumcellnodefacetbl.num; 
+        [vec, i] = ind2sub([d_num, N], (1 : bcneumcellnodefacevectbl.num)');
+
+        map.dispind1 = sub2ind([d_num, cellnodefacetbl.num], vec, cellnodeface_from_bcneumcellnodefacetbl(i));
+        map.dispind2 = sub2ind([d_num, bcneumnodefacetbl.num], vec, bcneumnodeface_from_bcneumcellnodefacetbl(i));
+        
+        map.issetup = true;
+        
+    else
+        
+        map = map.setup();
+        
+    end
+    % now facetNormals is in bcneumnodefacevectbl
     facetNormals = map.eval(facetNormals);
 
     % We multiplty stress with facetNormals
     prod = TensorProd();
-    prod.tbl1 = bcneumnodefacecolrowvoigttbl;
-    prod.tbl2 = bcneumnodefacecoltbl;
-    prod.tbl3 = bcneumnodefacecoltbl;
-    prod.replacefds1 = {{'coldim', 'rowdim', 'interchange'}};
-    prod.replacefds2 = {{'coldim', 'rowdim'}};
-    prod.mergefds = {'nodes', 'faces'};
-    prod.reducefds = {'rowdim'};
-    prod = prod.setup();
+    prod.tbl1        = bcneumnodefacevec12voigttbl;
+    prod.tbl2        = bcneumnodefacevectbl;
+    prod.tbl3        = bcneumnodefacevectbl;
+    prod.replacefds1 = {{'vec1', 'redvec'}, {'vec2', 'vec'}};
+    prod.replacefds2 = {{'vec', 'redvec'}};
+    prod.mergefds    = {'nodes', 'faces'};
+    prod.reducefds   = {'redvec'};
 
+    if useVirtual
+        
+        prod.pivottbl = bcneumnodefacevec12voigttbl;
+        
+        N = bcneumnodefacetbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : bcneumnodefacevec12voigttbl.num)');
+
+        prod.dispind1 = (1 : bcneumnodefacevec12voigttbl.num)';
+        N = bcneumnodefacetbl.num;
+        prod.dispind2 = sub2ind([d_num, N], vec1, i);
+        prod.dispind3 = sub2ind([d_num, N], vec2, i);
+        
+        prod.issetup = true;
+        
+    else
+        
+        prod = prod.setup();
+        
+    end
+    
     extforce = prod.eval(stress, facetNormals);
 
     % We add the part due to the Biot pressure
@@ -215,19 +322,54 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     prod = TensorProd();
     prod.tbl1 = bcneumnodefacetbl;
-    prod.tbl2 = bcneumnodefacecoltbl;
-    prod.tbl3 = bcneumnodefacecoltbl;
+    prod.tbl2 = bcneumnodefacevectbl;
+    prod.tbl3 = bcneumnodefacevectbl;
     prod.mergefds = {'nodes', 'faces'};
-    prod = prod.setup();
+
+    if useVirtual
+        
+        prod.pivottbl = bcneumnodefacevectbl;
+        
+        N = bcneumnodefacetbl.num;
+        [vec, i] = ind2sub([d_num, N], (1 : bcneumnodefacevectbl.num)');
+
+        prod.dispind1 = i;
+        prod.dispind2 = (1 : bcneumnodefacevectbl.num)';
+        prod.dispind3 = (1 : bcneumnodefacevectbl.num)';
+        
+        prod.issetup = true;
+        
+    else
+        
+        prod = prod.setup();
+        
+    end
 
     extforce = extforce + prod.eval(apneum, facetNormals);
 
-    % the format of extforce expected in assembly is in nodefacecoltbl
+    % the format of extforce expected in assembly is in nodefacevectbl
     map = TensorMap();
-    map.fromTbl = bcneumnodefacecoltbl;
-    map.toTbl = nodefacecoltbl;
-    map.mergefds = {'nodes', 'faces', 'coldim'};
-    map = map.setup();
+    map.fromTbl  = bcneumnodefacevectbl;
+    map.toTbl    = nodefacevectbl;
+    map.mergefds = {'nodes', 'faces', 'vec'};
+
+    if useVirtual
+
+        map.pivottbl = bcneumnodefacevectbl;
+
+        N = bcneumnodefacetbl.num; 
+        [vec, i] = ind2sub([d_num, N], (1 : bcneumnodefacevectbl.num)');
+
+        map.dispind1 = (1 : bcneumnodefacevectbl.num)';
+        map.dispind2 = sub2ind([d_num, nodefacetbl.num], vec, nodeface_from_bcneumnodeface(i));
+        
+        map.issetup = true;
+        
+    else
+        
+        map = map.setup();
+        
+    end
 
     extforce = map.eval(extforce);
 
@@ -237,7 +379,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         force(:, idim) = force_fun{idim}(cc{:});
     end
     force = bsxfun(@times, G.cells.volumes, force);
-    % Here, we assume we know the structure of cellcoltbl;
+    % Here, we assume we know the structure of cellvectbl;
     force = reshape(force', [], 1);    
 
     loadstruct.bc = bc;
@@ -257,18 +399,37 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % Dirichlet fluid bc
     bcfacetbl.faces = bcfaces;
     bcfacetbl = IndexArray(bcfacetbl);
-    bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
-    bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, 'optpureproduct', true);
+    [bcnodefacetbl, indstruct] = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
+    bcface_from_bcnodeface   = indstruct{1}.inds;
+    nodeface_from_bcnodeface = indstruct{2}.inds;
+    bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
 
     map = TensorMap();
-    map.fromTbl = nodefacecoltbl;
-    map.toTbl = bcnodefacecoltbl;
-    map.mergefds = {'nodes', 'faces', 'coldim'};
-    map = map.setup();
+    map.fromTbl  = nodefacevectbl;
+    map.toTbl    = bcnodefacevectbl;
+    map.mergefds = {'nodes', 'faces', 'vec'};
+
+    if useVirtual
+
+        map.pivottbl = bcnodefacevectbl;
+
+        N = bcnodefacetbl.num; 
+        [vec, i] = ind2sub([d_num, N], (1 : bcnodefacevectbl.num)');
+
+        map.dispind1 = sub2ind([d_num, nodefacetbl.num], vec, nodeface_from_bcnodeface(i));
+        map.dispind2 = (1 : bcnodefacevectbl.num)';
+        
+        map.issetup = true;
+        
+    else
+        
+        map = map.setup();
+        
+    end
 
     bcnodefacecents = map.eval(nodefacecents);
 
-    % Here, we assume a given structure of bcnodefacecoltbl:
+    % Here, we assume a given structure of bcnodefacevectbl:
     bcnodefacecents = reshape(bcnodefacecents, Nd, [])';
     % Prepare input for analytical functions
     for idim = 1 : Nd
@@ -285,14 +446,31 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                          'src'     , src);
 
     % Setup fluid parameters
-    cellcolrowtbl = tbls.cellcolrowtbl;
-    colrowtbl = tbls.colrowtbl;
+    cellvec12tbl = tbls.cellvec12tbl;
+    vec12tbl = tbls.vec12tbl;
 
     map = TensorMap();
-    map.fromTbl = colrowtbl;
-    map.toTbl = cellcolrowtbl;
-    map.mergefds = {'coldim', 'rowdim'};
-    map = map.setup();
+    map.fromTbl  = vec12tbl;
+    map.toTbl    = cellvec12tbl;
+    map.mergefds = {'vec1', 'vec2'};
+
+    if useVirtual
+
+        map.pivottbl = cellvec12tbl;
+
+        N = tbls.celltbl.num; 
+        [vec, i] = ind2sub([vec12tbl.num, N], (1 : cellvec12tbl.num)');
+
+        map.dispind1 = vec;
+        map.dispind2 = (1 : cellvec12tbl.num)';
+        
+        map.issetup = true;
+        
+    else
+        
+        map = map.setup();
+        
+    end
 
     K = K*eye(Nd);
     K = reshape(K, [], 1);
@@ -317,9 +495,12 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         options = {'verbose'  , true         , ...
                    'bcetazero', opt.bcetazero, ...
                    'blocksize', opt.blocksize};
-        assembly = blockAssembleBiot(G, props, drivingforces, eta, tbls, mappings, options{:});
+        assembly = blockAssembleBiot(G, props, drivingforces, eta, tbls, mappings, options{:}, ...
+                                     'useVirtual', useVirtual);
     else
-        assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'bcetazero', opt.bcetazero);
+        assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, ...
+                                'bcetazero', opt.bcetazero                  , ...
+                                'useVirtual', useVirtual);
     end
 
     clear prop loadstruct
@@ -329,8 +510,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     sol = B\rhs;
 
     % Displacement values at cell centers.
-    cellcoltbl = tbls.cellcoltbl;
-    ncc = cellcoltbl.num;
+    cellvectbl = tbls.cellvectbl;
+    ncc = cellvectbl.num;
 
     u = sol(1 : ncc);
     u = reshape(u, Nd, [])';    

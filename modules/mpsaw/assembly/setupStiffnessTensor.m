@@ -1,4 +1,4 @@
-function C = setupStiffnessTensor(prop, tbls)
+function C = setupStiffnessTensor(prop, tbls, mappings, varargin)
 %Undocumented Utility Function
 
 %{
@@ -21,82 +21,228 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    celltbl         =  tbls.celltbl;
-    coltbl          =  tbls.coltbl;
-    colrowtbl       =  tbls.colrowtbl;
-    cellcol2row2tbl =  tbls.cellcol2row2tbl;
-    col2row2tbl     =  tbls.col2row2tbl;
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
     
-    dim = coltbl.num;
+    celltbl        =  tbls.celltbl;
+    vectbl         =  tbls.vectbl;
+    vec12tbl       =  tbls.vec12tbl;
+    cellvec1212tbl =  tbls.cellvec1212tbl;
+    vec1212tbl     =  tbls.vec1212tbl;
+    
+    dim = vectbl.num;
     
     lambda = prop.lambda;
     mu = prop.mu;
     
     vdim = dim*(dim + 1)/2;
     avdim = dim*dim - vdim;
-
     
-    constructiontypes = {'direct_lambda_mu_construction', ...
-                        'general_voigt_construction'};
-    % constructiontype = 'general_voigt_construction';
-    constructiontype = 'direct_lambda_mu_construction';
-
+    % constructiontypes = {'using_change_of_basis', ...
+    %                      'general_voigt_construction'};
+    constructiontype = 'using_change_of_basis';
+    
     switch constructiontype
-      case 'direct_lambda_mu_construction'
 
-        mutbl.coldim1 = colrowtbl.get('coldim');
-        mutbl.coldim2 = colrowtbl.get('coldim');
-        mutbl.rowdim1 = colrowtbl.get('rowdim');
-        mutbl.rowdim2 = colrowtbl.get('rowdim');
-        mutbl = IndexArray(mutbl);
+      case 'using_change_of_basis'
 
-        cellmutbl = crossIndexArray(celltbl, mutbl, {});
+        mu_     = unique(mu);
+        lambda_ = unique(lambda);
 
-        map = TensorMap();
-        map.fromTbl = celltbl;
-        map.toTbl = cellmutbl;
-        map.mergefds = {'cells'};
-        map = map.setup();
+        if (numel(mu_) == 1 && numel(lambda_) == 1)
+            isscalar = true;
+            mu     = mu_;
+            lambda = lambda_;
+        else
+            isscalar = false;
+        end
 
-        Cmu = map.eval(2*mu);
+        switch dim
+            
+          case 2
+            
+            M = [1 0 0 0;
+                 0 0 1 1;
+                 0 0 1 -1;
+                 0 1 0 0];
+            
+          case 3
 
-        map = TensorMap();
-        map.fromTbl = cellmutbl;
-        map.toTbl = cellcol2row2tbl;
-        fds = {'coldim1', 'coldim2', 'rowdim1', 'rowdim2', 'cells'};
-        map.mergefds = fds;
-        map = map.setup();
+            M = [[1, 0, 0, 0, 0, 0, 0 , 0 , 0];
+                 [0, 0, 0, 1, 0, 0, 1 , 0 , 0];
+                 [0, 0, 0, 0, 1, 0, 0 , 1 , 0];
+                 [0, 0, 0, 1, 0, 0, -1, 0 , 0];
+                 [0, 1, 0, 0, 0, 0, 0 , 0 , 0];
+                 [0, 0, 0, 0, 0, 1, 0 , 0 , 1];
+                 [0, 0, 0, 0, 1, 0, 0 , -1, 0];
+                 [0, 0, 0, 0, 0, 1, 0 , 0 , -1];
+                 [0, 0, 1, 0, 0, 0, 0 , 0 , 0]];
 
-        Cmu = map.eval(Cmu);
 
-        diagtbl.coldim = (1 : dim)';
-        diagtbl.rowdim = (1 : dim)';
-        diagtbl = IndexArray(diagtbl);
+        end
 
-        fds = {{'rowdim', {'rowdim1', 'rowdim2'}}, ...
-               {'coldim', {'coldim1', 'coldim2'}}};
-        lambdatbl = crossIndexArray(diagtbl, diagtbl, {}, 'crossextend', fds);
+        invM = inv(M);
 
-        celllambdatbl = crossIndexArray(celltbl, lambdatbl, {});
+        if isscalar
+            
+            switch dim
+                
+              case 2
+                
+                C = [(lambda + 2*mu), lambda         , 0   , 0;
+                     lambda         , (lambda + 2*mu), 0   , 0;
+                     0              , 0              , 2*mu, 0;
+                     0              , 0              , 0   , 2*mu];
+                
+              case 3
 
-        map = TensorMap();
-        map.fromTbl = celltbl;
-        map.toTbl = celllambdatbl;
-        map.mergefds = {'cells'};
-        map = map.setup();
+                C = [[(lambda + 2*mu), lambda         , lambda         , 0   , 0   , 0   , 0   , 0   , 0];
+                     [lambda         , (lambda + 2*mu), lambda         , 0   , 0   , 0   , 0   , 0   , 0];
+                     [lambda         , lambda         , (lambda + 2*mu), 0   , 0   , 0   , 0   , 0   , 0];
+                     [0              , 0              , 0              , 2*mu, 0   , 0   , 0   , 0   , 0];
+                     [0              , 0              , 0              , 0   , 2*mu, 0   , 0   , 0   , 0];
+                     [0              , 0              , 0              , 0   , 0   , 2*mu, 0   , 0   , 0];
+                     [0              , 0              , 0              , 0   , 0   , 0   , 2*mu, 0   , 0];
+                     [0              , 0              , 0              , 0   , 0   , 0   , 0   , 2*mu, 0];
+                     [0              , 0              , 0              , 0   , 0   , 0   , 0   , 0   , 2*mu]];
+            end
 
-        lambda = map.eval(lambda);
+            C = M*C*invM;
+            C = reshape(C', [], 1);
+            
+            map = TensorMap();
+            map.fromTbl  = vec1212tbl;
+            map.toTbl    = cellvec1212tbl;
+            map.mergefds = {'vec11', 'vec12', 'vec21', 'vec22'};
 
-        map = TensorMap();
-        map.fromTbl = celllambdatbl;
-        map.toTbl = cellcol2row2tbl;
-        fds = {'coldim1', 'coldim2', 'rowdim1', 'rowdim2', 'cells'};
-        map.mergefds = fds;
-        map = map.setup();
+            if useVirtual
 
-        Clambda = map.eval(lambda);
+                map.pivottbl = cellvec1212tbl;
 
-        C = Cmu + Clambda;
+                [vec, i] = ind2sub([vec1212tbl.num, celltbl.num], (1 : cellvec1212tbl.num)');
+                map.dispind1 = vec;
+                map.dispind2 = (1 : cellvec1212tbl.num)';
+                map.issetup = true;
+                
+            else
+                
+                map = map.setup();
+                
+            end
+            
+            C = map.eval(C);
+            
+        else
+            
+            prod = TensorProd();
+            prod.tbl1 = vec1212tbl;
+            prod.tbl2 = celltbl;
+            prod.tbl3 = cellvec1212tbl;
+
+            if useVirtual
+
+                prod.pivottbl = cellvec1212tbl;
+                [vec, i] = ind2sub([vec1212tbl.num, celltbl.num], (1 : cellvec1212tbl.num)');                
+                prod.dispind1 = vec;
+                prod.dispind2 = i;
+                prod.dispind3 = (1 : cellvec1212tbl.num)';
+                prod.issetup = true;
+                
+            else
+                
+                prod = prod.setup();
+                
+            end
+
+            u = zeros(vec1212tbl.num, 1);
+            u(vec1212tbl.get('vec11') == vec1212tbl.get('vec21') & vec1212tbl.get('vec12') == vec1212tbl.get('vec22') )= 1;
+
+            muC = prod.eval(u, 2*mu);
+
+            u = zeros(vec1212tbl.num, 1);
+            u(vec1212tbl.get('vec11') == 1 & vec1212tbl.get('vec21') == 1) = 1;
+
+            lambdaC = prod.eval(u, lambda);
+
+            tC = lambdaC + muC;
+            
+            tconv = TensorConvert;
+            tconv.fromTbl           = vec12tbl;
+            tconv.toTbl             = vec12tbl;
+            tconv.pivottbl          = vec1212tbl;
+            tconv.replacefdsFromTbl = {{'vec1', 'vec21'}, {'vec2', 'vec22'}};
+            tconv.replacefdsToTbl   = {{'vec1', 'vec11'}, {'vec2', 'vec12'}};
+            tconv = tconv.setup();
+
+            Mv    = tconv.convert(M);
+            invMv = tconv.convert(invM);
+
+            prod = TensorProd();
+            prod.tbl1        = vec1212tbl;
+            prod.tbl2        = cellvec1212tbl;
+            prod.tbl3        = cellvec1212tbl;
+            prod.replacefds1 = {{'vec11', 'redvec1'}, {'vec12', 'redvec2'}};
+            prod.replacefds2 = {{'vec21', 'redvec1'}, {'vec22', 'redvec2'}};
+            prod.reducefds   = {'redvec1', 'redvec2'};
+
+            if useVirtual
+
+                gen = CrossIndexArrayGenerator();
+                gen.tbl1        = vec1212tbl;
+                gen.tbl2        = vec12tbl;
+                gen.replacefds2 = {{'vec1', 'vec31'}, {'vec2', 'vec32'}};
+                gen.mergefds    = {};
+                gen.opts        = {'optpureproduct', true, 'virtual', useVirtual};
+                
+                vec121212tbl = gen.eval();
+
+                cellvec121212tbl = crossIndexArray(celltbl, vec121212tbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
+                
+                prod.pivottbl = cellvec121212tbl;
+
+                [vec3, vec2, vec1, i] = ind2sub([vec12tbl.num, vec12tbl.num, vec12tbl.num, celltbl.num], (1 : cellvec121212tbl.num)');
+                prod.dispind1 = sub2ind([vec12tbl.num, vec12tbl.num], vec1, vec2);
+                prod.dispind2 = sub2ind([vec12tbl.num, vec12tbl.num, celltbl.num], vec2, vec3, i);;
+                prod.dispind3 = sub2ind([vec12tbl.num, vec12tbl.num, celltbl.num], vec1, vec3, i);;
+                prod.issetup = true;
+                
+            else
+                
+                prod = prod.setup();
+                
+            end
+            
+            C = prod.eval(invMv, tC);
+
+            prod = TensorProd();
+            prod.tbl1        = vec1212tbl;
+            prod.tbl2        = cellvec1212tbl;
+            prod.tbl3        = cellvec1212tbl;
+            prod.replacefds1 = {{'vec21', 'redvec1'}, {'vec22', 'redvec2'}};
+            prod.replacefds2 = {{'vec11', 'redvec1'}, {'vec12', 'redvec2'}};
+            prod.reducefds   = {'redvec1', 'redvec2'};
+
+            if useVirtual
+                
+                prod.pivottbl = cellvec121212tbl;
+
+                [vec3, vec2, vec1 i] = ind2sub([vec12tbl.num, vec12tbl.num, vec12tbl.num, celltbl.num], (1 : cellvec121212tbl.num)');
+                prod.dispind1 = sub2ind([vec12tbl.num, vec12tbl.num], vec2, vec3);
+                prod.dispind2 = sub2ind([vec12tbl.num, vec12tbl.num, celltbl.num], vec1, vec2, i);;
+                prod.dispind3 = sub2ind([vec12tbl.num, vec12tbl.num, celltbl.num], vec1, vec3, i);;
+                prod.issetup = true;
+                
+            else
+                
+                prod = prod.setup();
+                
+            end
+
+            C = prod.eval(Mv, C);
+            
+        end
         
       case 'general_voigt_construction'
 
@@ -125,9 +271,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
         % We dispatch C
         map = TensorMap();
-        map.fromTbl = col2row2tbl;
-        map.toTbl = cellcol2row2tbl;
-        fds = {'coldim1', 'coldim2', 'rowdim1', 'rowdim2'};
+        map.fromTbl = vec1212tbl;
+        map.toTbl = cellvec1212tbl;
+        fds = {'vec11', 'vec12', 'vec21', 'vec22'};
         map.mergefds = fds;
         map = map.setup();
         
@@ -135,7 +281,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         % Change of basis :  
         % mapping A -> A + A' and A -> A - A'
-        % follows indexing of colrowtbl
+        % follows indexing of vec22tbl
 
         voigttbl.voigt = (1 : vdim)';
         voigttbl.num = numel(voigttbl.voigt);
@@ -143,46 +289,46 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         avoigttbl.avoigt = (1 : avdim)';
         avoigttbl.num = numel(avoigttbl.avoigt);
 
-        colrowvoigttbl.coldim = colrowtbl.coldim;
-        colrowvoigttbl.rowdim = colrowtbl.rowdim;
+        vec12voigttbl.coldim = vec12tbl.coldim;
+        vec12voigttbl.rowdim = vec12tbl.rowdim;
         switch dim
           case 2
-            colrowvoigttbl.voigt  = [1; 3; 3; 2];
+            vec12voigttbl.voigt  = [1; 3; 3; 2];
           case 3
-            colrowvoigttbl.voigt  = [1; 6; 5; 6; 2; 4; 5; 4; 3];
+            vec12voigttbl.voigt  = [1; 6; 5; 6; 2; 4; 5; 4; 3];
         end
 
-        colrowvoigttbl.num = numel(colrowvoigttbl.coldim);
+        vec12voigttbl.num = numel(vec12voigttbl.coldim);
 
         % to index the avoigt we the same ordering as voigt, just skipping the diagonal
         switch dim
           case 2
-            colrowavoigttbl.avoigt = [1; 1];
-            colrowavoigttbl.coldim = [1; 2];
-            colrowavoigttbl.rowdim = [2; 1];
+            vec12avoigttbl.avoigt = [1; 1];
+            vec12avoigttbl.coldim = [1; 2];
+            vec12avoigttbl.rowdim = [2; 1];
           case 3
-            colrowavoigttbl.avoigt = [1; 2; 3; 1; 2; 3];
-            colrowavoigttbl.coldim = [2; 1; 1; 3; 3; 2];
-            colrowavoigttbl.rowdim = [3; 3; 2; 2; 1; 1];
+            vec12avoigttbl.avoigt = [1; 2; 3; 1; 2; 3];
+            vec12avoigttbl.coldim = [2; 1; 1; 3; 3; 2];
+            vec12avoigttbl.rowdim = [3; 3; 2; 2; 1; 1];
         end
 
-        colrowavoigttbl.num = numel(colrowavoigttbl.avoigt);
+        vec12avoigttbl.num = numel(vec12avoigttbl.avoigt);
 
         prod = TensorProd();
-        prod.tbl1 = colrowvoigttbl;
+        prod.tbl1 = vec12voigttbl;
         prod.tbl2 = voigttbl;
-        prod.tbl3 = colrowtbl;
+        prod.tbl3 = vec12tbl;
         prod.reducefds = {'voigt'};
         prod = prod.setup();
 
         V_T = SparseTensor();
-        V_T = V_T.setFromTensorProd(ones(colrowvoigttbl.num, 1), prod);
+        V_T = V_T.setFromTensorProd(ones(vec12voigttbl.num, 1), prod);
         V = V_T.getMatrix();
 
         prod = TensorProd();
-        prod.tbl1 = colrowavoigttbl;
+        prod.tbl1 = vec12avoigttbl;
         prod.tbl2 = avoigttbl;
-        prod.tbl3 = colrowtbl;
+        prod.tbl3 = vec12tbl;
         prod.reducefds = {'avoigt'};
         prod = prod.setup();
 
@@ -233,11 +379,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         if dotest
             prod = TensorProd();
             prod.tbl1 = col2row2tbl;
-            prod.tbl2 = colrowtbl;
+            prod.tbl2 = vec12tbl;
             prod.replacefds1 = {{'coldim1', 'coldim'}, {'rowdim1', 'rowdim'}};
             prod.replacefds2 = {{'coldim', 'coldim2'}, {'rowdim', 'rowdim2'}};
             prod.reducefds = {'coldim2', 'rowdim2'};
-            prod.tbl3 = colrowtbl;
+            prod.tbl3 = vec12tbl;
             prod = prod.setup();
 
             C_T = SparseTensor('matlabsparse', true);

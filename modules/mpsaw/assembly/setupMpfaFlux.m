@@ -38,11 +38,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     invA11 = matrices.invA11;
     A12    = matrices.A12;
     
-    celltbl      = tbls.celltbl;
-    cellfacetbl      = tbls.cellfacetbl;
-    facetbl          = tbls.facetbl;
-    cellnodeface2tbl = tbls.cellnodeface2tbl;
-    nodefacetbl      = tbls.nodefacetbl;
+    celltbl           = tbls.celltbl;
+    cellfacetbl       = tbls.cellfacetbl;
+    facetbl           = tbls.facetbl;
+    cellnodeface12tbl = tbls.cellnodeface12tbl;
+    nodefacetbl       = tbls.nodefacetbl;
 
     intfaces = find(all(G.faces.neighbors, 2));
     intfacetbl.faces = intfaces;
@@ -71,8 +71,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     prod = TensorProd();
     prod.tbl1 = cellfacetbl;
-    prod.tbl2 = cellnodeface2tbl;
-    prod.tbl3 = cellnodeface2tbl;
+    prod.tbl2 = cellnodeface12tbl;
+    prod.tbl3 = cellnodeface12tbl;
     prod.replacefds1 = {{'faces', 'faces1'}};
     prod.mergefds = {'cells', 'faces1'};
     prod = prod.setup();
@@ -80,23 +80,23 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     wnKg = prod.eval(wsgn, nKg);
 
     gen = CrossIndexArrayGenerator();
-    gen.tbl1 = cellnodeface2tbl;
+    gen.tbl1 = cellnodeface12tbl;
     gen.tbl2 = intfacetbl;
     gen.replacefds2 = {{'faces', 'faces1'}};
     gen.mergefds = {'faces1'};
     
-    cellnodeintface2tbl = gen.eval();
+    cellnodeintface12tbl = gen.eval();
  
     map = TensorMap();
-    map.fromTbl = cellnodeface2tbl;
-    map.toTbl = cellnodeintface2tbl;
+    map.fromTbl = cellnodeface12tbl;
+    map.toTbl = cellnodeintface12tbl;
     map.mergefds = {'cells', 'nodes', 'faces1', 'faces2'};
     map = map.setup();
     
     wnKg = map.eval(wnKg);
     
     prod = TensorProd();
-    prod.tbl1 = cellnodeintface2tbl;
+    prod.tbl1 = cellnodeintface12tbl;
     prod.tbl2 = nodefacetbl;
     prod.tbl3 = intfacetbl;
     prod.replacefds1 = {{'faces1', 'faces'}};
@@ -110,7 +110,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     F1 = F1_T.getMatrix();
 
     prod = TensorProd();
-    prod.tbl1 = cellnodeintface2tbl;
+    prod.tbl1 = cellnodeintface12tbl;
     prod.tbl2 = celltbl;
     prod.tbl3 = intfacetbl;
     prod.replacefds1 = {{'faces1', 'faces'}};

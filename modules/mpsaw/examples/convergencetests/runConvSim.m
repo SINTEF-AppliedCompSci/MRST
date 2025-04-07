@@ -23,7 +23,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     opt = struct('verbose'   , false, ...
                  'blocksize' , []   , ...
-                 'useVirtual', true , ...
+                 'useVirtual', false, ...
                  'bcetazero' , false);
 
     opt = merge_options(opt, varargin{:});
@@ -31,16 +31,15 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     useVirtual = opt.useVirtual;
 
     force_fun = params.force_fun;
-    mu_fun = params.mu_fun;
-    u_fun = params.u_fun;
-    eta = params.eta;
-    alpha = params.alpha;
+    mu_fun    = params.mu_fun;
+    u_fun     = params.u_fun;
+    eta       = params.eta;
+    alpha     = params.alpha;
 
-    doVem = false;
-    [tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
-    coltbl = tbls.coltbl;
-    nodefacetbl = tbls.nodefacetbl;
-    nodefacecoltbl = tbls.nodefacecoltbl;
+    [tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
+    vectbl         = tbls.vectbl;
+    nodefacetbl    = tbls.nodefacetbl;
+    nodefacevectbl = tbls.nodefacevectbl;
 
     Nc = G.cells.num; 
     Nf = G.faces.num; 
@@ -54,7 +53,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     mu = mu_fun(cc{:});
     lambda = alpha*mu;
 
-    prop.mu = mu; 
+    prop.mu     = mu; 
     prop.lambda = lambda; 
 
     isBoundary = any(G.faces.neighbors == 0, 2); 
@@ -62,21 +61,40 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     bcfacetbl.faces = bcfaces;
     bcfacetbl = IndexArray(bcfacetbl);
-    bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
-    bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
-                                       true);
+    [bcnodefacetbl, indstruct] = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
+    if useVirtual
+        bcface_from_bcnodeface   = indstruct{1}.inds;
+        nodeface_from_bcnodeface = indstruct{2}.inds;
+    else
+    end
+    bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, ...
+                                       'optpureproduct', true   , ...
+                                       'virtual', useVirtual);
     clear bcfacetbl
 
-    [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, 'bcetazero', opt.bcetazero);
+    [~, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, mappings,  ...
+                                                   'bcetazero', opt.bcetazero, ...
+                                                   'useVirtual', useVirtual);
 
     map = TensorMap();
-    map.fromTbl = nodefacecoltbl;
-    map.toTbl = bcnodefacecoltbl;
-    map.mergefds = {'nodes', 'faces', 'coldim'};
-    map = map.setup();
+    map.fromTbl  = nodefacevectbl;
+    map.toTbl    = bcnodefacevectbl;
+    map.mergefds = {'nodes', 'faces', 'vec'};
 
+    if useVirtual
+        map.pivottbl = bcnodefacevectbl;
+
+        [vec, i] = ind2sub([vectbl.num, bcnodefacetbl.num], (1 : bcnodefacevectbl.num)');
+        map.dispind1 = sub2ind([vectbl.num, nodefacetbl.num], vec, nodeface_from_bcnodeface(i));
+        map.dispind2 = (1 : bcnodefacevectbl.num)';
+        map.issetup = true;
+        
+    else
+        map = map.setup();
+    end
+        
     bcnodefacecents = map.eval(nodefacecents);
-    % Here, we assume a given structure of bcnodefacecoltbl:
+    % Here, we assume a given structure of bcnodefacevectbl:
     bcnodefacecents = reshape(bcnodefacecents, Nd, [])';
     bcnum = bcnodefacetbl.num;
 
@@ -128,21 +146,23 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % figure
     % quiver(cc{1}, cc{2}, force(:, 1), force(:, 2));
 
-    % Here, we assume we know the structure of cellcoltbl;
+    % Here, we assume we know the structure of cellvectbl;
     force = reshape(force', [], 1);
 
     loadstruct.bc = bc;
     loadstruct.force = force;
-    loadstruct.extforce = zeros(tbls.nodefacecoltbl.num, 1);
+    loadstruct.extforce = zeros(tbls.nodefacevectbl.num, 1);
     clear bc force
 
     if ~isempty(opt.blocksize)
         assembly = blockAssembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                     'blocksize', opt.blocksize, 'verbose', ...
-                                     true, 'useVirtual', useVirtual);
+                                      'blocksize' , opt.blocksize, ...
+                                      'verbose'   , true         , ...
+                                      'useVirtual', useVirtual);
     else
         assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, ...
-                                'bcetazero', opt.bcetazero);
+                                 'bcetazero', opt.bcetazero, ...
+                                 'useVirtual', useVirtual);
     end
 
     clear prop loadstruct
@@ -152,8 +172,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     sol = B\rhs;
 
     % Displacement values at cell centers.
-    cellcoltbl = tbls.cellcoltbl;
-    n = cellcoltbl.num;
+    cellvectbl = tbls.cellvectbl;
+    n = cellvectbl.num;
 
     u = sol(1 : n);
     u = reshape(u, Nd, [])';    

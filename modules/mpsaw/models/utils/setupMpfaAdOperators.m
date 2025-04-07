@@ -1,4 +1,4 @@
-function operators = setupMpfaAdOperators(model)    
+function operators = setupMpfaAdOperators(model, varargin)    
 % We setup the usual operators and the mpfa flux operator
 %
 % we set up the mappings
@@ -34,6 +34,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+
+    useVirtual = opt.useVirtual;
+    
     G         = model.G;
     rock      = model.rock;
     eta       = model.eta;
@@ -43,17 +48,37 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
     assert(numel(perm) == G.cells.num, 'only isotropic perm for the moment');
 
-    [tbls, mappings] = setupStandardTables(G, 'useVirtual', false);
+    [tbls, mappings] = setupMpfaStandardTables(G, 'useVirtual', false);
 
-    celltbl = tbls.celltbl;
-    colrowtbl = tbls.colrowtbl;
-    cellcolrowtbl = tbls.cellcolrowtbl;%
+    celltbl      = tbls.celltbl;
+    vectbl       = tbls.vectbl;
+    vec12tbl     = tbls.vec12tbl;
+    cellvec12tbl = tbls.cellvec12tbl;
 
     prod = TensorProd();
-    prod.tbl1 = colrowtbl;
+    prod.tbl1 = vec12tbl;
     prod.tbl2 = celltbl;
-    prod.tbl3 = cellcolrowtbl;
-    prod = prod.setup();
+    prod.tbl3 = cellvec12tbl;
+
+    if useVirtual
+        
+        prod.pivottbl = cellvec12tbl;
+
+        N = tbls.celltbl.num;
+        d_num = vectbl.num;
+        [vec2, vec1, i] = ind2sub([d_num, d_num, N], (1 : cellvec12tbl.num)');
+
+        prod.dispind1 = sub2ind([d_num, d_num], vec2, vec1);
+
+        prod.dispind2 = i;
+
+        prod.dispind3 = (1 : cellvec12tbl.num)';
+        
+        prod.issetup = true;
+        
+    else
+        prod = prod.setup();
+    end
 
     K = prod.eval([1; 0; 0; 1], perm);
     src = []; % no source at this stage
