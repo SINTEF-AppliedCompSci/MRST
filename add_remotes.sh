@@ -14,3 +14,4 @@ git remote add nwm ssh://git@bitbucket.org/LinZhao9/nwm.git
 git remote add re-mpfa ssh://git@github.com/jhabriel/RE-MPFA.git
 git remote add shale ssh://git@github.com/UnconvRS/shale.git
 git remote add upr ssh://git@github.com/rbe051/UPR.git
+git remote add mpsaw ssh://git@gitlab.sintef.no:computational-geosciences/mpsaw.git

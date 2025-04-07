@@ -25,12 +25,12 @@ git subtree pull -m "Update subtree" --prefix modules/network-models network-mod
 git subtree pull -m "Update subtree" --prefix modules/book book master
 git subtree pull -m "Update subtree" --prefix modules/dg dg master
 git subtree pull -m "Update subtree" --prefix modules/nfvm nfvm master
-git subtree pull -m "Update subtree" --prefix modules/mpsaw mpsaw master
 git subtree pull -m "Update subtree" --prefix modules/ensemble ensemble master
 git subtree pull -m "Update subtree" --prefix modules/geothermal geothermal master
 git subtree pull -m "Update subtree" --prefix modules/static-modeling static-modeling master
 
 # Single module repos (third party)
+git subtree pull -m "Update subtree" --prefix modules/mpsaw mpsaw master
 git subtree pull -m "Update subtree" --prefix modules/ad-micp ad-micp main
 git subtree pull -m "Update subtree" --prefix modules/domain-decomposition domain-decomposition master
 git subtree pull -m "Update subtree" --prefix modules/dual-continuum-mech dual-continuum-mech master
