@@ -311,14 +311,13 @@ classdef TensorProd
                 
             else
                 
-                prodAB = A(dispind1).*B(dispind2);
-            
-                if isa(prodAB, 'double')
+                if isa(A, 'double') && isa(B, 'double')
                     
-                    prodAB = accumarray(dispind3, prodAB, [n3, 1]);
+                    prodAB = accumarray(dispind3, A(dispind1).*B(dispind2), [n3, 1]);
                     
                 else
-                    
+
+                    prodAB = A(dispind1).*B(dispind2);
                     M = sparse(dispind3, (1 : n)', 1, n3, n);
                     prodAB = M*prodAB;
                     

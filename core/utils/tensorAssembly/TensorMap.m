@@ -224,8 +224,7 @@ classdef TensorMap
                     end
 
                 else
-                    v = u(dispind1);
-                    v = accumarray(dispind2, v, [toTbl.num, 1]);
+                    v = accumarray(dispind2, u(dispind1), [toTbl.num, 1]);
                 end
             end
             
