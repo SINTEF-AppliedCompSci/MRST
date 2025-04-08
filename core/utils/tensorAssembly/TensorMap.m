@@ -201,7 +201,7 @@ classdef TensorMap
                         fprintf('number of chunks %d', nchunks);
                     end
 
-                    v = sparse(toTbl.num, 1);
+                    v = zeros(toTbl.num, 1, 'double');
 
                     for ichunk = 1 : nchunks
 

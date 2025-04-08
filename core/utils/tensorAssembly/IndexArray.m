@@ -50,8 +50,8 @@ classdef IndexArray
             opt = struct('fdnames'  , []   , ...
                          'isvirtual', false, ...
                          'tblname'  , []   , ...
-                         'inds'     , [], ...
-                         'num', []);
+                         'inds'     , []   , ...
+                         'num'      , []);
             opt = merge_options(opt, varargin{:}); 
             
             if ~isempty(structtbl)
@@ -85,7 +85,10 @@ classdef IndexArray
                 tbl.isvirtual = false;
             end
             
-            tbl.tblname = opt.tblname;    
+            tbl.tblname = opt.tblname;
+
+            tbl.inds = IndexArray.fixType(tbl.inds);
+            
         end
 
         function n = num(tbl)
@@ -103,7 +106,7 @@ classdef IndexArray
             assert(numel(unique(fdnames)) == numel(fdnames), ['repeted field names']);
 
             tbl.fdnames = fdnames;
-            tbl.inds = inds;
+            tbl.inds = IndexArray.fixType(inds);
             
         end
         
@@ -117,7 +120,7 @@ classdef IndexArray
             assert(~any(tblind), ['index array contains already field with that ' ...
                                   'name']);
             if size(ind, 1) == 1
-                ind = ind*ones(size(inds, 1), 1);
+                ind = ind*ones(size(inds, 1), 1, 'uint64');
             end
             
             assert(size(inds, 1) == size(ind, 1), ['input size index does not ' ...
@@ -205,7 +208,7 @@ classdef IndexArray
             fdnames = tbl.fdnames;
             tbl.fdnames = {fdnames{:}, locindname};
             
-            locind = (1 : tbl.num)';
+            locind = IndexArray.fixType((1 : tbl.num)');
             tbl.inds = [tbl.inds, locind];
             
         end    
@@ -231,7 +234,18 @@ classdef IndexArray
         end
         
     end
-    
+
+    methods (Static)
+
+        function v = fixType(v)
+
+            if ~strcmp(class(v), 'uint64')
+                v = uint64(v);
+            end
+            
+        end
+
+    end
         
    
 end

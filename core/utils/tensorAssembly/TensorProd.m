@@ -278,7 +278,7 @@ classdef TensorProd
                     fprintf('number of chunks %d ', nchunks);
                 end
                 
-                prodAB = zeros(n3, 1);
+                prodAB = zeros(n3, 1, 'double');
                 
                 for ichunk = 1 : nchunks
 
