@@ -93,6 +93,8 @@ classdef TensorProd
                                    % space. For some cases, one may want to use a tbl3 which is not a projection
                                    % of the pivot space, and will require an extra mapping. Then, this option should be
                                    % set to true, so that the intersection is computed.
+
+        useMex = true;
         
     end
    
@@ -260,69 +262,78 @@ classdef TensorProd
             assert(prod.issetup, ['tensor product is not setup. Use method ' ...
                                 'setup']);
 
-            chunksize = prod.chunksize;
-            
-            dispind1 = prod.dispind1;
-            dispind2 = prod.dispind2;
-            dispind3 = prod.dispind3;
-            
-            n3 = prod.tbl3.num;
-            n  = prod.pivottbl.num;
+            if prod.useMex
 
-            if ~isempty(chunksize) && isa(A, 'double') && isa(B, 'double')
-
-                pivotsize = numel(dispind1); % size is same for dispind1, dispind2 and dispind3
-                nchunks   = ceil(pivotsize/chunksize);
-
-                if mrstVerbose() > 0
-                    fprintf('number of chunks %d ', nchunks);
-                end
-                
-                prodAB = zeros(n3, 1, 'double');
-                
-                for ichunk = 1 : nchunks
-
-                    if ichunk < nchunks
-                        ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
-                        if ichunk == 1
-                            prodABc = zeros(chunksize, 1);
-                            pind = (1 : chunksize)';
-                        end
-                    else
-                        npind = pivotsize - (nchunks - 1)*chunksize;
-                        prodABc = zeros(npind, 1);
-                        pind = (1 : npind)';
-                        ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
-                    end
-
-                    prodABc(pind) = A(dispind1(ind)).*B(dispind2(ind));
-                    
-                    prodAB = prodAB + accumarray(dispind3(ind), prodABc, [n3, 1]);
-
-                    if mrstVerbose() > 0
-                        fprintf('.');
-                    end
-                    
-                end
-                
-                if mrstVerbose() > 0
-                    fprintf('\n');
-                end
+                prodAB = tensorProduct(prod.tbl3.num, A, B, prod.dispind1, prod.dispind2, prod.dispind3);
+                return
                 
             else
                 
-                if isa(A, 'double') && isa(B, 'double')
+                chunksize = prod.chunksize;
+                
+                dispind1 = prod.dispind1;
+                dispind2 = prod.dispind2;
+                dispind3 = prod.dispind3;
+                
+                n3 = prod.tbl3.num;
+                n  = prod.pivottbl.num;
+
+                if ~isempty(chunksize) && isa(A, 'double') && isa(B, 'double')
+
+                    pivotsize = numel(dispind1); % size is same for dispind1, dispind2 and dispind3
+                    nchunks   = ceil(pivotsize/chunksize);
+
+                    if mrstVerbose() > 0
+                        fprintf('number of chunks %d ', nchunks);
+                    end
                     
-                    prodAB = accumarray(dispind3, A(dispind1).*B(dispind2), [n3, 1]);
+                    prodAB = zeros(n3, 1, 'double');
+                    
+                    for ichunk = 1 : nchunks
+
+                        if ichunk < nchunks
+                            ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
+                            if ichunk == 1
+                                prodABc = zeros(chunksize, 1);
+                                pind = (1 : chunksize)';
+                            end
+                        else
+                            npind = pivotsize - (nchunks - 1)*chunksize;
+                            prodABc = zeros(npind, 1);
+                            pind = (1 : npind)';
+                            ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
+                        end
+
+                        prodABc(pind) = A(dispind1(ind)).*B(dispind2(ind));
+                        
+                        prodAB = prodAB + accumarray(dispind3(ind), prodABc, [n3, 1]);
+
+                        if mrstVerbose() > 0
+                            fprintf('.');
+                        end
+                        
+                    end
+                    
+                    if mrstVerbose() > 0
+                        fprintf('\n');
+                    end
                     
                 else
+                    
+                    if isa(A, 'double') && isa(B, 'double')
+                        
+                        prodAB = accumarray(dispind3, A(dispind1).*B(dispind2), [n3, 1]);
+                        
+                    else
 
-                    prodAB = A(dispind1).*B(dispind2);
-                    M = sparse(dispind3, (1 : n)', 1, n3, n);
-                    prodAB = M*prodAB;
+                        prodAB = A(dispind1).*B(dispind2);
+                        M = sparse(dispind3, (1 : n)', 1, n3, n);
+                        prodAB = M*prodAB;
+                        
+                    end
                     
                 end
-                
+
             end
             
         end

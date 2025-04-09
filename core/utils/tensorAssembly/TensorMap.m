@@ -79,6 +79,8 @@ classdef TensorMap
 
         chunksize = 500000; % Chunk size for the computation of the product
         
+        useMex = true;
+        
     end
    
     methods
@@ -179,55 +181,62 @@ classdef TensorMap
         function v = eval(map, u)
         % Evaluate mapping to a vector u, which follows indexing of fromTbl
             assert(map.issetup, ['tensor map is not setup. Use method ' ...
-                                'setup']);
-            
-            dispind1  = map.dispind1;
-            dispind2  = map.dispind2;
-            toTbl     = map.toTbl;
-            fromTbl   = map.fromTbl;
-            chunksize = map.chunksize;
-            
-            if isa(u, 'ADI')
-                M = sparse(dispind2, dispind1, 1, toTbl.num, fromTbl.num);
-                v = M*u;
+                                 'setup']);
+
+            if map.useMex
+
+                v = mapProduct(map.toTbl.num, u, map.dispind1, map.dispind2);
+                
             else
                 
-                if ~isempty(chunksize)
-
-                    pivotsize = numel(dispind1);
-                    nchunks   = ceil(pivotsize/chunksize);
+                dispind1  = map.dispind1;
+                dispind2  = map.dispind2;
+                toTbl     = map.toTbl;
+                fromTbl   = map.fromTbl;
+                chunksize = map.chunksize;
+                
+                if isa(u, 'ADI')
                     
-                    if mrstVerbose() > 0
-                        fprintf('number of chunks %d', nchunks);
-                    end
+                    M = sparse(dispind2, dispind1, 1, toTbl.num, fromTbl.num);
+                    v = M*u;
+                else
+                    
+                    if ~isempty(chunksize)
 
-                    v = zeros(toTbl.num, 1, 'double');
-
-                    for ichunk = 1 : nchunks
-
-                        if ichunk < nchunks
-                            ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
-                        else
-                            ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
+                        pivotsize = numel(dispind1);
+                        nchunks   = ceil(pivotsize/chunksize);
+                        
+                        if mrstVerbose() > 0
+                            fprintf('number of chunks %d', nchunks);
                         end
 
-                        v = v + accumarray(dispind2(ind), u(dispind1(ind)), [toTbl.num, 1]);
+                        v = zeros(toTbl.num, 1, 'double');
+
+                        for ichunk = 1 : nchunks
+
+                            if ichunk < nchunks
+                                ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
+                            else
+                                ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
+                            end
+
+                            v = v + accumarray(dispind2(ind), u(dispind1(ind)), [toTbl.num, 1]);
+
+                            if mrstVerbose() > 0
+                                fprintf('.');
+                            end
+                            
+                        end
 
                         if mrstVerbose() > 0
-                            fprintf('.');
+                            fprintf('\n');
                         end
-                        
-                    end
 
-                    if mrstVerbose() > 0
-                        fprintf('\n');
+                    else
+                        v = accumarray(dispind2, u(dispind1), [toTbl.num, 1]);
                     end
-
-                else
-                    v = accumarray(dispind2, u(dispind1), [toTbl.num, 1]);
                 end
-            end
-            
+            end            
         end
         
         function inds = getDispatchInd(map)
@@ -252,7 +261,7 @@ classdef TensorMap
         function v = evalTranspose(map, u)
         % Evaluate the transpose of the mapping
             assert(map.issetup, ['tensor map is not setup. Use method ' ...
-                                'setup']);
+                                 'setup']);
             
             dispind1 = map.dispind1;
             dispind2 = map.dispind2;
@@ -320,25 +329,25 @@ classdef TensorMap
         
     end
     
-        
-   
+    
+    
 end
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+  Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+  This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
-MRST is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+  MRST is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-MRST is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+  MRST is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+  You should have received a copy of the GNU General Public License
+  along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
