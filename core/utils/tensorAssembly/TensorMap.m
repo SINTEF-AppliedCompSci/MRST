@@ -185,7 +185,7 @@ classdef TensorMap
 
             if map.useMex
 
-                v = mapProduct(map.toTbl.num, u, map.dispind1, map.dispind2);
+                v = mapProduct(map.toTbl.num, u, IndexArray.fixType(map.dispind1), IndexArray.fixType(map.dispind2));
                 
             else
                 
@@ -252,7 +252,7 @@ classdef TensorMap
 
             toTbl = map.toTbl;
             
-            indi2 = zeros(toTbl.num, 1);
+            indi2 = zeros(toTbl.num, 1, 'uint64');
             indi2(ind2) = (1 : toTbl.num)';
             inds = ind1(indi2);
             

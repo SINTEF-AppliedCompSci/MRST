@@ -78,7 +78,7 @@ classdef IndexArray
 
             if opt.isvirtual
                 tbl.isvirtual = true;
-                vnum = opt.num;
+                vnum = uint64(opt.num);
                 assert(~isempty(vnum), 'In case of virtual table, the size of the index array should be given');
                 tbl.vnum = vnum;
             else
@@ -97,7 +97,7 @@ classdef IndexArray
             if tbl.isvirtual
                 n = tbl.vnum;
             else
-                n = size(tbl.inds, 1);
+                n = uint64(size(tbl.inds, 1));
             end
         end
         

@@ -139,6 +139,8 @@ classdef TensorConvert
                m = M(inds);
                 
             end
+
+            m = full(m);
             
         end
         

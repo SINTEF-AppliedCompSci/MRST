@@ -82,6 +82,9 @@ classdef SparseTensor
             if isa(val, 'ADI')
                 val = val.value;
             end
+
+            row = IndexArray.fixType(row);
+            col = IndexArray.fixType(col);
             
             mat = sparse(row, col, val, toTbl.num, fromTbl.num);
             
