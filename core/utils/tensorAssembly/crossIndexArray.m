@@ -263,14 +263,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     tbl = IndexArray([]);
     tbl.fdnames = allfdnames;
-    tbl.inds = crossmat;
+    tbl.inds = IndexArray.fixType(crossmat);
     tbl.parents = parents;
     
     indstruct = cell(2, 1);
-    indstruct{1}.inds = linind1;
-    indstruct{1}.num  = n1;
-    indstruct{2}.inds = linind2;
-    indstruct{2}.num  = n2;    
+    indstruct{1}.inds = IndexArray.fixType(linind1);
+    indstruct{1}.num  = IndexArray.fixType(n1);
+    indstruct{2}.inds = IndexArray.fixType(linind2);
+    indstruct{2}.num  = IndexArray.fixType(n2);    
     
 end
 
