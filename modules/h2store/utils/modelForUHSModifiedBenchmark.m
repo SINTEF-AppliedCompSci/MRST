@@ -1,4 +1,4 @@
-function [description, options, state0, model, schedule, plotOptions] = ModelForUHSModifiedBenchmark(deck,varargin)
+function [description, options, state0, model, schedule, plotOptions] = modelForUHSModifiedBenchmark(deck,varargin)
 % Example modified from:
 % Hogeweg, S., Strobel, G., & Hagemann, B. (2022). Benchmark study for the simulation of underground 
 % hydrogen storage operations. Comput Geosci, 26, 1367–1378. 
