@@ -79,7 +79,7 @@ classdef TensorMap
 
         chunksize = 500000; % Chunk size for the computation of the product
         
-        useMex = true;
+        useMex = false;
         
     end
    

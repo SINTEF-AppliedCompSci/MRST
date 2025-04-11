@@ -94,7 +94,7 @@ classdef TensorProd
                                    % of the pivot space, and will require an extra mapping. Then, this option should be
                                    % set to true, so that the intersection is computed.
 
-        useMex = true;
+        useMex = false;
         
     end
    
