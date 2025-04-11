@@ -64,8 +64,9 @@ opts = struct(...
     'n_press', 10, ...          % Default: 10 points
     'comp_name', 'H2O', ...     % Default: 'H2O'
     'outputDisplay', false, ... % Default: false (auto-generated)
-    'outputPath', '', ...      % Default: mrst output directory
-    'fileName', '' ...          % Default: see below
+    'outputPath', '', ...       % Default: mrst output directory
+    'fileName', '', ...         % Default: see below
+    'reCompute', true ...       % Default: true
     );
 
 
@@ -76,11 +77,8 @@ opts = merge_options(opts, varargin{:});
 minTemp = opts.min_temp;
 maxTemp = opts.max_temp;
 nTemp = opts.n_temp;
-if nTemp == 1
-    delta_temperature = 0;
-else
-    delta_temperature = (maxTemp - minTemp) / (nTemp - 1);
-end
+
+delta_temperature = (maxTemp - minTemp) / nTemp;
 
 minPress = opts.min_press;
 maxPress = opts.max_press;
@@ -93,7 +91,7 @@ fprintf('Pressure range: %.1f to %.1f Pa (%d points)\n', minPress, maxPress, nPr
 if nPress < 2
     error('n_press needs to be at least 2');
 end
-delta_pressure = (maxPress - minPress) / (nPress - 1);
+delta_pressure = (maxPress - minPress)./ (nPress-1);
 
 compName = opts.comp_name;
 
@@ -111,7 +109,7 @@ end
 filePath = fullfile(opts.outputPath, opts.fileName);
 
 % Check if the file already exists
-if exist(filePath, 'file')
+if exist(filePath, 'file')&&~opts.reCompute
     fprintf('File %s already exists. Loading data...\n', opts.fileName);
     try
         tab_comp = readtable(filePath, 'VariableNamingRule', 'preserve');
@@ -228,10 +226,11 @@ fclose(outFile);
 fprintf('A file %s has been generated in %s.\n', opts.fileName, opts.outputPath);
 % Read the CSV file into a table
 try
+
+    tab_comp = readtable(filePath,  'VariableNamingRule', 'preserve');
+    disp('Table read successfully:');
     if opts.outputDisplay
-        tab_comp = readtable(filePath,  'VariableNamingRule', 'preserve');
         display(tab_comp);
-        disp('Table read successfully:');
     end
 catch ME
     disp('Error occurred while reading the table:');

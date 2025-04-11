@@ -1,4 +1,4 @@
-function xH2 = HenrySetschenowH2BrineEos(T, mNaCl, p)
+function tab_sol = HenrySetschenowH2BrineEos(T, mNaCl, p)
 % HENRYSETSCHENOW: Calculates the mole fraction of dissolved H2 (xH2)
 % in solution using the Henry–Setschenow equation with temperature and
 % salinity dependence.
@@ -58,4 +58,14 @@ qH = exp(log_qH);  % Salinity correction factor qH(mNaCl)
 
 % Calculate the mole fraction of H2 in solution using Henry–Setschenow equation
 xH2 = (qH .* p) ./ kH_T;
+T = T(:);       % ensure column vector
+p = p(:);       % ensure column vector
+xH2 = xH2(:);   % ensure column vector
+
+tab_sol = table();
+tab_sol.("# temperature [°C]") = T - 273.15;
+tab_sol.("pressure [Pa]") = p;
+tab_sol.("x_H2") = xH2;
+
+
 end

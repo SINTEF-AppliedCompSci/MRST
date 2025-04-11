@@ -334,7 +334,7 @@ fprintf(fn, 'PVTO\n');
 % Preprocessing for minimum conditions
 X_h2_min = 1.0e-8; % Minimum hydrogen saturation
 Rs_min = rhoOS * X_h2_min / rhoGS; % Minimum Rs calculation
-p_zero = interp1(X_h2_sat, p, X_h2_min, 'pchip', 'extrap');
+p_zero = interp1(X_h2_sat, p, X_h2_min, 'linear', 'extrap');
 assert(p_zero > 0, 'Pressure at minimum hydrogen saturation must be positive.');
 
 % Extend pressure and saturation values
@@ -534,8 +534,14 @@ function [X_H2, Y_h2o] = convertMoleToMassFraction(x_H2, y_h2o)
 end
 
 function [x_H2, y_h2o] = computeMoleFractions(tab_sol, dissolve_gas, vaporize_water)
+x_H2 = 0;
+y_h2o = 0;
+if dissolve_gas
     x_H2 = max(tab_sol.x_H2 .* dissolve_gas, 1e-8);
+end
+if vaporize_water
     y_h2o = tab_sol.y_H2O .* vaporize_water;
+end
 end
 
 function table_filtered = filterTableByTemperature(table, T)

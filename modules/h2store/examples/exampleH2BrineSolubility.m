@@ -152,9 +152,9 @@ set(gca, 'FontSize', 12); % Set font size for axes
 grid on; % Add grid for better readability
 
 %% We can also use Henry-Setschnow correlation
-xH2 = HenrySetschenowH2BrineEos(temperature, 0, pressure);
+sol_H2 = HenrySetschenowH2BrineEos(temperature, 0, pressure);
 figure;
-contourf(temperature, convertTo(pressure, mega*Pascal), xH2, 'LineStyle', 'none');
+contourf(temperature, convertTo(pressure, mega*Pascal), reshape(sol_H2.x_H2, [], n), 'LineStyle', 'none');
 colorbar; % Add a color bar for reference
 title('H2 Solubility in Water (HS eos)', 'FontSize', 14);
 xlabel('Temperature (K)', 'FontSize', 14);

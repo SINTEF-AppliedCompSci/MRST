@@ -62,8 +62,9 @@ opts = struct(...
     'n_press', 2, ...            % Default: 2 points
     'comp_name', 'H2O', ...      % Default: 'H2O'
     'outputDisplay', false, ...  % Default: false (auto-generated)
-    'outputPath', '', ...       % Default: mrst output directory
-    'fileName', '' ...           % Default: see below
+    'outputPath', '', ...        % Default: mrst output directory
+    'fileName', '', ...           % Default: see below
+    'reCompute', true ...        % Default: true
     );
 
 % Merge user inputs with the defaults
@@ -74,21 +75,20 @@ minTemp = opts.min_temp;
 maxTemp = opts.max_temp;
 nTemp = opts.n_temp;
 
-if nTemp == 1
-    delta_temperature = 0;
-else
-    delta_temperature = (maxTemp - minTemp) / (nTemp - 1);
-end
+delta_temperature = (maxTemp - minTemp) / nTemp;
 
 minPress = opts.min_press;
 maxPress = opts.max_press;
 nPress = opts.n_press;
 
+if nPress < 2
+    error('n_press needs to be at least 2');
+end
+delta_pressure = (maxPress - minPress)./ (nPress-1);
 fprintf('Component: %s\n', opts.comp_name);
 fprintf('Temperature at std conditions: %.1f to %.1f °C (%d points)\n', minTemp, maxTemp, nTemp);
 fprintf('Pressure at std conditions: %.1f', minPress);
 
-delta_pressure = nPress;
 compName = opts.comp_name;
 
 % Set output filename
@@ -106,7 +106,7 @@ end
 filePath = fullfile(opts.outputPath, opts.fileName);
 
 % Check if the file already exists
-if exist(filePath, 'file')
+if exist(filePath, 'file')&&~opts.reCompute
     fprintf('File %s already exists. Loading data...\n', opts.fileName);
     try
         tab_comp = readtable(filePath, 'VariableNamingRule', 'preserve');
@@ -219,10 +219,11 @@ end
 fclose(outFile);
 fprintf('A file %s has been generated in %s.\n', opts.fileName, opts.outputPath);
 try
+
+    tab_comp = readtable(filePath,  'VariableNamingRule', 'preserve');
+    disp('Table read successfully:');
     if opts.outputDisplay
-        tab_comp = readtable(filePath,  'VariableNamingRule', 'preserve');
         display(tab_comp);
-        disp('Table read successfully:');
     end
 catch ME
     disp('Error occurred while reading the table:');
