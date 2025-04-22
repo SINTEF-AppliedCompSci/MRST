@@ -40,7 +40,7 @@ function [G,Pts,F] = pebiGrid2D(resGridSize, pdims, varargin)
 %                     refinement around the cell constraints.
 %
 %   CCEps         - OPTIONAL
-%                     Default value 0.25/max(pdims). CCEps set the
+%                     Default value 0.25*max(pdims). CCEps set the
 %                     refinement transition around cell constraints. The density
 %                     function for the reservoir grid is set by
 %                     rho~exp(-distance to well / CCEps).
