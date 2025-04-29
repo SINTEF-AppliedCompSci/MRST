@@ -39,8 +39,10 @@ mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr test-suite s
 
 %% Define the case name and read the Eclipse deck file
 name = 'H2_STORAGE_RS';
+
 %% Use H2STORAGE_RS_SALT.DATA for brine
-dataFile = fullfile(ROOTDIR,'..','modules','h2store','examples',  'data', 'Simple2DAquifer', 'H2STORAGE_RS.DATA');
+dataPath = getDatasetPath('h2storage');
+dataFile = fullfile(dataPath, 'H2STORAGE_RS.DATA');
 deck = readEclipseDeck(dataFile);
 
 %% Notice on Computational Cost

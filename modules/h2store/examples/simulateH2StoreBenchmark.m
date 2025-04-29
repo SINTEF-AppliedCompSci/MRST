@@ -47,7 +47,8 @@ mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui test-suite
 name = 'H2_STORAGE_RS_UHS_BENCHMARK';
 %% Read the Eclipse deck file containing the simulation data
 % Change input file by UHS_BENCHMARK_RS_SALT.DATA for SALT EFFECTS
-dataFile = fullfile(ROOTDIR,'..','modules','h2store','examples',  'data','UHSModifiedBenchmark', 'UHS_BENCHMARK_RS.DATA');
+dataPath = getDatasetPath('uhs_benchmark');
+dataFile = fullfile(dataPath, 'UHS_BENCHMARK_RS.DATA');
 deck = readEclipseDeck(dataFile);
 % Note that the user can generate different PVT tables (see thermodynamics)
 
