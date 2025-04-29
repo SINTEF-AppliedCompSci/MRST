@@ -83,8 +83,6 @@ state0.cA = zeros(G.cells.num,1);
 %mSf = mSf + state0.cA.*G.cells.volumes.*(1-model.rock.poro).*model.fluid.rhoRSft;
 
 % Initial volumetric concentration
-%c0 = (mSf)./model.operators.pv;
-%[state0.c, state0.cmax] = deal(ones(G.cells.num,1).*c0);
 [state0.cs, state0.csmax] = deal(zeros(G.cells.num,1));
 
 % Stored surfactant concentrations in water, gas and adsorbed
