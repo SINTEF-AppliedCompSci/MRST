@@ -144,7 +144,7 @@ disp('Generating gas-oil flow properties for hydrogen-brine system with three re
 
 getFluidH2BrineSGOF( ...
     'n', 100, ...                                      % Number of saturation points
-    'plot', false, ...                                  % Plot generated curves
+    'plot', true, ...                                  % Plot generated curves
     'outputPath', outputPathPvt, ...                   % Output directory
     'fileName', 'SGOFH2BRINE', ...                     % File name prefix
     'units', 'metric', ...                             % Use metric units
@@ -179,7 +179,7 @@ initFluid = initSimpleADIFluid( ...
 
 
 % Replace synthetic rel. perm. and capillary pressure with SGOF data
-immiscFluid = initfluid;
+immiscFluid = initFluid;
 
 % Interpolate and assign SGOF-based relative permeability
 fluid_kr = assignSGOF(immiscFluid, SGOF, struct( ...
