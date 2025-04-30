@@ -1,5 +1,5 @@
 function [problem, state] = eCPAequationsNaturalVariables(state0, state, model, dt, drivingForces, varargin)
-% Equations for natural variables formulation
+% Equations for natural variables formulation using eCPA EOS
 
 %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.

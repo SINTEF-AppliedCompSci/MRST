@@ -1,11 +1,11 @@
 classdef ThreePhaseCompositionalModelDP < ReservoirModelDP
-    % Base class for compositional models
+    % Base class for dual-porosity compositional models
     %
     % SYNOPSIS:
-    %   model = ThreePhaseCompositionalModel(G, rock, fluid, compFluid)
+    %   model = ThreePhaseCompositionalModelDP(G, rock, fluid, compFluid)
     %
     % DESCRIPTION:
-    %   This is the base class for several compositional models in MRST. It
+    %   This is the base class for several dual-porosity compositional models in MRST. It
     %   contains common functionality and is not intended for direct use.
     %
     % PARAMETERS:
@@ -21,7 +21,8 @@ classdef ThreePhaseCompositionalModelDP < ReservoirModelDP
     %  model - Initialized class instance
     %
     % SEE ALSO:
-    %   `NaturalVariablesCompositionalModel`, `OverallCompositionCompositionalModel`
+    %   `NaturalVariablesCompositionalModelDP`, `OverallCompositionCompositionalModelDP`,
+    %   `NaturalVariablesCompositionalModelDPDP`, `OverallCompositionCompositionalModelDPDP`
 
     properties
         EOSModel % EquationOfState model used for PVT and phase behavior

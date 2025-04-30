@@ -1,5 +1,5 @@
 classdef ReservoirModelDP < ReservoirModel
-    %Base class for physical models
+    % Base class for dual-porosity physical models
 
 properties   
     %% Dual Porosity properties

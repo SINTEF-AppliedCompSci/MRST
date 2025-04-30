@@ -1,8 +1,8 @@
 classdef ECPAThreePhaseCompositionalModel < ReservoirModel
-    % Base class for compositional models
+    % Base class for compositional models using eCPA equation of state
     %
     % SYNOPSIS:
-    %   model = ThreePhaseCompositionalModel(G, rock, fluid, compFluid)
+    %   model = ECPAThreePhaseCompositionalModel(G, rock, fluid, compFluid)
     %
     % DESCRIPTION:
     %   This is the base class for several compositional models in MRST. It
@@ -21,7 +21,7 @@ classdef ECPAThreePhaseCompositionalModel < ReservoirModel
     %  model - Initialized class instance
     %
     % SEE ALSO:
-    %   `NaturalVariablesCompositionalModel`, `OverallCompositionCompositionalModel`
+    %   `ECPANaturalVariablesCompositionalModel`, `ECPAOverallCompositionCompositionalModel`
 
     properties
         EOSModel % EquationOfState model used for PVT and phase behavior

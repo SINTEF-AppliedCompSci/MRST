@@ -1,8 +1,9 @@
 classdef ECPAOverallCompositionCompositionalModelDPDP < ECPAThreePhaseCompositionalModelDP
-    % Overall composition model for compositional problems
+    % Overall composition model for dual-porosity dual-permeability compositional
+    % problems using eCPA EOS.
     %
     % SYNOPSIS:
-    %   model = OverallCompositionCompositionalModel(G, rock, fluid, compFluid)
+    %   model = ECPAOverallCompositionCompositionalModelDPDP(G, rock, fluid, compFluid)
     %
     % DESCRIPTION:
     %   The overall composition model relies on primary variables
@@ -24,7 +25,7 @@ classdef ECPAOverallCompositionCompositionalModelDPDP < ECPAThreePhaseCompositio
     %  model - Initialized class instance
     %
     % SEE ALSO:
-    %   `ThreePhaseCompositionalModel`, `NaturalVariablesCompositionalModel`
+    %   `ThreePhaseCompositionalModelDP`, `ECPANaturalVariablesCompositionalModelDPDP`
 
     properties
         % the matrix operators

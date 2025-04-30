@@ -1,5 +1,5 @@
 function [problem, state] = equationsNaturalVariablesDP(state0, state, model, dt, drivingForces, varargin)
-% Equations for natural variables formulation
+% Equations for natural variables formulation for dual-porosity model.
 
 %{
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.

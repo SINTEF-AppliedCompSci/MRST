@@ -1,8 +1,8 @@
 classdef OverallCompositionCompositionalModelDP < ThreePhaseCompositionalModelDP
-    % Overall composition model for compositional problems
+    % Overall composition model for dual-porosity compositional problems
     %
     % SYNOPSIS:
-    %   model = OverallCompositionCompositionalModel(G, rock, fluid, compFluid)
+    %   model = OverallCompositionCompositionalModelDP(G, rock, fluid, compFluid)
     %
     % DESCRIPTION:
     %   The overall composition model relies on primary variables
@@ -24,7 +24,7 @@ classdef OverallCompositionCompositionalModelDP < ThreePhaseCompositionalModelDP
     %  model - Initialized class instance
     %
     % SEE ALSO:
-    %   `ThreePhaseCompositionalModel`, `NaturalVariablesCompositionalModel`
+    %   `ThreePhaseCompositionalModelDP`, `NaturalVariablesCompositionalModelDP`
 
     properties
         % the matrix operators

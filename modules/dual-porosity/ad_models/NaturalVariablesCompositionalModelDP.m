@@ -1,8 +1,8 @@
 classdef NaturalVariablesCompositionalModelDP < ThreePhaseCompositionalModelDP
-    % Natural variables model for compositional problems
+    % Natural variables model for dual-porosity compositional problems
     %
     % SYNOPSIS:
-    %   model = NaturalVariablesCompositionalModel(G, rock, fluid, compFluid)
+    %   model = NaturalVariablesCompositionalModelDP(G, rock, fluid, compFluid)
     %
     % DESCRIPTION:
     %   The natural variables model relies on separate primary variables
@@ -26,7 +26,7 @@ classdef NaturalVariablesCompositionalModelDP < ThreePhaseCompositionalModelDP
     %  model - Initialized class instance
     %
     % SEE ALSO:
-    %   `ThreePhaseCompositionalModel`, `OverallCompositionCompositionalModel`
+    %   `ThreePhaseCompositionalModelDP`, `OverallCompositionCompositionalModelDP`
     properties
         allowLargeSaturations = false;  % Allow sum of saturations larger than unity (experimental option)
         reduceLinearSystem = true;      % Return ReducedLinearizedSystem instead of LinearizedSystemAD

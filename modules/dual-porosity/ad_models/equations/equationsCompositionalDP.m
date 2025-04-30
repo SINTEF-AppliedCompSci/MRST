@@ -1,5 +1,5 @@
 function [problem, state] = equationsCompositionalDP(state0, state, model, dt, drivingForces, varargin)
-% Overall composition fully-implicit equations
+% Overall composition fully-implicit equations for dual-porosity model
 
 %{
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.

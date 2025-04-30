@@ -1,5 +1,6 @@
 classdef ECPANaturalVariablesCompositionalModelDP < ECPAThreePhaseCompositionalModelDP
-    % Natural variables model for compositional problems
+    % Natural variables model for dual-porosity compositional
+    % problems using eCPA EOS.
     %
     % SYNOPSIS:
     %   model = NaturalVariablesCompositionalModel(G, rock, fluid, compFluid)
@@ -26,7 +27,7 @@ classdef ECPANaturalVariablesCompositionalModelDP < ECPAThreePhaseCompositionalM
     %  model - Initialized class instance
     %
     % SEE ALSO:
-    %   `ThreePhaseCompositionalModel`, `OverallCompositionCompositionalModel`
+    %   `ThreePhaseCompositionalModelDP`, `ECPAOverallCompositionCompositionalModelDP`
     properties
         allowLargeSaturations = false;  % Allow sum of saturations larger than unity (experimental option)
         reduceLinearSystem = true;      % Return ReducedLinearizedSystem instead of LinearizedSystemAD

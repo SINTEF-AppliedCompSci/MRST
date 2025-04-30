@@ -1,8 +1,8 @@
 classdef ECPAOverallCompositionCompositionalModel < ECPAThreePhaseCompositionalModel
-    % Overall composition model for compositional problems
+    % Overall composition model for compositional problems using eCPA equation of state
     %
     % SYNOPSIS:
-    %   model = OverallCompositionCompositionalModel(G, rock, fluid, compFluid)
+    %   model = ECPAOverallCompositionCompositionalModel(G, rock, fluid, compFluid)
     %
     % DESCRIPTION:
     %   The overall composition model relies on primary variables
@@ -24,7 +24,7 @@ classdef ECPAOverallCompositionCompositionalModel < ECPAThreePhaseCompositionalM
     %  model - Initialized class instance
     %
     % SEE ALSO:
-    %   `ThreePhaseCompositionalModel`, `NaturalVariablesCompositionalModel`
+    %   `ECPAThreePhaseCompositionalModel`, `ECPANaturalVariablesCompositionalModel`
 
     properties
         
