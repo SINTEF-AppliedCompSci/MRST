@@ -22,12 +22,6 @@ This module is developed to simulate the phase behavior and thermodynamic proper
 - **MATLAB R2021a** or newer.
 - **MRST** (MATLAB Reservoir Simulation Toolbox) with Blackoil module.
 
-## Installation
-
-1. Clone or download this repository.
-2. Add the directory to your MATLAB path:
-   ```matlab
-3.   mrstModule add h2store
 ## Funding
 - This work was funded by Norwegian Research and Innovation Centre for Hydrogen and Ammonia HYDROGENi (Grant No. 333118) and
 the Research Council of Norway HYSTORM project (Grant No. 315804)
