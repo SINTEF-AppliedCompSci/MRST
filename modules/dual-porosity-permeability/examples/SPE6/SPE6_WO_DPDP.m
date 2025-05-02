@@ -300,10 +300,11 @@ end
 t = cumsum(schedule.step.val) / year;
 
 % Get the Eclipse well solution
+examplePath = fullfile(ROOTDIR(),'..','modules','dual-porosity-permeability','examples','SPE6');
 if strcmp(model_name, 'DP')
-    smry = readEclipseSummaryUnFmt('SPE6_WO_DP_MOD');
+    smry = readEclipseSummaryUnFmt(fullfile(examplePath,'SPE6_WO_DP_MOD'));
 elseif strcmp(model_name, 'DPDP')
-    smry = readEclipseSummaryUnFmt('SPE6_WO_DPDP_MOD');
+    smry = readEclipseSummaryUnFmt(fullfile(examplePath,'SPE6_WO_DPDP_MOD'));
 else
     disp('Model name not defined! Exiting..');
     return;
