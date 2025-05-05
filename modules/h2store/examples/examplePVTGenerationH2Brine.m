@@ -70,14 +70,14 @@ else
     getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', true, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'outputPath', outputPathPvt, 'reCompute', recompute);
     disp('Writing fluid properties for miscible case with digas and evapoil...');
 end
-%% We generates gas-oil flow properties specific to a hydrogen-brine system, for 
-%% three distinct regions. We exemplify the system with three rock types: caprock, bedrock, and storage rock (aquifer).
-%% The output includes key properties: gas relative permeability (krG), oil relative permeability (krO),
-%% and capillary pressure at the gas-oil contact (pcOG). UHS_BENCHMARK_RSRV
+% We generates gas-oil flow properties specific to a hydrogen-brine system, for 
+% three distinct regions. We exemplify the system with three rock types: caprock, bedrock, and storage rock (aquifer).
+% The output includes key properties: gas relative permeability (krG), oil relative permeability (krO),
+% and capillary pressure at the gas-oil contact (pcOG). UHS_BENCHMARK_RSRV
 %
-%% Relative permeability is modeled quadratically to capture the flow dynamics between gas and oil phases
-%% within each rock type, providing a more realistic representation of gas-brine interactions under 
-%% varying reservoir conditions.
+% Relative permeability is modeled quadratically to capture the flow dynamics between gas and oil phases
+% within each rock type, providing a more realistic representation of gas-brine interactions under 
+% varying reservoir conditions.
 %% Generate SGOF (Gas-Oil Flow) Properties Table
 disp('Generating gas-oil flow properties for hydrogen-brine system with three regions');
 getFluidH2BrineSGOF('n', 100, 'plot', true, 'outputPath', outputPathPvt, 'fileName', 'SGOF_UHS.txt', ...

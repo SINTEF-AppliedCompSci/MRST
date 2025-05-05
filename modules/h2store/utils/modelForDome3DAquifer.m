@@ -91,7 +91,7 @@ options = struct( ...
 options = checkOptions(options); % Validate options
 
 if ~fullSetup, return; end
-require ad-core ad-props ad-blackoil spe10
+require ad-core ad-props ad-blackoil
 
 %% Get the dome-shaped grid: low depth case with 40 bar at 600 meter depth
 % case can be adjusted for high depth and hig pressure (see paper)

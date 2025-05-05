@@ -26,13 +26,13 @@
 % data is also available and can create data files for varying 
 % salinity conditions.
 
-mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui vemmech test-suite
+mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui vemmech test-suite h2store
 %% Notice on Computational Cost
 warning('ComputationalCost:High', ...
        ['Please be advised that this example takes a long time ', ...
         'to run']);
 
-name = 'H2_STORAGE_RSRV_DOME';
+name = 'H2_Storage';
 
 dataPath = getDatasetPath('anticlinal_dome');
 dataFile = fullfile(dataPath, 'DOME_RSRV.DATA');
