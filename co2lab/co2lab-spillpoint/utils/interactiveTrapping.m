@@ -497,7 +497,8 @@ function [x, y, z] = getPlotRivers(Gt, cell_lines, res)
     [x,y,z] = deal([]);
     
     for i=1:numel(cell_lines);
-       cl = unique(cell_lines{i});
+       %cl = unique(cell_lines{i});
+       cl = cell_lines{i};
        cl = cl(res.traps(cl) == 0);
        x = [x; cc(double(cl),1); NaN]; %#ok
        y = [y; cc(double(cl),2); NaN]; %#ok
