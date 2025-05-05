@@ -1,5 +1,5 @@
 %% Parallel scaling of AD assembly
-mrstModule add ad-core deckformat ad-blackoil vista ad-props compositional libgeometry
+mrstModule add ad-core deckformat ad-blackoil ad-props compositional libgeometry
 if ~exist('n_strong', 'var')
     n_strong = 2e6;
 end
