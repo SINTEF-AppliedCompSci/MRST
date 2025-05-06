@@ -471,6 +471,11 @@ problem.iterationNo = opt.iteration;
 end
 
 %{
+Copyright National Key Laboratory of Oil and Gas Reservoir Geology and 
+Exploitation, and National Key Laboratory of Natural Gas Hydrate, 
+Southwest Petroleum University, Chengdu, 610500, China
+Wei Xiong, 18328068580@163.com 
+
 Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

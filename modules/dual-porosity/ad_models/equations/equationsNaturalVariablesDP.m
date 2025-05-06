@@ -701,6 +701,11 @@ function [sO, sG] = setMinimums(model, state, sW, sO, sG, pureVapor, pureLiquid)
 end
 
 %{
+Copyright National Key Laboratory of Oil and Gas Reservoir Geology and 
+Exploitation, and National Key Laboratory of Natural Gas Hydrate, 
+Southwest Petroleum University, Chengdu, 610500, China
+Wei Xiong, 18328068580@163.com 
+
 Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
