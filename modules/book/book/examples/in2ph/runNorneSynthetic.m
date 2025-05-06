@@ -25,9 +25,6 @@ gravity reset on
 % process that subset. See the <matlab:edit('showNorne.m')
 % showNorne> script for a more detailed walkthrough of the model.
 
-if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL())
-   error('Unable to obtain simulation model subset');
-end
 grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
 grdecl = readGRDECL(grdecl);
 grdecl = convertInputUnits(grdecl, getUnitSystem('METRIC'));

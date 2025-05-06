@@ -72,11 +72,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     %% Load Norne grid
 
-    if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL()),
-        error('Unable to obtain simulation model subset');
-    end
-
-
     grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
     grdecl = readGRDECL(grdecl);
     fullCartDims = grdecl.cartDims;
@@ -203,6 +198,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         nx = G.cartDims(1);
         ny = G.cartDims(2);
         nz = G.cartDims(3);
+
 
         % Find the bottom nodes. On these nodes, we impose zero displacement
 
