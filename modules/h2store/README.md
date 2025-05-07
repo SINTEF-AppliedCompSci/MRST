@@ -1,5 +1,7 @@
-# Simulation tools for H2 storage in aquifers (H2-brine mixture) using Blackoil MRST-Simulator and tabulated PVT data
-This module provides simulation tools for modeling a hydrogen (H₂) and brine mixture within the **Blackoil** simulator in **MATLAB Reservoir Simulation Toolbox (MRST)**. 
+# h2store: Simulation of hydrogen storage in aquifers
+
+This module provides simulation tools for modeling a hydrogen (H₂) and brine mixture within the **ad-blackoil** module in the **MATLAB Reservoir Simulation Toolbox (MRST)**.
+
 Our module includes tools for implementing the **Redlich-Kwong** (**RK**) equation of state (EoS) and generating tabulated PVT data for H₂-brine systems. 
 Additionally, it provides solubility tables derived from **ePC-Saft** and **Henry’s law** EoS for precise phase behavior calculations in hydrogen 
 storage simulations.
@@ -12,15 +14,14 @@ This module is developed to simulate the phase behavior and thermodynamic proper
 
 - **Implementation of RK Equation of State**: The module includes an implementation of the Redlich-Kwong (RK) EoS for H₂-brine mixtures, allowing for quick thermodynamic calculations that capture real gas behavior and temperature effects.
 
-- ** Scripts for tabulating PVT Data for Blackoil Simulations**: Precomputed PVT tables facilitate efficient H₂-brine mixture simulations in the MRST Blackoil simulator, allowing direct integration with Blackoil simulation workflows.
+- **Scripts for tabulating PVT Data for blackoil simulators**: Precomputed PVT tables facilitate efficient simulation of H₂-brine mixtures in MRST's ad-blackoil module. The resulting tables are also suitable for other blackoil simulators.
 
-- **Solubility Tables Using ePC-Saft (data) and Henry-Setschnow correlation**: both can be used to get solubility
-- ** Correlations for water and H2 density calculations
+- **Solubility tables**: Estimate solubility from both ePC-Saft (data) and Henry-Setschnow correlation.
+- **Correlations** for estimating the properties of water and H₂ mixtures for different pressure, temperature and salinity.
 
 ## Prerequisites
 
-- **MATLAB R2021a** or newer.
-- **MRST** (MATLAB Reservoir Simulation Toolbox) with Blackoil module.
+This code assumes that you are running in **MATLAB R2021a** or newer.
 
 ## Funding
 - This work was funded by Norwegian Research and Innovation Centre for Hydrogen and Ammonia HYDROGENi (Grant No. 333118) and
