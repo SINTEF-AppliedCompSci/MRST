@@ -1,4 +1,11 @@
 % MRST Example: Setting Up H₂-Brine Fluid Properties for Black-Oil Simulation
+% This MRST example demonstrates how to generate black-oil fluid property tables for a 
+% hydrogen-brine system under reservoir conditions. The workflow accounts for temperature- 
+% and pressure-dependent properties of H₂ and H₂O (optionally including salinity) to compute 
+% hydrogen solubility in brine and construct corresponding PVT tables. In addition, the example 
+% shows how to generate gas-water flow property (SGOF) tables for black-oil simulation, including 
+% gas relative permeability (krG), waqter relative permeability (krO), and capillary pressure at the 
+% gas-water contact (pcOG), over a defined saturation range.
 %
 %{
 Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
