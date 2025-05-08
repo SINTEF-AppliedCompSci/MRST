@@ -50,16 +50,27 @@ end
 % Generate H2O Component Table
 comp_name = 'H2O';
 disp(['Generating component table for: ', comp_name]);
-tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', outputDisplay,'outputPath',outputPathSol);
+tab_H2O = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, ...
+    'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, ...
+    'n_press',nbp, 'comp_name', comp_name,'outputDisplay', outputDisplay,'outputPath',outputPathSol);
+
 % Generate H2 Component Table
 pause(0.5);  % Ensure smooth execution between commands
 comp_name = 'H2';
 disp(['Generating component table for: ', comp_name]);
-tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, 'n_press',nbp, 'comp_name', comp_name,'outputDisplay', outputDisplay,'outputPath',outputPathSol);
+tab_H2 = generateComponentProperties('min_temp',min_temp, 'max_temp',max_temp, ...
+    'n_temp', nbt, 'min_press',min_pressure, 'max_press', max_pressure, ...
+    'n_press',nbp, 'comp_name', comp_name,'outputDisplay', outputDisplay,'outputPath',outputPathSol);
+
 % Generate Solubility Table
 disp('Generating solubility table...');
-% [tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp, max_temp, min_pressure, max_pressure, nbp, nbt, ms, outputPath);
-tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp',max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, 'n_press', nbp, 'ms', ms,'outputDisplay', outputDisplay,'outputPath',outputPathSol,'reCompute', recompute);
+% [tab_sol, status_sol, file_path_sol] = generateSolubilityTable(min_temp,
+% max_temp, min_pressure, max_pressure, nbp, nbt, ms, outputPath);
+tab_sol= generateH2WaterSolubilityTable('min_temp',min_temp, 'max_temp', ...
+    max_temp, 'n_temp', nbt,'min_press',min_pressure, 'max_press',max_pressure, ...
+    'n_press', nbp, 'ms', ms,'outputDisplay', outputDisplay,'outputPath',outputPathSol, ...
+    'reCompute', recompute);
+
 % Configure and Write Fluid Properties (PVT) Tables
 onlyRS = false;
 % Define the target output directory relative to the current directory
@@ -70,21 +81,28 @@ if ~exist(outputPathPvt, 'dir')
 end
 
 if onlyRS
-    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol,'rs', true, 'rv', false,'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE', 'PVTGFile', 'PVTGH2BRINE','outputPath', outputPathPvt, 'reCompute', recompute);
+    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol,'rs', true, 'rv', false, ...
+        'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE', 'PVTGFile', ...
+        'PVTGH2BRINE','outputPath', outputPathPvt, 'reCompute', recompute);
     disp('Writing fluid properties for miscible case with digas and disabled evapoil...');
 else
     % generate RSRV
-    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', true, 'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', 'PVDOH2BRINE', 'outputPath', outputPathPvt, 'reCompute', recompute);
+    getFluidH2BrineProps(tab_H2O, tab_H2, tab_sol, 'rs', true, 'rv', true, ...
+        'PVTGFile', 'PVTGH2BRINE', 'PVTOFile', 'PVTOH2BRINE','PVDOFile', ...
+        'PVDOH2BRINE', 'outputPath', outputPathPvt, 'reCompute', recompute);
     disp('Writing fluid properties for miscible case with digas and evapoil...');
 end
 % We generates gas-oil flow properties specific to a hydrogen-brine system, for 
-% three distinct regions. We exemplify the system with three rock types: caprock, bedrock, and storage rock (aquifer).
-% The output includes key properties: gas relative permeability (krG), oil relative permeability (krO),
-% and capillary pressure at the gas-oil contact (pcOG). UHS_BENCHMARK_RSRV
+% three distinct regions. We exemplify the system with three rock types: 
+% caprock, bedrock, and storage rock (aquifer).
 %
-% Relative permeability is modeled quadratically to capture the flow dynamics between gas and oil phases
-% within each rock type, providing a more realistic representation of gas-brine interactions under 
-% varying reservoir conditions.
+% The output includes key properties: gas relative permeability (krG), oil
+% relative permeability (krO),and capillary pressure at the gas-oil contact 
+% (pcOG). UHS_BENCHMARK_RSRV
+%
+% Relative permeability is modeled quadratically to capture the flow dynamics
+% between gas and oil phaseswithin each rock type, providing a more realistic
+% representation of gas-brine interactions under varying reservoir conditions.
 %% Generate SGOF (Gas-Oil Flow) Properties Table
 disp('Generating gas-oil flow properties for hydrogen-brine system with three regions');
 getFluidH2BrineSGOF('n', 100, 'plot', true, 'outputPath', outputPathPvt, 'fileName', 'SGOF_UHS.txt', ...
