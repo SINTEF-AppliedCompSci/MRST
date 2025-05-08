@@ -2,6 +2,7 @@ add_remotes.sh      export-ignore
 update_subtrees.sh  export-ignore
 .gitignore          export-ignore
 .gitattributes      export-ignore
+.zenodo.json        export-ignore
 
 # Special treatment of MATLAB binary files (especially *.MAT)
 *.mat -text -diff -merge
