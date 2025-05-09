@@ -2,3 +2,7 @@ startup_user.m
 *.asv
 *.m~
 *.mat
+*.vtu
+*.txt
+*.png
+*.pvd
