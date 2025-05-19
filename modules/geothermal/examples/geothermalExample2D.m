@@ -1,9 +1,22 @@
-%% Simple 2D case with gravity and variable fluid properties 
-% Simulate mass and heat transfer in a reservoir. The model considers
-% injection at the left boundary and outflow at the right boundary
-% (pressure set at reservoir condition). The top and bottom layer have
-% no-flow boundary conditions. The initial reservoir is set at 100 bars and
-% 10 C. Pure water is injected at 50 C.
+%% Simple 2D Geothermal Example with Gravity and Variable Fluid Properties
+% This example demonstrates mass and heat transfer in a 2D geothermal reservoir.
+% - Injection of pure water at 50°C on the left boundary
+% - Outflow at the right boundary (reservoir pressure)
+% - No-flow boundaries at top and bottom
+% - Initial reservoir: 100 bars, 10°C
+% - Demonstrates use of variable fluid properties and thermal EOS
+%
+% Requirements:
+%   - MRST modules: ad-props, ad-core, ad-blackoil, compositional, geothermal, mrst-gui
+%   - Run 'startup' in MRST root before executing this script
+%
+% Steps:
+%   1. Add required modules
+%   2. Set up grid and plotting options
+%   3. Define fluid and thermal properties
+%   4. Visualize fluid properties (density, viscosity)
+%   5. Set up initial and boundary conditions
+%   6. Run simulation and visualize results
 
 %% Add necessary MRST modules
 mrstModule add ad-props ad-core ad-blackoil compositional geothermal mrst-gui

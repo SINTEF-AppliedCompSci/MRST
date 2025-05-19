@@ -1,6 +1,19 @@
-%% Geothermal convection
-% This example shows how you can simulate geothermal convection using
-% sources and boundary conditions
+%% Geothermal Convection Example
+% This example demonstrates simulation of geothermal convection using MRST.
+% - Shows how to set up sources and boundary conditions for convection
+% - Includes two scenarios: continuous heating (3000 years) and limited heating (500 years)
+% - Visualizes temperature and velocity fields
+%
+% Requirements:
+%   - MRST modules: geothermal, compositional, ad-core, ad-props, upr, test-suite, mrst-gui
+%   - Run 'startup' in MRST root before executing this script
+%
+% Steps:
+%   1. Add required modules
+%   2. Set up and run first scenario (continuous heating)
+%   3. Visualize temperature and velocity fields
+%   4. Set up and run second scenario (limited heating)
+%   5. Visualize results
 
 %% Add modules
 mrstModule add geothermal compositional

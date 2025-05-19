@@ -1,16 +1,20 @@
-%% Benchmark with TOUGH2
-% In this example we simulate injection of pure water at 50C in a
-% reservoir of brine at 10C. The same simulation was done with TOUGH2
-% The results are compared to validate the implementation of equations in
-% the geothermal module. 
+%% Benchmark with TOUGH2: 2D Geothermal Injection/Production
+% This example benchmarks the MRST geothermal module against TOUGH2 results.
+% - Simulates injection of pure water at 50°C into a brine reservoir at 10°C
+% - 2D grid, no gravity (top view)
+% - Pressure applied on left (injection), constant pressure/temperature/NaCl on reservoir
+% - Monitors pressure, temperature, and NaCl at two locations (near injection, center)
 %
-% Setup: 2D grid without gravity -> equivalent to a top view 
-% Pressure applied on the left side (injection), on two faces only
-% Reservoir with constant pressure, temperature and NaCl mass fraction
-% conditions (100 bars, 10C, 0.1)
-% 
-% Pressure, temperature and NaCl mass fraction are evaluated at two cells
-% in the model: near the injection and in the model centre.
+% Requirements:
+%   - MRST modules: ad-props, ad-core, ad-blackoil, compositional, geothermal, mrst-gui
+%   - Run 'startup' in MRST root before executing this script
+%
+% Steps:
+%   1. Add required modules
+%   2. Set up grid and monitoring points
+%   3. Visualize grid and monitoring cells
+%   4. Define fluids, initial/boundary conditions
+%   5. Run simulation and compare to TOUGH2 results
 
 %% Add necessary MRST modules
 mrstModule add ad-props ad-core ad-blackoil compositional geothermal mrst-gui

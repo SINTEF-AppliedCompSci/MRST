@@ -1,6 +1,20 @@
-%% Geothermal wellbore model example
-% Example demonstrating how to use WellboreModel and discrete fracture
-% modelling (DFM) in geothermal simulations
+%% Geothermal Wellbore Model Example with Discrete Fracture Modeling (DFM)
+% This example demonstrates how to use the WellboreModel and DFM in geothermal simulations.
+% - Uses a fivespot pattern with horizontal fractures
+% - Shows group-based well control (charging/discharging)
+% - Demonstrates conversion to a reservoir-wellbore model
+% - Visualizes results
+%
+% Requirements:
+%   - MRST modules: test-suite, ad-core, ad-props, geothermal, compositional, dfm, wellpaths, upr, mrst-gui, linearsolvers
+%   - Run 'startup' in MRST root before executing this script
+%
+% Steps:
+%   1. Add required modules
+%   2. Set up fivespot test case with DFM
+%   3. Configure well groups and controls
+%   4. Convert to reservoir-wellbore model
+%   5. Run simulation and visualize results
 
 %% Add modules
 mrstModule add test-suite

@@ -1,7 +1,20 @@
-%% Subset of SEP10 Model 2
-% In this example, we simulate injection of hot water into Layer 10 of
-% SPE10 Model 2, once with thermally insulated boundary conditions, and
-% once with fixed-temperature boundary conditions.
+%% Geothermal Example: SPE10 Subset with Thermal Boundary Conditions
+% This example simulates hot water injection into Layer 10 of SPE10 Model 2.
+% - Compares thermally insulated vs. fixed-temperature boundary conditions
+% - Demonstrates use of PEBI grid refinement around wells
+% - Visualizes geological model and simulation results
+%
+% Requirements:
+%   - MRST modules: geothermal, upr, spe10, mrst-gui, ad-props, ad-core, ad-blackoil, compositional
+%   - Run 'startup' in MRST root before executing this script
+%
+% Steps:
+%   1. Add required modules
+%   2. Extract subset of SPE10 model
+%   3. Construct and refine PEBI grid
+%   4. Assign rock properties and visualize model
+%   5. Define fluids, wells, and schedule
+%   6. Run simulation and compare boundary condition effects
 
 %% Add modules
 mrstModule add geothermal upr spe10 mrst-gui ad-props ad-core ad-blackoil compositional

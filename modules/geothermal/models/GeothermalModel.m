@@ -1,60 +1,53 @@
 classdef GeothermalModel < ReservoirModel & GenericReservoirModel
-%Geothermal model for H20 (liquid and vapor) and optionally NaCl
+% Geothermal reservoir model for H2O (liquid/vapor) and NaCl
 %
-% SYNOPSIS:
-%   model = GeothermalModel(G, rock, fluid)
-%   model = GeothermalModel(G, rock, fluid, compFluid)
-%   model = GeothermalModel(..., 'pn1', vn1, ...)
+%   This class implements a geothermal reservoir model for simulation of
+%   water (liquid and vapor) and optionally NaCl (brine) in porous media.
+%   Supports phase changes, thermal effects, and compositional fluids.
 %
-% DESCRIPTION:
-%   This model forms the basis for simulation of geothermal systems with
-%   H2O and (optionally) NaCl. The model also has support for phase changes
-%   where water can exist in liquid and vapor form. This is currently under
-%   development.
+%   Usage:
+%     model = GeothermalModel(G, rock, fluid)
+%     model = GeothermalModel(G, rock, fluid, compFluid)
+%     model = GeothermalModel(..., 'pn1', vn1, ...)
 %
-% REQUIRED PARAMETERS:
-%   G         - Simulation grid.
+%   Parameters:
+%     G         - Simulation grid
+%     rock      - Rock structure
+%     fluid     - Fluid structure
+%     compFluid - Optional compositional fluid mixture (default: H2O only)
 %
-%   rock      - Valid rock used for the model.
+%   Optional parameters can be set as name-value pairs.
 %
-%   fluid     - Fluid model used for the model.
+%   Returns:
+%     model - Instance of GeothermalModel
 %
-%   compFluid - Compositional fluid mixture. Optional, defaults to H2O
-%               mixture if left empty.
-%
-% OPTIONAL PARAMETERS:
-%   'property' - Set property to the specified value.
-%
-% RETURNS:
-%   Class instance.
-%
-% SEE ALSO:
-%   `ReservoirModel`, `ThreePhaseCompotitionalModel`
-%
+%   See also: ReservoirModel, ThreePhaseCompositionalModel
 
     properties
-
-        % Boolean indicating if we are considering thermal
-        % effects (for debugging). Default = true.
+        % Boolean indicating if thermal effects are considered (default: true)
         thermal = true; 
-        % Choice of thermal primary variable. Possible values are 'temperature'
-        % and 'enthaply. Default is 'temperaure'. Note: Two-phase liquid-vapor
-        % flow requires enthalpy formulation.
+        % Choice of thermal primary variable: 'temperature' or 'enthalpy'.
+        % Note: Two-phase liquid-vapor flow requires enthalpy formulation.
         thermalFormulation = 'temperature';
-        % Compositional fluid mixutre. Default is a `CompositionalBrineFluid`
-        % with H2O as the only component
+        % Compositional fluid mixture (default: H2O only)
         compFluid 
-        % Physical quantities and bounds
+        % Geothermal gradient (K/m)
         geothermalGradient        = 30*Kelvin/(kilo*meter);
+        % Radiogenic heat flux density (W/m^3)
         radiogenicHeatFluxDensity = 0*micro*watt/meter^3;
+        % Minimum allowed temperature (K)
         minimumTemperature = -inf;
+        % Maximum allowed temperature (K)
         maximumTemperature =  inf;
-        % Update limits
+        % Update limits for temperature (relative and absolute)
         dTMaxRel = 0.2;
         dTMaxAbs = Inf;
+        % Update limits for enthalpy (relative and absolute)
         dhMaxRel = 0.2;
         dhMaxAbs = Inf;
+        % Update limit for component mass fractions (absolute)
         dxMaxAbs = 0.1;
+        % Apply residual scaling to equations (default: false)
         applyResidualScaling = false;
 
     end
@@ -62,7 +55,22 @@ classdef GeothermalModel < ReservoirModel & GenericReservoirModel
     methods
         %-----------------------------------------------------------------%
         function model = GeothermalModel(G, rock, fluid, varargin)
-        % Class constructor. Required arguments are G, rock and fluid.
+        % Constructor for geothermal reservoir model
+        %
+        %   model = GeothermalModel(G, rock, fluid, ...)
+        %
+        %   Parameters:
+        %     G         - Simulation grid
+        %     rock      - Rock structure
+        %     fluid     - Fluid structure
+        %     ...       - Additional options (see class doc)
+        %
+        %   Returns:
+        %     model - Instance of GeothermalModel
+        %
+        %   This constructor sets up a geothermal reservoir model for simulation
+        %   of water (liquid/vapor) and optionally NaCl (brine) in porous media.
+        %   Supports phase changes, thermal effects, and compositional fluids.
         
             % Check if compositional fluid is provided
             compFluid = [];

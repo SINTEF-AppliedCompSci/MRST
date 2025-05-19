@@ -1,4 +1,20 @@
-%% Geothermal example illustrating p/T-dependent permeability
+%% Geothermal Example: p/T-Dependent Permeability Effects
+% This example illustrates the impact of pressure- and temperature-dependent permeability
+% in geothermal simulations using MRST.
+% - Compares static and dynamic (p/T-dependent) permeability cases
+% - Visualizes and compares results
+%
+% Requirements:
+%   - MRST modules: ad-core, ad-props, geothermal, compositional, spe10, upr, test-suite, mrst-gui
+%   - Run 'startup' in MRST root before executing this script
+%
+% Steps:
+%   1. Add required modules
+%   2. Set up test case and simulation problem
+%   3. Define static and dynamic permeability models
+%   4. Run simulations for both cases
+%   5. Visualize and compare results
+
 mrstModule add ad-core ad-props
 mrstModule add geothermal compositional
 mrstModule add spe10 upr
