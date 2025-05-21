@@ -133,8 +133,7 @@ classdef IndexArray
         
         function tbl = duplicateInd(tbl, fdcell)
         %   tbl    - IndexArray
-        %   fdcell - Names of the index to duplicate with names of the duplicated
-        %   indices. The syntax is {'name', {'dupname1', 'dupname2'}}
+        %   fdcell - Names of the index to duplicate with names of the duplicated indices. The syntax is {'name', {'dupname1', 'dupname2'}}
             
             oldfd = fdcell{1};
             fd1 = fdcell{2}{1};
@@ -181,7 +180,7 @@ classdef IndexArray
         end    
 
         function tbl = removeInd(tbl, rmfdname)
-            
+        % Note that it does not include a projection. May lead to duplicate entry. To be used with caution
             fdnames = tbl.fdnames;
             inds    = tbl.inds;
 
@@ -194,7 +193,7 @@ classdef IndexArray
         end
         
         function tbl = removeInds(tbl, rmfdnames)
-        % remove the indices given by the names rmfdnames
+        % remove the indices given by the names rmfdnames, see comment of removeInd
             for i = 1 : numel(rmfdnames)
                 tbl = tbl.removeInd(rmfdnames{i});
             end
