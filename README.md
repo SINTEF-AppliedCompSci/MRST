@@ -27,7 +27,7 @@ See the [_Wiki_](https://github.com/daavid00/ad-micp/wiki) for an extended descr
 respect to previous releases, and using this module in macOS with GNU Octave.
 
 ## Requirements
-* MRST (Tested version: mrst-2024b)
+* MRST (Tested version: mrst-2025a)
 * MATLAB (Tested version: R2023a) or GNU Octave (Tested version: 9.2.0)
 
 ## Installation (MATLAB/GNU Octave)
@@ -45,6 +45,8 @@ cd MRST/modules
 rm -rf ad-micp
 # Clone the ad-micp repo
 git clone https://github.com/daavid00/ad-micp.git
+# Get inside the ad-micp folder
+cd ad-micp
 ``` 
 
 Then you can try to run the [_test_runMICP1DCase.m_](https://github.com/daavid00/ad-micp/blob/main/tests/test_runMICP1DCase.m) using octave (octave can be installed by executing `brew install octave`):
