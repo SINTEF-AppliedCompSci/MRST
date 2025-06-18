@@ -178,6 +178,7 @@ classdef IndexArray
         end    
         
         function inds = gets(tbl, getfdnames)
+            
         % get the index vectors for the indexings given by fdnames
             assert(tbl.isvirtual == false, 'This function cannot be used for virtual tables');
             fdnames = tbl.fdnames;
@@ -188,16 +189,26 @@ classdef IndexArray
             
         end    
 
-        function tbl = removeInd(tbl, rmfdname)
-        % Note that it does not include a projection. May lead to duplicate entry. To be used with caution
-            fdnames = tbl.fdnames;
-            inds    = tbl.inds;
+        function tbl = filterfds(tbl, fdnames)
+        % create table with only the indices given by fdnames, by removing columns. Note that the function does not
+        % check for uniqueness of the rows and should therefore be used with care.
 
-            [isok, ind] = ismember(rmfdname, fdnames);
-            assert(isok, 'field does not exist');
+            [isok, fdinds] = ismember(fdnames, tbl.fdnames);
+            assert(all(isok), 'field does not exist');
             
-            tbl.fdnames(ind) = [];
-            tbl.inds(:, ind) = [];
+            tbl.fdnames = fdnames;
+            tbl.inds = tbl.inds(:, fdinds);
+            
+        end
+        function tbl = removefds(tbl, fdnames)
+        % create table where the column given by fdnames are removed. Note that the function does not
+        % check for uniqueness of the rows and should therefore be used with care.
+
+            [isok, fdinds] = ismember(fdnames, tbl.fdnames);
+            assert(all(isok), 'field does not exist');
+            
+            tbl.fdnames(fdinds) = [];
+            tbl.inds(:, fdinds) = [];
             
         end
         
