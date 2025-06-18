@@ -221,10 +221,14 @@ classdef IndexArray
         function print(tbl, varargin)
         % Display IndexArray in terminal
             opt = struct('range', (1 : tbl.num)', ...
-                         'fdnames', tbl.fdnames)
+                         'fdnames', {tbl.fdnames});
 
-            indcol = ismember(tbl.fdnames, opt.fdnames);
-            indrow = opt.range
+            opt = merge_options(opt, varargin{:});
+
+            [found, indcol] = ismember(opt.fdnames, tbl.fdnames);
+            assert(all(found), 'some field names were not found');
+            
+            indrow = opt.range;
             
             try
 
