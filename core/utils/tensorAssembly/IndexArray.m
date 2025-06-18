@@ -157,6 +157,15 @@ classdef IndexArray
             tbl.inds = inds;
             
         end
+
+        function tbl = set(tbl, fdname, inds)
+        % replace the row for a given variable name, return error if fdname is not found
+            assert(tbl.isvirtual == false, 'This function cannot be used for virtual tables');
+            fdnames = tbl.fdnames;
+            tblinds = strcmp(fdname, fdnames);
+            assert(any(tblinds), 'index array field name not recognized');
+            tbl.inds(:, tblinds) = inds;
+        end
         
         function inds = get(tbl, fdname)
         % get index vector for the indexing given by fdname
@@ -211,22 +220,25 @@ classdef IndexArray
 
         function print(tbl, varargin)
         % Display IndexArray in terminal
-            fprintf('%s ', tbl.fdnames{:});
-            fprintf('\n');
+            opt = struct('range', (1 : tbl.num)', ...
+                         'fdnames', tbl.fdnames)
+
+            indcol = ismember(tbl.fdnames, opt.fdnames);
+            indrow = opt.range
             
-            switch nargin 
-              case 1
-                rg = (1 : tbl.num)';
-                tblinds = (1 : numel(tbl.fdnames))';
-              case 2
-                rg = varargin{1};
-                tblinds = (1 : numel(tbl.fdnames))';
-              case 3
-                rg = varargin{1};
-                tblinds = strcmp(varargin{2}, tbl.fdnames);
+            try
+
+                t = array2table(tbl.inds(indrow, indcol));
+                t.Properties.VariableNames = tbl.fdnames(indcol);
+                disp(t)
+                
+            catch
+                
+                fprintf('%s ', tbl.fdnames{indcol});
+                fprintf('\n');
+                display(tbl.inds(indrow, indcol));
+                
             end
-            
-            display(tbl.inds(rg, tblinds));
         end
         
     end
