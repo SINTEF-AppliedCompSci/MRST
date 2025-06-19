@@ -91,7 +91,7 @@ classdef TensorProd
 
         needIntersectTbl3 = false; % For the automatically generated pivot space, the index array tbl3 must be a projection of the pivot
                                    % space. For some cases, one may want to use a tbl3 which is not a projection
-                                   % of the pivot space, and will require an extra mapping. Then, this option should be
+                                   % of the pivot space, and this case will require an extra mapping. Then, this option should be
                                    % set to true, so that the intersection is computed.
         
     end
@@ -205,6 +205,7 @@ classdef TensorProd
             end
             
             if isempty(prod.tbl3)
+                
                 fds1 = tbl1.fdnames;
                 fds1 = fds1(~ismember(fds1, horzcat(crossfds, reducefds1)));
                 fds2 = tbl2.fdnames;
@@ -212,6 +213,7 @@ classdef TensorProd
                 fds3 = {fds1{:}, fds2{:}, mergefds{:}};
                 [tbl3, dispind3] = projIndexArray(pivottbl, fds3);
                 dispind3 = dispind3.inds;
+                
             else
                 
                 tbl3 = prod.tbl3;
@@ -231,8 +233,8 @@ classdef TensorProd
                 end
                 
                 map = TensorMap();
-                map.fromTbl = tbl3;
-                map.toTbl = pivottbl;
+                map.fromTbl  = tbl3;
+                map.toTbl    = pivottbl;
                 map.mergefds = fds3;
                 dispind3 = getDispatchInd(map);
                 
