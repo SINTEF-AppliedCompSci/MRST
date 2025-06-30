@@ -5,7 +5,11 @@ mrstModule add ad-core ad-blackoil deckformat agglom upscaling coarsegrid...
 %% Setup reference model
 test    = TestCase('egg_wo', 'realization', 1);
 problem = test.getPackedSimulationProblem();
-problem.SimulatorSetup.model.toleranceCNV = 1.0e-7;
+problem.SimulatorSetup.model.useCNVConvergence = false;
+problem.SimulatorSetup.model.nonlinearTolerance=1.0e-9;
+problem.SimulatorSetup.model.toleranceMB =1.0e-9;
+problem.SimulatorSetup.model.FacilityModel.toleranceWellBHP = 1000;
+problem.SimulatorSetup.model.FacilityModel.toleranceWellRate = 5.0e-8;
 % We focus on the first 60 steps
 schedule = problem.SimulatorSetup.schedule;
 
@@ -31,8 +35,13 @@ simulatePackedProblem(problem);
 modelRef    = problem.SimulatorSetup.model;
 schedule_new = flipWellControlsAndAddBC(schedule, statesRef, []);
 problem_new  = packSimulationProblem(problem.SimulatorSetup.state0, problem.SimulatorSetup.model, schedule_new, 'egg_wo_new');
+problem_new.SimulatorSetup.model.useCNVConvergence = false;
+problem_new.SimulatorSetup.model.nonlinearTolerance=1.0e-9;
+problem_new.SimulatorSetup.model.toleranceMB =1.0e-9;
+problem_new.SimulatorSetup.model.FacilityModel.toleranceWellBHP = 1000;
+problem_new.SimulatorSetup.model.FacilityModel.toleranceWellRate = 5.0e-8;
 problem_new.SimulatorSetup.schedule = schedule_new;
-problemNew.Name = 'egg_wo_new';
+problem_new.Name = 'egg_wo_new';
 simulatePackedProblem(problem_new);
 [wsRef_new, statesRef_new] = getPackedSimulatorOutput(problem_new);
 modelRef_new    = problem_new.SimulatorSetup.model;
@@ -92,7 +101,7 @@ scheduleCoarse = upscaleSchedule(modelCoarse, schedule, 'wellUpscaleMethod', 'su
 
 % BHP-Inj-RATE-Prod
 stateCoarse0_new   = upscaleState(modelCoarse_new, modelRef_new, test.state0);
-scheduleCoarse_new = upscaleSchedule(modelCoarse_new, schedule_new, 'wellUpscaleMethod', 'sum');
+scheduleCoarse_new = upscaleScheduleNew(modelCoarse_new, schedule_new, modelRef_new,'wellUpscaleMethod', 'sum');
 [wsCoarse_new, statesCoarse_new] = simulateScheduleAD(stateCoarse0_new, modelCoarse_new, scheduleCoarse_new);
 % plot
 plotWellSols({wsRef, wsCoarse, wsCoarse_new}, ...
@@ -109,15 +118,15 @@ pv_new = modelCoarse_new.operators.pv;
 % procedure to a large extent
 config = {...
      %name           include    scaling              boxlims   relativeLimits  
-    'porevolume',       1,     'linear',    [.01*pv, 1.5*pv],              []   
+    'porevolume',       0,     'linear',    [.005*pv, 2.5*pv],              []   
     'conntrans',        1,        'log',                  [],     [1e-2, 1e2]      
     'transmissibility', 1,        'log',                  [],     [1e-2  1e2]  
-    'swl',              1,     'linear',             [0, .3],              []
-    'swcr',             1,     'linear',             [0, .4],              []
-    'swu',              1,     'linear',             [.7, 1],              []
-    'sowcr',            1,     'linear',             [0, .4],              []
-    'krw',              1,     'linear',           [.5, 1.5],              []
-    'kro',              1,     'linear',           [.5, 1.5],              []};
+    'swl',              0,     'linear',             [0, .3],              []
+    'swcr',             0,     'linear',             [0, .4],              []
+    'swu',              0,     'linear',             [.7, 1],              []
+    'sowcr',            0,     'linear',             [0, .4],              []
+    'krw',              0,     'linear',           [.5, 1.5],              []
+    'kro',              0,     'linear',           [.5, 1.5],              []};
 parameters = [];
 for k = 1:size(config,1)
     if config{k, 2} == 0, continue, end
@@ -128,9 +137,9 @@ end
 
 config_new = {...
      %name           include    scaling              boxlims   relativeLimits  
-    'porevolume',       1,     'linear',    [.01*pv_new, 1.5*pv_new],              []   
-    'conntrans',        1,        'log',                  [],     [1e-2, 1e2]      
-    'transmissibility', 1,        'log',                  [],     [1e-2  1e2] 
+    'porevolume',       1,     'linear',    [.005*pv_new, 2.5*pv_new],              []   
+    'conntrans',        0,        'log',                  [],     [1e-2, 1e2]      
+    'transmissibility', 0,        'log',                  [],     [1e-2  1e2] 
     'swl',              1,     'linear',             [0, .3],              []
     'swcr',             1,     'linear',             [0, .4],              []
     'swu',              1,     'linear',             [.7, 1],              []
@@ -165,7 +174,7 @@ objh = @(p) evaluateMatch(p, mismatchFn, setup_init, parameters, statesRef);
 % The calibration can be improved by taking a large number of iterations,
 % but here we set a limit of 20 iterations
 [v1, p_opt1, history1] = unitBoxBFGS(pvec, objh, 'objChangeTol', 1e-5, ...
-                                  'maxIt', 20, 'logPlot', true);
+                                  'maxIt', 2, 'logPlot', true);
 
 
 %% Model calibration Quasi-Newton for BHP-RATE problem
@@ -174,7 +183,7 @@ objh_new = @(p) evaluateMatch(p, mismatchFn, setup_init_new, parameters_new, sta
 % The calibration can be improved by taking a large number of iterations,
 % but here we set a limit of 20 iterations
 [v1_new, p_opt1_new, history1_new] = unitBoxBFGS(pvec_new, objh_new, 'objChangeTol', 1e-5, ...
-                                  'maxIt', 20, 'logPlot', true);
+                                  'maxIt', 2, 'logPlot', true);
 
 %% Model calibration Levenberg-Marquard (using full Jacobian)  for RATE-BHP problem
 mismatchFn2 = @(model, states, schedule, states_ref, compDer, tstep, state) ...
@@ -184,7 +193,7 @@ mismatchFn2 = @(model, states, schedule, states_ref, compDer, tstep, state) ...
 objh2 = @(p) evaluateMatchSummands(p, mismatchFn2, setup_init, parameters, statesRef);
 % The calibration can be improved by taking a large number of iterations,
 % but here we set a limit of 20 iterations
-[v2, p_opt2, history2] = unitBoxLM(pvec, objh2, 'maxIt', 20);
+%[v2, p_opt2, history2] = unitBoxLM(pvec, objh2, 'maxIt', 20);
 
 %% Model calibration Levenberg-Marquard (using full Jacobian)  for BHP-RATE problem
 mismatchFn2_new = @(model, states, schedule, states_ref, compDer, tstep, state) ...
@@ -192,21 +201,35 @@ mismatchFn2_new = @(model, states, schedule, states_ref, compDer, tstep, state) 
         'computePartials', compDer, 'tstep', tstep, weighting{:},...
         'state', state, 'from_states', false, 'mismatchSum', false);
 objh2_new = @(p) evaluateMatchSummands(p, mismatchFn2, setup_init_new, parameters_new, statesRef_new);
-% The calibration can be improved by taking a large number of iterations,
-% but here we set a limit of 20 iterations
-[v2_new, p_opt2_new, history2_new] = unitBoxLM(pvec_new, objh2_new, 'maxIt', 20);
 
-%% Model calibration Alternating BHP-RATE & RATE-BHP problem
-pvec_init = pvec;
+%% alternate
+p_opt2_new = p_opt1_new;
+scale = 0.5;
 maxIt_alt = 5;
 maxIt = 5;
-[v1_alt, p_opt1_alt, history1_alt] = unitBoxBFGS(pvec_init, objh, 'objChangeTol', 1e-5, ...
-                                  'maxIt', 10, 'logPlot', true);
 for i = 1:maxIt_alt
-    [v2_new, p_opt2_new, history2_new] = unitBoxLM(p_opt1_alt, objh2_new, 'maxIt', maxIt);
-    [v2, p_opt2, history2] = unitBoxLM(p_opt2_new, objh2, 'maxIt', maxIt);
-    p_opt1_alt = p_opt2;
+setup_init = updateSetupFromScaledParameters(setup_init, parameters_new, p_opt2_new);
+%objh = @(p) evaluateMatch(p, mismatchFn, setup_init, parameters, statesRef);
+objh2 = @(p) evaluateMatchSummands(p, mismatchFn2, setup_init, parameters, statesRef);
+% The calibration can be improved by taking a large number of iterations,
+% but here we set a limit of 20 iterations
+%[v1, p_opt1, history1] = unitBoxBFGS(p_opt1, objh, 'objChangeTol', 1e-5, ...
+%                                  'maxIt', 5, 'logPlot', true);
+[v2, p_opt2, history2] = unitBoxLM(p_opt2, objh2, 'maxIt', 5);
+setup_init_new = updateSetupFromScaledParameters(setup_init_new, parameters, p_opt2);
+%objh_new = @(p) evaluateMatch(p, mismatchFn, setup_init_new, parameters_new, statesRef_new);
+% The calibration can be improved by taking a large number of iterations,
+% but here we set a limit of 20 iterations
+objh2_new = @(p) evaluateMatchSummands(p, mismatchFn2, setup_init_new, parameters_new, statesRef_new);
+%[v1_new, p_opt1_new, history1_new] = unitBoxBFGS(p_opt1_new, objh_new, 'objChangeTol', 1e-5, ...
+%                                  'maxIt', 5, 'logPlot', true);
+[v2_new, p_opt2_new, history2_new] = unitBoxLM(p_opt2_new, objh2_new, 'maxIt', 5);
 end
+
+
+
+
+[p_opt, history] = improvedCalibration(pvec, objh, objh2, objh2_new);
 
 %% Compare convergence history
 figure
@@ -228,8 +251,8 @@ setup_opt1_new = updateSetupFromScaledParameters(setup_init_new, parameters_new,
 [wellSols_opt1, states_opt1] = simulateScheduleAD(setup_opt1.state0, setup_opt1.model, setup_opt1.schedule);
 [wellSols_opt1_new, states_opt1_new] = simulateScheduleAD(setup_opt1_new.state0, setup_opt1_new.model, setup_opt1_new.schedule);
 
-setup_opt2 = updateSetupFromScaledParameters(setup_init, parameters, p_opt2);
-setup_opt2_new = updateSetupFromScaledParameters(setup_init_new, parameters_new, p_opt2_new);
+setup_opt2 = updateSetupFromScaledParameters(setup_init, parameters, p_opt);
+setup_opt2_new = updateSetupFromScaledParameters(setup_init_new, parameters_new, p_opt_new);
 [wellSols_opt2, states_opt2] = simulateScheduleAD(setup_opt2.state0, setup_opt2.model, setup_opt2.schedule);
 [wellSols_opt2_new, states_opt2_new] = simulateScheduleAD(setup_opt2_new.state0, setup_opt2_new.model, setup_opt2_new.schedule);
 
@@ -243,13 +266,8 @@ plotWellSols({wsRef_new, wsCoarse_new, wellSols_opt1_new, wellSols_opt2_new}, ..
               'datasetnames', {'reference','coarse initial','coarse tuned (Q-N)', 'coarse tuned (L-M)'});
 
 plotWellSols({wsRef_new, wellSols_opt2, wellSols_opt2_new}, ...
-              repmat({schedule.step.val}, 1, 3), ...
-              'datasetnames', {'reference','coarse tuned (Q-N)', 'coarse tuned (L-M)'});
-
-%% Plot the pore volume updates
-% fetch pore volume differences in initial and tuned coarse models
-dpv = setup_opt2.model.operators.pv - setup_init.model.operators.pv;
-figure
+    repmat({schedule.step.val}, 1, 3), ...
+'datasetnames', {'reference','coarse tuned (Q-N)', 'coarse tuned (L-M)'});
 plotCellData(modelCoarse.G, dpv, 'EdgeColor','none');
 plotFaces(modelCoarse.G, boundaryFaces(modelCoarse.G), 'EdgeColor', [0.4 0.4 0.4], ...
          'EdgeAlpha',.5, 'FaceColor', 'none');

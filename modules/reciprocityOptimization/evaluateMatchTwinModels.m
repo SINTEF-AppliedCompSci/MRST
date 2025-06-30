@@ -1,4 +1,4 @@
-function [misfitVal,varargout] = evaluateMatchTwinModels(pvec, obj, setup_model1,setup_model2, parameters, states_ref,cell_prior,prior, varargin)
+function [misfitVal,varargout] = evaluateMatchTwinModels(pvec, obj, setup_model1,setup_model2, parameters, states_ref,prior, varargin)
 % Utility function (for optimization) that simulates a model with parameters obtained 
 % from the vector 'pvec' (scaled parameters) and computes mismatch with respect a 
 % reference output state 'states_ref'
@@ -89,7 +89,10 @@ setupNew_model1.model.FlowDiscretization = [];
 setupNew_model1.model.FlowPropertyFunctions = [];
 for k = 1:numel(parameters)
     pval_model1{k}  = parameters{k}.unscale(pvec{k});
-    %pval_model1{1}(cell_prior)=prior;
+    if strcmp(prior.name, parameters{k}.name)
+        scaled_prior = parameters{k}.scale(prior.value);
+        dist_prior{k} =  pvec{k}(prior.location) - scaled_prior;
+    end
     setupNew_model1 = parameters{k}.setParameter(setupNew_model1, pval_model1{k});
 end
 [wellSols_model1,states_model1] = simulateScheduleAD(setupNew_model1.state0, setupNew_model1.model, setupNew_model1.schedule,...
@@ -109,11 +112,11 @@ end
                                        'NonLinearSolver',opt.NonlinearSolver,...
                                        'Verbose',opt.Verbose, extra{:});
 
-misfitVals = obj(setupNew_model1.model, states_model1, setupNew_model1.schedule, setupNew_model2.model, states_model2, setupNew_model2.schedule,states_ref, false, [],[],[]);
+misfitVals = obj(setupNew_model1.model, states_model1, setupNew_model1.schedule, setupNew_model2.model, states_model2, setupNew_model2.schedule,states_ref, dist_prior, false, [],[],[]);
 misfitVal  = - sum(vertcat(misfitVals{:}))/opt.objScaling ;
 
 if nargout > 1
-    objh = @(tstep,model1,model2,state1,state2) obj(setupNew_model1.model, states_model1, setupNew_model1.schedule, setupNew_model2.model, states_model2, setupNew_model2.schedule,states_ref, true, tstep, state1,state2);
+    objh = @(tstep,model1,model2,state1,state2) obj(setupNew_model1.model, states_model1, setupNew_model1.schedule, setupNew_model2.model, states_model2, setupNew_model2.schedule,states_ref, dist_prior, true, tstep, state1,state2);
     nms = applyFunction(@(x)x.name, parameters);
     scaledGradient_1 = cell(numel(nms), 1);
     

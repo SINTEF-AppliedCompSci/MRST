@@ -38,7 +38,7 @@ plotWell(model_f.G,W,'Color','k'); axis off tight
 drawnow
 
 %% Run simulation for fine-scale model
-scheduleWellNoBc = simpleSchedule(time_steps, 'W', scheduleWellNoBc.control.W);
+scheduleWellNoBc = simpleSchedule(time_steps, 'W', W);
 problemWellNoBc  = packSimulationProblem(state0, model_f, scheduleWellNoBc, 'model_fine_scale_Well');
 problemWellNoBc.Modules(end-1:end) = [];
 simulatePackedProblem(problemWellNoBc);%, 'restartStep',1);
@@ -84,7 +84,7 @@ for i = training_steps
 schedule_training_WellBc.step.val(i) = scheduleWellBc.step.val(i);
 schedule_training_WellBc.step.control(i) = scheduleWellBc.step.control(i);
 end
-schedule_training_c_WellBc = upscaleSchedule(model_c, schedule_training_WellBc, 'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
+schedule_training_c_WellBc = upscaleSchedule(model_c, schedule_training_WellBc, 'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'recompute');
 
 
 
@@ -103,7 +103,7 @@ state0_c   = upscaleState(model_c, model_f, state0);
 % state0_c.wellSol(3).pressure =states_f_WellNoBc{1}.wellSol(3).bhp;
 % state0_c.wellSol(4).pressure =states_f_WellNoBc{1}.wellSol(4).bhp;
 schedule_c_WellNoBc = upscaleSchedule(model_c, scheduleWellNoBc, 'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'recompute');
-schedule_c_WellBc = upscaleSchedule(model_c, scheduleWellBc,   'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'peaceman');
+schedule_c_WellBc = upscaleSchedule(model_c, scheduleWellBc,   'bcUpscaleMethod', 'idw', 'wellUpscaleMethod', 'recompute');
 [wellSols_c_WellNoBc, states_c_WellNoBc] = simulateScheduleAD(state0_c, model_c, schedule_c_WellNoBc);
 [wellSols_c_WellBc, states_c_WellBc] = simulateScheduleAD(state0_c, model_c, schedule_c_WellBc);
 
@@ -152,7 +152,7 @@ weighting =  {'WaterRateWeight',  [], ...
 
 
 obj = @(model_1, states_1, schedule_1, model_2, states_2, schedule_2,states_c, doPartials, tstep, state1,state2)...
-    matchObservedTwinModelsOW_saved(model_1, states_1, schedule_1, model_2, states_2, schedule_2,states_c,[],[],[],[], ...
+    matchObservedTwinModelsOW(model_1, states_1, schedule_1, model_2, states_2, schedule_2,states_c,[],[],[],[], ...
     'computePartials', doPartials, 'tstep', tstep, 'state1', state1,'state2', state2, ...
     'from_states', false, weighting{:});
 

@@ -1,69 +1,46 @@
-%% Adjoint-Based Parameter Inversion for Reservoir Characterization
-% This example demonstrates parameter inversion using adjoint optimization to
-% reconstruct missing reservoir parameters by matching production data.
-% The methodology follows Kohn-Vogelius optimization principles.
+%% Adjoint-Based Parameter Inversion for Egg Model
+clear all; close all; clc;
+mrstModule add agglom upscaling coarsegrid ad-core ad-blackoil ad-props optimization deckformat test-suite
 
-clear all;
-close all;
-clc;
-
-%% Load Required MRST Modules
-mrstModule add agglom upscaling coarsegrid ...
-               ad-core ad-blackoil ad-props ...
-               optimization deckformat
-
-%% Simulation Parameters
-time_steps = [0.1, 0.25, 0.75, 1, 1, 1*ones(1,20)]*day(); 
-inverting_steps = 1:15;
+%% (1) Reference Egg Model Setup
 gravity off;
+test = TestCase('egg_wo', 'realization', 1);
+test.name =  'egg_wo_nogravity';
+problemRef = test.getPackedSimulationProblem();
+problemRef.BaseName = 'egg_wo_nogravity';
+problemRef.OutputHandlers.states.dataFolder = 'egg_wo_nogravity';
+problemRef.OutputHandlers.reports.dataFolder = 'egg_wo_nogravity';
+problemRef.OutputHandlers.wellSols.dataFolder = 'egg_wo_nogravity';
+problemRef.problem.SimulatorSetup.model.gravity = [0 0 0];
 
-%% (1) Reference Exact Model Setup and Simulation
-% This section creates and simulates the reference model with known parameters
-% that we will try to reconstruct through inversion.
+% Configure model tolerances
+problemRef.SimulatorSetup.model.useCNVConvergence = false;
+problemRef.SimulatorSetup.model.nonlinearTolerance = 1.0e-9;
+problemRef.SimulatorSetup.model.toleranceMB = 1.0e-9;
+problemRef.SimulatorSetup.model.FacilityModel.toleranceWellBHP = 1000;
+problemRef.SimulatorSetup.model.FacilityModel.toleranceWellRate = 5.0e-8;
+problemRef.SimulatorSetup.model.OutputStateFunctions{end+1} = 'ComponentTotalFlux';
 
-% 1.1 Create synthetic reference model with known properties
-[modelRef, W, state0] = simpleModelForInversionExample();
+% Focus on first 60 timesteps
+scheduleRef = problemRef.SimulatorSetup.schedule;
+scheduleRef.step.val = scheduleRef.step.val(1:60);
+scheduleRef.step.control = scheduleRef.step.control(1:60);
+Wref = scheduleRef.control.W;
+dt = scheduleRef.step.val;
+nstep = numel(scheduleRef.step.val);
 
-% 1.2 Visualize reference model
-figure(1);
-subplot(1,2,1);
-plotCellData(modelRef.G, modelRef.rock.poro, 'EdgeAlpha', 0.5); 
-view(3); axis tight off;
-title('Reference Model Porosity');
-plotWell(modelRef.G, W, 'Color', 'k');
-drawnow;
-
-% 1.3 Create and perturb schedule for realistic inversion scenario
-scheduleRef = simpleSchedule(time_steps, 'W', W);
-scheduleRef.step.val = scheduleRef.step.val(1:25);
-scheduleRef.step.control = scheduleRef.step.control(1:25);
-
-% Add controlled perturbations to well operations
+% Create perturbed schedule for training
+perturbStep = [ones(1,4), round(.5+(2:(nstep-3))/2)]';
 rng(0); % For reproducibility
-perturbStep = [ones(1,4), round(.5+(2:(numel(scheduleRef.step.val)-3))/2)]';
-scheduleRef = perturbedSimpleSchedule(time_steps, 'W', W, ...
-    'pressureFac', 0.1, 'rateFac', 0.9, 'perturbStep', perturbStep);
+scheduleRef = perturbedSimpleSchedule(dt, 'W', Wref, ...
+    'pressureFac', 0.01, 'rateFac', 0.4, 'perturbStep', perturbStep);
+problemRef.SimulatorSetup.schedule = scheduleRef;
 
-% 1.4 Configure model for precise simulations
-modelRef.useCNVConvergence = false; 
-modelRef.nonlinearTolerance = 1.0e-9;
-modelRef.FacilityModel.toleranceWellBHP = 1000;
-modelRef.FacilityModel.toleranceWellRate = 1.0e-8;
-modelRef.OutputStateFunctions{end+1} = 'ComponentTotalFlux';
-modelRef.OutputStateFunctions{end+1} = 'FaceComponentMobility';
-modelRef.OutputStateFunctions{end+1} = 'Mobility';
-
-% 1.5 Run reference simulation
-[wellSolsRef, statesRef] = simulateScheduleAD(state0, modelRef, scheduleRef);
-
-% 1.6 Visualize reference results
-subplot(1,2,2); cla;
-plotCellData(modelRef.G, modelRef.rock.poro, 'EdgeColor', 'none');
-title('Reference Pore Volume');
-plotFaces(modelRef.G, boundaryFaces(modelRef.G), ...
-    'EdgeColor', [0.4 0.4 0.4], 'EdgeAlpha', 0.5, 'FaceColor', 'none');
-plotWell(modelRef.G, W, 'Color', 'k'); view(3); axis tight off;
-
+% Simulate reference problem
+simulatePackedProblem(problemRef);
+[wsRef, statesRef] = getPackedSimulatorOutput(problemRef);
+modelRef = problemRef.SimulatorSetup.model;
+state0 = problemRef.SimulatorSetup.state0;
 %% (2) Duplication Procedure Setup
 % This section establishes the dual control systems required for the
 % Kohn-Vogelius optimization approach and verifies their equivalence.
