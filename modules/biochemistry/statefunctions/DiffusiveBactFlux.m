@@ -18,6 +18,7 @@ classdef DiffusiveBactFlux < StateFunction & UpwindProperty
             gp.upwind_name = upwind_name;
             gp = gp.dependsOn(upwind_name);
             gp = gp.dependsOn({'nbact'}, 'state');
+            gp = gp.dependsOn({'Density'}, 'PVTPropertyFunctions');
            gp = gp.dependsOn({'s'}, 'state');
             gp.label = 'Flux_{bio}';
         end
@@ -25,17 +26,32 @@ classdef DiffusiveBactFlux < StateFunction & UpwindProperty
             % Get dependencies
             flag = prop.getEvaluatedDependencies(state, prop.upwind_name);
             nbact = model.getProps(state, 'nbact');
+            n0 = model.nbactMax;
+                       
+            rho = model.PVTPropertyFunctions.get(model, state, 'Density');
             s = model.getProps(state, 's');                
             L_ix = model.getLiquidIndex();
+
                 
-            if iscell(s)                  
-                 sL = s{L_ix};    
+            if iscell(s)
+                sL = s{L_ix};
+                rhoL = rho{L_ix};
+
             else
-                 sL = s(:, L_ix);  
+                sL = s(:,L_ix);
+                rhoL = rho(:,L_ix);
+            end
+            if iscell(sL)
+                Voln = sL{1}.*rhoL{1};
+            else
+                Voln = sL.*rhoL;
             end
             Diffb = prop.Db;
             gradn = model.operators.Grad(nbact);
-            fluxbact = -prop.faceUpstream(model, state, flag{L_ix}, Diffb.*sL).*gradn;
+            %fluxbact = -0.001*prop.faceUpstream(model, state, flag{L_ix}, Diffb.*Voln).*gradn;
+
+            fluxbact = -1.00e-12.*gradn;
+
                 
         end
     end

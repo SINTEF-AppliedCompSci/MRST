@@ -45,9 +45,9 @@ classdef GrowthBactRateSRC <  StateFunction
                     rhoL = rho(:,L_ix);
                 end
                 if iscell(sL)
-                    Voln = sL{1}.*rhoL{1};
+                    Voln = max(sL{1},1.0e-8).*rhoL{1};
                 else
-                    Voln = sL.*rhoL;
+                    Voln = max(sL,1.0e-8).*rhoL;
                 end
                 
                 Voln = max(Voln, 1.0e-8);
@@ -55,8 +55,13 @@ classdef GrowthBactRateSRC <  StateFunction
                 alphaCO2 = model.ReservoirModel.alphaCO2;
                 Psigrowthmax = model.ReservoirModel.Psigrowthmax;
                 % Calculate Psigrowth using H2 and CO2 mole fractions
-                Psigrowth = pv.*Psigrowthmax.* (xH2 ./ (alphaH2 + xH2)) ...
-                    .* (xCO2 ./ (alphaCO2 + xCO2)).*nbact.*Voln;
+                axH2 = (xH2 ./ (alphaH2 + xH2));
+                axCO2 = (xCO2 ./ (alphaCO2 + xCO2));
+                % axH2(xH2<0) = 1.0./alphaH2.*xH2(xH2<0);
+                % axCO2(xCO2<0) = 1.0./alphaCO2.*xCO2(xCO2<0);
+
+                Psigrowth = pv.*Psigrowthmax.*axH2  ...
+                    .* axCO2.*nbact.*Voln;
             end
         end
     end

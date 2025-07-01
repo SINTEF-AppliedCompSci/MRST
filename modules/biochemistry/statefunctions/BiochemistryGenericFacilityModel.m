@@ -69,7 +69,10 @@ classdef BiochemistryGenericFacilityModel < GenericFacilityModel
             flowState = fd.buildFlowState(model, state, state0, dt);  
             psigrowth = model.getProps(flowState, 'PsiGrowthRate');
             psidecay = model.getProps(flowState, 'PsiDecayRate');
-            src_growthdecay = (psigrowth -psidecay);
+
+            bmass = model.getProps(flowState, 'BacterialMass');
+
+            src_growthdecay = (psigrowth -psidecay) -0.0000001.*bmass;
 
         end
         
