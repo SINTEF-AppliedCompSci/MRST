@@ -36,12 +36,13 @@ classdef DecayBactRateSRC <  StateFunction
             end
             if model.ReservoirModel.bacteriamodel && model.ReservoirModel.liquidPhase && (~isempty(idx_H2))&& (~isempty(idx_CO2))
                 if iscell(sL)
-                    Voln = sL{1}.*rhoL{1};
+                    Voln = max(sL{1},1.0e-8).*rhoL{1};
                 else
-                    Voln = sL.*rhoL;
+                    Voln = max(sL,1.0e-8).*rhoL;
                 end
-                Voln = max(Voln, 1.0e-8);
+                % Voln = max(Voln, 1.0e-8);
                 Psidecay = pv.*bbact.*nbact.*(nbact.*Voln);
+                Psidecay(nbact<0) = -Psidecay(nbact<0);
             end
         end
     end

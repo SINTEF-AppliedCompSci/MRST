@@ -136,7 +136,7 @@ state0NoBact.nbact = 0;
 nameNoBact = 'H2_STORAGE_COMPOSITIONAL_2D_TRAP_NOBACT_50_50';
 problemNoBact = packSimulationProblem(state0, modelNoBact, schedule, nameNoBact, 'NonLinearSolver', nls);
 %% Run the simulation
-simulatePackedProblem(problemNoBact, 'restartStep',1);
+simulatePackedProblem(problemNoBact);
 %% Get reservoir and well states
 [ws,states] = getPackedSimulatorOutput(problem);
 [wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);

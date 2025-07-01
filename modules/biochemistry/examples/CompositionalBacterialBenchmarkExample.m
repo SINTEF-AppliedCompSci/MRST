@@ -1,7 +1,7 @@
 clear all;
 mrstModule add compositional ad-blackoil ad-core ad-props mrst-gui
 gravity reset on
-
+mrstVerbose =true;
 %% Read the Eclipse deck file containing the simulation data
 % Change input fil by UHS_BENCHMARK_RS_SALT.DATA for SALT EFFECTS
 deck = readEclipseDeck('C:\Users\elyesa\OneDrive - SINTEF\Documents\Projects\TUC_UHS_Benchmark\Simulation Cases/UHS_Benchmark_HighH2.DATA');
@@ -11,7 +11,9 @@ deck.PROPS.EOS ='PR';
 deck = convertDeckUnits(deck);
 compFluid = TableCompositionalMixture({'water', 'Methane','Nitrogen','CarbonDioxide','Ethane','Propane','n-butane','Hydrogen'}, ...
 {'H2O', 'C1', 'N2', 'CO2', 'C2','C3','NC4','H2'});
-[~, model, schedule, ~] = initEclipseProblemAD(deck,'getSchedule',true,'getInitialState', false);
+[~, model, schedule, nls] = initEclipseProblemAD(deck,'getSchedule',true,'getInitialState', false);
+deckBO = readEclipseDeck('\\wsl.localhost\Ubuntu\home\elyesa\Projects\MRST\modules\H2store\data\uhs_benchmark/UHS_BENCHMARK_RS.DATA');
+
 
 %% We use SW EOS
 eos =SoreideWhitsonEquationOfStateModel([], compFluid, 'sw');
@@ -25,17 +27,25 @@ model.water = false;
 fluid=initSimpleADIFluid('phases', 'OG', 'mu',[viscow,viscog],...
                          'rho',[rhow,rhog],'pRef',0*barsa(),...
                          'c',[cfw,cfg],'n',[2,2],'smin',[0.2,0.1]);
-fluid.krG = model.fluid.krG;
-fluid.krO = model.fluid.krW;
-fluid.krPts.g = [0.1, 0.1, 0.8, 1.0]; % Ensures Sg_min = 0.05
-fluid.krPts.w = [0.2, 0.3, 0.8, 1.0];  % Ensures Sw_min = 0.2
-model.fluid.krPts.og = [0, 1 - 0.1];  % Oil endpoints (gas-oil)
-fluid.pcOG = model.fluid.pcWG;
+
+%%
+% Replace the synthetic relative permeability curves created through
+% function |initSimpleADIFluid| with the real benchmark values.
+fluid = assignSGOF(fluid, deckBO.PROPS.SGOF, struct('sat', 1, ...
+                                              'interp1d', @interpTable));
+% % fluid.krG = fluid_kr.krG{1};
+% % fluid.krOG = fluid_kr.krOG{1};              clear fluid_kr
+% fluid.krG = model.fluid.krG;
+% fluid.krO = model.fluid.krW;
+% fluid.krPts.g = [0.1, 0.1, 0.8, 1.0]; % Ensures Sg_min = 0.05
+% fluid.krPts.w = [0.2, 0.3, 0.8, 1.0];  % Ensures Sw_min = 0.2
+% model.fluid.krPts.og = [0, 1 - 0.1];  % Oil endpoints (gas-oil)
+% fluid.pcOG = model.fluid.pcWG;
 model.fluid = fluid;
 
 %% Here we mimick the initialization from the benchmark (method 2 in Eclipse, not implemented in MRST)
 T0 = deck.PROPS.TEMPVD{1}(2);
-P0 = 82*barsa();
+P0 = 81.6*barsa();
 s0 = [0.2 0.8];
 % z0 = deck.PROPS.ZMFVD{1}(2:end);
 G = model.G;
@@ -45,7 +55,10 @@ z0(:,1) = z0(:,1)+ 0.08;
 z0(:,2) = z0(:,2)-0.08;
 z0(:,4)=z0(:,4)+z0(:,end);
 z0(:,end)=0;
-z0 =[0.9023 0.07015 0.00405 0.020210 0.00272 0.0004 0.0002 0.0000];
+z0 =[0.9023 0.07015 0.00405 0.020210 0.00272 0.0004 0.00015 0.00005];
+% z0 = deck.PROPS.ZMFVD{1}(2:end);
+z0(:,1) = z0(:,1)- 0.1;
+z0(:,2) = z0(:,2)+0.1;
 diagonal_backend = DiagonalAutoDiffBackend('modifyOperators', true);
 mex_backend = DiagonalAutoDiffBackend('modifyOperators', true, 'useMex', true, 'rowMajor', true);
 sparse_backend = SparseAutoDiffBackend();
@@ -58,8 +71,10 @@ if bacteriamodel
         'vaporPhase', 'G'}; % water=liquid, gas=vapor
     model = BiochemistryModel(arg{:});
     model.outputFluxes = false;
-    nbact0 = 40;
+    nbact0 = 55;
     state0 = initCompositionalStateBacteria(model, P0.*ones(G.cells.num,1) , T0, s0, z0, nbact0, eos);
+    % state0.s(:,1) = 1.0e-8+state0.s(:,1);
+    % state0.s(:,2) = state0.s(:,2)- 1.0e-8;
 else
     model.EOSModel =eos;
     state0 = initCompositionalState(model, P0.*ones(G.cells.num,1) , T0, s0, z0);
@@ -70,14 +85,32 @@ for i=1:length(schedule.control)
 end
 
 %% Set up the linear and nonlinear solvers
-linsolve = selectLinearSolverAD(model);
+linsolve = nls.LinearSolver;
+%linsolve = selectLinearSolverAD(model);
+linsolve.amgcl_setup.block_size = 0;
+%linsolve.verbose=true;
+linsolve.replaceInf = true;
+linsolve.replaceNaN = true;
 disp(linsolve)
-nls = NonLinearSolver('LinearSolver', linsolve);
-nls.timeStepSelector.maxTimestep = 1*day;
+nls = NonLinearSolver('LinearSolver',linsolve);
+% nls.timeStepSelector.maxTimestep = 1.0*day;
+nls.verbose =true;
+% nls.maxIterations=6;
+% nls.useRelaxation=true;
+% nls.useLinesearch=true;
+% nls.continueOnFailure =true;
+% nls.maxRelaxation = 0.85;
+nls.LinearSolver = linsolve;
+model.verbose = true;
 % Assign the linear solver to the nonlinear solver
-
-name = 'UHS_BENCHMARK_COMPOSITIONAL_BACT_TRUE_HIGH_H2_MOD_2_constZ0';
+% nls.LinearSolver.amgcl_setup.write_params = true;_
+name = 'UHS_BENCHMARK_COMPOSITIONAL_BACT_TRUE_HIGH_H2_MOD_2_constZ0_nbact1e1_z0_fromDeck_2_trial_1e9';
 %% Pack the simulation problem with the initial state, model, and schedule 
+TotTime = sum(schedule.step.val);
+% dT = rampupTimesteps(TotTime, schedule.step.val(1),4);
+% schedule.step.val = dT;
+% schedule.step.control(1:22) =1;
+%nls.timeStepSelector.maxTimestep = 5*day/4;
 problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
 %% Run the simulation
 simulatePackedProblem(problem);
@@ -86,13 +119,13 @@ modelNoBact = model;
 modelNoBact.bacteriamodel = false;
 state0NoBact = state0;
 state0NoBact.nbact = 0;
-nameNoBact = 'UHS_BENCHMARK_COMPOSITIONAL_BACT_FALSE_HIGH_H2_MOD_constZ0';
+nameNoBact = 'UHS_BENCHMARK_COMPOSITIONAL_NOBACT_TRUE_HIGH_H2_MOD_2_constZ0_nbact1e1_z0_fromDeck_2_trial';
 problemNoBact = packSimulationProblem(state0, modelNoBact, schedule, nameNoBact, 'NonLinearSolver', nls);
 %% Run the simulation
 simulatePackedProblem(problemNoBact);
 %% Get reservoir and well states
-[ws,states] = getPackedSimulatorOutput(problem);
-[wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
+[~,~, reports] = getPackedSimulatorOutput(problem);
+[~,~, reportsNo] = getPackedSimulatorOutput(problemNoBact);
 
 namecp = model.EOSModel.getComponentNames();
 indH2=find(strcmp(namecp,'H2'));

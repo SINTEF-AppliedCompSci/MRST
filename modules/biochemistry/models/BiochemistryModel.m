@@ -6,13 +6,13 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
 %   model = BioCompositionalModel(G, rock, fluid, compFluid)
 %   model = BioCompositionalModel(..., 'pn1', vn1, ...)
 %
-% DESCRIPTION:
+% DESCRIPTION:mrs
 %   This model forms the basis for simulation of bio-chemical systems within compositional 
 %   models. The model couple compositional modelto  bio-chemical reactions model. We use only 
 %   microbial growth and decay of MOnod type.
 %
 % REQUIRED PARAMETERS:
-%   G         - Simulation grid.
+%   G         - Simulation goprid.
 %
 %   rock      - Valid rock used for the model.
 %
@@ -56,7 +56,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         bDiffusionEffect = false;
         moleculardiffusion = false;
         
-        nbactMax = 1e8; % 1/m^3
+        nbactMax = 1e9; % 1/m^3
         
         bacteriamodel = true;
         metabolicReaction = 'MethanogenicArchae';
@@ -123,7 +123,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                     compFluid = TableCompositionalMixture({'Hydrogen', 'Water','Nitrogen', 'CarbonDioxide', 'Methane'}, ...
                     {'H2', 'H2O', 'N2', 'CO2', 'C1'});
                     model.gammak = [-4.0, 2.0, 0.0, -1.0, 1.0];
-                    eos =SoreideWhitsonEquationOfStateModel([], compFluid, 'sw');
+                    eos =SoreideWhitsonEquationOfStateModel([], compFluid, 'pr');
                     model.EOSModel = eos;
                else
                   warning('MethanogenicArchae is the default now; other reaction not yet implemented');
@@ -260,18 +260,47 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         end
 
         function [vars, names, origin] = getPrimaryVariables(model, state)
-            [vars, names, origin] = getPrimaryVariables@GenericOverallCompositionModel(model, state);
+            % Get primary variables from state, before a possible
+            % initialization as AD.
+            [p, z] = model.getProps(state, 'pressure', 'z');
+            z_tol = model.EOSModel.minimumComposition;
+            z = ensureMinimumFraction(z, z_tol);
+            z = expandMatrixToCell(z);
+            cnames = model.EOSModel.getComponentNames();
+            extra = model.getNonEoSPhaseNames();
+            ne = numel(extra);
+            enames = cell(1, ne);
+            evars = cell(1, ne);
+            for i = 1:ne
+                sn = ['s', extra(i)];
+                enames{i} = sn;
+                evars{i} = model.getProp(state, sn);
+            end
 
             if model.bacteriamodel
-                nbact = model.getProps(state, 'bacteriamodel');
-                vars = [vars, {nbact}];
-                names = [names, {'bacteriamodel'}];
-                origin = [origin, {class(model)}];
+                nbact = model.getProps(state, 'bacteriamodel'); 
+                names = [{'pressure'}, cnames(2:end), {'nbact'}, enames];
+                vars = [p, z(2:end), nbact, evars];
+                origin = cell(1, numel(names));
+                [origin{:}] = [deal(class(model))];
+            else
+                names = [{'pressure'}, cnames(2:end), enames];
+                vars = [p, z(2:end), evars];
+                origin = cell(1, numel(names));
+                [origin{:}] = deal(class(model));
+            end
+
+            if ~isempty(model.FacilityModel)
+                [v, n, o] = model.FacilityModel.getPrimaryVariables(state);
+                vars = [vars, v];
+                names = [names, n];
+                origin = [origin, o];
             end
         end
 
         function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces, varargin)
             % Discretize
+            % state = capSaturation(model,state, 's', 1.0e-8, 1-1.0e-8);
             [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
             src = model.FacilityModel.getComponentSources(state);
             % Assemble equations and add in sources
@@ -334,17 +363,106 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         end 
 
         function state = initStateAD(model, state, vars, names, origin)        
-            state = initStateAD@GenericOverallCompositionModel(model, state, vars, names, origin);
-%             if model.bacteriamodel            
-%                 state = computeBactPopulation(model, state);
-%             end
+            if model.bacteriamodel
+
+                isP = strcmp(names, 'pressure');
+                isB = strcmp(names, 'nbact');
+                isAD = any(cellfun(@(x) isa(x, 'ADI'), vars));
+                state = model.setProp(state, 'pressure', vars{isP});
+                state = model.setProp(state, 'nbact', vars{isB});
+
+                removed = isP | isB;
+
+                cnames = model.EOSModel.getComponentNames();
+                ncomp = numel(cnames);
+                z = cell(1, ncomp);
+                z_end = 1;
+                for i = 1:ncomp
+                    name = cnames{i};
+                    sub = strcmp(names, name);
+                    if any(sub)
+                        z{i} = vars{sub};
+                        z_end = z_end - z{i};
+                        removed(sub) = true;
+                    else
+                        fill = i;
+                    end
+                end
+                z{fill} = z_end;
+                state = model.setProp(state, 'components', z);
+                if isAD
+                    [state.x, state.y, state.L, state.FractionalDerivatives] = ...
+                        model.EOSModel.getPhaseFractionAsADI(state, state.pressure, state.T, state.components);
+                end
+                if ~isempty(model.FacilityModel)
+                    % Select facility model variables and pass them off to attached
+                    % class.
+                    fm = class(model.FacilityModel);
+                    isF = strcmp(origin, fm);
+                    state = model.FacilityModel.initStateAD(state, vars(isF), names(isF), origin(isF));
+                    removed = removed | isF;
+                end
+                nph = model.getNumberOfPhases();
+                phnames = model.getPhaseNames();
+                s = cell(1, nph);
+                extra = model.getNonEoSPhaseNames();
+                ne = numel(extra);
+                void = 1;
+                for i = 1:ne
+                    sn = ['s', extra(i)];
+                    isVar = strcmp(names, sn);
+                    si = vars{isVar};
+                    removed(isVar) = true;
+                    void = void - si;
+
+                    s{phnames == extra(i)} = si;
+                end
+                li = model.getLiquidIndex();
+                vi = model.getVaporIndex();
+                % Set up state with remaining variables
+                state = initStateAD@ReservoirModel(model, state, vars(~removed), names(~removed), origin(~removed));
+
+                % Now that props have been set up, we can compute the
+                % saturations from the mole fractions.
+                if isAD
+                    % We must get the version with derivatives
+                    Z = model.getProps(state, 'PhaseCompressibilityFactors');
+                    Z_L = Z{li};
+                    Z_V = Z{vi};
+                else
+                    % Already stored in state - no derivatives needed
+                    Z_L = state.Z_L;
+                    Z_V = state.Z_V;
+                end
+
+                L = state.L;
+                propmodel = model.EOSModel.PropertyModel;
+                if isempty(propmodel.volumeShift)
+                    volL = L.*Z_L;
+                    volV = (1-L).*Z_V;
+                else
+                    volL = L./propmodel.computeMolarDensity(model.EOSModel, state.pressure, state.x, Z_L, state.T, true);
+                    volV = (1-L)./propmodel.computeMolarDensity(model.EOSModel, state.pressure, state.y, Z_V, state.T, false);
+                end
+                volT = volL + volV;
+                sL = volL./volT;
+                sV = volV./volT;
+
+                [pureLiquid, pureVapor, twoPhase] = model.getFlag(state);
+                sL = sL.*void;
+                sV = sV.*void;
+                [s{li}, s{vi}] = model.setMinimumTwoPhaseSaturations(state, 1 - void, sL, sV, pureLiquid, pureVapor, twoPhase);
+                state = model.setProp(state, 's', s);
+            else
+                state = initStateAD@GenericOverallCompositionModel(model, state, vars, names, origin);
+            end
         end
         %-----------------------------------------------------------------%
         function [v_eqs, tolerances, names] = getConvergenceValues(model, problem, varargin)
             % Get values for convergence check
             [v_eqs, tolerances, names] = getConvergenceValues@ReservoirModel(model, problem, varargin{:});
             bacteriaIndex = find(strcmp(names, 'bacteria (cell)'));
-            tolerances(bacteriaIndex) = 1.0e-1;
+            tolerances(bacteriaIndex) = 5.0e-2;
             if model.bacteriamodel
                 scale = model.getEquationScaling(problem.equations, problem.equationNames, problem.state, problem.dt);
                 ix    = ~cellfun(@isempty, scale);
@@ -390,7 +508,8 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
             if model.bacteriamodel
                 ix = strcmpi(names, 'bacteria');
                 if any(ix)
-                    scaleChemistry = dt./max(chemistry, 1e-5);
+                    scaleChemistry = dt./max(chemistry, dt);
+                    scaleChemistry = filloutliers(scaleChemistry, "nearest","mean");
                     scale{ix} = scaleChemistry;
                 end
             end
@@ -427,12 +546,15 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         end
 
         function [state, report] = updateState(model, state, problem, dz, drivingForces)
+            [state, report] = updateState@GenericOverallCompositionModel(model, state, problem, dz, drivingForces);
             if model.bacteriamodel
-                state = model.capProperty(state, 'nbact', 1.0e-8, 100);
-                state = model.capProperty(state, 's', 1.0e-8, 1); 
+                state = model.capProperty(state, 'nbact', 1.e-3, 120);
+                                    
+                 % state.nbact = filloutliers(state.nbact, "nearest","mean");
+
+                state = model.capProperty(state, 's', 1.0e-8, 1);
                 state.components = ensureMinimumFraction(state.components, model.EOSModel.minimumComposition);
             end
-            [state, report] = updateState@GenericOverallCompositionModel(model, state, problem, dz, drivingForces);
         end
 
 
@@ -514,6 +636,34 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         end
 
     end
+end
+function state = capSaturation(model, state, name, minvalue, maxvalue)
+% Assume 'state' is a cell array and 'model.getProp' and 'model.setProp' work with cell content
+v = model.getProp(state, name); % Get the property, assuming 'v' is a cell array
+
+if iscell(v)
+    % Apply operations to each cell
+    for i = 1:numel(v)
+        % Extract the value from the cell
+        value = v{i};
+
+        % Perform the operations
+        value = max(minvalue, value);
+        if nargin > 4
+            value = min(value, maxvalue);
+        end
+
+        % Update the cell with the processed value
+        v{i} = value;
+    end
+else
+    v = max(minvalue, v);
+    if nargin > 4
+        v = min(v, maxvalue);
+    end
+end
+    % Update the state property
+    state = model.setProp(state, name, v);
 end
 
 %{

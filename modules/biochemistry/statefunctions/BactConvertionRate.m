@@ -59,8 +59,12 @@ classdef BactConvertionRate < StateFunction
                 Psigrowthmax = model.ReservoirModel.Psigrowthmax;
 
                 % Calculate Psigrowth using mole fractions
-                Psigrowth = pv .* Psigrowthmax .* (xH2 ./ (alphaH2 + xH2)) ...
-                            .* (xCO2 ./ (alphaCO2 + xCO2)) .* nbact .* Voln;
+                axH2 = (xH2 ./ (alphaH2 + xH2));
+                axCO2 = (xCO2 ./ (alphaCO2 + xCO2));
+                % axH2(xH2<0) = 1.0./alphaH2.*xH2(xH2<0);
+                % axCO2(xCO2<0) = 1.0./alphaCO2.*xCO2(xCO2<0);
+                Psigrowth = pv .* Psigrowthmax .* axH2 ...
+                            .* axCO2 .* nbact .* Voln;
 
                 % Conversion factors
                 Y_H2 = model.ReservoirModel.Y_H2;

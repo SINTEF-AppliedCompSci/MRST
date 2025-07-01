@@ -6,7 +6,7 @@ classdef ComponentMolecularDiffPhaseFlux < StateFunction
     methods
         function gp = ComponentMolecularDiffPhaseFlux(model, varargin)
             gp@StateFunction(model);                
-            gp = gp.dependsOn('Density', 'PVTPropertyFunctions');
+            gp = gp.dependsOn({'Density', 'PoreVolume'}, 'PVTPropertyFunctions');
              gp = gp.dependsOn('s', 'state');
              gp = gp.dependsOn('x', 'state');
 
@@ -22,8 +22,10 @@ classdef ComponentMolecularDiffPhaseFlux < StateFunction
                nm = model.getPhaseNames();
                tau = [1,1];
                rho = prop.getEvaluatedExternals(model, state, 'Density');
+               pv = model.PVTPropertyFunctions.get(model, state, 'PoreVolume');
+
                avg = model.operators.faceAvg;
-               poro= model.rock.poro;
+               poro = pv./model.G.cells.volumes;
                L_ix = model.getLiquidIndex();
                V_ix = model.getVaporIndex();
                % Define diffusion coefficients in m²/s for liquid and gas phases

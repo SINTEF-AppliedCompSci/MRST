@@ -250,6 +250,7 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
                 % single-phase cells, we perform a stability test in order
                 % to check if the single-phase state is still stable.
                 twoPhase = model.getTwoPhaseFlag(state);
+                twoPhase(twoPhase==0) =1;
                 % NaN means that L was not initialized. We then start with
                 % a phase stability test to get good estimates for the
                 % K-values.
@@ -269,7 +270,9 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
                 Z0_L = model.computeCompressibilityZ(state.pressure, x0, A_L, B_L, Si_L, Bi, true);
                 Z0_V = model.computeCompressibilityZ(state.pressure, y0, A_V, B_V, Si_V, Bi, false);
                 L0(~stable) = model.solveRachfordRice(L0(~stable), K0(~stable, :), z(~stable, :));
-                L0(stable) = model.singlePhaseLabel(P(stable), T(stable), z(stable, :), Z0_L(stable,:), Z0_V(stable,:));
+
+                %L0(stable) = model.singlePhaseLabel(P(stable), T(stable), z(stable, :));
+                L0(stable) = model.ssinglePhaseLabel(P(stable), T(stable), z(stable, :), Z0_L(stable,:), Z0_V(stable,:));
                 active = ~stable;
                 % Flag stable cells as converged
                 state.eos.converged(stable) = true;
@@ -366,16 +369,16 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
             report.StabilityTime = t_stability;
         end
 
-        % function L = singlePhaseLabel(eos, p, T, z)
-        %     % Li's method for phase labeling
-        %     Vc = eos.CompositionalMixture.Vcrit;
-        %     Tc = eos.CompositionalMixture.Tcrit;
-        %     Vz = bsxfun(@times, Vc, z);
-        %
-        %     Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
-        %     L = double(T < Tc_est);
-        % end
-        function L = singlePhaseLabel(eos, p, T, z, Z_V, Z_L)
+        function L = singlePhaseLabel(eos, p, T, z)
+            % Li's method for phase labeling
+            Vc = eos.CompositionalMixture.Vcrit;
+            Tc = eos.CompositionalMixture.Tcrit;
+            Vz = bsxfun(@times, Vc, z);
+
+            Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
+            L = double(T < Tc_est);
+        end
+        function L = ssinglePhaseLabel(eos, p, T, z, Z_L, Z_V)
             % Improved phase labeling based on compressibility factor (Z), fugacity, and critical properties
             % Inputs:
             %   eos: Equation of state object
@@ -391,9 +394,16 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
             omega = eos.CompositionalMixture.acentricFactors; % Acentric factors
 
             % Pseudo-critical properties using Kay's rule
-            Tc_est = sum(z .* Tc); % Pseudo-critical temperature
-            Pc_est = sum(z .* Pc); % Pseudo-critical pressure
-            omega_est = sum(z .* omega); % Pseudo-acentric factor
+            % Tc_est = sum(z .* Tc); % Pseudo-critical temperature
+            % Pc_est = sum(z .* Pc); % Pseudo-critical pressure
+            % omega_est = sum(z .* omega); % Pseudo-acentric factor
+            Vc = eos.CompositionalMixture.Vcrit;
+            %Tc = eos.CompositionalMixture.Tcrit;
+            Vz = bsxfun(@times, Vc, z);
+
+            Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
+            
+            Pc_est = sum(bsxfun(@times, Vz, Pc), 2)./sum(Vz, 2);
 
             % Reduced temperature and pressure
             Tr = T ./ Tc_est; % Reduced temperature
@@ -408,12 +418,27 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
 
             % Phase classification:
             % Phase classification:
-            if Tr > 1
-                if Pr > 1
-                    % Supercritical conditions
-                    L = 2; % Supercritical
+            if ~isempty(p)
+                if Tr > 1
+                    if Pr > 1
+                        % Supercritical conditions
+                        L = 0; % Supercritical
+                    else
+                        % Check other conditions if Pr <= 1
+                        if abs(Z_V - Z_L) < 0.1 % Z_V and Z_L are close
+                            if Z_V < 0.5
+                                L = 1; % Liquid-like behavior
+                            else
+                                L = 0; % Gas-like behavior
+                            end
+                        elseif Z_V > Z_L
+                            L = 0; % Gas phase
+                        else
+                            L = 1; % Liquid phase
+                        end
+                    end
                 else
-                    % Check other conditions if Pr <= 1
+                    % Check other conditions if Tr <= 1
                     if abs(Z_V - Z_L) < 0.1 % Z_V and Z_L are close
                         if Z_V < 0.5
                             L = 1; % Liquid-like behavior
@@ -427,18 +452,7 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
                     end
                 end
             else
-                % Check other conditions if Tr <= 1
-                if abs(Z_V - Z_L) < 0.1 % Z_V and Z_L are close
-                    if Z_V < 0.5
-                        L = 1; % Liquid-like behavior
-                    else
-                        L = 0; % Gas-like behavior
-                    end
-                elseif Z_V > Z_L
-                    L = 0; % Gas phase
-                else
-                    L = 1; % Liquid phase
-                end
+                L =[];
             end
         end
         function [x, y, K, Z_L, Z_V, L, values] = substitutionCompositionUpdate(model, P, T, z, K, L)
@@ -743,7 +757,7 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
                     end
                     %Only for component H2O in the liquid phase
                     TrH2O=Tr{indH2O};
-                    oA{indH2O} = model.omegaA.*(1 +0.4530.*(1-(1-0.0103*coef_msalt).*TrH2O)+0.0034.*(TrH2O.^(-3)-1).^2);                 
+                    oA{indH2O} = model.omegaA.*(1 +0.4530.*(1-(1-0.0103*coef_msalt).*TrH2O)+0.0034.*(TrH2O.^(-3)-1)).^2;                 
                 else
                     %for liquid phase:
                     tmp = bsxfun(@times, 0.37464 + 1.54226.*acf - 0.26992.*acf.^2, 1-Tr.^(1/2));
@@ -1048,9 +1062,9 @@ classdef SoreideWhitsonEquationOfStateModel < PhysicalModel
             dFdp = ep.jac{1};
             dFds = es.jac{1};
             % We really want: dsdp = dFds\dFdp, but right hand side is
-            % large so we just use LU factorization since it is much faster
-            [dFds_L, dFds_U] = lu(dFds);
-            dsdp = -(dFds_U\(dFds_L\dFdp));
+            % large so we just use LU factorization since it is much faster          
+            [dFds_L, dFds_U] = lu(dFds);            
+            dsdp = -(dFds_U \ (dFds_L \ dFdp));          
             [I, J, V] = find(dsdp);
             % P, T and each component
             dLdpTz = zeros(ncell, nprimary);
