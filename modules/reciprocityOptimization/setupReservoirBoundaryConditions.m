@@ -43,7 +43,7 @@ data.AllFaces = findBoundaryFaces(G);
 data.wellCells = getWellCells(schedule);
 
 % Find well-connected boundary faces
-[wellFaces, wellCellsOnBoundary] = findWellBoundaryFaces(G, data.wellCells, data.AllFaces);
+[wellFaces, wellCellsOnBoundary] = findWellBoundaryFaces(G, data.wellCells);
 
 % Setup boundary conditions based on type
 switch lower(bcType)
@@ -106,11 +106,12 @@ end
 cells = unique(cells);
 end
 
-function [wellFaces, wellCells] = findWellBoundaryFaces(G, wellCells, AllFaces)
+function [wellFaces, wellCells] = findWellBoundaryFaces(G, wellCells)
 % Find boundary faces connected to well cells
-neighbors = G.faces.neighbors(AllFaces, :);
+topFaces = identifyBcFaces(G, 'Upper', [], [], []);
+neighbors = G.faces.neighbors(topFaces, :);
 isWellFace = ismember(neighbors(:,1), wellCells) | ismember(neighbors(:,2), wellCells);
-wellFaces = AllFaces(isWellFace);
+wellFaces = topFaces(isWellFace);
 wellCells = sum(G.faces.neighbors(wellFaces, :), 2);
 end
 

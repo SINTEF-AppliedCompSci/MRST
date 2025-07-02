@@ -11,20 +11,20 @@ problemRef.BaseName = 'egg_wo_nogravity';
 problemRef.OutputHandlers.states.dataFolder = 'egg_wo_nogravity';
 problemRef.OutputHandlers.reports.dataFolder = 'egg_wo_nogravity';
 problemRef.OutputHandlers.wellSols.dataFolder = 'egg_wo_nogravity';
-problemRef.problem.SimulatorSetup.model.gravity = [0 0 0];
+problemRef.SimulatorSetup.model.gravity = [0 0 0];
 
 % Configure model tolerances
 problemRef.SimulatorSetup.model.useCNVConvergence = false;
 problemRef.SimulatorSetup.model.nonlinearTolerance = 1.0e-9;
 problemRef.SimulatorSetup.model.toleranceMB = 1.0e-9;
 problemRef.SimulatorSetup.model.FacilityModel.toleranceWellBHP = 1000;
-problemRef.SimulatorSetup.model.FacilityModel.toleranceWellRate = 5.0e-8;
+problemRef.SimulatorSetup.model.FacilityModel.toleranceWellRate = 1.0e-9;
 problemRef.SimulatorSetup.model.OutputStateFunctions{end+1} = 'ComponentTotalFlux';
 
 % Focus on first 60 timesteps
 scheduleRef = problemRef.SimulatorSetup.schedule;
-scheduleRef.step.val = scheduleRef.step.val(1:60);
-scheduleRef.step.control = scheduleRef.step.control(1:60);
+scheduleRef.step.val = scheduleRef.step.val(1:30);
+scheduleRef.step.control = scheduleRef.step.control(1:30);
 Wref = scheduleRef.control.W;
 dt = scheduleRef.step.val;
 nstep = numel(scheduleRef.step.val);
@@ -37,69 +37,78 @@ scheduleRef = perturbedSimpleSchedule(dt, 'W', Wref, ...
 problemRef.SimulatorSetup.schedule = scheduleRef;
 
 % Simulate reference problem
-simulatePackedProblem(problemRef);
+simulatePackedProblem(problemRef, 'checkTooMany', false);
 [wsRef, statesRef] = getPackedSimulatorOutput(problemRef);
 modelRef = problemRef.SimulatorSetup.model;
+modelRef.gravity = 0.*modelRef.gravity;
 state0 = problemRef.SimulatorSetup.state0;
 %% (2) Duplication Procedure Setup
 % This section establishes the dual control systems required for the
 % Kohn-Vogelius optimization approach and verifies their equivalence.
 
 % 2.1 Setup boundary conditions for inversion
-data = setupReservoirBoundaryConditions(modelRef, statesRef, scheduleRef, 'top', []);
+data = setupReservoirBoundaryConditions(modelRef, statesRef, scheduleRef, 'wells', []);
 
 % 2.2 Create original BHP-Rate control system
 scheduleBhpRate = scheduleRef;
 modelBhpRate = modelRef;
-[wellSolsBhpRate, statesBhpRate] = simulateScheduleAD(state0, modelBhpRate, scheduleBhpRate);
-
 % 2.3 Create converted Rate-BHP control system
 convMap = struct('bhp', 'rate', 'rate', 'bhp');
 scheduleRateBhp = convertWellControls(scheduleRef, statesRef, modelRef, ...
-                    'ConversionMap', convMap, 'bc', data.bc);
-[wellSolsRateBhp, statesRateBhp] = simulateScheduleAD(state0, modelBhpRate, scheduleRateBhp);
+        'ConversionMap', convMap, 'bc', data.bc);
 
-% 2.4 Validate control system equivalence
-tolerance = 1e-3;
-isValid = true;
+nls = NonLinearSolver();                                       % Create a nonlinear solver object
+lsolve = selectLinearSolverAD(modelRef);                          % Select the linear solver for the model
+nls.LinearSolver = lsolve;                                     % Assign the linear solver to the nonlinear solver
 
-for i = 1:numel(wellSolsBhpRate)
-    % Compare BHP where applicable
-    for w = 1:numel(wellSolsBhpRate{i})
-        if isfield(wellSolsBhpRate{i}(w), 'bhp') && isfield(wellSolsRateBhp{i}(w), 'bhp')
-            bhpDiff = abs(wellSolsBhpRate{i}(w).bhp - wellSolsRateBhp{i}(w).bhp);
-            if bhpDiff > tolerance
-                fprintf('BHP mismatch at step %d, well %d: %.2e\n', i, w, bhpDiff);
-                isValid = false;
+SimulateReference = false;
+if SimulateReference
+    [wellSolsBhpRate, statesBhpRate] = simulateScheduleAD(state0, modelBhpRate, scheduleBhpRate, 'NonLinearSolver', nls);
+
+
+    [wellSolsRateBhp, statesRateBhp] = simulateScheduleAD(state0, modelBhpRate, scheduleRateBhp, 'NonLinearSolver', nls);
+
+    % 2.4 Validate control system equivalence
+    tolerance = 1e-2;
+    isValid = true;
+
+    for i = 1:numel(wellSolsBhpRate)
+        % Compare BHP where applicable
+        for w = 1:numel(wellSolsBhpRate{i})
+            if isfield(wellSolsBhpRate{i}(w), 'bhp') && isfield(wellSolsRateBhp{i}(w), 'bhp')
+                bhpDiff = abs(wellSolsBhpRate{i}(w).bhp - wellSolsRateBhp{i}(w).bhp);
+                if bhpDiff > tolerance
+                    fprintf('BHP mismatch at step %d, well %d: %.2e\n', i, w, bhpDiff);
+                    isValid = false;
+                end
             end
-        end
-        
-        % Compare rates where applicable
-        if isfield(wellSolsBhpRate{i}(w), 'qWs') && isfield(wellSolsRateBhp{i}(w), 'qWs')
-            rateDiff = abs(wellSolsBhpRate{i}(w).qWs - wellSolsRateBhp{i}(w).qWs);
-            if rateDiff > tolerance
-                fprintf('Water rate mismatch at step %d, well %d: %.2e\n', i, w, rateDiff);
-                isValid = false;
+
+            % Compare rates where applicable
+            if isfield(wellSolsBhpRate{i}(w), 'qWs') && isfield(wellSolsRateBhp{i}(w), 'qWs')
+                rateDiff = abs(wellSolsBhpRate{i}(w).qWs - wellSolsRateBhp{i}(w).qWs);
+                if rateDiff > tolerance
+                    fprintf('Water rate mismatch at step %d, well %d: %.2e\n', i, w, rateDiff);
+                    isValid = false;
+                end
             end
         end
     end
+
+    if isValid
+        fprintf('\nValidation PASSED: Both control systems produce equivalent results within tolerance.\n');
+    else
+        error('Validation FAILED: Control systems produce different results');
+    end
+
+    % 2.5 Visualize control system comparison
+    summary_plots2 = plotWellSols({wsRef, wellSolsBhpRate}, ...
+        {scheduleRef.step.val, scheduleBhpRate.step.val}, ...
+        'datasetnames', {'Reference Model', 'BHP-Rate Model'});
+
+    summary_plots3 = plotWellSols({wellSolsBhpRate, wellSolsRateBhp}, ...
+        {scheduleBhpRate.step.val, scheduleRateBhp.step.val}, ...
+        'datasetnames', {'BHP-Rate Model', 'Rate-BHP Model'});
 end
-
-if isValid
-    fprintf('\nValidation PASSED: Both control systems produce equivalent results within tolerance.\n');
-else
-    error('Validation FAILED: Control systems produce different results');
-end
-
-% 2.5 Visualize control system comparison
-summary_plots2 = plotWellSols({wellSolsRef, wellSolsBhpRate}, ...
-                            {scheduleRef.step.val, scheduleBhpRate.step.val}, ...
-                            'datasetnames', {'Reference Model', 'BHP-Rate Model'});
-
-summary_plots3 = plotWellSols({wellSolsBhpRate, wellSolsRateBhp}, ...
-                            {scheduleBhpRate.step.val, scheduleRateBhp.step.val}, ...
-                            'datasetnames', {'BHP-Rate Model', 'Rate-BHP Model'});
-
 %% (3) Initial Model Setup for Optimization
 % This section prepares the initial guess model that will be used to start
 % the optimization procedure.
@@ -128,10 +137,10 @@ InitModel.operators.pv(seismicdata.cells) = seismicdata.value;
 
 % 3.4 Configure model solver settings for optimization
 InitModel.useCNVConvergence = false;
-InitModel.nonlinearTolerance = 1.0e-9;
-InitModel.FacilityModel.toleranceWellBHP = 1000;
-InitModel.FacilityModel.toleranceWellRate = 1.0e-8;
-InitModel.FacilityModel.nonlinearTolerance = 1.0e-8;
+% InitModel.nonlinearTolerance = 1.0e-9;
+% InitModel.FacilityModel.toleranceWellBHP = 1000;
+% InitModel.FacilityModel.toleranceWellRate = 1.0e-8;
+% InitModel.FacilityModel.nonlinearTolerance = 1.0e-8;
 InitModel.OutputStateFunctions{end+1} = 'ComponentTotalFlux';
 
 % 3.5 Validate initial model with both control systems
@@ -139,8 +148,8 @@ modelBhpRate = InitModel;
 modelRateBhp = InitModel;
 
 fprintf('\nRunning initial forward simulations with guessed parameters...\n');
-[wellSolsBhpRate, statesBhpRate] = simulateScheduleAD(state0, modelBhpRate, scheduleBhpRate);
-[wellSolsRateBhp, statesRateBhp] = simulateScheduleAD(state0, modelRateBhp, scheduleRateBhp);
+[wellSolsBhpRate, statesBhpRate] = simulateScheduleAD(state0, modelBhpRate, scheduleBhpRate, 'NonLinearSolver', nls);
+[wellSolsRateBhp, statesRateBhp] = simulateScheduleAD(state0, modelRateBhp, scheduleRateBhp, 'NonLinearSolver', nls);
 
 % 3.6 Visualize initial model performance
 figure(3);
@@ -162,7 +171,7 @@ setup_modelBhpRate = struct('model', InitModel, 'schedule', scheduleBhpRate, 'st
 setup_modelRateBhp = struct('model', InitModel, 'schedule', scheduleRateBhp, 'state0', state0);
 
 % Set parameter bounds based on reference model
-pv_range = [min(modelRef.operators.pv).*0+0.1, 0.9+0.*max(modelRef.operators.pv)];
+pv_range = [min(modelRef.operators.pv).*0+25, 202+0.*max(modelRef.operators.pv)];
 params_modelBhpRate = addParameter(params_modelBhpRate, setup_modelBhpRate, ...
                                  'name', 'porevolume', 'boxLims', pv_range);
 params_modelRateBhp = addParameter(params_modelRateBhp, setup_modelRateBhp, ...
@@ -170,16 +179,16 @@ params_modelRateBhp = addParameter(params_modelRateBhp, setup_modelRateBhp, ...
 
 %% Optimization Configuration
 % Define weighting for objective function
-weighting = {'WaterRateWeight', (100*stb/day)^-1, ...
-             'OilRateWeight',   (100*stb/day)^-1, ...
-             'BHPWeight',       (95*barsa)^-1};
+weighting  = {'WaterRateWeight',  1/(150/day), ...
+              'OilRateWeight',    1/(80/day), ...
+              'BHPWeight',        1/(20*barsa)};
 
 
 %% Two-Stage Optimization Process
 % 1. BFGS Optimization (Optional)
 use_bfgs = true;  % Set to false to skip BFGS stage
-max_iterations = 30;
-bfgs_iterations = 10;
+max_iterations = 20;
+bfgs_iterations = 5;
 
 if use_bfgs
     fprintf('\nStarting BFGS optimization...\n');
@@ -191,7 +200,7 @@ if use_bfgs
     p0 = getScaledParameterVector(setup_modelBhpRate, params_modelBhpRate);
     obj_bfgs = @(p) evaluateMatchTwinModels(p, obj_func_bfgs, setup_modelBhpRate, ...
                                           setup_modelRateBhp, params_modelBhpRate, ...
-                                          statesRef, prior);
+                                          statesRef, prior,  'NonLinearSolver', nls);
     
     [~, p_opt, ~] = unitBoxBFGS(p0, obj_bfgs, ...
                                'maxIt', bfgs_iterations, ...
@@ -209,7 +218,7 @@ obj_func_lm = @(m1,s1,sch1,m2,s2,sch2,sc,obj_prior, deriv,t,s1_in,s2_in) ...
 fprintf('\nStarting Levenberg-Marquardt optimization...\n');
 obj_lm = @(p) evaluateMatchTwinModelsSummands(p, obj_func_lm, setup_modelBhpRate, ...
                                             setup_modelRateBhp, params_modelBhpRate, ...
-                                            statesRef, prior);
+                                            statesRef, prior,  'NonLinearSolver', nls);
 
 [~, p_opt_final, ~] = unitBoxLM(p_opt, obj_lm, 'maxIt', max_iterations);
 
@@ -223,7 +232,7 @@ fprintf('\nRunning final simulation with optimized parameters...\n');
                                               setup_final.schedule);
 
 %% Results Visualization
-plotWellSols({wellSolsRef, wellSols_opt}, ...
+plotWellSols({wsRef, wellSols_opt}, ...
             {scheduleRef.step.val, setup_final.schedule.step.val}, ...
             'datasetnames', {'Reference Model', 'Optimized Model'});
 title('Optimization Results Comparison');

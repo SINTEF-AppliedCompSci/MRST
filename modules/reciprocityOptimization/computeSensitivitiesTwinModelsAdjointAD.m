@@ -310,8 +310,8 @@ if isempty(matchMap)
     assert(numel(accum.steps)==ns, 'Mismatch: number of time steps');
     % build collumn index
     [mw, mt] = deal(max(accum.wells), max(accum.types));
-    colIx = applyFunction(@plus, repmat({(1:2*mw*(mt)+4)'}, [ns, 1]), ...
-                          num2cell((2*mw*(mt)+4)*(accum.steps-1)));
+    colIx = applyFunction(@plus, repmat({(1:2*mw*(mt)+ mw + 3)'}, [ns, 1]), ...
+                          num2cell((2*mw*(mt) +mw+3)*(accum.steps-1)));
     [colIx{accum.steps<=0}] = deal({});
     ncol = max(colIx{end});
 else
