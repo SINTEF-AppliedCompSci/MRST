@@ -200,6 +200,7 @@ classdef IndexArray
             tbl.inds = tbl.inds(:, fdinds);
             
         end
+        
         function tbl = removefds(tbl, fdnames)
         % create table where the column given by fdnames are removed. Note that the function does not
         % check for uniqueness of the rows and should therefore be used with care.
@@ -212,12 +213,6 @@ classdef IndexArray
             
         end
         
-        function tbl = removeInds(tbl, rmfdnames)
-        % remove the indices given by the names rmfdnames, see comment of removeInd
-            for i = 1 : numel(rmfdnames)
-                tbl = tbl.removeInd(rmfdnames{i});
-            end
-        end    
 
         function tbl = addLocInd(tbl, locindname)
         % Add local indexing (given by 1 : N ) and gives it the name locindname
