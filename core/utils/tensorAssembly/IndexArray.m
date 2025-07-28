@@ -193,8 +193,22 @@ classdef IndexArray
         % create table with only the indices given by fdnames, by removing columns. Note that the function does not
         % check for uniqueness of the rows and should therefore be used with care.
 
+            newnameinds = [];
+            newnames = {};
+            for ifd = 1 : numel(fdnames)
+                fdname = fdnames{ifd};
+                if iscell(fdname)
+                    newnameinds(end + 1) = ifd;
+                    newnames{end + 1} = fdname{2};
+                    fdnames{ifd} =  fdname{1};
+                end
+            end
             [isok, fdinds] = ismember(fdnames, tbl.fdnames);
             assert(all(isok), 'field does not exist');
+
+            if ~isempty(newnameinds)
+                fdnames(newnameinds) = newnames;
+            end
             
             tbl.fdnames = fdnames;
             tbl.inds = tbl.inds(:, fdinds);
