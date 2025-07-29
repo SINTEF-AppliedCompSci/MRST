@@ -8,6 +8,9 @@ G = cartGrid(nxyz, Dxyz);
 G = computeGeometry(G);
 
 rock = getSPE10rock(1:40, 101:140, 4);
+% rock.perm(:,1) = rock.perm(:,1)*0+ 1.0e-10.*mean(rock.poro).^2;
+% rock.perm(:,2) = rock.perm(:,1);
+% rock.perm(:,3) = rock.perm(:,1);
 
 % fluid
 pRef = 200*barsa;
@@ -15,7 +18,7 @@ pRef = 200*barsa;
 fluid = initSimpleADIFluid('mu',    [.3, 5, 0]*centi*poise, ...
                            'rho',   [1000, 700, 0]*kilogram/meter^3, ...
                            'n',     [2, 2, 0]);
-c = 1e-5/barsa;
+c = 0.*1e-5/barsa;
 p_ref = 200*barsa;
 fluid.bO = @(p) exp((p - p_ref)*c);
 
@@ -53,7 +56,7 @@ numCnt = numel(ts);
 schedule.step.control = rldecode((1:4)', cellfun(@numel, ts));
 schedule.step.val     = vertcat(ts{:});
 
-gravity on
+gravity off
 
 
 % <html>

@@ -66,11 +66,14 @@ pval_model2 = cell(size(parameters));
 setupNew_model2 = setup_model2;
 setupNew_model2.model.FlowDiscretization = [];
 setupNew_model2.model.FlowPropertyFunctions = [];
+dist_prior=[];
 for k = 1:numel(parameters)
     pval_model2{k}  = parameters{k}.unscale(pvec{k});
-    if strcmp(prior.name, parameters{k}.name)
-        scaled_prior = parameters{k}.scale(prior.value);
-        dist_prior{k} =  pvec{k}(prior.location) - scaled_prior;
+    if (~isempty(dist_prior))
+        if strcmp(prior.name, parameters{k}.name)
+            scaled_prior = parameters{k}.scale(prior.value);
+            dist_prior{k} =  pvec{k}(prior.location) - scaled_prior;
+        end
     end
     setupNew_model2 = parameters{k}.setParameter(setupNew_model2, pval_model2{k});
 end

@@ -111,7 +111,7 @@ end
 [wellSols_model2,states_model2] = simulateScheduleAD(setupNew_model2.state0, setupNew_model2.model, setupNew_model2.schedule,...
                                        'NonLinearSolver',opt.NonlinearSolver,...
                                        'Verbose',opt.Verbose, extra{:});
-
+dist_prior = [];
 misfitVals = obj(setupNew_model1.model, states_model1, setupNew_model1.schedule, setupNew_model2.model, states_model2, setupNew_model2.schedule,states_ref, dist_prior, false, [],[],[]);
 misfitVal  = - sum(vertcat(misfitVals{:}))/opt.objScaling ;
 

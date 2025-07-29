@@ -44,7 +44,7 @@ data.wellCells = getWellCells(schedule);
 
 % Find well-connected boundary faces
 [wellFaces, wellCellsOnBoundary] = findWellBoundaryFaces(G, data.wellCells);
-
+wellCells = data.wellCells;
 % Setup boundary conditions based on type
 switch lower(bcType)
     case 'wells'
@@ -62,6 +62,9 @@ switch lower(bcType)
         % User-provided seismic faces
         validateattributes(seismicFaces, {'numeric'}, {'vector', 'positive', '<=', G.faces.num}, ...
             mfilename, 'seismicFaces', 5);
+        neighbors = G.faces.neighbors(seismicFaces, :);
+        isWellFace = ismember(neighbors(:,1), wellCells) | ismember(neighbors(:,2), wellCells);
+        seismicFaces = seismicFaces(~isWellFace);
         data.bdFaces = seismicFaces;
         data.bdCells = sum(G.faces.neighbors(seismicFaces, :), 2);
 
