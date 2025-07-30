@@ -74,7 +74,6 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
             bactmass = model.getProps(state, 'BacterialMass');
             bactmass0 = model.getProps(state0, 'BacterialMass');
             flowState = fd.buildFlowState(model, state, state0, dt);
-%             rate = model.getProps(flowState, 'BactConvRate');
             bflux = [];
             if model.bDiffusionEffect
                 bflux      = model.getProp(flowState, 'BactFlux');

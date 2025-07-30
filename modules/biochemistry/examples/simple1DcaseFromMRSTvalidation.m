@@ -80,9 +80,9 @@ poro0(1) = 0.9;
 poro0(end) = 0.9;
 % Bacterial concentration parameters
 nc = 1e11; % Critical bacterial concentration
-cp = 2.5; % Clogging coefficient
+cp = 1.0; % Clogging coefficient
 % Define porosity multiplier as a function of bacterial concentration
-pvMult_nbact = @(nbact) 1 ./ (1 + (nbact/180).^2);
+pvMult_nbact = @(nbact) 1 ./ (1 + cp.*(nbact/180).^2);
 model.fluid.pvMultR = @(p, nbact) pvMult_nbact(nbact);
 poro = @(p, nbact) poro0 .* pvMult_nbact(nbact);
 model.rock.poro = poro;
@@ -111,28 +111,22 @@ arg = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
 'liquidPhase', 'O', 'vaporPhase', 'G'};
 model = BiochemistryModel(arg{:});
 model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', false);
-% model.operators.pv(1) = 1;
-% model.operators.pv(end) = 1;
 minComp = 1.0e-8;
 % Set initial conditions
-%z0 = [0.9, 0.045, 0.005,0.05]; % Initial composition
-z0 = [0.4, 0.445, 0.055,0.1]; % Initial composition
-schedule.control.W(1).components = [0.001, 0.958, 0.001, 0.05]; % Inject 95% H2, 5% CO2
-schedule.control.W(2).components = [0.001, 0.998, 0.001, 0.05]; % Same for second well
+%z0 = [0.9, 0.045, 0.005,0.05]; % Low H2 content
+z0 = [0.4, 0.445, 0.055,0.1]; % High H2 content
+schedule.control.W(1).components = [0.001, 0.958, 0.001, 0.05];
+schedule.control.W(2).components = [0.001, 0.998, 0.001, 0.05];
 schedule.control.W(1).compi = [0,1];
 schedule.control.W(2).compi = [0,1];
 schedule.control.W(2).type ='rate';
-schedule.control.W(2).val =0;
+schedule.control.W(2).val = 0;
 schedule.control.W(1).type ='rate';
-schedule.control.W(1).val =0;
-% schedule.control.W(1).val = 70;
-% schedule.control.W(2).val = 40;
+schedule.control.W(1).val = 0;
 T = 40 + 273.15; % Temperature (K)
 p = 82 * barsa; % Pressure (Pa)
 nbact0 = 90; % Initial bacterial concentration
 state0 = initCompositionalStateBacteria(model, p, T, [0, 1], z0, nbact0, model.EOSModel);
-%state0.pressure(1) = 30*barsa();
-%state0.pressure(end) = 90*barsa();
 %% Simulate the Schedule
 %--------------------------------------------------------------------------
 % Pack and simulate the problem.
@@ -140,12 +134,6 @@ state0 = initCompositionalStateBacteria(model, p, T, [0, 1], z0, nbact0, model.E
 problem = packSimulationProblem(state0, model, schedule, 'simple_comp_SW_bact_clogging_test_1_SALT', 'name', name);
 problem.SimulatorSetup.model.OutputStateFunctions{end} = 'ComponentPhaseMass';
 nls = NonLinearSolver();
-% arg = {'tolerance', 1e-3, 'relaxation', 'ilu0', 'solver', 'bicgstab'};
-% linsolve = AMGCL_CPRSolverAD(arg{:});
-% linsolve.doApplyScalingCPR = false;
-% linsolve.strategy = 'amgcl';
-% nls.LinearSolver = linsolve;
-% nls.timeStepSelector.firstRampupStep = 10*second;
 problem.SimulatorSetup.NonLinearSolver = nls;
 simulatePackedProblem(problem, 'restartStep', 1);
 %
@@ -164,10 +152,7 @@ arg = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
 'bDiffusionEffect', false, 'moleculardiffusion', false, ...
 'liquidPhase', 'O', 'vaporPhase', 'G'};
 model = BiochemistryModel(arg{:});
-% model.operators.pv(1) = 1;
-% model.operators.pv(end) = 1;0.9500 0.0400 0.0050 0.0050
 model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', false);
-%state0.pressure(2:end-1) = 60*barsa();
 problemNoClog = packSimulationProblem(state0, model, schedule, BaseName, 'name', name);
 problemNoClog.SimulatorSetup.model.OutputStateFunctions{end} = 'ComponentPhaseMass';
 simulatePackedProblem(problemNoClog);
@@ -179,14 +164,8 @@ arg = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
 'bDiffusionEffect', false, 'moleculardiffusion', false, ...
 'liquidPhase', 'O', 'vaporPhase', 'G'};
 model = BiochemistryModel(arg{:});
-% model.operators.pv(1) = 1;
-% model.operators.pv(end) = 1;
 model.AutoDiffBackend = DiagonalAutoDiffBackend('useMex', false);
 state0.nbact = 0;
-% model.operators.pv(1) = 10000;
-% model.operators.pv(end) = 10000;
-% state0.pressure(1) = 30*barsa();
-% state0.pressure(end) = 90*barsa();
 problemNoBact = packSimulationProblem(state0, model, schedule, BaseName, 'name', name);
 problemNoBact.SimulatorSetup.model.bacteriamodel = false;
 problemNoBact.SimulatorSetup.model.OutputStateFunctions{end} = 'ComponentPhaseMass';
@@ -378,46 +357,6 @@ for i = 1:numel(data)
 figure;
 plotToolbar(model.G, data{i}, 'plot1d', true);
 title(names{i});
-end
-%% Plot Ternary Diagrams for Three Simulations
-%--------------------------------------------------------------------------
-% This script plots ternary diagrams for three simulations:
-% 1. Abiotic: No bacterial effects or clogging.
-% 2. Bio: Includes bacterial effects but no clogging.
-% 3. Bio-Clog: Includes both bacterial effects and clogging.
-% The ternary diagrams show the displacement lines for the components in
-% each simulation, plotted horizontally for easy comparison.
-%--------------------------------------------------------------------------
-% Define mapping functions for ternary plot
-mapx = @(x, y, z) (1/2) * (2*y + z) ./ (x + y + z); % Map x-coordinate
-mapy = @(x, y, z) (sqrt(3)/2) * z ./ (x + y + z); % Map y-coordinate
-colors = parula(numel(states)); % Color scheme for time steps
-% Create a figure with three horizontal subplots
-figure;
-set(gcf, 'Position', [100, 100, 1200, 400]); % Adjust figure size
-% Loop through each scenario and plot ternary diagram
-for scenario = 1:numel(data)
-subplot(1, 3, scenario); % Create subplot for current scenario
-hold on;
-% Plot ternary diagram outline
-plot([0, 0.5, 1, 0], [0, sqrt(3)/2, 0, 0], 'k', 'LineWidth', 1.5);
-% Plot displacement lines for current scenario
-for i = 1:20:numel(data{scenario})
-C = data{scenario}{i}.components; % Component mole fractions
-plot(mapx(C(:, 1), C(:, 2), C(:, 3)), mapy(C(:, 1), C(:, 2), C(:, 3)), ...
-'-', 'color', colors(i, :), 'LineWidth', 1.5);
-end
-% Add component labels
-text(0, 0, cnames{1}, 'VerticalAlignment', 'top', 'HorizontalAlignment', 'right', 'FontSize', 12);
-text(1, 0, cnames{2}, 'VerticalAlignment', 'top', 'HorizontalAlignment', 'left', 'FontSize', 12);
-text(0.5, sqrt(3)/2, cnames{3}, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'center', 'FontSize', 12);
-% Add 0.5 labels
-text(mapx(0.5, 0.5, 0), mapy(0.5, 0.5, 0), '0.5', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center', 'FontSize', 10);
-text(mapx(0, 0.5, 0.5), mapy(0, 0.5, 0.5), '0.5', 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'left', 'FontSize', 10);
-text(mapx(0.5, 0.0, 0.5), mapy(0.5, 0.0, 0.5), '0.5', 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right', 'FontSize', 10);
-% Add title for subplot
-title(names{scenario}, 'FontSize', 14);
-axis off;
 end
 %% Additional plots
 additional_plots = true;

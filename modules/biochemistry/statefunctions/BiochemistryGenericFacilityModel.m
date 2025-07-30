@@ -89,12 +89,6 @@ classdef BiochemistryGenericFacilityModel < GenericFacilityModel
             [values, tolerances, names, evalauted] = getFacilityConvergenceValues@GenericFacilityModel(model, problem, varargin{:});
             
         end
-%         
-%         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces)
-%         % Update state after convergence
-%             [state, report] = updateAfterConvergence@GenericFacilityModel(model, state0, state, dt, drivingForces);
-%            
-%         end
     end
     
 end

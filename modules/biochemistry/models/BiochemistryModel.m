@@ -549,9 +549,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
             [state, report] = updateState@GenericOverallCompositionModel(model, state, problem, dz, drivingForces);
             if model.bacteriamodel
                 state = model.capProperty(state, 'nbact', 1.e-3, 120);
-                                    
-                 % state.nbact = filloutliers(state.nbact, "nearest","mean");
-
+                                   
                 state = model.capProperty(state, 's', 1.0e-8, 1);
                 state.components = ensureMinimumFraction(state.components, model.EOSModel.minimumComposition);
             end
