@@ -33,14 +33,6 @@ fluid=initSimpleADIFluid('phases', 'OG', 'mu',[viscow,viscog],...
 % function |initSimpleADIFluid| with the real benchmark values.
 fluid = assignSGOF(fluid, deckBO.PROPS.SGOF, struct('sat', 1, ...
                                               'interp1d', @interpTable));
-% % fluid.krG = fluid_kr.krG{1};
-% % fluid.krOG = fluid_kr.krOG{1};              clear fluid_kr
-% fluid.krG = model.fluid.krG;
-% fluid.krO = model.fluid.krW;
-% fluid.krPts.g = [0.1, 0.1, 0.8, 1.0]; % Ensures Sg_min = 0.05
-% fluid.krPts.w = [0.2, 0.3, 0.8, 1.0];  % Ensures Sw_min = 0.2
-% model.fluid.krPts.og = [0, 1 - 0.1];  % Oil endpoints (gas-oil)
-% fluid.pcOG = model.fluid.pcWG;
 model.fluid = fluid;
 
 %% Here we mimick the initialization from the benchmark (method 2 in Eclipse, not implemented in MRST)
@@ -49,16 +41,10 @@ P0 = 81.6*barsa();
 s0 = [0.2 0.8];
 % z0 = deck.PROPS.ZMFVD{1}(2:end);
 G = model.G;
-InitCompositionForBenchmark();
-z0 = z0./sum(z0,2);
-z0(:,1) = z0(:,1)+ 0.08;
-z0(:,2) = z0(:,2)-0.08;
-z0(:,4)=z0(:,4)+z0(:,end);
-z0(:,end)=0;
+% InitCompositionForBenchmark();
 z0 =[0.9023 0.07015 0.00405 0.020210 0.00272 0.0004 0.00015 0.00005];
-% z0 = deck.PROPS.ZMFVD{1}(2:end);
-z0(:,1) = z0(:,1)- 0.1;
-z0(:,2) = z0(:,2)+0.1;
+% z0(:,1) = z0(:,1)- 0.1;
+% z0(:,2) = z0(:,2)+0.1;
 diagonal_backend = DiagonalAutoDiffBackend('modifyOperators', true);
 mex_backend = DiagonalAutoDiffBackend('modifyOperators', true, 'useMex', true, 'rowMajor', true);
 sparse_backend = SparseAutoDiffBackend();

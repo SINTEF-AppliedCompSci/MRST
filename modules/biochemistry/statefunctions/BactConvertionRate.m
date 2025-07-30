@@ -61,8 +61,7 @@ classdef BactConvertionRate < StateFunction
                 % Calculate Psigrowth using mole fractions
                 axH2 = (xH2 ./ (alphaH2 + xH2));
                 axCO2 = (xCO2 ./ (alphaCO2 + xCO2));
-                % axH2(xH2<0) = 1.0./alphaH2.*xH2(xH2<0);
-                % axCO2(xCO2<0) = 1.0./alphaCO2.*xCO2(xCO2<0);
+
                 Psigrowth = pv .* Psigrowthmax .* axH2 ...
                             .* axCO2 .* nbact .* Voln;
 
