@@ -7,7 +7,7 @@ mrstModule add compositional ad-core linearsolvers ad-props
 useBC = false; % Use BC instead of wells
 includeWater = false; % Include aqueous phase
 if ~exist('useNatural', 'var')
-    useNatural = false; % Use natural variables formulation
+    useNatural = true; % Use natural variables formulation
 end
 % Define a problem
 gravity reset on

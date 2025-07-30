@@ -13,7 +13,7 @@ classdef GenericBlackOilModel < ThreePhaseBlackOilModel & GenericReservoirModel
             [problem, state] = getEquations@PhysicalModel(model, state0, state, dt, drivingForces, varargin{:});
         end
 
-        function [eqs, names, types, state, src] = getModelEquations(model, state0, state, dt, drivingForces)
+        function [eqs, names, types, state] = getModelEquations(model, state0, state, dt, drivingForces)
             [eqs, flux, names, types] = model.FlowDiscretization.componentConservationEquations(model, state, state0, dt);
             
             if ~isempty(model.FacilityModel)
