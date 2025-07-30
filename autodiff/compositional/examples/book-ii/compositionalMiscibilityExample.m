@@ -1,4 +1,4 @@
-l%% Miscible Displacement
+%% Miscible Displacement
 % Simulation of miscible processes is a classical application for
 % compositional simulators. The displacement efficiency of gas injection
 % depends highly on the in situ reservoir pressure and temperature

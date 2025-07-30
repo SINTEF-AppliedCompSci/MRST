@@ -39,6 +39,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 [L, x, y, Z_L, Z_V, rhoL, rhoV] = standaloneFlash(repmat(p, n, 1), repmat(T, n, 1), z, eos);
  
                 if strcmp(model.EOSModel.shortname,'sw')
+                % For Søreide-Whitson EoS
                     for i = 1:numel(wellIndices)
                         wNo = wellIndices(i);
                         [rho, comp] = getSurfaceParameters(model, forces.W(wNo), p, T, rhoL(i), rhoV(i), x(i, :), y(i, :), L(i), Z_L(i), Z_V(i), Z(i, :));
@@ -61,9 +62,10 @@ end
 function [rho, compi] = getSurfaceParameters(model, W, p,T, rhoL, rhoV, x, y, L, Z_L, Z_V, Z)
     hc = model.getEoSPhaseIndices();
     nph = model.getNumberOfPhases();
+
     if strcmp(model.EOSModel.shortname,'sw')
+    % For Søreide-Whitson EoS
         % Use flash
-        %[sL, sV] = eos.computeSaturations(p,T, rhoL, rhoV, x, y, L, Z_L, Z_V);
         [sL, sV] = model.EOSModel.computeSaturations(p, T, rhoL, rhoV, x, y, L, Z_L, Z_V);
         % compi is a mass-fraction in practice
         L_mass = sL.*rhoL./(sL.*rhoL + sV.*rhoV);

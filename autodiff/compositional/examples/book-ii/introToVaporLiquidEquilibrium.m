@@ -110,7 +110,7 @@ eos.extraOutput = 1;
 eos.verbose = true;
 
 % Perform the standalone flash
-ns = 5;
+ns = 500;
 z  = info.initial;
 p  = linspace(1, 180, ns)*barsa;
 t  = 273.15 + linspace(1, 400, ns);
