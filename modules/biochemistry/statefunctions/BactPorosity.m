@@ -1,42 +1,78 @@
 classdef BactPorosity < StateFunction
-%State function for computing pressure- and bacteria-dependent
-%permeability
+    % Pressure- and bacteria-dependent porosity modifier
+    %
+    % SYNOPSIS:
+    %   poro = BactPorosity(model)
+    %
+    % DESCRIPTION:
+    %   Computes porosity modification based on:
+    %   - Pressure effects (if dynamicFlowPv enabled)
+    %   - Bacterial concentration effects (if bacteriamodel enabled)
+    %
+    % REQUIRED PARAMETERS:
+    %   model - Reservoir model with appropriate settings
+    %
+    % OPTIONAL PARAMETERS:
+    %   None (configure through model settings)
+    %
+    % RETURNS:
+    %   Class instance for porosity calculation
+    %
+    % SEE ALSO:
+    %   ReservoirModel, Rock
 
-   properties
-   end
+    properties
+        % No additional properties needed
+    end
    
-   methods
-       
-       function poro = BactPorosity(model)
-           poro@StateFunction(model);
-           if model.dynamicFlowTrans
-               if model.bacteriamodel
-                   poro = poro.dependsOn({'pressure', 'nbact'}, 'state');
-               else
-                   poro = poro.dependsOn('pressure', 'state');
-               end
-           end
-           poro.label = 'Phi';
+    methods       
+        function poro = BactPorosity(model)
+            % Constructor for bacteria-porosity relationship
+            poro@StateFunction(model);
+            
+            % Declare dependencies based on model configuration
+            if model.dynamicFlowPv
+                if model.bacteriamodel
+                    poro = poro.dependsOn({'pressure', 'nbact'}, 'state');
+                else
+                    poro = poro.dependsOn('pressure', 'state');
+                end
+            end
+            poro.label = 'Phi';
         end
        
-       function poro = evaluateOnDomain(prop, model, state)
-           poro = model.rock.poro;
-           if model.dynamicFlowPv
-               if model.bacteriamodel
-                   [p, nbact] = model.getProps(state, 'pressure', 'nbact');
-                   poro = poro(p,nbact);
-               else
-                   p = model.getProps(state, 'pressure', 'nbact');
-                   poro = poro(p,0);
-               end
-           end
-       end
-   end
-   
+        function poro = evaluateOnDomain(prop, model, state)
+            % Evaluate porosity modification
+            %
+            % PARAMETERS:
+            %   prop  - Property function instance
+            %   model - Reservoir model instance
+            %   state - State struct containing fields
+            %
+            % RETURNS:
+            %   poro - Modified porosity values
+            
+            % Start with base rock porosity
+            poro = model.rock.poro;
+            
+            % Apply modifications if enabled
+            if model.dynamicFlowPv
+                if model.bacteriamodel
+                    % Get both pressure and bacteria concentration
+                    [p, nbact] = model.getProps(state, 'pressure', 'nbact');
+                    poro = poro(p, nbact); % Apply both modifications
+                else
+                    % Pressure-only modification
+                    p = model.getProps(state, 'pressure');
+                    poro = poro(p, 0); % Zero bacterial effect
+                end
+            end
+        end
+    end
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

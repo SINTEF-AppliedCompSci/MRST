@@ -15,6 +15,8 @@ classdef EquationOfStateModel < PhysicalModel
         minimumSaturation  = 1e-8; % Minimum total EOS phase saturation 
         equilibriumConstantFunctions = {};
         extraOutput = 0;
+        msalt = 0.0; % Salt molality for SW
+        single_Phase_Label = 'Li';
     end
 
     properties (Access = private)
@@ -107,6 +109,14 @@ classdef EquationOfStateModel < PhysicalModel
                         model.omegaA = 0.4572355;
                         model.omegaB = 0.0779691;
                         model.eosType = 5;
+                    case {'sw', 'soreide-whitson'}
+                        % soreide-whitson
+                        model.eosA = 1 + sqrt(2);
+                        model.eosB = 1 - sqrt(2);
+                        model.omegaA = 0.4572355;
+                        model.omegaB = 0.0777961;  % Note the different omegaB value
+                        model.eosType = 6;
+                        model.single_Phase_Label = 'Fugacity';
                     otherwise
                         error('Invalid string ''%s''.\n Valid choices are:\n PR: Peng-Robinson\n', arg);
                 end
@@ -131,6 +141,8 @@ classdef EquationOfStateModel < PhysicalModel
                     t = 'rk';
                 case 5
                     t = 'prcorr';
+                case 6
+                    t = 'sw';
                 otherwise
                     t = model.eosType;
             end
@@ -259,7 +271,7 @@ classdef EquationOfStateModel < PhysicalModel
                 Z0_L = model.computeCompressibilityZ(state.pressure, x0, A_L, B_L, Si_L, Bi, true);
                 Z0_V = model.computeCompressibilityZ(state.pressure, y0, A_V, B_V, Si_V, Bi, false);
                 L0(~stable) = model.solveRachfordRice(L0(~stable), K0(~stable, :), z(~stable, :));
-                L0(stable) = model.singlePhaseLabel(P(stable), T(stable), z(stable, :));
+                L0(stable) = model.singlePhaseLabel(P(stable), T(stable), z(stable, :), Z0_L(stable,:), Z0_V(stable,:));
                 active = ~stable;
                 % Flag stable cells as converged
                 state.eos.converged(stable) = true;
@@ -356,14 +368,65 @@ classdef EquationOfStateModel < PhysicalModel
             report.StabilityTime = t_stability;
         end
         
-        function L = singlePhaseLabel(eos, p, T, z)
-            % Li's method for phase labeling
-            Vc = eos.CompositionalMixture.Vcrit;
-            Tc = eos.CompositionalMixture.Tcrit;
-            Vz = bsxfun(@times, Vc, z);
-            
-            Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
-            L = double(T < Tc_est);
+        function L = singlePhaseLabel(eos, p, T, z, Z_L, Z_V)
+            if strcmp(eos.single_Phase_Label,'fugacity')
+                % Pseudo-critical properties using Kay's rule
+                Vc = eos.CompositionalMixture.Vcrit;
+                Vz = bsxfun(@times, Vc, z);
+
+                Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
+                Pc_est = sum(bsxfun(@times, Vz, Pc), 2)./sum(Vz, 2);
+
+                % Reduced temperature and pressure
+                Tr = T ./ Tc_est; % Reduced temperature
+                Pr = p ./ Pc_est; % Reduced pressure
+
+                % Phase classification:
+                if ~isempty(p)
+                    if Tr > 1
+                        if Pr > 1
+                            % Supercritical conditions
+                            L = 0; % Supercritical
+                        else
+                            % Check other conditions if Pr <= 1
+                            if abs(Z_V - Z_L) < 0.1 % Z_V and Z_L are close
+                                if Z_V < 0.5
+                                    L = 1; % Liquid-like behavior
+                                else
+                                    L = 0; % Gas-like behavior
+                                end
+                            elseif Z_V > Z_L
+                                L = 0; % Gas phase
+                            else
+                                L = 1; % Liquid phase
+                            end
+                        end
+                    else
+                        % Check other conditions if Tr <= 1
+                        if abs(Z_V - Z_L) < 0.1 % Z_V and Z_L are close
+                            if Z_V < 0.5
+                                L = 1; % Liquid-like behavior
+                            else
+                                L = 0; % Gas-like behavior
+                            end
+                        elseif Z_V > Z_L
+                            L = 0; % Gas phase
+                        else
+                            L = 1; % Liquid phase
+                        end
+                    end
+                else
+                    L =[];
+                end
+            else
+                % Li's method for phase labeling
+                Vc = eos.CompositionalMixture.Vcrit;
+                Tc = eos.CompositionalMixture.Tcrit;
+                Vz = bsxfun(@times, Vc, z);
+
+                Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
+                L = double(T < Tc_est);
+            end
         end
         
         function [x, y, K, Z_L, Z_V, L, values] = substitutionCompositionUpdate(model, P, T, z, K, L)
@@ -457,14 +520,14 @@ classdef EquationOfStateModel < PhysicalModel
                 end
                 state.K = K;
             end
-            
+
             if ~isfield(state, 'Z_V')
                 state.Z_V = ones(n_cell, 1);
             end
             if ~isfield(state, 'Z_L')
                 state.Z_L = ones(n_cell, 1);
             end
-            
+
             if ~isfield(state, 'x')
                 state.x = state.components;
             end
@@ -472,7 +535,7 @@ classdef EquationOfStateModel < PhysicalModel
                 state.y = state.components;
             end
         end
-        
+
         function [Pr, Tr] = getReducedPT(model, P, T, useCell)
             if nargin < 4
                 useCell = true;
@@ -483,7 +546,7 @@ classdef EquationOfStateModel < PhysicalModel
                 n = model.CompositionalMixture.getNumberOfComponents();
                 Tr = cell(1, n);
                 Pr = cell(1, n);
-                
+
                 Ti = 1./Tc;
                 Pi = 1./Pc;
                 for i = 1:n
@@ -493,6 +556,107 @@ classdef EquationOfStateModel < PhysicalModel
             else
                 Tr = bsxfun(@rdivide, T, Tc);
                 Pr = bsxfun(@rdivide, P, Pc);
+            end
+        end
+
+        function [A_ij, Bi] = getMixingParametersH2O(model, P, T, acf, useCell)
+            % Soreide-Whitson is the defaulted
+            if model.eosType==6
+                if nargin < 4
+                    useCell = true;
+                end
+
+                % Calculate intermediate values for fugacity computation
+                ncomp = model.getNumberOfComponents();
+                [Pr, Tr] = model.getReducedPT(P, T, useCell);
+
+                % parameters brine
+                mSalt=model.msalt; %salt molality
+                coef_msalt=mSalt^1.1;
+                namecomp=model.CompositionalMixture.names;%composant names
+                indH2O=find(strcmp(namecomp,'H2O'));
+
+                if useCell
+                    [sAi, Bi] = deal(cell(1, ncomp));
+                    [oA, oB] = deal(cell(1, ncomp));
+                    [oB{:}] = deal(model.omegaB);
+                else
+                    oB = model.omegaB;
+                end
+
+                %Dans la phase liquide, on utilise le alpha de PR sauf pour le
+                %composant H2O: on corrige le PR pour tenir compte des effets du sel
+                % C'est le modèle de Soreide Whitson SW.
+                %Dans le liquide et pour le composant H2O, on construit 1
+                % fonction qui depend de la molalite de NaCl
+                if useCell
+                    %for components in the liquid phase
+                    for i = 1:ncomp
+                        ai = acf(i);
+                        if ai > 0.49
+                            oA{i} = model.omegaA.*(1 + (0.379642 + 1.48503.*ai - 0.164423.*ai.^2 + 0.016666.*ai.^3).*(1-Tr{i}.^(1/2))).^2;
+                        else
+                            oA{i} = model.omegaA.*(1 + (0.37464 + 1.54226.*ai - 0.26992.*ai.^2).*(1-Tr{i}.^(1/2))).^2;
+                        end
+                    end
+                    %Only for component H2O in the liquid phase
+                    TrH2O=Tr{indH2O};
+                    oA{indH2O} = model.omegaA.*(1 +0.4530.*(1-(1-0.0103*coef_msalt).*TrH2O)+0.0034.*(TrH2O.^(-3)-1)).^2;
+                else
+                    %for liquid phase:
+                    tmp = bsxfun(@times, 0.37464 + 1.54226.*acf - 0.26992.*acf.^2, 1-Tr.^(1/2));
+                    oA = model.omegaA.*(1 + tmp).^2;
+
+                    %Only for component H2O in the liquid phase:
+                    TrH2O=Tr(:,indH2O);
+                    tmp1 = bsxfun(@power,1 +0.4530.*(1-(1-0.0103*coef_msalt).*TrH2O)+0.0034.*(TrH2O.^(-3)-1),2);
+                    oA(:,indH2O) = model.omegaA.*tmp1;
+                end
+
+                bic = model.CompositionalMixture.getBinaryInteractionLiquidWater(T,mSalt);
+
+                if useCell
+                    A_ij = cell(ncomp, ncomp);
+                    for i = 1:ncomp
+                        sAi{i} = ((oA{i}.*Pr{i}).^(1/2))./Tr{i};
+                        Bi{i} = oB{i}.*Pr{i}./Tr{i};
+                    end
+                    if iscell(bic)
+                        for i = 1:ncomp
+                            for j = i:ncomp
+                                A_ij{i, j} = (sAi{i}.*sAi{j}).*(1 - bic{i, j});
+                                A_ij{j, i} = A_ij{i, j};
+                            end
+                        end
+                    else
+                        for i = 1:ncomp
+                            for j = i:ncomp
+                                A_ij{i, j} = (sAi{i}.*sAi{j}).*(1 - bic(i, j));
+                                A_ij{j, i} = A_ij{i, j};
+                            end
+                        end
+                    end
+                else
+                    Ai = oA.*Pr./Tr.^2;
+                    Bi = oB.*Pr./Tr;
+                    A_ij = cell(ncomp, 1);
+                    if iscell(bic)
+                        for j = 1:ncomp
+                            bicc=[];
+                            for i = 1:ncomp
+                                bicc(:,i) = bic{j,i};
+                            end
+                            A_ij{j} = bsxfun(@times, bsxfun(@times, Ai, Ai(:, j)).^(1/2), 1 - bicc);
+                        end
+                    else
+                        for j = 1:ncomp
+                            A_ij{j} = bsxfun(@times, bsxfun(@times, Ai, Ai(:, j)).^(1/2), 1 - bic(j,:));
+                        end
+                    end
+                end
+            else
+                % Fall to the standard simple rules
+                [A_ij, Bi] = getMixingParameters(model, P, T, acf, useCell);
             end
         end
         
@@ -554,6 +718,22 @@ classdef EquationOfStateModel < PhysicalModel
                     else
                         oA = model.omegaA.*Tr.^(-1/2);
                     end
+                case {6}
+                    % SW (only for the liquid phase)
+                    % We keep same parameters as PR for the gasous phase
+                    if useCell
+                        for i = 1:ncomp
+                            ai = acf(i);
+                            if model.eosType == 5 && ai > 0.49
+                                oA{i} = model.omegaA.*(1 + (0.379642 + 1.48503.*ai - 0.164423.*ai.^2 + 0.016666.*ai.^3).*(1-Tr{i}.^(1/2))).^2;
+                            else
+                                oA{i} = model.omegaA.*(1 + (0.37464 + 1.54226.*ai - 0.26992.*ai.^2).*(1-Tr{i}.^(1/2))).^2;
+                            end
+                        end
+                    else
+                        tmp = bsxfun(@times, 0.37464 + 1.54226.*acf - 0.26992.*acf.^2, 1-Tr.^(1/2));
+                        oA = model.omegaA.*(1 + tmp).^2;
+                    end
                 otherwise
                     error('Unknown eos type: %d', model.eosType);
             end
@@ -564,27 +744,58 @@ classdef EquationOfStateModel < PhysicalModel
                     sAi{i} = ((oA{i}.*Pr{i}).^(1/2))./Tr{i};
                     Bi{i} = oB{i}.*Pr{i}./Tr{i};
                 end
-                for i = 1:ncomp
-                    for j = i:ncomp
-                        A_ij{i, j} = (sAi{i}.*sAi{j}).*(1 - bic(i, j));
-                        A_ij{j, i} = A_ij{i, j};
+                if iscell(bic)
+                    % Handle cell array binary interaction coefficients
+                    for i = 1:ncomp
+                        for j = i:ncomp
+                            A_ij{i, j} = (sAi{i}.*sAi{j}).*(1 - bic{i, j});
+                            A_ij{j, i} = A_ij{i, j};
+                        end
+                    end
+                else
+                    % Handle matrix binary interaction coefficients
+                    for i = 1:ncomp
+                        for j = i:ncomp
+                            A_ij{i, j} = (sAi{i}.*sAi{j}).*(1 - bic(i, j));
+                            A_ij{j, i} = A_ij{i, j};
+                        end
                     end
                 end
             else
                 Ai = oA.*Pr./Tr.^2;
                 Bi = oB.*Pr./Tr;
                 A_ij = cell(ncomp, 1);
-                for j = 1:ncomp
-                    A_ij{j} = bsxfun(@times, bsxfun(@times, Ai, Ai(:, j)).^(1/2), 1 - bic(j, :));
+                if iscell(bic)
+                    for j = 1:ncomp
+                        bicc = [];
+                        for i = 1:ncomp
+                            bicc(:,i) = bic{j,i};
+                        end
+                        A_ij{j} = bsxfun(@times, bsxfun(@times, Ai, Ai(:, j)).^(1/2), 1 - bicc);
+                    end
+                else
+                    for j = 1:ncomp
+                        A_ij{j} = bsxfun(@times, bsxfun(@times, Ai, Ai(:, j)).^(1/2), 1 - bic(j, :));
+                    end
                 end
             end
         end
-        
+
+
         function [Si_L, Si_V, A_L, A_V, B_L, B_V, Bi] = getMixtureFugacityCoefficients(model, P, T, x, y, acf)
             % Calculate intermediate values for fugacity computation
-            [A_ij, Bi] = model.getMixingParameters(P, T, acf, iscell(x));
-            [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
-            [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
+            if model.eosType==6 % Soreide-whitson is different from the rest
+                % For liquid phase
+                [A_ij, Bi] = model.getMixingParametersH2O(P, T, acf, iscell(x));
+                [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
+                % For gaz phase
+                [A_ij, Bi] = model.getMixingParameters(P, T, acf, iscell(y));
+                [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
+            else
+                [A_ij, Bi] = model.getMixingParameters(P, T, acf, iscell(x));
+                [Si_L, A_L, B_L] = model.getPhaseMixCoefficients(x, A_ij, Bi);
+                [Si_V, A_V, B_V] = model.getPhaseMixCoefficients(y, A_ij, Bi);
+            end
         end
       
         function [Z_L, Z_V, f_L, f_V] = getCompressibilityAndFugacity(model, P, T, x, y, z, Z_L, Z_V, varargin)

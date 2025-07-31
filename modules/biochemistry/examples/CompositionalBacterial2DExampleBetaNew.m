@@ -21,7 +21,7 @@ state0=convertBlackOilStateToCompositional(modelBo,state0Bo);
 state0.components = ensureMinimumFraction(state0.components,6.0e-4);
 %% Set up the compositional model with Water and Hydrogen
 compFluid = TableCompositionalMixture({'Water', 'Hydrogen', 'CarbonDioxide', 'Methane'}, {'H2O', 'H2', 'CO2', 'C1'});
-EOS = SoreideWhitsonEquationOfStateModel([], compFluid, 'sw');
+EOS = EquationOfStateModel([], compFluid, 'sw');
 T0 = 40 * Kelvin; % Initial temperature in Kelvin
 T0 = 273.15 * Kelvin + T0; % Convert to absolute temperature
 if (compFluid.getNumberOfComponents>2)
