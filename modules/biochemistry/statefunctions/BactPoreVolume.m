@@ -1,21 +1,37 @@
 classdef BactPoreVolume < StateFunction
-    % Static pore-volume taken from state
+    % Static pore volume accessor for bacterial modeling
     properties
+        % No additional properties needed
     end
     
     methods
         function gp = BactPoreVolume(model, varargin)
+            % Constructor with pore volume validation
             gp@StateFunction(model, varargin{:});
+            
+            % Validate pore volume field exists and is properly sized
             assert(isfield(model.operators, 'pv'), ...
                 'Pore-volume (pv) must be present as field in operators struct');
             assert(numelValue(model.operators.pv) == model.G.cells.num,...
                 'Pore-volumes must be defined in each cell.');
             assert(all(model.operators.pv > 0), ...
                 'Pore-volumes must be non-negative.');
-            gp.label = '\Phi';
+            
+            gp.label = 'Phi';
         end
+        
         function pv = evaluateOnDomain(prop, model, state) %#ok
-            % Static pore-volume
+            % Retrieve static pore volume values
+            %
+            % PARAMETERS:
+            %   prop  - Property function instance
+            %   model - Reservoir model instance
+            %   state - State struct (unused for static PV)
+            %
+            % RETURNS:
+            %   pv    - Pore volume values for all cells
+            
+            % Direct access to pre-computed pore volumes
             pv = model.operators.pv;
         end
     end
