@@ -143,6 +143,7 @@ for i = 1:numel(cellConstraints)  % create well points
       end
       wellSpace = sqrt(sum(diff(p,1,1).^2,2));
       wellSpace = min(wellSpace([1 1:end]), wellSpace([1:end end]));
+      if size(wellSpace, 2) > 1, wellSpace = reshape(wellSpace, [], 1); end
   end
   
   keep = 1:size(p,1);
