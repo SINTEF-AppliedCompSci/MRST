@@ -1,29 +1,71 @@
-%% Illustrative Case with Compositional Model: Efficiency of Structural Trap for Hydrogen Storage
+%% Illustrative Case: Efficiency of Structural Trap for Hydrogen Storage
+% 
+% This example simulates the storage of hydrogen in a saline aquifer and 
+% investigates the influence of physical properties such as H2 solubility, 
+% salinity, and molecular diffusion on various factors, including the 
+% hydrogen plume, reservoir pressure, caprock tightness, and the recoverability 
+% and loss of hydrogen. The model features a 2D dome-shaped aquifer with 
+% integrated caprock and bedrock layers, extending horizontally for 50 m 
+% and vertically for 50 m.  It represents the first case discussed 
+% in the paper: "Phase behavior and black-oil simulations of hydrogen 
+% storage in saline aquifers" (Ahmed, E., et al., 2024).
 %
-% This example adapts the illustrative case from the H2store black-oil simulator
-% into a compositional model with bio-chemistry (disabled here). The fluid and rock properties remain consistent
-% with the original model.
+% In this simulation, various scenarios are explored regarding the 
+% behavior of hydrogen in saline aquifers. The reader is encouraged 
+% to examine different input files for specific case studies:
+% - **H2STORAGE_RS.DATA**: Models only dissolved gas in brine, with 
+%   evaporated water interactions disabled.
+% - **H2STORAGE_RS_SALT.DAT**: Represents hydrogen interacting with brine 
+%   at a molality of 4 mol/kg.
+%
+% The upper boundary of the aquifer is determined by the function 
+% F(x) = σ + r sin(πx), where σ is set to 25 and r to 5, creating a 
+% trapping structure for efficient H2 storage. The containment of injected 
+% hydrogen gas relies on sufficiently high entry (capillary) pressure and 
+% the low permeability of the caprock and bedrock formations.
+%
+% Hydrostatic pressure boundary conditions are applied to the lateral 
+% boundaries, calculated from a reference pressure p_r at depth z = 0 of 
+% 40 bar. No-flux conditions are enforced at the top and bottom boundaries. 
+% The initial state of the brine occupies the domain in hydrostatic 
+% equilibrium matching the boundary conditions. Physical and fluid parameters 
+% are derived from Oko-roafor et al. (2023) and summarized in a related table. 
+% The simulation also tests the injection of H2 into both pure water and brine 
+% with salinity of 5 mol kg−1.
 %--------------------------------------------------------------------------
-clearvars;
-mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr
+
+clearvars; 
+mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr test-suite spe10
+
 %% Define the case name and read the Eclipse deck file
-name = 'H2_STORAGE_COMPOSITIONAL_2D_TRAP_BACT_50_50_CLOG';
+baseName = 'H2_STORAGE_DOME_TRAP';
+
 %% Use H2STORAGE_RS_SALT.DATA for brine
-deck = readEclipseDeck('\\wsl.localhost\Ubuntu\home\elyesa\Projects\MRST\modules\H2store\data\Illustrative_example\H2STORAGE_RS.DATA');
-CLOG = true;
-%% Set up the simulation parameters and model components from the black-oil model
-[~, ~, state0Bo, modelBo, scheduleBo, ~] = H2_illustration_storage_example(deck);
+dataPath = getDatasetPath('h2storage');
+dataFile = fullfile(dataPath, 'H2STORAGE_RS.DATA');
+deck = readEclipseDeck(dataFile);
+
+%% Notice on Computational Cost
+warning('ComputationalCost:High', ...
+       ['Please be advised that this is a 10 cycle injection example which often takes some time ', ...
+        'to run: reduce cycles for example']);
+
+%% Set up the simulation parameters and model components
+[~, ~, state0Bo, modelBo, scheduleBo, ~] = modelForSimple2DAquifer(deck);
 bacteriamodel = true;
+CLOG = true;
+
 % Convert black-oil model to compositional model
 model = convertBlackOilModelToCompositionalModel(modelBo);
-%model.fluid.rhoGS = 1.4.*kilogram*meter^3;
 state0=convertBlackOilStateToCompositional(modelBo,state0Bo);
 state0.components = ensureMinimumFraction(state0.components,6.0e-4);
+
 %% Set up the compositional model with Water and Hydrogen
 compFluid = TableCompositionalMixture({'Water', 'Hydrogen', 'CarbonDioxide', 'Methane'}, {'H2O', 'H2', 'CO2', 'C1'});
 EOS = EquationOfStateModel([], compFluid, 'sw');
 T0 = 40 * Kelvin; % Initial temperature in Kelvin
 T0 = 273.15 * Kelvin + T0; % Convert to absolute temperature
+
 if (compFluid.getNumberOfComponents>2)
     state0.components(:,3) = state0.components(:,2)/3;
     state0.components(:,4) = state0.components(:,3);
@@ -35,30 +77,39 @@ if (compFluid.getNumberOfComponents>2)
     T0 = 44.35 * Kelvin; % Initial temperature in Kelvin
     T0 = 273.15 * Kelvin + T0; % Convert to absolute temperature
 end
+
 model.EOSModel = EOS;
 diagonal_backend = DiagonalAutoDiffBackend('modifyOperators', true);
+
 if CLOG
-    %% Add Bio-Clogging Effects
+    %% Case with Bio-Clogging Effects
     %--------------------------------------------------------------------------
     % Define porosity and permeability reduction due to bacterial growth.
     %--------------------------------------------------------------------------
     % Initial rock properties
     poro0 = model.rock.poro;  % Initial porosity
     perm0 = model.rock.perm(:, 1);  % Initial permeability
+    
     % Bacterial concentration parameters
     nc = 120;  % Critical bacterial concentration
     cp = 1.5;  % Clogging coefficient
     scale = 1 + (nbact0 / nc).^2;
+    
     % Define porosity multiplier as a function of bacterial concentration
     pvMult_nbact = @(nbact) 1 ./ (1 + (nbact / nc).^2);
     model.fluid.pvMultR = @(p, nbact) pvMult_nbact(nbact);
     poro = @(p, nbact) scale.*poro0 .* pvMult_nbact(nbact);
     model.rock.poro = poro;
+    
     % Define permeability as a function of porosity
     tau = @(p, nbact) ((1 - poro0) ./ (1 - poro(p, nbact))).^2 .* (poro(p, nbact) ./ poro0).^3;
     perm = @(p, nbact) perm0 .* tau(p, nbact);
     model.rock.perm = perm;
+    
+    % Set case name for clogging scenario
+    caseNameWithClogging = [baseName '_WITH_CLOGGING'];
 end
+
 % Set up additional model properties for biochemistry and flow
 arg = {model.G, model.rock, model.fluid, compFluid,...
        false, diagonal_backend, 'oil', true, 'gas', true, ... % Define phases for water-oil system
@@ -66,17 +117,21 @@ arg = {model.G, model.rock, model.fluid, compFluid,...
     'vaporPhase', 'G', 'eos', model.EOSModel}; % Set phases and EOS model
 model = BiochemistryModel(arg{:});
 model.gravity = modelBo.gravity;
+
 %% Manually set up well compositions, temperature, and bacteria
 schedule = scheduleBo; % Load schedule from the black-oil model
 state0.T = state0.T.*0+T0;
+
 % Initialize compositional state with bacteria model
 if bacteriamodel
     state0 = initCompositionalStateBacteria(model, state0.pressure, T0, state0.s, state0.components, nbact0, EOS);
 else
      state0 = initCompositionalState(model, state0.pressure, T0, state0.s, state0.components, EOS);
 end
+
 bc = schedule.control(1).bc; % Get boundary condition from the schedule
 cells_bc = sum(model.G.faces.neighbors(bc.face, :), 2);
+
 %% Update schedule controls and boundary conditions
 if (compFluid.getNumberOfComponents>2)
     for i = 1:length(schedule.control)
@@ -108,7 +163,9 @@ else
         schedule.control(i).bc.sat = repmat(state0.s(1,:), numel(cells_bc), 1); % Set boundary saturation
     end
 end
+
 model.outputFluxes = false;
+
 %% Plot Grid with Wells, Permeability, and Porosity
 figure;
 subplot(1, 2, 1);
@@ -124,73 +181,72 @@ plotGrid(model.G, schedule.control(1).W.cells, 'LineStyle', 'none', 'FaceColor',
 title('Permeability (log10)');
 axis off tight;
 sgtitle('2D Dome-Shaped Aquifer');
-%% Add output functions to the model for various properties
-% model.OutputStateFunctions{end + 1} = 'CapillaryPressure';
-% model.OutputStateFunctions{end + 1} = 'SurfaceDensity';
-% model.OutputStateFunctions{end + 1} = 'ShrinkageFactors';
-model.outputFluxes = false;
+
 %% Initialize the nonlinear solver and select the linear solver
 nls = NonLinearSolver();
 lsolve = selectLinearSolverAD(model);
 nls.LinearSolver = lsolve;
-%[ws, states, rep] = simulateScheduleAD(state0, model, schedule);
-%% Pack the simulation problem with the defined components
-problem = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls);
-%% Execute the simulation of the packed problem
-simulatePackedProblem(problem, 'restartStep',1);
-%% Compare with and without bectrial effects
-modelNoBact = model;
-% Set up the biochemistry model
-cp = 0;
-modelNoBact.rock.perm = perm(1, state0.nbact);
-modelNoBact.rock.poro = poro(1,state0.nbact);
-modelNoBact.fluid.pvMultR =  @(p, nbact) 1;
-modelNoBact.bacteriamodel = false;
-arg = {modelNoBact.G, modelNoBact.rock, modelNoBact.fluid, compFluid,...
-       false, diagonal_backend, 'oil', true, 'gas', true, ... % Define phases for water-oil system
+
+%% Pack and run simulation for case WITH clogging
+problemWithClogging = packSimulationProblem(state0, model, schedule, caseNameWithClogging, 'NonLinearSolver', nls);
+simulatePackedProblem(problemWithClogging, 'restartStep',1);
+
+%% Set up and run simulation for case WITHOUT clogging
+modelNoClogging = model;
+modelNoClogging.rock.perm = perm0;  % Restore original permeability
+modelNoClogging.rock.poro = poro0;  % Restore original porosity
+modelNoClogging.fluid.pvMultR = @(p, nbact) 1;  % Remove clogging effect
+modelNoClogging.bacteriamodel = true;
+
+arg = {modelNoClogging.G, modelNoClogging.rock, modelNoClogging.fluid, compFluid,...
+       false, diagonal_backend, 'oil', true, 'gas', true, ...
     'bacteriamodel', false, 'diffusioneffect', false, 'liquidPhase', 'O', ...
-    'vaporPhase', 'G', 'eos', model.EOSModel}; % Set phases and EOS model
+    'vaporPhase', 'G', 'eos', model.EOSModel};
+modelNoClogging = BiochemistryModel(arg{:});
+
+state0NoClogging = state0;
+state0NoClogging.nbact = 0;  % No bacteria in this case
+caseNameNoClogging = [baseName '_NO_CLOGGING'];
+
+problemNoClogging = packSimulationProblem(state0NoClogging, modelNoClogging, schedule, caseNameNoClogging, 'NonLinearSolver', nls);
+simulatePackedProblem(problemNoClogging, 'restartStep', 1);
+
+%% Set up and run simulation wthout bacteria
+modelNoBact = model;
+modelNoBact.rock.perm = perm0;  % Restore original permeability
+modelNoBact.rock.poro = poro0;  % Restore original porosity
+modelNoBact.fluid.pvMultR = @(p, nbact) 1;  % Remove clogging effect
+modelNoBact.bacteriamodel = false;
+
+arg = {modelNoBact.G, modelNoBact.rock, modelNoBact.fluid, compFluid,...
+       false, diagonal_backend, 'oil', true, 'gas', true, ...
+    'bacteriamodel', false, 'diffusioneffect', false, 'liquidPhase', 'O', ...
+    'vaporPhase', 'G', 'eos', model.EOSModel};
 modelNoBact = BiochemistryModel(arg{:});
+
 state0NoBact = state0;
-% state0NoBact.nbact = 0;
-nameNoBact = 'H2_STORAGE_COMPOSITIONAL_2D_TRAP_NOBACT_50_50';
-problemNoBact = packSimulationProblem(state0NoBact, modelNoBact, schedule, nameNoBact, 'NonLinearSolver', nls);
-%% Run the simulation
+state0NoBact.nbact = 0;  % No bacteria in this case
+caseNameNoBact = [baseName '_NO_BACT'];
+
+problemNoBact = packSimulationProblem(state0NoBact, modelNoBact, schedule, caseNameNoBact, 'NonLinearSolver', nls);
 simulatePackedProblem(problemNoBact);
-%% Get reservoir and well states
-[ws,states] = getPackedSimulatorOutput(problem);
-[wsNoBact,statesNoBact] = getPackedSimulatorOutput(problemNoBact);
-% Plot states
+%% Get and compare results from both cases
+[wsWithClog, statesWithClog] = getPackedSimulatorOutput(problemWithClogging);
+[wsNoClog, statesNoClog] = getPackedSimulatorOutput(problemNoClogging);
+[wsNoBact, statesNoBact] = getPackedSimulatorOutput(problemNoBact);
+
+
+% Plot states comparison
 figure;
-plotToolbar(model.G, states);
+plotToolbar(model.G, statesWithClog);
+title('With Clogging Effects');
+figure;
+plotToolbar(model.G, statesNoClog);
+title('Without Clogging Effects');
+figure;
 plotToolbar(model.G, statesNoBact);
-%% Plot well output
+title('Without Bacterial Effects');
+
+% Plot well output comparison
 figure;
-plotWellSols({ws,wsNoBact});
-%% Copyright Notice
-%
-% <html>
-% <p><font size="-1">
-% Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
-% </font></p>
-% <p><font size="-1">
-% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-% </font></p>
-% <p><font size="-1">
-% MRST is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% </font></p>
-% <p><font size="-1">
-% MRST is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% </font></p>
-% <p><font size="-1">
-% You should have received a copy of the GNU General Public License
-% along with MRST.  If not, see
-% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
-% </font></p>
-% </html>
+plotWellSols({wsWithClog, wsNoClog, wsNoBact});
