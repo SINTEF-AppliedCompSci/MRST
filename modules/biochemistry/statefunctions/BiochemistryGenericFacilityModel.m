@@ -63,7 +63,7 @@ classdef BiochemistryGenericFacilityModel < GenericFacilityModel
         %-----------------------------------------------------------------%
         function src_growthdecay = getBacteriaSources(model, fd, state, state0, dt)
             % Compute bacterial growth and decay sources
-            reg = 1.0e-7;
+            reg = 1.0e-10;
             flowState = fd.buildFlowState(model, state, state0, dt);  
             psigrowth = model.getProps(flowState, 'PsiGrowthRate');
             psidecay = model.getProps(flowState, 'PsiDecayRate');
