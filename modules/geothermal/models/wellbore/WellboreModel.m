@@ -676,7 +676,7 @@ classdef WellboreModel < WrapperModel
         % re-initialize the values and change the controls so that the next
         % step keeps within the prescribed ranges.
         
-        
+
             if ~isfield(state, 'wells'), state.wells = model.wells; end
             if ~isfield(state, 'groups'), state.groups = model.groups; end
             % Get driving forces and check that it's non-empty
