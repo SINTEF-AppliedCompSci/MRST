@@ -37,11 +37,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Optional input arguments
     opt = struct('name', []);
     [opt, varargin] = merge_options(opt, varargin{:});
-    if isempty(opt.name), opt.name = [setup.name, '_wb']; end
+    if isfield(setup, 'name') && isempty(opt.name), opt.name = [setup.name, '_wb']; end
     
     % Get reservoir model and construct wellbore model
     reservoirModel = setup.model;
-    W = setup.schedule.control(1).W;    
+    if isfield(setup, 'W')
+        W = setup.W;
+    else
+        W = setup.schedule.control(1).W;
+    end
     wellboreModel = WellboreModel(reservoirModel, W, varargin{:});
     % Make composite model from the two
     model = CompositeModel({reservoirModel, wellboreModel}, ...
@@ -70,36 +74,38 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     state0.Wellbore.s        = state0.Wellbore.s(wc);
     state0.Wellbore.T        = state0.Wellbore.T(wc);
     
-    % Convert schedule
-    schedule = setup.schedule;
-    control = schedule.control;
-    for i = 1:numel(control)
-        [rctrl, wctrl] = deal(control(i));
-        [rctrl.W, rctrl.groups] = deal([]);
-        if ~isfield(rctrl, 'bc' ), rctrl.bc  = []; end
-        if ~isfield(rctrl, 'src'), rctrl.src = []; end
-        [wctrl.bc, wctrl.src] = deal([]);
-        schedule.control(i).Reservoir = rctrl;
-        schedule.control(i).Wellbore = wctrl;
-    end
-    if isfield(schedule.control, 'W')
-        schedule.control = rmfield(schedule.control, 'W');
-    end
-    if isfield(schedule.control, 'src')
-        schedule.control = rmfield(schedule.control, 'src');
-    end
-    if isfield(schedule.control, 'bc')
-        schedule.control = rmfield(schedule.control, 'bc');
-    end
-    if isfield(schedule.control, 'groups')
-        schedule.control = rmfield(schedule.control, 'groups');
-    end
-    
     % Update setup
     setup.state0   = state0;
     setup.model    = model;
-    setup.schedule = schedule;
-    setup.name     = opt.name;
+    if ~isempty(opt.name), setup.name = opt.name; end
+
+    if isfield(setup, 'schedule') || isa(setup, 'TestCase')
+        % Convert schedule
+        schedule = setup.schedule;
+        control = schedule.control;
+        for i = 1:numel(control)
+            [rctrl, wctrl] = deal(control(i));
+            [rctrl.W, rctrl.groups] = deal([]);
+            if ~isfield(rctrl, 'bc' ), rctrl.bc  = []; end
+            if ~isfield(rctrl, 'src'), rctrl.src = []; end
+            [wctrl.bc, wctrl.src] = deal([]);
+            schedule.control(i).Reservoir = rctrl;
+            schedule.control(i).Wellbore = wctrl;
+        end
+        if isfield(schedule.control, 'W')
+            schedule.control = rmfield(schedule.control, 'W');
+        end
+        if isfield(schedule.control, 'src')
+            schedule.control = rmfield(schedule.control, 'src');
+        end
+        if isfield(schedule.control, 'bc')
+            schedule.control = rmfield(schedule.control, 'bc');
+        end
+        if isfield(schedule.control, 'groups')
+            schedule.control = rmfield(schedule.control, 'groups');
+        end
+        setup.schedule = schedule;
+    end
     
     % Set visualization grid
     setup.visualizationGrid = model.submodels.Reservoir.G;
