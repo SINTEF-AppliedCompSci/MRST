@@ -30,7 +30,7 @@ classdef BacterialMass < StateFunction & ComponentProperty
     methods
         function gp = BacterialMass(model, varargin)
             % Constructor for bacterial mass calculator
-            
+
             gp@StateFunction(model, varargin{:});
             gp = gp.dependsOn({'nbact'}, 'state');          % Bacterial concentration
             gp = gp.dependsOn({'s'}, 'state');              % Phase saturations
@@ -52,17 +52,17 @@ classdef BacterialMass < StateFunction & ComponentProperty
             % Get required properties from state
             s = model.getProp(state, 's');
             nbact = model.getProp(state, 'nbact');
-            
+
             % Get PVT properties
             pv = model.PVTPropertyFunctions.get(model, state, 'PoreVolume');
             rho = model.PVTPropertyFunctions.get(model, state, 'Density');
-            
+
             % Handle liquid phase
             L_ix = model.getLiquidIndex();
             if ~iscell(rho)
                 rho = {rho};
             end
-            
+
             % Calculate volume fraction with safeguards
             if iscell(s)
                 Voln = max(s{L_ix}, 1.0e-8) .* rho{L_ix};
@@ -70,62 +70,37 @@ classdef BacterialMass < StateFunction & ComponentProperty
                 Voln = max(s(:, L_ix), 1.0e-8) .* rho{L_ix};
             end
             Voln = max(Voln, 1.0e-8);
-            
+
             % Compute bacterial mass
             mb = pv .* nbact .* Voln;
-            
+
             % Ensure minimum derivatives for stability
-            mb = ensureMinimumDerivatives(prop, model, mb);
+            mb = ensureMinimumDerivatives(prop,model, mb);
         end
 
         function prop = setMinimumDerivatives(prop, der)
-            % Set minimum absolute values for derivatives
-            %
-            % PARAMETERS:
-            %   prop - Property function instance
-            %   der  - Minimum derivative value(s)
-            
             if nargin < 2
-                der = 1e-10; % Default very small value
+                % Just set to a very small value, since nothing was
+                % specified.
+                der = 1e-10;
             end
             prop.minimumDerivatives = der;
         end
 
         function der = getMinimumDerivatives(prop)
-            % Get current minimum derivative settings
-            %
-            % PARAMETERS:
-            %   prop - Property function instance
-            %
-            % RETURNS:
-            %   der  - Current minimum derivative value(s)
-            
             der = prop.minimumDerivatives;
         end
 
         function mass = ensureMinimumDerivatives(prop, model, mass)
-            % Enforce minimum derivative values for numerical stability
-            %
-            % PARAMETERS:
-            %   prop - Property function instance
-            %   model - Reservoir model
-            %   mass - Bacterial mass values with derivatives
-            %
-            % RETURNS:
-            %   mass - Modified values with enforced minimum derivatives
-            
             der = prop.minimumDerivatives;
             if isempty(der)
                 return;
             end
-            
             nc = numel(mass);
             if numel(der) == 1
                 der = repmat(der, 1, nc);
             end
-            
             isDiag = isa(model.AutoDiffBackend, 'DiagonalAutoDiffBackend');
-            
             if isDiag
                 rowMajor = model.AutoDiffBackend.rowMajor;
                 for c = 1:nc
@@ -151,7 +126,8 @@ classdef BacterialMass < StateFunction & ComponentProperty
                         continue;
                     end
                     if numel(m.jac) < c
-                        break; % Not matching number of derivatives
+                        % Not matching number of derivatives - stop early
+                        break;
                     end
                     J = m.jac{c};
                     [n, l] = size(J);
