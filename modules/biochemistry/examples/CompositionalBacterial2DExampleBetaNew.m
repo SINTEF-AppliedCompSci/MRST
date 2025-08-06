@@ -189,23 +189,22 @@ nls.LinearSolver = lsolve;
 
 %% Pack and run simulation for case WITH clogging
 problemWithClogging = packSimulationProblem(state0, model, schedule, caseNameWithClogging, 'NonLinearSolver', nls);
-simulatePackedProblem(problemWithClogging, 'restartStep',1);
+simulatePackedProblem(problemWithClogging);
 
 %% Set up and run simulation for case WITHOUT clogging
 modelNoClogging = model;
 modelNoClogging.rock.perm = perm0;  % Restore original permeability
 modelNoClogging.rock.poro = poro0;  % Restore original porosity
 modelNoClogging.fluid.pvMultR = @(p, nbact) 1;  % Remove clogging effect
-modelNoClogging.bacteriamodel = true;
+bacteriamodel = true;
 
 arg = {modelNoClogging.G, modelNoClogging.rock, modelNoClogging.fluid, compFluid,...
        false, diagonal_backend, 'oil', true, 'gas', true, ...
-    'bacteriamodel', false, 'diffusioneffect', false, 'liquidPhase', 'O', ...
+    'bacteriamodel', bacteriamodel, 'diffusioneffect', false, 'liquidPhase', 'O', ...
     'vaporPhase', 'G', 'eos', model.EOSModel};
 modelNoClogging = BiochemistryModel(arg{:});
 
 state0NoClogging = state0;
-state0NoClogging.nbact = 0;  % No bacteria in this case
 caseNameNoClogging = [baseName '_NO_CLOGGING'];
 
 problemNoClogging = packSimulationProblem(state0NoClogging, modelNoClogging, schedule, caseNameNoClogging, 'NonLinearSolver', nls);
@@ -216,11 +215,11 @@ modelNoBact = model;
 modelNoBact.rock.perm = perm0;  % Restore original permeability
 modelNoBact.rock.poro = poro0;  % Restore original porosity
 modelNoBact.fluid.pvMultR = @(p, nbact) 1;  % Remove clogging effect
-modelNoBact.bacteriamodel = false;
+bacteriamodel = false;
 
 arg = {modelNoBact.G, modelNoBact.rock, modelNoBact.fluid, compFluid,...
        false, diagonal_backend, 'oil', true, 'gas', true, ...
-    'bacteriamodel', false, 'diffusioneffect', false, 'liquidPhase', 'O', ...
+    'bacteriamodel', bacteriamodel, 'diffusioneffect', false, 'liquidPhase', 'O', ...
     'vaporPhase', 'G', 'eos', model.EOSModel};
 modelNoBact = BiochemistryModel(arg{:});
 
@@ -229,7 +228,7 @@ state0NoBact.nbact = 0;  % No bacteria in this case
 caseNameNoBact = [baseName '_NO_BACT'];
 
 problemNoBact = packSimulationProblem(state0NoBact, modelNoBact, schedule, caseNameNoBact, 'NonLinearSolver', nls);
-simulatePackedProblem(problemNoBact);
+simulatePackedProblem(problemNoBact, 'restartStep', 1);
 %% Get and compare results from both cases
 [wsWithClog, statesWithClog] = getPackedSimulatorOutput(problemWithClogging);
 [wsNoClog, statesNoClog] = getPackedSimulatorOutput(problemNoClogging);
