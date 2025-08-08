@@ -489,7 +489,6 @@ classdef WellboreModel < WrapperModel
         function [eqs, names, types, state] = getMassFluxEquations(model, state)
         % Equations realting segment mass fluxes to the pressure by means
         % of a wellbore friction model
-
             
             dp = model.getProp(state, 'FrictionLoss');
             [p, s, rho] = model.parentModel.getProps(state, ...
@@ -497,6 +496,7 @@ classdef WellboreModel < WrapperModel
                 's'           , ...
                 'Density'       ...
             );
+            v = model.getProp(state, 'massFlux');
             
             nph = model.getNumberOfPhases();
             
@@ -514,7 +514,7 @@ classdef WellboreModel < WrapperModel
             
             pot   = dpw - rhoMix.*g.*dz;
             
-            eqs   = (pot - dp)./(1*atm);
+            eqs   = 1e-3*(pot - dp) - v;
             eqs   = {eqs};
             names = {'flux'};
             types = {'face'};
