@@ -422,6 +422,15 @@ classdef ADI
       end
 
       %--------------------------------------------------------------------
+      function h = cosh(u)
+          % Element-wise hyperbolic tangent: `h=cosh(u)`
+          coshu = cosh(u.val);
+          h = u;
+          h.val = coshu;
+          h.jac = h.lMultDiag(sinh(u.val), u.jac);
+      end
+      
+      %--------------------------------------------------------------------
       function h = sin(u)
           % Element-wise sine: `h=sin(u)`
           sinu = sin(u.val);
