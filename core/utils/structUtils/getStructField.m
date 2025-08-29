@@ -25,7 +25,7 @@ function value = getStructField(mstruct, fieldnamelist, defaultValue)
         
     end
 
-    if isempty(mstruct) || (~isfield(mstruct, fieldname) && ~isprop(mstruct, fieldname))
+    if isempty(mstruct) || (~isfield(mstruct, fieldname) && any(~isprop(mstruct, fieldname)))
 
         value = UnAssigned();
 
