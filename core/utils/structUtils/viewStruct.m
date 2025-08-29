@@ -1,4 +1,4 @@
-function viewJsonStruct(jsonstruct)
+function viewStruct(jsonstruct)
 
     display(jsonencode(jsonstruct, 'PrettyPrint', true));
 

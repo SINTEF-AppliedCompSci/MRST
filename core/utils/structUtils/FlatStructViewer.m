@@ -1,4 +1,4 @@
-classdef FlatJsonViewer
+classdef FlatStructViewer
 
     properties
 
@@ -9,7 +9,7 @@ classdef FlatJsonViewer
 
     methods
 
-        function fjv  = FlatJsonViewer(flatjson, columnnames)
+        function fjv  = FlatStructViewer(flatjson, columnnames)
 
             if isa(flatjson, 'table')
                 columnnames = flatjson.Properties.VariableNames;

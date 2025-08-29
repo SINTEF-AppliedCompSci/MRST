@@ -1,4 +1,4 @@
-function jsonstruct = removeJsonStructEmptyField(jsonstruct)
+function jsonstruct = removeStructEmptyField(jsonstruct)
 
     fds = fieldnames(jsonstruct);
     for ifd = 1 : numel(fds)
@@ -6,7 +6,7 @@ function jsonstruct = removeJsonStructEmptyField(jsonstruct)
         if isempty(jsonstruct.(fd))
             jsonstruct = rmfield(jsonstruct, fd);
         elseif isstruct(jsonstruct.(fd))
-            jsonstruct.(fd) = removeJsonStructEmptyField(jsonstruct.(fd));
+            jsonstruct.(fd) = removeStructEmptyField(jsonstruct.(fd));
         else
             % do nothing
         end

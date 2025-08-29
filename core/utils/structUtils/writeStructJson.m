@@ -1,4 +1,4 @@
-function filename = writeJsonStruct(jsonstruct, filename)
+function filename = writeStructJson(jsonstruct, filename)
 
     if nargin == 1
         filename = [tempname(), '.json'];

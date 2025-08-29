@@ -1,4 +1,4 @@
-function jsonstruct = removeJsonStructField(jsonstruct, fdnames, varargin)
+function jsonstruct = removeStructField(jsonstruct, fdnames, varargin)
 
     opt = struct('handleMissing', 'warn');
     opt = merge_options(opt, varargin{:});
@@ -21,7 +21,7 @@ function jsonstruct = removeJsonStructField(jsonstruct, fdnames, varargin)
         jsonstruct = rmfield(jsonstruct, fdname);
         return
     else
-        jsonstruct.(fdname) = removeJsonStructField(jsonstruct.(fdname), fdnames(2:end));
+        jsonstruct.(fdname) = removeStructField(jsonstruct.(fdname), fdnames(2:end));
     end
     
 end

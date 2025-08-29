@@ -1,12 +1,12 @@
-function value = getJsonStructField(jsonstruct, fieldnamelist, defaultValue)
+function value = getStructField(jsonstruct, fieldnamelist, defaultValue)
 
     if ischar(fieldnamelist)
         % handle case where fieldnamelist is just a char
         fieldnamelist = {fieldnamelist};
         if nargin > 2
-            value = getJsonStructField(jsonstruct, fieldnamelist, defaultValue);
+            value = getStructField(jsonstruct, fieldnamelist, defaultValue);
         else
-            value = getJsonStructField(jsonstruct, fieldnamelist);
+            value = getStructField(jsonstruct, fieldnamelist);
         end
         
         return
@@ -37,7 +37,7 @@ function value = getJsonStructField(jsonstruct, fieldnamelist, defaultValue)
 
         else
 
-            value = getJsonStructField(jsonstruct.(fieldname), fieldnamelist);
+            value = getStructField(jsonstruct.(fieldname), fieldnamelist);
 
         end
         

@@ -1,4 +1,4 @@
-function jsonstruct = setJsonStructField(jsonstruct, fieldnamelist, value, varargin)
+function jsonstruct = setStructField(jsonstruct, fieldnamelist, value, varargin)
     % in varargin, the key 'handleMisMatch' can take following values
     % - 'error'   : returns error if value already set and does not match with the new given one (default)
     % - 'quiet'   : does not warn about case above
@@ -7,7 +7,7 @@ function jsonstruct = setJsonStructField(jsonstruct, fieldnamelist, value, varar
     if ischar(fieldnamelist)
         % handle case wher fieldnamelist is just a char
         fieldnamelist = {fieldnamelist};
-        jsonstruct = setJsonStructField(jsonstruct, fieldnamelist, value, varargin{:});
+        jsonstruct = setStructField(jsonstruct, fieldnamelist, value, varargin{:});
         return
     end
 
@@ -68,7 +68,7 @@ function jsonstruct = setJsonStructField(jsonstruct, fieldnamelist, value, varar
             end
         else
 
-            jsonstruct.(fieldname) = setJsonStructField(jsonstruct.(fieldname), fieldnamelist, value, varargin{:});
+            jsonstruct.(fieldname) = setStructField(jsonstruct.(fieldname), fieldnamelist, value, varargin{:});
 
         end
 
@@ -80,7 +80,7 @@ function jsonstruct = setJsonStructField(jsonstruct, fieldnamelist, value, varar
 
         else
 
-            jsonstruct.(fieldname) = setJsonStructField([], fieldnamelist, value, varargin{:});
+            jsonstruct.(fieldname) = setStructField([], fieldnamelist, value, varargin{:});
             
         end
         

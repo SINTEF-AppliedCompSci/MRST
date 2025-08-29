@@ -1,10 +1,10 @@
-function jsonstruct = mergeJsonStructs(jsonstructs, varargin)
+function jsonstruct = mergeStructs(jsonstructs, varargin)
 %
 %  We call a json structure, abbreviated jsonstruct, a MATLAB structure produced by the jsondecode command or :battmo:`parseBattmoJson`
 %    
 %  The input jsonstructs is a list of jsonstruct
 %    
-%  The command mergeJsonStructs merges recursively all the jsonstruct contained in the list jsonstructs
+%  The command mergeStructs merges recursively all the jsonstruct contained in the list jsonstructs
 %    
 %  If two jsonstruct assign the same field, then the first one is applied and a warning message is sent. use warn=false to switch off this message
 
@@ -46,7 +46,7 @@ function jsonstruct = mergeJsonStructs(jsonstructs, varargin)
             for ielt = 1 : nelts
                 subtree = tree;
                 subtree{end + 1} = sprintf('[%d]', ielt);
-                jsonstruct(ielt) = mergeJsonStructs({jsonstruct(ielt), jsonstruct2(ielt)}, 'warn', opt.warn, 'tree', subtree);
+                jsonstruct(ielt) = mergeStructs({jsonstruct(ielt), jsonstruct2(ielt)}, 'warn', opt.warn, 'tree', subtree);
             end
 
             return
@@ -70,19 +70,19 @@ function jsonstruct = mergeJsonStructs(jsonstructs, varargin)
                 % we have to check the substructure
                 subtree = tree;
                 subtree{end + 1} = fd2;
-                subjsonstruct = mergeJsonStructs({jsonstruct.(fd2), jsonstruct2.(fd2)}, 'warn', opt.warn, 'tree', subtree);
+                subjsonstruct = mergeStructs({jsonstruct.(fd2), jsonstruct2.(fd2)}, 'warn', opt.warn, 'tree', subtree);
                 jsonstruct.(fd2) = subjsonstruct;
             elseif ~isstruct(jsonstruct.(fd2)) && ~isstruct(jsonstruct2.(fd2)) && isequal(jsonstruct.(fd2), jsonstruct2.(fd2))
                 % ok. Both are given but same values
             elseif opt.warn
                 varname = horzcat(tree, fd2);
-                fprintf('mergeJsonStructs: Parameter %s is assigned twice with different values. Value from first jsonstruct is used.\n', strjoin(varname, '.'));
+                fprintf('mergeStructs: Parameter %s is assigned twice with different values. Value from first jsonstruct is used.\n', strjoin(varname, '.'));
             end
         end
     end
 
     if ~isempty(jsonstructrests)
-        jsonstruct = mergeJsonStructs({jsonstruct, jsonstructrests{:}}, 'warn', opt.warn, 'tree', {});
+        jsonstruct = mergeStructs({jsonstruct, jsonstructrests{:}}, 'warn', opt.warn, 'tree', {});
     end
     
 end
