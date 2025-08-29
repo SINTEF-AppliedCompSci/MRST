@@ -1,12 +1,12 @@
-function jsonstruct = mergeStructs(jsonstructs, varargin)
+function mstruct = mergeStructs(mstructs, varargin)
 %
-%  We call a json structure, abbreviated jsonstruct, a MATLAB structure produced by the jsondecode command or :battmo:`parseBattmoJson`
+%  We call a json structure, abbreviated mstruct, a MATLAB structure produced by the jsondecode command or :battmo:`parseBattmoJson`
 %    
-%  The input jsonstructs is a list of jsonstruct
+%  The input mstructs is a list of mstruct
 %    
-%  The command mergeStructs merges recursively all the jsonstruct contained in the list jsonstructs
+%  The command mergeStructs merges recursively all the mstruct contained in the list mstructs
 %    
-%  If two jsonstruct assign the same field, then the first one is applied and a warning message is sent. use warn=false to switch off this message
+%  If two mstruct assign the same field, then the first one is applied and a warning message is sent. use warn=false to switch off this message
 
     opt = struct('warn', true);
     opt.tree = {};
@@ -15,27 +15,27 @@ function jsonstruct = mergeStructs(jsonstructs, varargin)
     % needed to produce meaningfull error message
     tree = opt.tree;
     
-    if numel(jsonstructs) == 1
-        jsonstruct = jsonstructs{1};
+    if numel(mstructs) == 1
+        mstruct = mstructs{1};
         return;
     end
     
-    jsonstruct1 = jsonstructs{1};
-    jsonstruct2 = jsonstructs{2};
-    if numel(jsonstructs) >= 2
-        jsonstructrests = jsonstructs(3 : end);
+    mstruct1 = mstructs{1};
+    mstruct2 = mstructs{2};
+    if numel(mstructs) >= 2
+        mstructrests = mstructs(3 : end);
     else
-        jsonstructrests = {};
+        mstructrests = {};
     end
 
-    jsonstruct = jsonstruct1;
+    mstruct = mstruct1;
 
-    if isstruct(jsonstruct) && numel(jsonstruct) > 1
-        % We look at the case where the jsonstruct is a struct-array
+    if isstruct(mstruct) && numel(mstruct) > 1
+        % We look at the case where the mstruct is a struct-array
 
-        nelts = numel(jsonstruct);
+        nelts = numel(mstruct);
 
-        if nelts ~= numel(jsonstruct2)
+        if nelts ~= numel(mstruct2)
 
             % we overwrite the elements, which means do nothing
             return
@@ -46,7 +46,7 @@ function jsonstruct = mergeStructs(jsonstructs, varargin)
             for ielt = 1 : nelts
                 subtree = tree;
                 subtree{end + 1} = sprintf('[%d]', ielt);
-                jsonstruct(ielt) = mergeStructs({jsonstruct(ielt), jsonstruct2(ielt)}, 'warn', opt.warn, 'tree', subtree);
+                mstruct(ielt) = mergeStructs({mstruct(ielt), mstruct2(ielt)}, 'warn', opt.warn, 'tree', subtree);
             end
 
             return
@@ -55,8 +55,8 @@ function jsonstruct = mergeStructs(jsonstructs, varargin)
 
     end
     
-    fds1 = fieldnames(jsonstruct1);
-    fds2 = fieldnames(jsonstruct2);
+    fds1 = fieldnames(mstruct1);
+    fds2 = fieldnames(mstruct2);
     
     for ifd2 = 1 : numel(fds2)
         
@@ -64,25 +64,25 @@ function jsonstruct = mergeStructs(jsonstructs, varargin)
         
         if ~ismember(fd2, fds1)
             % ok, add the substructure
-            jsonstruct.(fd2) = jsonstruct2.(fd2);
+            mstruct.(fd2) = mstruct2.(fd2);
         else
-            if isstruct(jsonstruct.(fd2)) && isstruct(jsonstruct2.(fd2))
+            if isstruct(mstruct.(fd2)) && isstruct(mstruct2.(fd2))
                 % we have to check the substructure
                 subtree = tree;
                 subtree{end + 1} = fd2;
-                subjsonstruct = mergeStructs({jsonstruct.(fd2), jsonstruct2.(fd2)}, 'warn', opt.warn, 'tree', subtree);
-                jsonstruct.(fd2) = subjsonstruct;
-            elseif ~isstruct(jsonstruct.(fd2)) && ~isstruct(jsonstruct2.(fd2)) && isequal(jsonstruct.(fd2), jsonstruct2.(fd2))
+                submstruct = mergeStructs({mstruct.(fd2), mstruct2.(fd2)}, 'warn', opt.warn, 'tree', subtree);
+                mstruct.(fd2) = submstruct;
+            elseif ~isstruct(mstruct.(fd2)) && ~isstruct(mstruct2.(fd2)) && isequal(mstruct.(fd2), mstruct2.(fd2))
                 % ok. Both are given but same values
             elseif opt.warn
                 varname = horzcat(tree, fd2);
-                fprintf('mergeStructs: Parameter %s is assigned twice with different values. Value from first jsonstruct is used.\n', strjoin(varname, '.'));
+                fprintf('mergeStructs: Parameter %s is assigned twice with different values. Value from first mstruct is used.\n', strjoin(varname, '.'));
             end
         end
     end
 
-    if ~isempty(jsonstructrests)
-        jsonstruct = mergeStructs({jsonstruct, jsonstructrests{:}}, 'warn', opt.warn, 'tree', {});
+    if ~isempty(mstructrests)
+        mstruct = mergeStructs({mstruct, mstructrests{:}}, 'warn', opt.warn, 'tree', {});
     end
     
 end

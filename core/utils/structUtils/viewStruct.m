@@ -1,6 +1,6 @@
-function viewStruct(jsonstruct)
+function viewStruct(mstruct)
 
-    display(jsonencode(jsonstruct, 'PrettyPrint', true));
+    display(jsonencode(mstruct, 'PrettyPrint', true));
 
 end
 

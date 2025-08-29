@@ -1,9 +1,9 @@
-function jsonstruct = setDefaultStructField(jsonstruct, fieldnamelist, defaultValue)
+function mstruct = setDefaultStructField(mstruct, fieldnamelist, defaultValue)
 
-    value = getStructField(jsonstruct, fieldnamelist);
+    value = getStructField(mstruct, fieldnamelist);
 
     if isUnAssigned(value)
-        jsonstruct = setStructField(jsonstruct, fieldnamelist, defaultValue);
+        mstruct = setStructField(mstruct, fieldnamelist, defaultValue);
     end
     
 end

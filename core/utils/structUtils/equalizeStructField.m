@@ -1,7 +1,7 @@
-function [jsonstruct, bothUnAssigned] = equalizeStructField(jsonstruct, fieldnamelist1, fieldnamelist2, varargin)
+function [mstruct, bothUnAssigned] = equalizeStructField(mstruct, fieldnamelist1, fieldnamelist2, varargin)
 
-    value1 = getStructField(jsonstruct, fieldnamelist1);
-    value2 = getStructField(jsonstruct, fieldnamelist2);
+    value1 = getStructField(mstruct, fieldnamelist1);
+    value2 = getStructField(mstruct, fieldnamelist2);
 
     bothUnAssigned = false;
     
@@ -14,7 +14,7 @@ function [jsonstruct, bothUnAssigned] = equalizeStructField(jsonstruct, fieldnam
             
         else
             
-            jsonstruct = setStructField(jsonstruct, fieldnamelist1, value2);
+            mstruct = setStructField(mstruct, fieldnamelist1, value2);
 
         end
 
@@ -22,7 +22,7 @@ function [jsonstruct, bothUnAssigned] = equalizeStructField(jsonstruct, fieldnam
 
         if isUnAssigned(value2)
             
-            jsonstruct = setStructField(jsonstruct, fieldnamelist2, value1);
+            mstruct = setStructField(mstruct, fieldnamelist2, value1);
 
         else
 
@@ -37,10 +37,10 @@ function [jsonstruct, bothUnAssigned] = equalizeStructField(jsonstruct, fieldnam
                 opt = merge_options(opt, varargin{:});
 
                 if opt.force
-                    errorMessage = sprintf('Different values are given for the fields jsonstruct.%s and jsonstruct.%s. We do not know which one to choose...', ...
+                    errorMessage = sprintf('Different values are given for the fields mstruct.%s and mstruct.%s. We do not know which one to choose...', ...
                                            getPrintableName(fieldnamelist1)                                                                                  , ...
                                            getPrintableName(fieldnamelist2));
-                    jsonstruct = setStructField(jsonstruct, fieldnamelist2, value1, 'handleMisMatch', 'error', 'errorMessage', errorMessage);
+                    mstruct = setStructField(mstruct, fieldnamelist2, value1, 'handleMisMatch', 'error', 'errorMessage', errorMessage);
                     if opt.warn
                         fprintf('Fist value given in equalizeStructField is taken\n');
                     end

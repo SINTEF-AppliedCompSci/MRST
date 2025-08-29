@@ -1,4 +1,4 @@
-function jsonstruct = setStructField(jsonstruct, fieldnamelist, value, varargin)
+function mstruct = setStructField(mstruct, fieldnamelist, value, varargin)
     % in varargin, the key 'handleMisMatch' can take following values
     % - 'error'   : returns error if value already set and does not match with the new given one (default)
     % - 'quiet'   : does not warn about case above
@@ -7,7 +7,7 @@ function jsonstruct = setStructField(jsonstruct, fieldnamelist, value, varargin)
     if ischar(fieldnamelist)
         % handle case wher fieldnamelist is just a char
         fieldnamelist = {fieldnamelist};
-        jsonstruct = setStructField(jsonstruct, fieldnamelist, value, varargin{:});
+        mstruct = setStructField(mstruct, fieldnamelist, value, varargin{:});
         return
     end
 
@@ -20,11 +20,11 @@ function jsonstruct = setStructField(jsonstruct, fieldnamelist, value, varargin)
         setValue = true;
     end
 
-    if isAssigned(jsonstruct, fieldname)
+    if isAssigned(mstruct, fieldname)
 
         if setValue
 
-            currentValue = jsonstruct.(fieldname);
+            currentValue = mstruct.(fieldname);
 
             equalValue = isequal(currentValue, value);
             
@@ -43,12 +43,12 @@ function jsonstruct = setStructField(jsonstruct, fieldnamelist, value, varargin)
 
                   case 'quiet'
 
-                    jsonstruct.(fieldname) = value;
+                    mstruct.(fieldname) = value;
                     
                   case 'warning'
 
                     fprintf('mismatch values in assignment of %s. We use the given value\n', fieldname)
-                    jsonstruct.(fieldname) = value;
+                    mstruct.(fieldname) = value;
                     
                   case 'error'
 
@@ -68,7 +68,7 @@ function jsonstruct = setStructField(jsonstruct, fieldnamelist, value, varargin)
             end
         else
 
-            jsonstruct.(fieldname) = setStructField(jsonstruct.(fieldname), fieldnamelist, value, varargin{:});
+            mstruct.(fieldname) = setStructField(mstruct.(fieldname), fieldnamelist, value, varargin{:});
 
         end
 
@@ -76,11 +76,11 @@ function jsonstruct = setStructField(jsonstruct, fieldnamelist, value, varargin)
 
         if setValue
 
-            jsonstruct.(fieldname) = value;
+            mstruct.(fieldname) = value;
 
         else
 
-            jsonstruct.(fieldname) = setStructField([], fieldnamelist, value, varargin{:});
+            mstruct.(fieldname) = setStructField([], fieldnamelist, value, varargin{:});
             
         end
         

@@ -1,10 +1,10 @@
-function jsonstruct = removeStructField(jsonstruct, fdnames, varargin)
+function mstruct = removeStructField(mstruct, fdnames, varargin)
 
     opt = struct('handleMissing', 'warn');
     opt = merge_options(opt, varargin{:});
     fdname = fdnames{1};
     if numel(fdnames) == 1
-        if ~isfield(jsonstruct, fdname)
+        if ~isfield(mstruct, fdname)
             msgtxt = sprintf('Field %s is missing\n', fdname);
             switch opt.handleMissing
               case 'warn'
@@ -18,10 +18,10 @@ function jsonstruct = removeStructField(jsonstruct, fdnames, varargin)
             end
             return
         end
-        jsonstruct = rmfield(jsonstruct, fdname);
+        mstruct = rmfield(mstruct, fdname);
         return
     else
-        jsonstruct.(fdname) = removeStructField(jsonstruct.(fdname), fdnames(2:end));
+        mstruct.(fdname) = removeStructField(mstruct.(fdname), fdnames(2:end));
     end
     
 end

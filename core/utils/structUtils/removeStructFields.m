@@ -1,8 +1,8 @@
-function jsonstruct = removeStructFields(jsonstruct, varargin)
+function mstruct = removeStructFields(mstruct, varargin)
 
     for iarg = 1 : numel(varargin)
         
-        jsonstruct = removeStructField(jsonstruct, varargin{iarg});
+        mstruct = removeStructField(mstruct, varargin{iarg});
         
     end
     

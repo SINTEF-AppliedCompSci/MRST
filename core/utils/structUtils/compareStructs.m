@@ -1,18 +1,18 @@
-function flatjsonviewer = compareStructs(jsonstruct1, jsonstruct2, name1, name2)
+function flatstructviewer = compareStructs(mstruct1, mstruct2, name1, name2)
 %%
 % Compare two json structures, set a flag 'equal', 'different' or 'missing' on each entry. Returns the results as an instance of |FlatStructViewer| for visualization.
 %
     
     if nargin == 2
-        name1 = 'jsonstruct1';
-        name2 = 'jsonstruct2';
+        name1 = 'mstruct1';
+        name2 = 'mstruct2';
     end
 
-    flatjsonviewer1 = flattenStruct(jsonstruct1, 'doprint', false);
-    flatjsonviewer2 = flattenStruct(jsonstruct2, 'doprint', false);
+    flatstructviewer1 = flattenStruct(mstruct1, 'doprint', false);
+    flatstructviewer2 = flattenStruct(mstruct2, 'doprint', false);
 
-    flatjson1 = flatjsonviewer1.flatjson;
-    flatjson2 = flatjsonviewer2.flatjson;
+    flatjson1 = flatstructviewer1.flatjson;
+    flatjson2 = flatstructviewer2.flatjson;
 
     fd1 = flatjson1(:, 1);
     fd2 = flatjson2(:, 1);
@@ -65,7 +65,7 @@ function flatjsonviewer = compareStructs(jsonstruct1, jsonstruct2, name1, name2)
 
     flatjsonboth = vertcat(flatjsoncommon, flatjsondifferent, flatjsonmissing);
 
-    flatjsonviewer = FlatStructViewer(flatjsonboth, {'parameter name', name1, name2, 'comparison'});
+    flatstructviewer = FlatStructViewer(flatjsonboth, {'parameter name', name1, name2, 'comparison'});
 
 end
 

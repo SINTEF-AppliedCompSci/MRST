@@ -1,4 +1,4 @@
-function filename = writeStructJson(jsonstruct, filename)
+function filename = writeStructJson(mstruct, filename)
 
     if nargin == 1
         filename = [tempname(), '.json'];
@@ -8,7 +8,7 @@ function filename = writeStructJson(jsonstruct, filename)
     end
 
     fid = fopen(filename, 'w');
-    fprintf(fid, jsonencode(jsonstruct, 'PrettyPrint', prettyprint));
+    fprintf(fid, jsonencode(mstruct, 'PrettyPrint', prettyprint));
     fclose(fid);
 
 end

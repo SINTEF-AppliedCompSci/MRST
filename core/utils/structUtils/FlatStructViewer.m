@@ -2,27 +2,27 @@ classdef FlatStructViewer
 
     properties
 
-        flatjson
+        flatstruct
         columnnames
 
     end
 
     methods
 
-        function fjv  = FlatStructViewer(flatjson, columnnames)
+        function fsv  = FlatStructViewer(flatstruct, columnnames)
 
-            if isa(flatjson, 'table')
-                columnnames = flatjson.Properties.VariableNames;
-                flatjson = table2cell(flatjson);
+            if isa(flatstruct, 'table')
+                columnnames = flatstruct.Properties.VariableNames;
+                flatstruct = table2cell(flatstruct);
                 skip_column_name_set = true;
             else
                 skip_column_name_set = false;                
             end
             
-            fjv.flatjson = flatjson;
+            fsv.flatstruct = flatstruct;
 
             if (nargin < 2) & ~skip_column_name_set
-                ncol = size(flatjson, 2);
+                ncol = size(flatstruct, 2);
                 % default values for the column
                 columnnames{1} = 'parameter name';
                 if ncol == 2
@@ -36,17 +36,17 @@ classdef FlatStructViewer
                 end
             end
 
-            fjv.columnnames = columnnames;
+            fsv.columnnames = columnnames;
 
         end
 
-        function T = getTable(fjv)
+        function T = getTable(fsv)
 
-            T = cell2table(fjv.flatjson, 'VariableNames', fjv.columnnames);
+            T = cell2table(fsv.flatstruct, 'VariableNames', fsv.columnnames);
             
         end
 
-        function T = print(fjv, varargin)
+        function T = print(fsv, varargin)
 
             opt = struct('filter', [], ...
                          'filename', [], ...
@@ -55,10 +55,10 @@ classdef FlatStructViewer
             opt = merge_options(opt, varargin{:});
 
             if ~isempty(opt.filter)
-                fjv = fjv.filter(opt.filter);
+                fsv = fsv.filter(opt.filter);
             end
 
-            T = cell2table(fjv.flatjson, 'VariableNames', fjv.columnnames);
+            T = cell2table(fsv.flatstruct, 'VariableNames', fsv.columnnames);
 
             if opt.print
                 display(T, 'view');
@@ -71,10 +71,10 @@ classdef FlatStructViewer
         end
 
 
-        function sortedfjv = sort(fjv, orderdesc)
+        function sortedfsv = sort(fsv, orderdesc)
 
-            columnnames = fjv.columnnames;
-            flatjson    = fjv.flatjson;
+            columnnames = fsv.columnnames;
+            flatstruct    = fsv.flatstruct;
 
             ncol = numel(columnnames);
 
@@ -91,30 +91,30 @@ classdef FlatStructViewer
 
                 assert(numel(ind) == 1, 'regexp given is return too many match for column name');
 
-                [~, ia] = sort(flatjson(:, ind));
-                flatjson = flatjson(ia, :);
+                [~, ia] = sort(flatstruct(:, ind));
+                flatstruct = flatstruct(ia, :);
 
             end
 
-            fjv.flatjson = flatjson;
-            sortedfjv = fjv;
+            fsv.flatstruct = flatstruct;
+            sortedfsv = fsv;
 
         end
 
-        function filteredfjv = filter(fjv, filterdesc)
+        function filteredfsv = filter(fsv, filterdesc)
 
             if iscell(filterdesc{1})
                 for ifilter = 1 : numel(filterdesc)
-                    fjv = fjv.filter(filterdesc{ifilter});
+                    fsv = fsv.filter(filterdesc{ifilter});
                 end
-                filteredfjv = fjv;
+                filteredfsv = fsv;
                 return
             end
 
             columnname  = filterdesc{1};
             filterval   = filterdesc{2};
-            columnnames = fjv.columnnames;
-            flatjson    = fjv.flatjson;
+            columnnames = fsv.columnnames;
+            flatstruct    = fsv.flatstruct;
 
             r = regexprep(columnname, ' +', '.*');
             ind = regexp(columnnames, r);
@@ -130,7 +130,7 @@ classdef FlatStructViewer
                 end
             end
 
-            rowvals = flatjson(:, ind);
+            rowvals = flatstruct(:, ind);
 
             if ischar(filterval)
                 r = regexprep(filterval, ' +', '.*');
@@ -140,16 +140,16 @@ classdef FlatStructViewer
             ind = cellfun(@(res) filterval(res), rowvals);
             ind = find(ind);
 
-            flatjson = flatjson(ind, :);
+            flatstruct = flatstruct(ind, :);
 
-            fjv.flatjson = flatjson;
-            filteredfjv = fjv;
+            fsv.flatstruct = flatstruct;
+            filteredfsv = fsv;
 
         end
 
-        function fjv = reorderColumns(fjv, frontColumNames)
+        function fsv = reorderColumns(fsv, frontColumNames)
 
-            columnnames = fjv.columnnames;
+            columnnames = fsv.columnnames;
 
             if iscell(frontColumNames)
                 [isok, find] = ismember(frontColumNames, columnnames);
@@ -161,11 +161,11 @@ classdef FlatStructViewer
             nind = true(numel(columnnames), 1);
             nind(find) = false;
 
-            fjv.columnnames = horzcat(columnnames(find), ...
+            fsv.columnnames = horzcat(columnnames(find), ...
                                       columnnames(nind));
 
-            fjv.flatjson = horzcat(fjv.flatjson(:, find), ...
-                                   fjv.flatjson(:, nind));
+            fsv.flatstruct = horzcat(fsv.flatstruct(:, find), ...
+                                   fsv.flatstruct(:, nind));
 
         end
     end
