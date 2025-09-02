@@ -54,6 +54,16 @@ function mstruct = mergeStructs(mstructs, varargin)
         end
 
     end
+
+    if isUnAssigned(mstruct1)
+        mstruct = mergeStructs({mstruct2, mstructrests{:}}, 'warn', opt.warn, 'tree', tree);
+        return
+    end
+
+    if isUnAssigned(mstruct2)
+        mstruct = mergeStructs({mstruct1, mstructrests{:}}, 'warn', opt.warn, 'tree', tree);
+        return
+    end
     
     fds1 = fieldnames(mstruct1);
     fds2 = fieldnames(mstruct2);
