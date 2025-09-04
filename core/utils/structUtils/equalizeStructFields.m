@@ -1,4 +1,4 @@
-function [mstruct, value] = equalizeStructField(mstruct, fieldnamelists, defaultvalue)
+function [mstruct, value] = equalizeStructFields(mstruct, fieldnamelists, defaultvalue)
 
     if nargin < 3
         defaultvalue = UnAssigned();
