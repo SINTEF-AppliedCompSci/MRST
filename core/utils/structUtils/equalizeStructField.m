@@ -1,70 +1,43 @@
-function [mstruct, bothUnAssigned] = equalizeStructField(mstruct, fieldnamelist1, fieldnamelist2, varargin)
+function [mstruct, value] = equalizeStructField(mstruct, fieldnamelists, defaultvalue)
 
-    value1 = getStructField(mstruct, fieldnamelist1);
-    value2 = getStructField(mstruct, fieldnamelist2);
-
-    bothUnAssigned = false;
+    if nargin < 3
+        defaultvalue = UnAssigned();
+    end
     
-    if isUnAssigned(value1)
+    values = cell(numel(fieldnamelists), 1);
 
-        if isUnAssigned(value2)
-            
-            bothUnAssigned = true;
-            return
-            
-        else
-            
-            mstruct = setStructField(mstruct, fieldnamelist1, value2);
+    for ifd = 1 : numel(fieldnamelists)
+        fieldnamelist = fieldnamelists{ifd};
+        values{ifd} = getStructField(mstruct, fieldnamelist);
+    end
 
-        end
+    assigned_inds = cellfun(@(v) isAssigned(v), values);
+    assigned_inds = find(assigned_inds);
+    
+    if isempty(assigned_inds)
+
+        value = defaultvalue;
 
     else
 
-        if isUnAssigned(value2)
+        fieldnamelist = fieldnamelists{assigned_inds(1)};
+        value = getStructField(mstruct, fieldnamelist);
+
+        for iass = 2 : numel(assigned_inds)
             
-            mstruct = setStructField(mstruct, fieldnamelist2, value1);
-
-        else
-
-            if isequal(value1, value2)
-
-                return
-
-            else
-
-                opt = struct('force', 'false', ...
-                             'warn', true);
-                opt = merge_options(opt, varargin{:});
-
-                if opt.force
-                    errorMessage = sprintf('Different values are given for the fields mstruct.%s and mstruct.%s. We do not know which one to choose...', ...
-                                           getPrintableName(fieldnamelist1)                                                                                  , ...
-                                           getPrintableName(fieldnamelist2));
-                    mstruct = setStructField(mstruct, fieldnamelist2, value1, 'handleMisMatch', 'error', 'errorMessage', errorMessage);
-                    if opt.warn
-                        fprintf('Fist value given in equalizeStructField is taken\n');
-                    end
-                else
-                    error('mismatch in equalizeStructField');
-                end
-                
+            fieldnamelist = fieldnamelists{assigned_inds(iass)};
+            v = getStructField(mstruct, fieldnamelist);
+            if ~isequal(v, value)
+                error('The values of the specified fields are not equal.');
             end
+            
         end
 
     end
-      
-end
 
-
-function namestr = getPrintableName(fieldnamelist)
-
-    if ischar(fieldnamelist)
-
-        namestr = getPrintableName({fieldnamelist})
-        return
-        
+    for ifd = 1 : numel(fieldnamelists)
+        fieldnamelist = fieldnamelists{ifd};
+        mstruct = setStructField(mstruct, fieldnamelist, value);
     end
-
-    namestr = strjoin(fieldnamelist, '.')
 
 end
