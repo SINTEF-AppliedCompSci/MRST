@@ -77,7 +77,16 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     % ----------------------------------------------------------------------------
     sW = 1-sG;
-    [krW, krG] = model.evaluateRelPerm({sW, sG});
+    useHyst = isa(model.FlowPropertyFunctions.RelativePermeability, ...
+                  'HystereticRelativePermeability');
+    if useHyst
+        % @@ evaluating relperm with hystereis requires we borrow from the AO-implementation
+        aostate = model.setProps(state, {'s', 'pressure'}, {{sW, sG}, p});
+        kr = model.getProps(aostate, 'RelativePermeability');
+        [krW, krG] = deal(kr{:});
+    else
+        [krW, krG] = model.evaluateRelPerm({sW, sG});
+    end
     
     % computing densities, mobilities and upstream indices
     [bW, mobW, fluxW, vW, upcw] = compMFlux(p       , f.bW, f.muW, f.rhoWS, trMult, krW, s, trans, model);

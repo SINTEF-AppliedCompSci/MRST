@@ -11,7 +11,7 @@ function fsg = free_sg(sg, sGmax, rw, rn)
 % effectively mobile.  It works for sharp-interface models, as well as 
 % capillary fringe models that uses endpoint scaling.  'fsg' represent
 % the CO2 that will be able to evacuate, e.g. excluding anything already
-% residually trapped, or that will be left as residuall yrapped.
+% residually trapped, or that will be left as residually trapped.
 %
 % As an example, for sharp-interface models (no capillary fringe), 
 % the free saturation can be thought of the part of the CO2 saturation 

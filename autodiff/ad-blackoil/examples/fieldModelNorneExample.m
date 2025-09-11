@@ -27,6 +27,7 @@ rock = initEclipseRock(deck);
 rock = compressRock(rock, G_sim.cells.indexMap);
 
 fluid = initDeckADIFluid(deck, 'useMex', useMex);
+fluid.ehystr{2} = 2;
 % Setup model, but skip setting up the operators since we do not have a
 % proper grid
 model = GenericBlackOilModel(G_sim, [], fluid, 'disgas', true, 'vapoil', true, 'inputdata', deck);
