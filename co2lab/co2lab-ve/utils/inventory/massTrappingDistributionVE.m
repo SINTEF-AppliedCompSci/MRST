@@ -1,10 +1,58 @@
 function masses = massTrappingDistributionVE(S, Smax, pressure, rs, Gt, fluidVE, rockVE, trapstruct, dh)
+% Compute the trapping distribution of CO2 in each cell of a top-surface grid
+%
+% SYNOPSIS:
+%   function masses = massTrappingDistributionVE(S, Smax, pressure, rs, Gt, ...
+%                                                fluidVE, rockVE, trapstruct, dh)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   S          - current CO2 saturation per cell
+%   Smax       - historically maximum OC2 saturation per cell
+%   pressure   - cell-wise pressure
+%   rs         - fraction of dissolved CO2 in brine per cell
+%   Gt         - top surface grid
+%   fluidVE    - VE fluid object
+%   rockVE     - VE rock object
+%   trapstruct - trapping structure
+%   dh         - subtrapping capacity (empty, on one value per grid cell)
+%
+% RETURNS:
+%   masses - vector with 7 components, representing:
+%            masses[1] : mass of dissolved gas, per cell
+%            masses[2] : mass of gas that is both structurally and residually trapped
+%            masses[3] : mass of gas that is residually (but not structurally) trapped
+%            masses[4] : mass of non-trapped gas that will be residually trapped
+%            masses[5] : mass of structurally trapped gas, not counting the gas that 
+%                        will eventually be residually trapped
+%            masses[6] : mass of subscale trapped gas (if 'dh' is nonempty)
+%            masses[7] : mass of 'free' gas (i.e. not trapped in any way)
 
-    % NB: Key approximation done: for capillary fringe models, it is assumed that
-    % the mobile and immobile part of the saturations are uniformly distributed
-    % in z in [0, h] and [0,hmax], respectively.  It is also assumed that the
-    % enpoint scaling model is used for hysteresis, in order for the computation
-    % of S_immob to make sense below.
+%{
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
+% NB: Key approximation done: for capillary fringe models, it is assumed that
+% the mobile and immobile part of the saturations are uniformly distributed
+% in z in [0, h] and [0,hmax], respectively.  It is also assumed that the
+% enpoint scaling model is used for hysteresis, in order for the computation
+% of S_immob to make sense below.
 
     if isempty(dh)
         dh = 0;

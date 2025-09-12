@@ -1,5 +1,58 @@
 function masses = massTrappingDistribution3D(s, smax, pressure, rs, G, ...
                                              fluid, rock, res_water, res_gas, varargin)
+% Compute the trapping distribution of CO2 in each cell of a 3D gird
+%
+% SYNOPSIS:
+%   function masses = massTrappingDistribution3D(s, smax, pressure, rs, Gt, ...
+%                                                fluidVE, rockVE, res_water, ...
+%                                                res_gas, varargin)
+%
+% DESCRIPTION:
+%
+% PARAMETERS:
+%   s          - current CO2 saturation per cell
+%   smax       - historically maximum OC2 saturation per cell
+%   pressure   - cell-wise pressure
+%   rs         - fraction of dissolved CO2 in brine per cell
+%   G          - 3D grid
+%   fluid      - fluid object
+%   rock       - rock object
+%   res_water  - max value for residual water saturation
+%   res_gas    - max value for residual CO2 saturation 
+%   optional values:
+%      dh         - subtrapping capacity (support not yet implemented)
+%      trapstruct - trapping structure (if not provided, it will be calculated)
+% 
+% RETURNS:
+%   masses - vector with 7 components, representing:
+%            masses[1] : mass of dissolved gas, per cell
+%            masses[2] : mass of gas that is both structurally and residually trapped
+%            masses[3] : mass of gas that is residually (but not structurally) trapped
+%            masses[4] : mass of non-trapped gas that will be residually trapped
+%            masses[5] : mass of structurally trapped gas, not counting the gas that 
+%                        will eventually be residually trapped
+%            masses[6] : mass of subscale trapped gas (if 'dh' is nonempty)
+%            masses[7] : mass of 'free' gas (i.e. not trapped in any way)
+
+%{
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
+
     
     opt.dh = 0;
     opt.trapstruct = [];
