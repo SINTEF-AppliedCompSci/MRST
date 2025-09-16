@@ -21,16 +21,21 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-mrstModule add static-modeling
+mrstModule add static-modeling % for generating heterogeneity fields
+mrstModule add co2lab-mit % for 3D residual saturaiton
+mrstModule add ad-blackoil % for GenericBlackOilModel
 gravity on
 
 options.cross_sectional = true;
-options.heterogeneity = false;
+options.heterogeneity = 'none'; % other options are 'gaussian', 'prograding', and 'retrograding'
 options.integrate_heterogeneity = true;
+options.xres = 100;
+options.yres = 30;
 options.zres = 10;
 options.srw = 0;
 options.srg = 0;
 options.cap_fringe = false;
+options.pc_scaling_fac = 0.4; % only relevant for capillary fringe models
 options.skip_3D = false;
 options.avg_perm = 400 * milli * darcy;
 options.avg_poro = 0.2;
@@ -39,17 +44,19 @@ options.thickness = 20 * meter;
 options.trap1_size = 20;
 options.trap2_size = 10;
 options.mass_injection_rate = 20 * kilo * 1e3 / year;
+options.inj_period = 1 * year;
+options.inj_steps = 12;
 options.migr_period = 2 * year;
 options.migr_steps = 12;
-
-
+options.relperm_exponents = [2, 2]; % default: quadratic relperm curves
+options.maxTimestepCuts = 14;
 
 options = merge_options(options, varargin{:});
 
 
 %% Set up a 3D test grid with two structual traps
 
-[xres, yres, zres] = deal(100, 30, options.zres);
+[xres, yres, zres] = deal(options.xres, options.yres, options.zres);
 
 if options.cross_sectional
     % we only simulate on a vertical slice
@@ -67,9 +74,9 @@ G = make_testgrid([xres, yres, zres], ...      % x, y and z resolution
 %% Set up the rest of the simulation input data
 
 % define rock object, one value per gridcell
-if options.heterogeneity
+if ~strcmpi(options.heterogeneity, 'none')
 
-    structure_length_scale = 2000; 
+    expo = 1.5;
     scale = diag([xlen, ylen, zlen]);
     scale = scale * diag([1 1 200]);% rock structure
     res = [xres, yres, zres];
@@ -79,18 +86,43 @@ if options.heterogeneity
         scale(:,2) = [];
         res(2) = [];
     end
-    
-    % compute an anisotropic Gaussian field to represent log-perm
-    logperm = GaussianProcessND(res, ...
-                 @(pt) exp(-sqrt(sum((pt * scale).^2, 2))/structure_length_scale));
-    
-    % compute permeability from its logarithm, and scale it to ensure exact
-    % average
-    perm = 10.^(logperm/3); % /5
-    perm = perm / mean(perm(:)) * options.avg_perm;
-    
+
+    layersize = prod(res) / res(end);        
+        
+    if strcmpi(options.heterogeneity, 'gaussian')
+        
+        structure_length_scale = 2000; 
+            
+        % compute an anisotropic Gaussian field to represent log-perm
+        logperm = GaussianProcessND(res, ...
+                                    @(pt) exp(-sqrt(sum((pt * scale).^2, 2))/structure_length_scale));
+        
+        % compute permeability from its logarithm, and scale it to ensure exact
+        % average
+        perm = 10.^(logperm/3); % /5
+        perm = perm / mean(perm(:)) * options.avg_perm;
+        
+    elseif strcmpi(options.heterogeneity, 'prograding')
+        % define a permeability that is constant per layer, and increases
+        % towards the top of the grid
+        perm = reshape(ones(layersize, 1) .* fliplr(1:res(end)), [], 1);
+        perm = perm .^ expo;
+        perm = perm / mean(perm) * options.avg_perm;
+        
+    elseif strcmpi(options.heterogeneity, 'retrograding')
+        % define a permeability that is constant per layer, and decreases
+        %towards the top of the grid
+        perm = reshape(ones(layersize, 1) .* (1:res(end)), [], 1);
+        perm = perm .^ expo;
+        perm = perm / mean(perm) * options.avg_perm;
+    else
+        % unrecgonized heterogeneity type
+        error('Unrecognized heterogeneity type');
+    end
+
     % computing computing porosity using Cozeny-Karman relation
     poro = poroFromPerm(perm, options.avg_poro, 1e-10);
+    
     rock = struct('perm', perm(:), 'poro', poro(:));
 else
     N = G.cells.num;
@@ -120,18 +152,47 @@ muw     = 8e-4 * Pascal * second; % brine viscosity
 muco2   = co2.mu(p_ref, t_ref) * Pascal * second; % co2 viscosity
 
 % Use function 'initSimpleADIFluid' to make a simple fluid object
-fluid = initSimpleADIFluid('phases', 'WG'           , ...
-                           'mu'  , [muw, muco2]     , ...
-                           'rho' , [rhow, rhoc]     , ...
-                           'pRef', p_ref            , ...
-                           'c'   , [cf_wat, cf_co2] , ...
-                           'cR'  , cf_rock          , ...
-                           'n'   , [2 2]); % quadratic relperm curves
+fluid = initSimpleADIFluid('phases', 'WG'                     , ...
+                           'mu'  , [muw, muco2]               , ...
+                           'rho' , [rhow, rhoc]               , ...
+                           'pRef', p_ref                      , ...
+                           'c'   , [cf_wat, cf_co2]           , ...
+                           'cR'  , cf_rock                    , ...
+                           'smin', [options.srw, options.srg] , ...
+                           'n'   , options.relperm_exponents); 
 
-% Adjust relperm curves to account for residual saturation
-krG_orig = fluid.krG;
-fluid.krW = @(s) fluid.krW(max((s-options.srw)./(1-options.srw), 0));
-fluid.krG = @(s) fluid.krG(max((s-options.srg)./(1-options.srg), 0));
+% initSimpleADIFluid assumes endpoint relperm is 1.  Fix this by redefining
+% relperm functions.
+krG = @(sg) sg.^options.relperm_exponents(2);  % drainage curve
+krGmax = krG(1-options.srw);
+fluid.krG = @(sg) min(krGmax, krG(sg));
+fluid.krW = @(sw) ( max(sw-options.srw, 0) ./ (1-options.srw)) .^ options.relperm_exponents(1);
+
+
+if options.srg > 0 || options.srw > 0 % residual saturation present
+
+    srg = max(options.srg, 1e-6); % Ensure not completely zero to avoid corner
+    srw = max(options.srw, 1e-6); % case in HystereticRelativePermeability
+    
+    sgmax = 1 - srw;
+    krGimb = @(s) fluid.krG( ...
+        sgmax * max((s-srg) ./ (sgmax - srg), 0));
+
+    fluid.krG = {fluid.krG, krGimb};
+    fluid.krW = {fluid.krW, fluid.krW};
+
+    fluid.krPts.w = [srw, srw, 1, 1];
+    fluid.krPts.g = [0, 0, 1-srw, fluid.krG{1}(1-srw);
+                     0, srg, 1-srw, fluid.krG{2}(1-srw)];
+
+    fluid.krHyst = 2; % the presence of the krHyst field will activate 
+                      % hysteretic relative permeability in the model
+    %fluid.ehystr = {0.1 2 1 0.01};
+    fluid.ehystr = {0.1 2 1 0.1};
+    
+    rock.regions.saturation = ones(G.cells.num, 1);
+    rock.regions.imbibition = 2 * ones(G.cells.num, 1);
+end
 
 % identify injection cell
 well_ix = ceil(xres/8); % towards the left side in x-direction
@@ -153,12 +214,12 @@ W = addWell([], G, rock, wellcell, ...
 bc = open_boundary_conditions(G, pfun, options.cross_sectional);
 
 % define schedule
+inj_period = options.inj_period;
+inj_steps = options.inj_steps;
+
 if options.cross_sectional
-    inj_period = 2 * year;
-    inj_steps = 24;
-else
-    inj_period = 1 * year;
-    inj_steps = 12;
+    inj_period = inj_period * 2;
+    inj_steps = inj_steps * 2;
 end
 
 schedule = simple_injection_migration_schedule(W, bc, inj_period, inj_steps, ...
@@ -167,15 +228,23 @@ schedule = simple_injection_migration_schedule(W, bc, inj_period, inj_steps, ...
 % define VE fluid
 [G_VE, G] = topSurfaceGrid(G);
 rock_VE = averageRock(rock, G_VE);
-[C, alpha] = deal(0.4, 0.5); % to specify capillary pressure, if we use fringe
+[C, alpha] = deal(options.pc_scaling_fac, 0.5); % to specify capillary pressure, if we use fringe
 relperm_model = 'sharp_interface_simple';
-if options.heterogeneity && options.integrate_heterogeneity
+if ~strcmpi(options.heterogeneity, 'none') && options.integrate_heterogeneity
     relperm_model = 'sharp_interface_integrated';
 elseif options.cap_fringe
-    relperm_model = 'P-scaled table';
+    relperm_model = 'P-scaled table'; 
+    %relperm_model = 'S table'; 
 end
-    
-krmax = [fluid.krW(1-options.srg), fluid.krG(1-options.srw)]; 
+
+if iscell(fluid.krW)
+    krmax = [fluid.krW{1}(1), fluid.krG{1}(1-options.srw)]; 
+    kr3D = fluid.krG{1};
+else
+    krmax = [fluid.krW(1), fluid.krG(1-options.srw)];  
+    kr3D = fluid.krG;
+end
+
 fluid_VE = makeVEFluid(G_VE, rock_VE, relperm_model, ...
                        'co2_mu_ref', muco2, ...
                        'wat_mu_ref', muw, ...
@@ -188,8 +257,9 @@ fluid_VE = makeVEFluid(G_VE, rock_VE, relperm_model, ...
                        'residual', [options.srw, options.srg], ...
                        'krmax', krmax, ...        % only relevant if sharp interface
                        'invPc3D', [C, alpha], ... % only relevant if cap. fringe 
-                       'kr3D', krG_orig ...       % only relevant if cap.fringe
+                       'kr3D', kr3D ...           % only relevant if cap. fringe
                        );
+                                                
 
 %% Simulate injection in 3D
 if options.cap_fringe
@@ -197,10 +267,15 @@ if options.cap_fringe
 end
 
 if ~options.skip_3D
+        
     model = TwoPhaseWaterGasModel(G, rock, fluid, 0, 0);
-    
+    model.verbose=true;
+    nls = NonLinearSolver('maxTimestepCuts', options.maxTimestepCuts, ...
+                          'timeStepSelector', IterationCountTimeStepSelector('targetIterationCount', 12));
+    %'useRelaxation', true, ...
     tic;
-    [wellSol3D, states_3D] = simulateScheduleAD(initState, model, schedule);
+    [wellSol3D, states_3D] = simulateScheduleAD(initState, model, schedule, ...
+                                                'NonLinearSolver', nls);
     timing.sim3D = toc;
     states_3D = [{initState}; states_3D];
 else
@@ -208,6 +283,7 @@ else
     model = [];
 end
 
+%return;
 
 %% Simulate injection in VE
 model_VE = CO2VEBlackOilTypeModel(G_VE, rock_VE, fluid_VE);
@@ -223,9 +299,12 @@ W_VE = convertwellsVE(W, G, G_VE, rock_VE);
 schedule_VE = simple_injection_migration_schedule(...
     W_VE, bc_VE, inj_period, inj_steps, options.migr_period, options.migr_steps);
 
+model_VE.verbose=true;
+
 tic;
-[wellSol_VE, states_VE] = simulateScheduleAD(initState_VE, model_VE, ...
-                                             schedule_VE);
+%nls = NonLinearSolver('useRelaxation', true);
+[wellSol_VE, states_VE] = simulateScheduleAD(initState_VE, model_VE, schedule_VE);
+                                             
 timing.simVE = toc;
 states_VE = [{initState_VE}; states_VE];
 
@@ -251,9 +330,3 @@ for i = 1:numel(states_VE)
                                                'rhoW', fluid_VE.rhoW(p), ...
                                                'rhoG', fluid_VE.rhoG(p))}];
 end
-
-%% Add rock object to grid to allow visualization outside the script
-% if options.heterogeneity
-%     G.rock = rock;
-%     G_VE.rock = rock_VE;
-% end

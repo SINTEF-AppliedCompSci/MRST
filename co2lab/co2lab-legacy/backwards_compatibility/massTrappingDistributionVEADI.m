@@ -1,4 +1,5 @@
-function [masses, masses_0] = massTrappingDistributionVEADI(Gt, p, sG, sW, h, h_max, rock, fluidADI, trapstruct, dh, varargin)
+function [masses, masses_0] = massTrappingDistributionVEADI(Gt, p, sG, sW, h, h_max, rock, ...
+                                                      fluidADI, trapstruct, dh, varargin)
 % Compute the trapping status distribution of CO2 in each cell of a top-surface grid
 %
 % SYNOPSIS:
@@ -57,6 +58,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    deprecatedMessage('massTrappingDistributionVEADI', 'massTrappingDistributionVE');
+    
     opt.rs = 0;
     opt    = merge_options(opt, varargin{:});
     
@@ -79,6 +82,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     rhoCO2   = fluidADI.rhoGS .* fluidADI.bG(p);
     gasPhase = sum(pv .* (rhoCO2 .* SG));
     
+    % 'zt' is the effective spillpoint depth of the cell (zero for cells outside
+    % structural traps, and equal to the minimum of the trap's spillpoint depth
+    % and the bottom of the aquifer for trap cells)
     if isfield(trapstruct, 'z_spill_loc')
         zt = max(trapstruct.z_spill_loc-Gt.cells.z, 0);
         zt = min(zt, Gt.cells.H);
@@ -102,15 +108,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     hm_eff = min(h_max - hm_sub, Gt.cells.H);
     
     % this requires that the fluid has a sharp interface relperm of normal type    
-    hdift     = max(min(zt, hm_eff) - min(zt, h_eff),0);    % trapped part of h_max-h
-    strucVol  = sum(min(zt, h_eff) .* pv .* rhoCO2);             % trapped, flowing
-    plumeVol  = sum(rhoCO2 .* h_eff.* pv) - strucVol;            % non-trapped, flowing
-    resStruc  = (strucVol + sum(hdift .* rhoCO2 .* pv)) * sr;      % trapped, res
-    freeStruc = strucVol * (1 - sr - sw);                          % trapped, non-res
-    freeRes   = plumeVol * sr;                                     % non-trapped, flowing, res
-    freeMov   = plumeVol * (1 - sw - sr);                          % non-trapped, flowing, non-res
+    hdift     = max(min(zt, hm_eff) - min(zt, h_eff),0);      % struct. trapped part of h_max-h
+    strucVol  = sum(min(zt, h_eff) .* pv .* rhoCO2);          % flowing, struct. trapped, 
+    plumeVol  = sum(rhoCO2 .* h_eff.* pv) - strucVol;         % flowing, not struct. trapped
+    resStruc  = (strucVol + sum(hdift .* rhoCO2 .* pv)) * sr; % struct. trapped, res
+    freeStruc = strucVol * (1 - sr - sw);                     % struct. trapped, non-res
+    freeRes   = plumeVol * sr;                                % res. part of flowing, not struct. trapped
+    freeMov   = plumeVol * (1 - sw - sr);                     % moving part of flowing, not struct. trapped
     resTrap   = sum(max(hm_eff - max(zt, h_eff),0) .* ...
-                    rhoCO2 .* pv ) .* sr;                          % non-trapped, non-flowing, res
+                    rhoCO2 .* pv ) .* sr;                     % residually trapped, not struct. trapped
     resDis    = fluidADI.rhoGS .* sum(pv.* (rs .* fluidADI.bW(p) .* SF)); % dissolved
     subtrap   = sum((hm_sub * sr + h_sub * (1 - sr - sw)) .* pv .* rhoCO2);
 
