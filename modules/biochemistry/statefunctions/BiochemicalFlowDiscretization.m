@@ -43,10 +43,10 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
                 props = props.setStateFunction('BactFlux', DiffusiveBactFlux(model));
             end
             
-            if model.moleculardiffusion
-                % Set molecular diffusion flux
-                props = props.setStateFunction('MolecularDiffusivity', ComponentMolecularDiffPhaseFlux(model));
-            end
+            %if model.moleculardiffusion %SDSD MODIF
+             %   % Set molecular diffusion flux
+            %    props = props.setStateFunction('MolecularDiffusivity', ComponentMolecularDiffPhaseFlux(model));
+            %end
         end
         
         %-----------------------------------------------------------------%
