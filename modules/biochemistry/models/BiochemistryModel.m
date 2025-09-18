@@ -53,7 +53,6 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         b_bact       = 2.35148e-6; % 1/s
         
         Db = 10^(-8)*meter/second
-        bDiffusionEffect = false;
         moleculardiffusion = false;
         
         nbactMax = 1e9; % 1/m^3
@@ -336,10 +335,6 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                 fd = model.FlowDiscretization;
                 src_growthdecay = model.FacilityModel.getBacteriaSources(fd, state, state0, dt);
                 beqs{1} = beqs{1} - src_growthdecay;
-                %  treat diffusion separately
-                if any(model.bDiffusionEffect > 0)
-                    beqs{1} = model.operators.AccDiv(beqs{1}, bflux{1});
-                end
             else
                 [beqs, bnames, btypes] = deal([]);
             end
