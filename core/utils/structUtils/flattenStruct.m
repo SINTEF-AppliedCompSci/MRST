@@ -4,14 +4,19 @@ function flatjsonviewer = flattenStruct(mstruct, varargin)
 % all the entries given in the structure at the same level. This function returns an object of the class
 % :battmo:`FlatStructViewer` which offers visualization capabilities with sorting and filtering.
     
-    opt = struct('doprint', true);
+    opt = struct('doprint', true, ...
+                 'onlyfieldnames', false);
     opt = merge_options(opt, varargin{:});
     
     flatjson = flattenStruct_({}, mstruct, []);
     flatjson = reshape(flatjson, 2, [])';
 
-    flatjsonviewer = FlatStructViewer(flatjson);
-
+    if opt.onlyfieldnames
+        flatjsonviewer = FlatStructViewer(flatjson(:, 1), {'field names'});
+    else
+        flatjsonviewer = FlatStructViewer(flatjson);
+    end
+    
     if opt.doprint
         flatjsonviewer.print();
     end
