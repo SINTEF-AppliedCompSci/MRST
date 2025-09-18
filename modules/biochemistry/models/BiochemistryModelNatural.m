@@ -52,7 +52,7 @@ classdef BiochemistryModelNatural <  GenericNaturalVariablesModel
         Psigrowthmax = 1.7e-4;
         b_bact = 6.87E-10;
         Db = 10^(-8)*meter/second
-        bDiffusionEffect = false;
+        %bDiffusionEffect = false; %SDSMODIF
         moleculardiffusion = false;
         nbactMax = 6.88e11;
         m_rate = 4.3e-10;
@@ -294,9 +294,9 @@ classdef BiochemistryModelNatural <  GenericNaturalVariablesModel
                 src_growthdecay = model.FacilityModel.getBacteriaSources(fd, state, state0, dt);
                 beqs{1} = beqs{1} - src_growthdecay;
                 %  treat diffusion separately
-                if any(model.bDiffusionEffect > 0)
-                    beqs{1} = model.operators.AccDiv(beqs{1}, bflux{1});
-                end
+                %if any(model.bDiffusionEffect > 0)
+                 %   beqs{1} = model.operators.AccDiv(beqs{1}, bflux{1});
+                %end
             else
                 [beqs, bnames, btypes] = deal([]);
             end
