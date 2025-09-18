@@ -39,14 +39,7 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
             props = props.setStateFunction('PsiDecayRate', DecayBactRateSRC(model));
             props = props.setStateFunction('BactConvRate', BactConvertionRate(model));
             
-            if model.bDiffusionEffect
-                props = props.setStateFunction('BactFlux', DiffusiveBactFlux(model));
-            end
-            
-            %if model.moleculardiffusion %SDSD MODIF
-             %   % Set molecular diffusion flux
-            %    props = props.setStateFunction('MolecularDiffusivity', ComponentMolecularDiffPhaseFlux(model));
-            %end
+          
         end
         
         %-----------------------------------------------------------------%
@@ -74,9 +67,6 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
             flowState = fd.buildFlowState(model, state, state0, dt);
             
             bflux = [];
-            if model.bDiffusionEffect
-                bflux = model.getProp(flowState, 'BactFlux');
-            end
             
             % Add up accumulation
             acc = (bactmass - bactmass0)./dt;
