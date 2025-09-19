@@ -45,15 +45,11 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
         % Physical quantities and bounds
         Y_H2 = 3.90875e11; % in 1/mole(H2)
         gammak   = [];
-        mol_diff = [];
         alphaH2  = 3.6e-7;
         alphaCO2 = 1.98e-6;
 
         Psigrowthmax = 1.338e-4; % 1/s        
         b_bact       = 2.35148e-6; % 1/s
-        
-        Db = 10^(-8)*meter/second
-        moleculardiffusion = false;
         
         nbactMax = 1e9; % 1/m^3
         
@@ -78,47 +74,12 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
             end
 
             namecp = compFluid.names();
-            if model.moleculardiffusion
-                indices = struct('H2', find(strcmp(namecp, 'H2')), ... 
-                    'C1', find(strcmp(namecp, 'C1')), ... 
-                    'CO2', find(strcmp(namecp, 'CO2')), ...
-                    'H2O', find(strcmp(namecp, 'H2O')), ...
-                    'N2', find(strcmp(namecp, 'N2')), ...
-                    'C2', find(strcmp(namecp, 'C2')), ...
-                    'C3', find(strcmp(namecp, 'C3')), ...
-                    'NC4', find(strcmp(namecp, 'NC4')));
-                
-                fields = fieldnames(indices);
-                nfields=numel(fields);
-                model.mol_diff=zeros(nfields,2);
-
-                coeffs = struct(...
-                    'H2',  [4.5e-9, 6.1e-5], ...
-                    'C1', [2.6e-9, 1.6e-5], ...
-                    'H2O', [2.3e-9, 1.5e-5], ...
-                    'CO2', [1.9e-9, 1.4e-5], ... 
-                    'N2',  [2.1e-9, 1.8e-5], ... 
-                    'C2',  [3.2e-9, 2.5e-5], ... 
-                    'C3',  [2.8e-9, 2.2e-5], ... 
-                    'NC4', [2.4e-9, 1.9e-5]);
-                
-                for i = 1:nfields
-                    comp = fields{i};
-                    indComp = indices.(comp);
-                    
-                    if ~isempty(indComp) && isfield(coeffs, comp)
-                      model.mol_diff(indices.(comp),:)= coeffs.(comp);
-                    end
-                 end
-            end
-
+ 
             % Set compositinal fluid
             if isempty(compFluid)
             
                 % Default is Methanogenesis
-                %compFluid = TableCompositionalMixture({'Hydrogen', 'Water','Nitrogen', 'CarbonDioxide', 'Methane'}, ...
-                %   {'H2', 'Water', 'N2', 'CO2', 'CH4'});
-                if strcmp(model.metabolicReaction,'MethanogenicArchae')
+               if strcmp(model.metabolicReaction,'MethanogenicArchae')
                     compFluid = TableCompositionalMixture({'Hydrogen', 'Water','Nitrogen', 'CarbonDioxide', 'Methane'}, ...
                     {'H2', 'H2O', 'N2', 'CO2', 'C1'});
                     model.gammak = [-4.0, 2.0, 0.0, -1.0, 1.0];
@@ -126,7 +87,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
                     model.EOSModel = eos;
                else
                   warning('MethanogenicArchae is the default now; other reaction not yet implemented');
-                end
+               end
             else
                 ncomp=compFluid.getNumberOfComponents();
                 model.gammak=zeros(1,ncomp);
@@ -150,7 +111,7 @@ classdef BiochemistryModel <  GenericOverallCompositionModel
 %             model.nonlinearTolerance = 1e-3;
             % Check that we have a valid thermal formulation
             assert(any(strcmpi(model.bacterialFormulation, {'bacterialmodel'})), ...
-                'BioChemsitryModel supports currently only one micro-organism');
+                'BioChemistryModel supports currently only one micro-organism');
             % Set output state functions
             model.OutputStateFunctions = {'ComponentTotalMass', 'Density'};
             if model.bacteriamodel

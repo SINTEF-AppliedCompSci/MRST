@@ -23,7 +23,7 @@ close all;
 
 %% 1. Initialize MRST and Load Modules
 %--------------------------------------------------------------------------
-mrstModule add compositional deckformat ad-core ad-props mrst-gui;
+mrstModule add  biochemistry compositional deckformat ad-core ad-props mrst-gui;
 mrstVerbose off;  % Reduce command window output for cleaner execution
 
 %% 2. Set Up Base Simulation Model
@@ -81,7 +81,6 @@ mex_backend = DiagonalAutoDiffBackend('modifyOperators', true, 'useMex', true, '
 % Biochemical model arguments
 modelArgs = {model.G, model.rock, model.fluid, compFluid, true, diagonal_backend, ...
     'water', false, 'oil', true, 'gas', true, 'bacteriamodel', true, ...
-    'bDiffusionEffect', false, 'moleculardiffusion', false, ...
     'liquidPhase', 'O', 'vaporPhase', 'G'};
 
 model = BiochemistryModel(modelArgs{:});

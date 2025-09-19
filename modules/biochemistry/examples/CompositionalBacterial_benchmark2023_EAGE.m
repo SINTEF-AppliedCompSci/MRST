@@ -27,9 +27,9 @@ nobact = false;         % Set true to disable bacterial effects
 
 %% ============ Grid and Rock Properties =====================
 % Define grid dimensions
-[nx, ny, nz] = deal(21, 21, 8);       % Grid cells in x, y, z directions
+[nx, ny, nz] = deal(31, 31, 8);       % Grid cells in x, y, z directions
 [Lx, Ly, Lz] = deal(1525, 1525, 50);  % Physical dimensions (meters)
-
+git add 
 % Create grid and shift vertically
 G = cartGrid([nx, ny, nz], [Lx, Ly, Lz]);
 G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + 1000; % Reservoir depth = 1000m

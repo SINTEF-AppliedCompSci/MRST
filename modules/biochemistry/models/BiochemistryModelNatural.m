@@ -46,14 +46,10 @@ classdef BiochemistryModelNatural <  GenericNaturalVariablesModel
         % Physical quantities and bounds
         Y_H2 = 4.1e12;  % Conversion factor for hydrogen consumption (moles/volume)
         gammak = [];
-        mol_diff = [];
         alphaH2 = 1.0946e-6;
         alphaCO2 = 3.188e-5;
         Psigrowthmax = 1.7e-4;
         b_bact = 6.87E-10;
-        Db = 10^(-8)*meter/second
-        %bDiffusionEffect = false; %SDSMODIF
-        moleculardiffusion = false;
         nbactMax = 6.88e11;
         m_rate = 4.3e-10;
         bacteriamodel = true;
@@ -77,40 +73,7 @@ classdef BiochemistryModelNatural <  GenericNaturalVariablesModel
             end
 
             namecp = compFluid.names();
-            if model.moleculardiffusion
-                indices = struct('H2', find(strcmp(namecp, 'H2')), ... 
-                    'C1', find(strcmp(namecp, 'C1')), ... 
-                    'CO2', find(strcmp(namecp, 'CO2')), ...
-                    'H2O', find(strcmp(namecp, 'H2O')), ...
-                    'N2', find(strcmp(namecp, 'N2')), ...
-                    'C2', find(strcmp(namecp, 'C2')), ...
-                    'C3', find(strcmp(namecp, 'C3')), ...
-                    'NC4', find(strcmp(namecp, 'NC4')));
-                
-                fields = fieldnames(indices);
-                nfields=numel(fields);
-                model.mol_diff=zeros(nfields,2);
-
-                coeffs = struct(...
-                    'H2',  [4.5e-9, 6.1e-5], ...
-                    'C1', [2.6e-9, 1.6e-5], ...
-                    'H2O', [2.3e-9, 1.5e-5], ...
-                    'CO2', [1.9e-9, 1.4e-5], ... 
-                    'N2',  [2.1e-9, 1.8e-5], ... 
-                    'C2',  [3.2e-9, 2.5e-5], ... 
-                    'C3',  [2.8e-9, 2.2e-5], ... 
-                    'NC4', [2.4e-9, 1.9e-5]);
-                
-                for i = 1:nfields
-                    comp = fields{i};
-                    indComp = indices.(comp);
-                    
-                    if ~isempty(indComp) && isfield(coeffs, comp)
-                      model.mol_diff(indices.(comp),:)= coeffs.(comp);
-                    end
-                 end
-            end
-
+          
             % Set compositinal fluid
             if isempty(compFluid)
                 % Default is Methanogenesis
@@ -293,10 +256,6 @@ classdef BiochemistryModelNatural <  GenericNaturalVariablesModel
                 fd = model.FlowDiscretization;
                 src_growthdecay = model.FacilityModel.getBacteriaSources(fd, state, state0, dt);
                 beqs{1} = beqs{1} - src_growthdecay;
-                %  treat diffusion separately
-                %if any(model.bDiffusionEffect > 0)
-                 %   beqs{1} = model.operators.AccDiv(beqs{1}, bflux{1});
-                %end
             else
                 [beqs, bnames, btypes] = deal([]);
             end
