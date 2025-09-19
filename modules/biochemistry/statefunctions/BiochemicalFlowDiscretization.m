@@ -34,7 +34,6 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
                 % Static transmissibilities already been set up by parent
             end
             
-            props = props.setStateFunction('MolecularDiffPhaseFlux', ComponentMolecularDiffPhaseFlux(model));
             props = props.setStateFunction('PsiGrowthRate', GrowthBactRateSRC(model));
             props = props.setStateFunction('PsiDecayRate', DecayBactRateSRC(model));
             props = props.setStateFunction('BactConvRate', BactConvertionRate(model));
@@ -49,15 +48,6 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
             act = model.getActivePhases();
             ncomp = model.getNumberOfComponents();
             nph = sum(act); 
-            
-            if model.moleculardiffusion           
-                J = model.getProps(flowState, 'MolecularDiffPhaseFlux');
-                for c = 1:ncomp
-                    for ph = 1:nph                   
-                        flux{c} = flux{c} + J{c,ph};                     
-                    end
-                end
-            end
         end
         
         %-----------------------------------------------------------------%
