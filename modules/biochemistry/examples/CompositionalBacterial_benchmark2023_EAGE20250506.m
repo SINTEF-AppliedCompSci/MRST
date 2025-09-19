@@ -19,13 +19,13 @@ mrstModule add biochemistry compositional ad-blackoil ad-core ad-props mrst-gui
 
 % Simulation parameters
 gravity reset on 
-nobact = false;         % Set true to disable bacterial effects
+nobact = true;         % Set true to disable bacterial effects
 MolecDiffus = false;    % Set true to enable molecular diffusion
 Bactdiffus = false;     % Set true to enable bacterial diffusion
 
 %% ============ Grid and Rock Properties =====================
 % Define grid dimensions
-[nx, ny, nz] = deal(31, 31, 8);       % Grid cells in x, y, z directions
+[nx, ny, nz] = deal(21, 21, 8);       % Grid cells in x, y, z directions
 [Lx, Ly, Lz] = deal(1525, 1525, 50);  % Physical dimensions (meters)
 
 % Create grid and shift vertically
@@ -162,7 +162,7 @@ end
 
 %% Run Simulation
 % Pack and run simulation problem
-name_nbs0 = 'Benchmark2023AEGE_180_pack_NOBACT_6cycles_msalt0_diag_gmreslsolve';
+name_nbs0 = 'Benchmark2023AEGE_180_pack_NOBACT_6cycles_msalt0';
 problem_nbs0 = packSimulationProblem(state0, model, schedule, name_nbs0, 'NonLinearSolver', nls);
 
 if nobact
@@ -171,7 +171,7 @@ if nobact
     [ws_nbs0, states_nbs0] = getPackedSimulatorOutput(problem_nbs0);
 else
     % Run with bacteria
-    name = 'Benchmark2023AEGE_180_pack_1cycle_n0_1e8_msalt0_moldiff_gmreslsolve';
+    name = 'Benchmark2023AEGE_180_pack_1cycle_n0_1e8_msalt0';
     problem_bs0 = packSimulationProblem(state0, model, schedule, name, 'NonLinearSolver', nls); 
     simulatePackedProblem(problem_bs0);
     simulatePackedProblem(problem_nbs0);

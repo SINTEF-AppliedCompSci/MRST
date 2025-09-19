@@ -2,7 +2,7 @@
 % 
 % This example simulates the storage of hydrogen in a saline aquifer and 
 % investigates the influence of physical properties such as H2 solubility, 
-% salinity, and molecular diffusion on various factors, including the 
+% and salinity on various factors, including the 
 % hydrogen plume, reservoir pressure, caprock tightness, and the recoverability 
 % and loss of hydrogen. The model features a 2D dome-shaped aquifer with 
 % integrated caprock and bedrock layers, extending horizontally for 50 m 
@@ -35,7 +35,7 @@
 %--------------------------------------------------------------------------
 
 clearvars; 
-mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr test-suite spe10
+mrstModule add biochemistry h2store ad-core ad-blackoil ad-props deckformat mrst-gui upr test-suite spe10
 
 %% Define the case name and read the Eclipse deck file
 baseName = 'H2_STORAGE_DOME_TRAP';
@@ -113,8 +113,8 @@ end
 % Set up additional model properties for biochemistry and flow
 arg = {model.G, model.rock, model.fluid, compFluid,...
        false, diagonal_backend, 'oil', true, 'gas', true, ... % Define phases for water-oil system
-    'bacteriamodel', bacteriamodel, 'diffusioneffect', false, 'liquidPhase', 'O', ...
-    'vaporPhase', 'G', 'eos', model.EOSModel}; % Set phases and EOS model
+    'bacteriamodel', bacteriamodel, 'liquidPhase', 'O', ...
+    'vaporPhase', 'G'}; % Set phases and EOS model
 model = BiochemistryModel(arg{:});
 model.gravity = modelBo.gravity;
 
@@ -200,8 +200,8 @@ bacteriamodel = true;
 
 arg = {modelNoClogging.G, modelNoClogging.rock, modelNoClogging.fluid, compFluid,...
        false, diagonal_backend, 'oil', true, 'gas', true, ...
-    'bacteriamodel', bacteriamodel, 'diffusioneffect', false, 'liquidPhase', 'O', ...
-    'vaporPhase', 'G', 'eos', model.EOSModel};
+    'bacteriamodel', bacteriamodel,'liquidPhase', 'O', ...
+    'vaporPhase', 'G'};
 modelNoClogging = BiochemistryModel(arg{:});
 
 state0NoClogging = state0;
@@ -219,8 +219,8 @@ bacteriamodel = false;
 
 arg = {modelNoBact.G, modelNoBact.rock, modelNoBact.fluid, compFluid,...
        false, diagonal_backend, 'oil', true, 'gas', true, ...
-    'bacteriamodel', bacteriamodel, 'diffusioneffect', false, 'liquidPhase', 'O', ...
-    'vaporPhase', 'G', 'eos', model.EOSModel};
+    'bacteriamodel', bacteriamodel, 'liquidPhase', 'O', ...
+    'vaporPhase', 'G'};
 modelNoBact = BiochemistryModel(arg{:});
 
 state0NoBact = state0;
