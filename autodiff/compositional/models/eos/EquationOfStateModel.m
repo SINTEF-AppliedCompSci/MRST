@@ -369,9 +369,13 @@ classdef EquationOfStateModel < PhysicalModel
         end
         
         function L = singlePhaseLabel(eos, p, T, z, Z_L, Z_V)
-            if strcmp(eos.single_Phase_Label,'fugacity')
+            if strcmp(eos.single_Phase_Label,'Fugacity')
                 % Pseudo-critical properties using Kay's rule
                 Vc = eos.CompositionalMixture.Vcrit;
+                Tc = eos.CompositionalMixture.Tcrit;
+                Pc = eos.CompositionalMixture.Pcrit;
+
+
                 Vz = bsxfun(@times, Vc, z);
 
                 Tc_est = sum(bsxfun(@times, Vz, Tc), 2)./sum(Vz, 2);
