@@ -24,22 +24,22 @@ classdef BactPermeability < StateFunction
     properties
         % No additional properties needed
     end
-   
+
     methods
         function perm = BactPermeability(model)
             % Constructor for bacteria-permeability relationship
             perm@StateFunction(model);
-            
+
             % Declare dependencies based on model configuration
             if model.dynamicFlowTrans
                 perm = perm.dependsOn('pressure', 'state');
-                if model.bacteriamodel                
+                if model.bacteriamodel
                     perm = perm.dependsOn('nbact', 'state');
                 end
             end
             perm.label = 'K';  % Permeability label
         end
-       
+
         function perm = evaluateOnDomain(prop, model, state)
             % Evaluate permeability modification
             %
@@ -50,10 +50,10 @@ classdef BactPermeability < StateFunction
             %
             % RETURNS:
             %   perm - Modified permeability values
-            
+
             % Start with base rock permeability
             perm = model.rock.perm;
-            
+
             % Apply modifications if enabled
             if model.dynamicFlowTrans
                 if model.bacteriamodel

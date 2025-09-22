@@ -22,7 +22,7 @@ function state = initCompositionalStateBacteria(model, p, T, s0, z0,nbact0, eos)
 %
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -39,76 +39,76 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
-    hasModel = ~isstruct(model);
-    if hasModel
-        % First argument is model
-        assert(isa(model, 'ThreePhaseCompositionalModel'));
-        if nargin == 6 %bacteria model : ajout 1 argument
-            eos = model.EOSModel;
-        end
-        G = model.G;
+hasModel = ~isstruct(model);
+if hasModel
+    % First argument is model
+    assert(isa(model, 'ThreePhaseCompositionalModel'));
+    if nargin == 6 %bacteria model : ajout 1 argument
+        eos = model.EOSModel;
+    end
+    G = model.G;
+else
+    G = model;
+    assert(nargin > 6);
+end
+state = initResSol(G, p, 1);
+state.T = repmat(T, G.cells.num, 1);
+if size(z0, 1) == G.cells.num
+    state.components = z0;
+else
+    state.components = repmat(z0, G.cells.num, 1);
+end
+%==================bacteria model===============
+if model.bacteriamodel
+    if size(nbact0, 1) == G.cells.num
+        state.nbact = nbact0;
     else
-        G = model;
-        assert(nargin > 6);
+        state.nbact = repmat(nbact0, G.cells.num, 1);
     end
-    state = initResSol(G, p, 1);
-    state.T = repmat(T, G.cells.num, 1);
-    if size(z0, 1) == G.cells.num
-        state.components = z0;
-    else
-        state.components = repmat(z0, G.cells.num, 1);
-    end
-    %==================bacteria model===============
-    if model.bacteriamodel
-        if size(nbact0, 1) == G.cells.num
-            state.nbact = nbact0;
-        else
-            state.nbact = repmat(nbact0, G.cells.num, 1);
-        end
-    end
-    %================================================
-    nls = getDefaultFlashNonLinearSolver();
-    state = eos.validateState(state);
-    % state.L = solveRachfordRiceVLE(state.L, state.K, state.components);
-    [state, report] = nls.solveTimestep(state, 1000*year, eos);
-    if ~report.StepReports{1}.Converged
-        state = eos.updateAfterConvergence(state0, state, dt, struct());
-    end
-    [sL, sV] = eos.computeSaturations(state.pressure, state.T,  nan, nan, state.x, state.y, state.L, state.Z_L, state.Z_V);
-    sz = size(s0, 2);
-    if size(s0, 1) == 1
-        s0 = repmat(s0, G.cells.num, 1);
-    end
-    if hasModel
-        % We know the model and can then figure out what phase goes where.
-        nph = model.getNumberOfPhases();
-        ix = model.getEoSPhaseIndices();
-        if nph > 2
-            if sz == nph - 2
-                % We have value for the non-EoS-phases
-                fill = s0;
-                s0 = zeros(G.cells.num, nph);
-            elseif sz == nph
-                % We have one value per phase
-                fill = sum(s0, 2) - sum(s0(:, ix), 2);
-            else
-                error('Bad!');
-            end
-        else
-            fill = 0;
+end
+%================================================
+nls = getDefaultFlashNonLinearSolver();
+state = eos.validateState(state);
+% state.L = solveRachfordRiceVLE(state.L, state.K, state.components);
+[state, report] = nls.solveTimestep(state, 1000*year, eos);
+if ~report.StepReports{1}.Converged
+    state = eos.updateAfterConvergence(state0, state, dt, struct());
+end
+[sL, sV] = eos.computeSaturations(state.pressure, state.T,  nan, nan, state.x, state.y, state.L, state.Z_L, state.Z_V);
+sz = size(s0, 2);
+if size(s0, 1) == 1
+    s0 = repmat(s0, G.cells.num, 1);
+end
+if hasModel
+    % We know the model and can then figure out what phase goes where.
+    nph = model.getNumberOfPhases();
+    ix = model.getEoSPhaseIndices();
+    if nph > 2
+        if sz == nph - 2
+            % We have value for the non-EoS-phases
+            fill = s0;
             s0 = zeros(G.cells.num, nph);
+        elseif sz == nph
+            % We have one value per phase
+            fill = sum(s0, 2) - sum(s0(:, ix), 2);
+        else
+            error('Bad!');
         end
-    elseif sz == 0
-        % Assume two-phase since we got no saturation and no model
-        fill = 0;
-        s0 = zeros(G.cells.num, 2);
     else
-        % We do not know what kind of model we have, just assume that the
-        % water phase is the non-EoS
-        assert(sz > 1, 'Must have multiple columns in saturations');
-        ix = [1, 2] + double(sz > 2);
-        fill = sum(s0, 2) - sum(s0(:, ix), 2);
+        fill = 0;
+        s0 = zeros(G.cells.num, nph);
     end
-    s0(:, ix) = bsxfun(@times, 1 - fill, [sL, sV]);
-    state.s = s0;
+elseif sz == 0
+    % Assume two-phase since we got no saturation and no model
+    fill = 0;
+    s0 = zeros(G.cells.num, 2);
+else
+    % We do not know what kind of model we have, just assume that the
+    % water phase is the non-EoS
+    assert(sz > 1, 'Must have multiple columns in saturations');
+    ix = [1, 2] + double(sz > 2);
+    fill = sum(s0, 2) - sum(s0(:, ix), 2);
+end
+s0(:, ix) = bsxfun(@times, 1 - fill, [sL, sV]);
+state.s = s0;
 end

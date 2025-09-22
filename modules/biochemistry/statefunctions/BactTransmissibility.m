@@ -1,10 +1,10 @@
 classdef BactTransmissibility < StateFunction
-%State function for computing bacterial transmissibility in the fluid or rock
-    
+    %State function for computing bacterial transmissibility in the fluid or rock
+
     properties
         postfix = '';
     end
-    
+
     methods
         %-----------------------------------------------------------------%
         function btrans = BactTransmissibility(model, postfix)
@@ -40,11 +40,11 @@ classdef BactTransmissibility < StateFunction
             end
         end
     end
-    
+
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

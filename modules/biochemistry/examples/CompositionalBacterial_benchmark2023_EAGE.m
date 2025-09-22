@@ -29,7 +29,6 @@ nobact = false;         % Set true to disable bacterial effects
 % Define grid dimensions
 [nx, ny, nz] = deal(31, 31, 8);       % Grid cells in x, y, z directions
 [Lx, Ly, Lz] = deal(1525, 1525, 50);  % Physical dimensions (meters)
-git add 
 % Create grid and shift vertically
 G = cartGrid([nx, ny, nz], [Lx, Ly, Lz]);
 G.nodes.coords(:, 3) = G.nodes.coords(:, 3) + 1000; % Reservoir depth = 1000m
@@ -117,7 +116,7 @@ nbj_idle1 = 20*day;
 
 % Create schedule
 [schedule, TotalTime, nbuildUp, nrest, ninject, nidle, nprod, nidle1] = ...
-    createCyclicScenario2(deltaT, ncycles, nbj_buildUp, nbj_rest, ...
+    createCyclicScenario(deltaT, ncycles, nbj_buildUp, nbj_rest, ...
                          nbj_inject, nbj_idle, nbj_prod, nbj_idle1, [W1; W2; W3; W5]);
 
 %% Model Setup

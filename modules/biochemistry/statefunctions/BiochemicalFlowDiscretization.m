@@ -1,88 +1,77 @@
 classdef BiochemicalFlowDiscretization < FlowDiscretization
-    % Discretization and state function grouping for bio-chemistry flow
-    
+    % BiochemicalFlowDiscretization
+    % Discretization and state function grouping for bio-chemical flow
+    % within a compositional model with microbial growth.
+
     properties
+        % No additional properties needed
     end
-    
+
     methods
         %-----------------------------------------------------------------%
         function props = BiochemicalFlowDiscretization(model)
-            % Inherit most of the state functions from FlowDiscretization
+            % Constructor: inherit base FlowDiscretization properties
             props = props@FlowDiscretization(model);
-            
-            % Fluid flow transmissibility
+
+            % Set up transmissibility and porosity functions
             if model.dynamicFlowTrans
-                % Dynamic transmissibility. Conductivities are calculated
-                % at each nonlinear iteration, and used to compute
-                % corresponding transmissibilities
+                % Dynamic transmissibility computed each nonlinear iteration
                 props = props.setStateFunction('Permeability', BactPermeability(model));
                 props = props.setStateFunction('Transmissibility', ...
-                                DynamicFlowTransmissibility(model, 'Permeability'));
-            else
-                % Static transmissibilities already been set up by parent
-                % or set up BactTransmissibility
+                    DynamicFlowTransmissibility(model, 'Permeability'));
             end
 
             if model.dynamicFlowPv
-                % Dynamic transmissibility. Conductivities are calculated
-                % at each nonlinear iteration, and used to compute
-                % corresponding transmissibilities
+                % Dynamic porosity / pore volume
                 props = props.setStateFunction('Porosity', BactPorosity(model));
                 props = props.setStateFunction('PoreVolume', ...
                     DynamicFlowPoreVolume(model, 'Porosity'));
-            else
-                % Static transmissibilities already been set up by parent
             end
-            
+
+            % Add microbial state functions
             props = props.setStateFunction('PsiGrowthRate', GrowthBactRateSRC(model));
             props = props.setStateFunction('PsiDecayRate', DecayBactRateSRC(model));
             props = props.setStateFunction('BactConvRate', BactConvertionRate(model));
-            
-          
         end
-        
+
         %-----------------------------------------------------------------%
         function [acc, flux, names, types] = componentConservationEquations(fd, model, state, state0, dt)
+            % Call parent method for standard component conservation
             [acc, flux, names, types] = componentConservationEquations@FlowDiscretization(fd, model, state, state0, dt);
-            flowState = fd.buildFlowState(model, state, state0, dt);
-            act = model.getActivePhases();
-            ncomp = model.getNumberOfComponents();
-            nph = sum(act); 
         end
-        
+
         %-----------------------------------------------------------------%
         function [acc, bflux, name, type] = bacteriaConservationEquation(fd, model, state, state0, dt)
-            bactmass = model.getProps(state, 'BacterialMass');
+            % Computes bacterial mass conservation equation
+            bactmass  = model.getProps(state, 'BacterialMass');
             bactmass0 = model.getProps(state0, 'BacterialMass');
-            flowState = fd.buildFlowState(model, state, state0, dt);
-            
-            bflux = [];
-            
-            % Add up accumulation
-            acc = (bactmass - bactmass0)./dt;
-            
-            % Convert to cell arrays to comply with AD framework
-            acc = {acc};
-            bflux = {bflux};
-            
-            % Name and type
+
+            % Accumulation term
+            acc = (bactmass - bactmass0) ./ dt;
+
+            % Convert to cell arrays for AD framework
+            acc   = {acc};
+            bflux = {[]};
+
+            % Output variable names and types
             name = 'bacteria';
             type = 'cell';
         end
 
         %-----------------------------------------------------------------%
         function c = getPopulationMass(model, state, extra)
+            % Compute microbial mass in each phase
             c = component.getPhaseComposition(model, state);
-            
+
             if nargin < 4
                 rho = model.getProps(state, 'Density');
             else
                 rho = extra.rho;
             end
-            
+
             for ph = 1:numel(c)
                 if ~isempty(c{ph})
-                    c{ph} = rho{ph}.*c{ph};
+                    c{ph} = rho{ph} .* c{ph};
                 end
             end
         end
@@ -90,7 +79,7 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
 end
 
 %{
-Copyright 2009-2023 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
