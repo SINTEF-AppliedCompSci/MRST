@@ -24,12 +24,12 @@ classdef BactPorosity < StateFunction
     properties
         % No additional properties needed
     end
-   
-    methods       
+
+    methods
         function poro = BactPorosity(model)
             % Constructor for bacteria-porosity relationship
             poro@StateFunction(model);
-            
+
             % Declare dependencies based on model configuration
             if model.dynamicFlowPv
                 if model.bacteriamodel
@@ -40,7 +40,7 @@ classdef BactPorosity < StateFunction
             end
             poro.label = 'Phi';
         end
-       
+
         function poro = evaluateOnDomain(prop, model, state)
             % Evaluate porosity modification
             %
@@ -51,10 +51,10 @@ classdef BactPorosity < StateFunction
             %
             % RETURNS:
             %   poro - Modified porosity values
-            
+
             % Start with base rock porosity
             poro = model.rock.poro;
-            
+
             % Apply modifications if enabled
             if model.dynamicFlowPv
                 if model.bacteriamodel

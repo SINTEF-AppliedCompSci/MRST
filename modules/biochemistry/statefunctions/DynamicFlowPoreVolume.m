@@ -24,25 +24,25 @@ classdef DynamicFlowPoreVolume < PoreVolume
     properties
         % No additional properties needed
     end
-    
+
     methods
         function gp = DynamicFlowPoreVolume(model, varargin)
             % Constructor for dynamic pore volume calculator
-            
+
             % Initialize base class
             gp@PoreVolume(model, varargin{:});
-            
+
             % Declare dependencies based on model configuration
-            if model.bacteriamodel   
+            if model.bacteriamodel
                 gp = gp.dependsOn('nbact', 'state');
             end
             gp = gp.dependsOn('pressure', 'state');
-            
+
             % Validate required fluid property exists
             assert(isfield(model.fluid, 'pvMultR'), ...
                 'Rock compressibility function (pvMultR) missing from fluid.');
         end
-        
+
         function pv = evaluateOnDomain(prop, model, state)
             % Compute effective pore volume with pressure/bacteria effects
             %
@@ -53,13 +53,13 @@ classdef DynamicFlowPoreVolume < PoreVolume
             %
             % RETURNS:
             %   pv - Effective pore volume values
-            
+
             % Get base pore volume from parent class
             pv = evaluateOnDomain@PoreVolume(prop, model, state);
-            
+
             % Get current pressure
             p = model.getProp(state, 'pressure');
-            
+
             % Apply rock compressibility multiplier
             if model.bacteriamodel
                 % Include bacterial concentration effect if enabled
@@ -69,7 +69,7 @@ classdef DynamicFlowPoreVolume < PoreVolume
                 % Pressure-only effect
                 pvMult = prop.evaluateFluid(model, 'pvMultR', p);
             end
-            
+
             % Apply multiplier
             pv = pv .* pvMult;
         end

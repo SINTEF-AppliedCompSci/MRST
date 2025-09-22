@@ -27,17 +27,17 @@ classdef DecayBactRateSRC < StateFunction
     properties
         % No additional properties needed
     end
-    
+
     methods
         function gp = DecayBactRateSRC(model, varargin)
             % Constructor for bacterial decay rate calculator
             gp@StateFunction(model, varargin{:});
-            
+
             % Define dependencies
             gp = gp.dependsOn({'nbact'}, 'state');          % Bacterial concentration
             gp = gp.dependsOn({'s'}, 'state');             % Phase saturations
             gp = gp.dependsOn({'PoreVolume', 'Density'}, 'PVTPropertyFunctions');
-            
+
             % Set label for output
             gp.label = 'Psi_{decay}';
         end
@@ -52,37 +52,37 @@ classdef DecayBactRateSRC < StateFunction
             %
             % RETURNS:
             %   Psidecay - Bacterial decay rate per cell [1/s]
-            
+
             % Initialize with zeros
             Psidecay = 0;
-            
+
             % Get model parameters
             rm = model.ReservoirModel;
             bbact = rm.b_bact;
             nbMax = rm.nbactMax;
-            
+
             % Check if bacterial modeling is active
             if ~(rm.bacteriamodel && rm.liquidPhase)
                 return;
             end
-            
+
             % Get component names and indices
             namecp = rm.getComponentNames();
             idx_H2 = find(strcmpi(namecp, 'H2'), 1);
             idx_CO2 = find(strcmpi(namecp, 'CO2'), 1);
-            
+
             % Validate required components
             if isempty(idx_H2) || isempty(idx_CO2)
                 return;
             end
-            
+
             % Get required state variables
             pv = rm.PVTPropertyFunctions.get(rm, state, 'PoreVolume');
             rho = rm.PVTPropertyFunctions.get(rm, state, 'Density');
             s = rm.getProp(state, 's');
             nbact = rm.getProp(state, 'nbact');
             L_ix = rm.getLiquidIndex();
-            
+
             % Extract liquid phase properties
             if iscell(s)
                 sL = s{L_ix};
@@ -91,17 +91,17 @@ classdef DecayBactRateSRC < StateFunction
                 sL = s(:, L_ix);
                 rhoL = rho(:, L_ix);
             end
-            
+
             % Calculate effective volume with safeguards
             if iscell(sL)
                 Voln = max(sL{1}, 1.0e-8) .* rhoL{1};
             else
                 Voln = max(sL, 1.0e-8) .* rhoL;
             end
-            
+
             % Compute decay rate
             Psidecay = pv .* bbact .* nbact .* (nbact .* Voln);
-            
+
             % Handle negative bacterial concentrations
             Psidecay(nbact < 0) = -Psidecay(nbact < 0);
         end
