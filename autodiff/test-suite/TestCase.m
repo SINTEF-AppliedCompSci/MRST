@@ -101,8 +101,8 @@ classdef TestCase
             test.toolbarOptions([1:2:end, 2:2:end]) = horzcat(names, values);
             % Set plotting function if not given
             if isempty(test.plotFn)
-                test.plotFn = @(G, v, varargin) ...
-                    plotToolbar(G, v, test.toolbarOptions{:}, varargin{:});
+                test.plotFn = @(G, v, cells, varargin) ...
+                    plotToolbar(G, v, cells, test.toolbarOptions{:}, varargin{:});
             end
             % Compute test case ID
             if opt.computeID
@@ -291,6 +291,7 @@ classdef TestCase
                 varargin = varargin(2:end);
             end
             opt = struct('Name'     , ''  , ...
+                         'cells'    , []  , ...
                          'plotWells', true, ...
                          'wellOpts' , {{}}, ...
                          'camlight' , true);
@@ -301,7 +302,10 @@ classdef TestCase
             end
             h = test.figure('Name', Name);
             G = test.getVisualizationGrid();
-            test.plotFn(G, v, varargin{:});
+            if isempty(opt.cells)
+                opt.cells = true(G.cells.num, 1);
+            end
+            test.plotFn(G, v, opt.cells, varargin{:});
             if opt.plotWells
                 test.plotWells(opt.wellOpts{:});
             end
