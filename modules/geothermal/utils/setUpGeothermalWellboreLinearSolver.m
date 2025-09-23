@@ -1,8 +1,12 @@
-function solver = setUpGeothermalWellboreLinearSolver(model, varargin)
+function [solver, model] = setUpGeothermalWellboreLinearSolver(model, varargin)
 %Set up a linear solver for composite geothermal models with WellboreModel
 
     % Optional input arguments
-    opt = struct('useCPR', true);
+    opt = struct( ...
+        'useCPR', true, ...
+        'tolerance', 1e-4, ...
+        'maxIterations', 200 ...
+    );
     opt = merge_options(opt, varargin{:});
 
     if ~opt.useCPR
@@ -15,8 +19,8 @@ function solver = setUpGeothermalWellboreLinearSolver(model, varargin)
         solver.decoupling = 'quasiimpes';
     end
     % Set maximum iterations and tolerance
-    solver.maxIterations = 200;
-    solver.tolerance = 1e-4;
+    solver.maxIterations = opt.maxIterations;
+    solver.tolerance = opt.tolerance;
     
     % Set block size
     bz = 1 + model.submodels.Reservoir.thermal;
@@ -41,7 +45,9 @@ function solver = setUpGeothermalWellboreLinearSolver(model, varargin)
     solver.keepNumber = bz*(ncr + ncw);
     solver.amgcl_setup.cell_size = ncr + ncw;
     solver.reduceToCell = false;
-    
+
+    model.G.cells.num = ncr + ncw;
+
 end
 
 %{
