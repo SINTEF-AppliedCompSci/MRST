@@ -60,8 +60,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     
     % Set up and solve ODE defining geothermal equilibrilum
     %---------------------------------------------------------------------%
-    [dpdz, dTdz, p0, T0, z, z0] = getPhysicalQuantities(model, opt);
-    [p,T,sol] = solveODE(dpdz, dTdz, p0, T0, z, z0);
+    [dpdz, dTdz, p0, T0, zc, zb, z0] = getPhysicalQuantities(model, opt);
+    [p,T,sol] = solveODE(dpdz, dTdz, p0, T0, zc, zb, z0);
     %---------------------------------------------------------------------%
 end
 
@@ -86,7 +86,7 @@ function opt = processInput(model, opt, varargin)
 end
 
 %-------------------------------------------------------------------------%
-function [dpdz, dTdz, p0, T0, z, z0] = getPhysicalQuantities(model, opt)
+function [dpdz, dTdz, p0, T0, zc, zb, z0] = getPhysicalQuantities(model, opt)
 % Get physical quantities defining the ODE
 
     % Pressure gradient due to density
@@ -99,13 +99,15 @@ function [dpdz, dTdz, p0, T0, z, z0] = getPhysicalQuantities(model, opt)
     p0 = opt.datumPressure;
     T0 = opt.datumTemperature;
     % Verical coordinates in the grid
-    z  = model.G.cells.centroids(:,3);
+    zc  = model.G.cells.centroids(:,3);
+    bfaces = boundaryFaces(model.G);
+    zb = model.G.faces.centroids(bfaces,3);
     z0 = opt.datumDepth;
 
 end
 
 %-------------------------------------------------------------------------%
-function [p,T,sol] = solveODE(dpdz, dTdz, p0, T0, z, z0)
+function [p,T,sol] = solveODE(dpdz, dTdz, p0, T0, zc, zb, z0)
 % Solve ODE to find equilibrium pressure and temperature
 
     % Set initial condition
@@ -116,6 +118,7 @@ function [p,T,sol] = solveODE(dpdz, dTdz, p0, T0, z, z0)
     odeopts = odeset('AbsTol', 1.0e-10, 'RelTol', 5.0e-8);
     % Solve ODE
     [solUp, solDown] = deal([]);
+    z = [zc; zb];
     if z0 > min(z)
         zlimUp = [z0, min(z)];
         solUp  = ode45(dydz, zlimUp, y0, odeopts);
@@ -126,7 +129,7 @@ function [p,T,sol] = solveODE(dpdz, dTdz, p0, T0, z, z0)
     end
     assert(~(isempty(solUp) && isempty(solDown)), 'Something went wrong');
     % Evaluate in cells
-    [p,T] = evaluateFn(solUp, solDown, z0, z);
+    [p,T] = evaluateFn(solUp, solDown, z0, zc);
     sol   = @(z) evaluateFn(solUp, solDown, z0, z);
     
 end
