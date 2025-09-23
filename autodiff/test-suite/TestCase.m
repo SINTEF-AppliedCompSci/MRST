@@ -278,7 +278,14 @@ classdef TestCase
             require mrst-gui
             
             if nargin == 1 || ischar(varargin{1})
-                v = test.model.rock;
+                if isa(test.model, 'CompositeModel')
+                    assert(isfield(test.model.submodels, 'Reservoir'), ...
+                        ['Did not find submodel called ''Reservoir'', ', ...
+                        'please provide values for plotting.']);
+                    v = test.model.submodels.Reservoir.rock;
+                else
+                    v = test.model.rock;
+                end
             else
                 v = varargin{1};
                 varargin = varargin(2:end);
@@ -322,47 +329,56 @@ classdef TestCase
         function varargout = plotWells(test, varargin)
         % Plot wells in the model
             
-            if ~isfield(test.schedule.control(1), 'W')
+            W = [];
+            if isa(test.model, 'CompositeModel')
+                disp('Hei')
+                if isfield(test.model.submodels, 'Wellbore')
+                    W = test.model.submodels.Wellbore.wells;
+                else
+                    warning(['Did not find submodel called ''Wellbore'', ', ...
+                    'cannot plot wells.']);
+                end
+            elseif isfield(test.schedule.control(1), 'W')
+                W = test.schedule.control(1).W;
+            end
+            if isempty(W)
                 return;
             end
-            W = test.schedule.control(1).W;
-            if ~isempty(W)
-                G = test.getVisualizationGrid();
-                if G.griddim == 3
-                    ax = gca; dz = ax.ZLim(2) - ax.ZLim(1);
-                    varargout = cell(nargout, 1);
-                    [varargout{:}] = plotWell(G, W, 'color' , 'k'    , ...
-                                       'height', 0.15*dz, ...
-                                       varargin{:}      );
-                else
-                    opt = struct('fontsize', 12 , ...
-                                 'color'   , 'k', ...
-                                 'color2'  , 'k');
-                    [opt, varargin] = merge_options(opt, varargin{:});
-                    nw = numel(W);
-                    [hw, htext] = deal(zeros(nw,1));
-                    gray = [1,1,1]*0.8;
-                    hold on
-                    for w = 1:numel(W)
-                        color = opt.color;
-                        if W(w).sign < 0, color = opt.color2; end
-                        x  = G.cells.centroids(vertcat(W(w).cells), :);
-                        hw(w) = plot(x(1), x(2)      , 'o'   , ...
-                                     'Color'          , color, ...
-                                     'markerFaceColor', gray , ...
-                                     'markerSize'     , 8    , ...
-                                     varargin{:}             );
-                        if opt.fontsize > 0
-                            htext(w) = text(x(1), x(2), W(w).name, ...
-                                'FontSize'         , opt.fontsize, ...
-                                'VerticalAlignment', 'bottom'    , ...
-                                'interp'           , 'latex'     , ...
-                                'Color'            , color       );
-                        end
+            G = test.getVisualizationGrid();
+            if G.griddim == 3
+                ax = gca; dz = ax.ZLim(2) - ax.ZLim(1);
+                varargout = cell(nargout, 1);
+                [varargout{:}] = plotWell(G, W, 'color' , 'k'    , ...
+                                    'height', 0.15*dz, ...
+                                    varargin{:}      );
+            else
+                opt = struct('fontsize', 12 , ...
+                                'color'   , 'k', ...
+                                'color2'  , 'k');
+                [opt, varargin] = merge_options(opt, varargin{:});
+                nw = numel(W);
+                [hw, htext] = deal(zeros(nw,1));
+                gray = [1,1,1]*0.8;
+                hold on
+                for w = 1:numel(W)
+                    color = opt.color;
+                    if W(w).sign < 0, color = opt.color2; end
+                    x  = G.cells.centroids(vertcat(W(w).cells), :);
+                    hw(w) = plot(x(1), x(2)      , 'o'   , ...
+                                    'Color'          , color, ...
+                                    'markerFaceColor', gray , ...
+                                    'markerSize'     , 8    , ...
+                                    varargin{:}             );
+                    if opt.fontsize > 0
+                        htext(w) = text(x(1), x(2), W(w).name, ...
+                            'FontSize'         , opt.fontsize, ...
+                            'VerticalAlignment', 'bottom'    , ...
+                            'interp'           , 'latex'     , ...
+                            'Color'            , color       );
                     end
-                    hold off
-                    varargout = {hw, htext};
                 end
+                hold off
+                varargout = {hw, htext};
             end
             
         end
@@ -371,8 +387,20 @@ classdef TestCase
         function ok = hasDrivingForce(test, force)
         % Check if the test case has a given driving force
         
-            ok = isfield(test.schedule.control(1), force) ...
-                && ~isempty(test.schedule.control(1).(force));
+            if isa(test.model, 'CompositeModel')
+                switch force
+                    case 'W'
+                        mdl = 'Wellbore';
+                    case {'bc', 'src'}
+                        mdl = 'Reservoir';
+                end
+                ok = isfield(test.model.submodels, mdl) ...
+                    && isfield(test.schedule.control(1).(mdl), force) ...
+                    && ~isempty(test.schedule.control(1).(mdl).(force));
+            else
+                ok = isfield(test.schedule.control(1), force) ...
+                    && ~isempty(test.schedule.control(1).(force));
+            end
             
         end
         
