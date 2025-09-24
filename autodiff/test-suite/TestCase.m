@@ -335,7 +335,6 @@ classdef TestCase
             
             W = [];
             if isa(test.model, 'CompositeModel')
-                disp('Hei')
                 if isfield(test.model.submodels, 'Wellbore')
                     W = test.model.submodels.Wellbore.wells;
                 else
