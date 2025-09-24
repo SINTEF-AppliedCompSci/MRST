@@ -511,10 +511,21 @@ classdef WellboreModel < WrapperModel
             g   = norm(model.parentModel.gravity);
             dz  = model.parentModel.operators.Grad(model.G.cells.centroids(:,3));
             dpw = model.parentModel.operators.Grad(p);
+            pot = dpw - rhoMix.*g.*dz;
+
+            % Assemble equation. We add the mass flux so that this reduces to a
+            % Darcy-type equation for very low friction loss to avoid singular
+            % systems.
+            % Convert mass flux to velocity
+            [Di, Do] = deal(0, model.G.faces.radius.*2);
+            if size(Do, 2) == 2
+                Di = Do(:,1);
+                Do = Do(:,2);
+            end
+            v   = v./(pi*rhoMix.*((Do/2).^2 - (Di/2).^2));
+            eqs = (pot - dp) + v;
+            % eqs   = (pot - dp);
             
-            pot   = dpw - rhoMix.*g.*dz;
-            
-            eqs   = 1e-3*(pot - dp) - v;
             eqs   = {eqs};
             names = {'flux'};
             types = {'face'};
