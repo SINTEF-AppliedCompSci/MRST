@@ -523,8 +523,7 @@ classdef WellboreModel < WrapperModel
                 Do = Do(:,2);
             end
             v   = v./(pi*rhoMix.*((Do/2).^2 - (Di/2).^2));
-            eqs = (pot - dp) + v;
-            % eqs   = (pot - dp);
+            eqs = (pot - dp) + 10*v;
             
             eqs   = {eqs};
             names = {'flux'};
