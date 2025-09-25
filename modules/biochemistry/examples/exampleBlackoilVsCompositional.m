@@ -29,7 +29,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 clearvars; clc;
-mrstModule add biochemistry compositional ad-blackoil ad-core ad-props mrst-gui deckformat
+mrstModule add ad-blackoil ad-core ad-props mrst-gui deckformat
+mrstModule add compositional add-autodiff biochemistry h2store
 
 %% ============ PART 1: BLACK-OIL MODEL (Original Script) =====================
 fprintf('=== Setting up Black-Oil Model ===\n');

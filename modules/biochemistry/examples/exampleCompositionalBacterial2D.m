@@ -20,8 +20,8 @@
 % ---------------------------------------------------------------------------
 
 clearvars;
-mrstModule add biochemistry h2store ad-core ad-blackoil ad-props deckformat mrst-gui upr test-suite spe10
-
+mrstModule add ad-core ad-blackoil ad-props deckformat mrst-gui upr test-suite spe10
+mrstModule add compositional add-autodiff biochemistry h2store
 %% Define case identifiers and Eclipse deck
 baseName = 'H2_STORAGE_DOME_TRAP';
 dataPath = getDatasetPath('h2storage');
