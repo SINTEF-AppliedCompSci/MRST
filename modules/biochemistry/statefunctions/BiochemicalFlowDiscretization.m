@@ -12,26 +12,28 @@ classdef BiochemicalFlowDiscretization < FlowDiscretization
         function props = BiochemicalFlowDiscretization(model)
             % Constructor: inherit base FlowDiscretization properties
             props = props@FlowDiscretization(model);
+            if model.bacteriamodel
 
-            % Set up transmissibility and porosity functions
-            if model.dynamicFlowTrans
-                % Dynamic transmissibility computed each nonlinear iteration
-                props = props.setStateFunction('Permeability', BactPermeability(model));
-                props = props.setStateFunction('Transmissibility', ...
-                    DynamicFlowTransmissibility(model, 'Permeability'));
+                % Set up transmissibility and porosity functions
+                if model.dynamicFlowTrans
+                    % Dynamic transmissibility computed each nonlinear iteration
+                    props = props.setStateFunction('Permeability', BactPermeability(model));
+                    props = props.setStateFunction('Transmissibility', ...
+                        DynamicFlowTransmissibility(model, 'Permeability'));
+                end
+
+                if model.dynamicFlowPv
+                    % Dynamic porosity / pore volume
+                    props = props.setStateFunction('Porosity', BactPorosity(model));
+                    props = props.setStateFunction('PoreVolume', ...
+                        DynamicFlowPoreVolume(model, 'Porosity'));
+                end
+
+                % Add microbial state functions
+                props = props.setStateFunction('PsiGrowthRate', GrowthBactRateSRC(model));
+                props = props.setStateFunction('PsiDecayRate', DecayBactRateSRC(model));
+                props = props.setStateFunction('BactConvRate', BactConvertionRate(model));
             end
-
-            if model.dynamicFlowPv
-                % Dynamic porosity / pore volume
-                props = props.setStateFunction('Porosity', BactPorosity(model));
-                props = props.setStateFunction('PoreVolume', ...
-                    DynamicFlowPoreVolume(model, 'Porosity'));
-            end
-
-            % Add microbial state functions
-            props = props.setStateFunction('PsiGrowthRate', GrowthBactRateSRC(model));
-            props = props.setStateFunction('PsiDecayRate', DecayBactRateSRC(model));
-            props = props.setStateFunction('BactConvRate', BactConvertionRate(model));
         end
 
         %-----------------------------------------------------------------%

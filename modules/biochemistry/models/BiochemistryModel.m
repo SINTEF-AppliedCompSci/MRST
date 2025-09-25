@@ -102,6 +102,8 @@ classdef BiochemistryModel < GenericOverallCompositionModel
             model.OutputStateFunctions = {'ComponentTotalMass', 'Density'};
             if model.bacteriamodel
                 model.FlowDiscretization = BiochemicalFlowDiscretization(model);
+            else
+                model.FlowDiscretization = FlowDiscretization(model);
             end
         end
 

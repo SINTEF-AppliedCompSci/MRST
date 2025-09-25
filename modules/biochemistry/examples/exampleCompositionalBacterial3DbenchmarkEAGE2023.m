@@ -132,7 +132,7 @@ nls = NonLinearSolver(); nls.LinearSolver = lsolve;
 
 problem_nobact = packSimulationProblem(state0_nobact, model_nobact, schedule, ...
     'Benchmark_NoBacteria', 'NonLinearSolver', nls);
-simulatePackedProblem(problem_nobact,'restartStep', 1);
+simulatePackedProblem(problem_nobact);
 [ws_nobact, states_nobact] = getPackedSimulatorOutput(problem_nobact);
 results_nobact = postProcessResults(states_nobact, ws_nobact, model_nobact, 'nobact');
 
@@ -152,7 +152,7 @@ nls.LinearSolver = lsolve;
 
 problem_bact = packSimulationProblem(state0_bact, model_bact, schedule, ...
     'Benchmark_Bacteria', 'NonLinearSolver', nls);
-simulatePackedProblem(problem_bact, 'restartStep', 1);
+simulatePackedProblem(problem_bact);
 [ws_bact, states_bact] = getPackedSimulatorOutput(problem_bact);
 results_bact = postProcessResults(states_bact, ws_bact, model_bact, 'bact');
 
@@ -266,19 +266,30 @@ end
 efficiency = abs(mH2_produced / mH2_injected) * 100;
 end
 
-%{
-Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+%% Copyright notice
 
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify it under the terms of the GNU 
-General Public License as published by the Free Software Foundation, either version 3 of 
-the License, or (at your option) any later version.
-
-MRST is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without 
-even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with MRST. If not, 
-see <http://www.gnu.org/licenses/>.
-%}
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

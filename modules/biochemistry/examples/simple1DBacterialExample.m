@@ -95,7 +95,7 @@ state0 = initCompositionalStateBacteria(model, initPress, initTemp, [0,1], ...
 %% Scenario 1: with bacterial clogging
 prob1 = packSimulationProblem(state0, model, schedule, 'bio_clogging');
 prob1.SimulatorSetup.model.OutputStateFunctions{end} = 'ComponentPhaseMass';
-simulatePackedProblem(prob1,'restartStep',1);
+simulatePackedProblem(prob1);
 [ws1, st1] = getPackedSimulatorOutput(prob1);
 
 %% Scenario 2: bacteria but no clogging
@@ -139,19 +139,30 @@ plotComponentComparison(scenarios, timeYrs, idxH2, idxCO2, idxCH4);
 plotToolbar(model.G, st1, 'plot1d', true, 'field','pressure');
 title('Bio-Clogging Scenario - Pressure');
 
-%{
-Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+%% Copyright notice
 
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify it under the terms of the GNU 
-General Public License as published by the Free Software Foundation, either version 3 of 
-the License, or (at your option) any later version.
-
-MRST is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without 
-even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with MRST. If not, 
-see <http://www.gnu.org/licenses/>.
-%}
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

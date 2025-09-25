@@ -1,14 +1,32 @@
 %% Comprehensive Hydrogen Storage: Black-Oil vs Compositional Comparison
 % ===========================================================================
-% This script compares three modeling approaches using the same dome-shaped
-% aquifer setup from the black-oil example:
-% 1. Black-oil model with tabulated PVT data (original script)
+% This script compares three modeling approaches:
+% 1. Black-oil model with tabulated PVT data (from h2store module)
 % 2. Compositional model without bacterial effects
-% 3. Compositional model with bacterial growth and bio-clogging
+% 3. Compositional model with bacterial growth
 %
-% The simulation uses identical grid, rock properties, wells, and schedule
-% for fair comparison between different physical models.
-% ---------------------------------------------------------------------------
+% SEE ALSO: 
+%   `simpleExampleBlackOilPVT`, `simpleBlackOil2DModel`
+%
+%
+%{
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+
+This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+
+MRST is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+MRST is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with MRST.  If not, see <http://www.gnu.org/licenses/>.
+%}
 
 clearvars; clc;
 mrstModule add biochemistry compositional ad-blackoil ad-core ad-props mrst-gui deckformat
@@ -89,17 +107,17 @@ fnbact = getPlotAfterStep(state0_comp_bact, model_comp_bact, schedule_comp, 'vie
 fprintf('=== Comparing Results ===\n');
 
 %% Extract Key Results
-results_bo = extractResultsBO(states_bo, ws_bo, model_bo);
-results_comp_nobact = extractResultsComp(states_comp_nobact, ws_comp_nobact, model_comp_nobact);
-results_comp_bact = extractResultsComp(states_comp_bact, ws_comp_bact, model_comp_bact);
+results_bo = extractResults(states_bo, ws_bo, model_bo);
+results_comp_nobact = extractResults(states_comp_nobact, ws_comp_nobact, model_comp_nobact);
+results_comp_bact = extractResults(states_comp_bact, ws_comp_bact, model_comp_bact);
 
 %% Calculate Performance Metrics
-metrics_bo = calculateMetrics(results_bo, schedule_bo);
-metrics_comp_nobact = calculateMetrics(results_comp_nobact, schedule_comp);
-metrics_comp_bact = calculateMetrics(results_comp_bact, schedule_comp);
+metrics_bo = calculateMetrics(results_bo);
+metrics_comp_nobact = calculateMetrics(results_comp_nobact);
+metrics_comp_bact = calculateMetrics(results_comp_bact);
 
 %% Plot Comparison
-plotComparisonSummary(G, results_bo, results_comp_nobact, results_comp_bact, false);
+plotComparisonSummary(results_bo, results_comp_nobact, results_comp_bact);
 
 %% Display Summary Table
 fprintf('\n=== PERFORMANCE COMPARISON ===\n');
@@ -123,158 +141,143 @@ h2_loss = (max(results_comp_nobact.totMassH2) - max(results_comp_bact.totMassH2)
 fprintf('\nBacterial effects: H2 loss = %.2f%%\n', h2_loss);
 fprintf('\n=== Simulation completed successfully ===\n');
 
+
 %% ============ SUPPORTING FUNCTIONS =====================
 
-function results = extractResultsBO(states, ws, model)
-% Extract results from black-oil simulation
-nT = numel(states);
-results.pressure = zeros(nT, 1);
-indH2 = 2;
-results.yH2 = zeros(nT, 1);
-results.sG = zeros(nT, 1);
-results.H2_injected = zeros(nT, 1);
-rhoOS = model.fluid.rhoOS;  % Density of oil-saturated phase
-rhoGS = model.fluid.rhoGS;  % Density of gas-saturated phase
-results.totMassH2 = zeros(nT, 1);
+function plotComparisonSummary(res_bo, res_comp_nobact, res_comp_bact)
+% Plot comparison between Black-Oil, Compositional (No Bacteria), and Compositional (With Bacteria)
 
-for i = 1:nT
-    results.pressure(i) = mean(states{i}.pressure);
-    results.sG(i) = max(states{i}.s(:,2));  % Gas saturation
-    if i <= numel(ws) && ~isempty(ws{i})
-        results.H2_injected(i) = max(0, ws{i}.qGs);  % Positive injection rates
-    end
-    results.yH2(i) =  max(rhoGS ./ (rhoGS + rhoOS .* states{i}.rv));
-    if isfield(states{i}, 'FlowProps') && isfield(states{i}.FlowProps, 'ComponentTotalMass')
-        results.totMassH2(i) = sum(states{i}.FlowProps.ComponentTotalMass{indH2});
-    end
+figure('Position', [100, 100, 1200, 800]);
+
+res_list = {res_bo, res_comp_nobact, res_comp_bact};
+labels   = {'Black-Oil', 'Comp (No Bact)', 'Comp (With Bact)'};
+colors   = {'b-', 'r-', 'g-'};
+
+% Create subplots
+subplot(2,3,1);
+plotSeries(res_list, 'pressure', 'Pressure (bar)', 'Pressure Evolution', false, colors);
+subplot(2,3,2);
+plotSeries(res_list, 'sG', 'H2 Saturation', 'Maximum H2 Saturation', false, colors);
+subplot(2,3,3);
+plotSeries(res_list, 'H2_injected', 'Cumulative H2 (kg)', 'Cumulative H2 Injection', true, colors);
+
+% Final state comparison
+subplot(2,3,4);
+pressures   = cellfun(@(r) r.pressure(end)/barsa, res_list);
+saturations = cellfun(@(r) r.sG(end), res_list);
+yyaxis left; bar(pressures); ylabel('Final Pressure (bar)');
+yyaxis right; plot(saturations, 'ro-', 'LineWidth', 2, 'MarkerSize', 8);
+set(gca, 'XTickLabel', labels); title('Final State Comparison'); grid on;
+
+% H2 mole fraction
+if isfield(res_comp_nobact, 'yH2')
+    subplot(2,3,5);
+    plotSeries(res_list, 'yH2', 'H2 Mole Fraction in Gas', 'H2 Gas Composition', false, colors);
 end
 
+% Total H2 mass
+if isfield(res_comp_nobact, 'totMassH2')
+    subplot(2,3,6);
+    plotSeries(res_list, 'totMassH2', 'Total H2 Mass (kg)', 'H2 Mass in Reservoir', false, colors);
 end
 
-function results = extractResultsComp(states, ws, model)
-% Extract results from compositional simulation
+legend(labels, 'Location', 'bestoutside');
+sgtitle('Hydrogen Storage: Black-Oil vs Compositional Model Comparison');
+
+end
+
+function plotSeries(res_list, field, ylab, ttl, cumulative, colors)
+% Helper function to plot series for multiple results
+hold on; grid on;
+for i = 1:numel(res_list)
+    if isfield(res_list{i}, field)
+        y = res_list{i}.(field);
+        if cumulative
+            y = cumsum(y);
+        end
+        plot(y, colors{i}, 'LineWidth', 2);
+    end
+end
+xlabel('Time Step'); ylabel(ylab); title(ttl);
+end
+
+function results = extractResults(states, ws, model)
+% Extract results from simulation (works for both black-oil and compositional models)
+%
+% Parameters:
+%   states - Cell array of state variables
+%   ws     - Well solution data
+%   model  - Simulation model (GenericBlackOilModel or BiochemistryModel)
+
 nT = numel(states);
+results.pressure     = zeros(nT, 1);
+results.yH2          = zeros(nT, 1);
+results.sG           = zeros(nT, 1);
+results.H2_injected  = zeros(nT, 1);
+results.totMassH2    = zeros(nT, 1);
 
-% Get component indices
-namecp = model.EOSModel.getComponentNames();
-indH2 = find(strcmp(namecp, 'H2'));
+% Determine model type and setup indices
+isBlackOil      = isa(model, 'GenericBlackOilModel');
+isCompositional = isa(model, 'BiochemistryModel');
 
-results.pressure = zeros(nT, 1);
-results.sG = zeros(nT, 1);
-results.yH2 = zeros(nT, 1);
-results.H2_injected = zeros(nT, 1);
-results.totMassH2 = zeros(nT, 1);
+if isBlackOil
+    % Black-oil model setup
+    rhoOS = model.fluid.rhoOS;
+    rhoGS = model.fluid.rhoGS;
+    names = model.getPhaseNames();
+    nph = model.getNumberOfPhases;
+    for ph = 1:nph
+        switch names(ph)
+            case 'O'
+                L_ix = ph;
+            case 'G'
+                V_ix = ph;
+        end
+    end
+    compIndex = V_ix; % Gas component index for total mass
+elseif isCompositional
+    % Compositional model setup
+    namecp   = model.EOSModel.getComponentNames();
+    indH2    = find(strcmp(namecp, 'H2'));
+    V_ix     = model.getVaporIndex();
+    compIndex = indH2; % H2 index in compositional model
+else
+    error('Unknown model type: %s', class(model));
+end
 
+% Loop over timesteps
 for i = 1:nT
-    results.pressure(i) = mean(states{i}.pressure);
-    results.sG(i) = max(states{i}.s(:,2));
-    results.yH2(i) = max(states{i}.y(:,indH2));
+    state = states{i};
 
-    if i <= numel(ws) && ~isempty(ws{i}) && isfield(ws{i}, 'H2')
+    % Common quantities
+    results.pressure(i) = mean(state.pressure);
+    results.sG(i)       = max(state.s(:, V_ix));
+
+    if isBlackOil
+        results.yH2(i) = max(rhoGS ./ (rhoGS + rhoOS .* state.rv));
+        results.H2_injected(i) = max(0, ws{i}.qGs);
+    else
+        results.yH2(i) = max(state.y(:, indH2));
         results.H2_injected(i) = max(0, ws{i}.H2);
+
     end
 
-    % Total H2 mass in reservoir
-    if isfield(states{i}, 'FlowProps') && isfield(states{i}.FlowProps, 'ComponentTotalMass')
-        results.totMassH2(i) = sum(states{i}.FlowProps.ComponentTotalMass{indH2});
+    % Total H2 mass (if available)
+    if isfield(state, 'FlowProps') && isfield(state.FlowProps, 'ComponentTotalMass')
+        if length(state.FlowProps.ComponentTotalMass) >= compIndex
+            results.totMassH2(i) = sum(state.FlowProps.ComponentTotalMass{compIndex});
+        end
     end
 end
 end
 
-function metrics = calculateMetrics(results, sched)
+function metrics = calculateMetrics(results)
 % Calculate performance metrics
 metrics.avgPressure = mean(results.pressure);
 metrics.maxPressure = max(results.pressure);
 metrics.maxH2Saturation = max(results.sG);
 metrics.totalInjectedH2 = sum(results.H2_injected);
+if isfield(results, 'totMassH2')
+    metrics.finalH2Mass = results.totMassH2(end);
 end
-
-function plotComparisonSummary(G, res_bo, res_comp_nobact, res_comp_bact, nobact)
-% Plot comprehensive comparison
-figure('Position', [100, 100, 1400, 900]);
-
-% Pressure evolution
-subplot(2,3,1);
-plot(res_bo.pressure/barsa, 'b-', 'LineWidth', 2); hold on;
-plot(res_comp_nobact.pressure/barsa, 'r-', 'LineWidth', 2);
-if ~nobact
-    plot(res_comp_bact.pressure/barsa, 'g-', 'LineWidth', 2);
-    legend('Black-Oil', 'Comp (No Bact)', 'Comp (With Bact)', 'Location', 'best');
-else
-    legend('Black-Oil', 'Comp (No Bact)', 'Location', 'best');
-end
-xlabel('Time Step'); ylabel('Pressure (bar)');
-title('Pressure Evolution'); grid on;
-
-% H2 saturation
-subplot(2,3,2);
-plot(res_bo.sG, 'b-', 'LineWidth', 2); hold on;
-plot(res_comp_nobact.sG, 'r-', 'LineWidth', 2);
-if ~nobact
-    plot(res_comp_bact.sG, 'g-', 'LineWidth', 2);
-end
-xlabel('Time Step'); ylabel('H2 Saturation');
-title('Maximum H2 Saturation'); grid on;
-
-% Cumulative H2 injection
-subplot(2,3,3);
-plot(cumsum(res_bo.H2_injected), 'b-', 'LineWidth', 2); hold on;
-plot(cumsum(res_comp_nobact.H2_injected), 'r-', 'LineWidth', 2);
-if ~nobact
-    plot(cumsum(res_comp_bact.H2_injected), 'g-', 'LineWidth', 2);
-end
-xlabel('Time Step'); ylabel('Cumulative H2 (kg)');
-title('Cumulative H2 Injection'); grid on;
-
-% Final state comparison
-subplot(2,3,4);
-if ~nobact
-    models = {'Black-Oil', 'Comp NoBact', 'Comp Bact'};
-    pressures = [res_bo.pressure(end), res_comp_nobact.pressure(end), res_comp_bact.pressure(end)]/barsa;
-    saturations = [res_bo.sG(end), res_comp_nobact.sG(end), res_comp_bact.sG(end)];
-else
-    models = {'Black-Oil', 'Comp NoBact'};
-    pressures = [res_bo.pressure(end), res_comp_nobact.pressure(end)]/barsa;
-    saturations = [res_bo.sG(end), res_comp_nobact.sG(end)];
-end
-
-yyaxis left;
-bar(pressures);
-ylabel('Final Pressure (bar)');
-yyaxis right;
-plot(saturations, 'ro-', 'LineWidth', 2, 'MarkerSize', 8);
-ylabel('Final H2 Saturation');
-set(gca, 'XTickLabel', models);
-title('Final State Comparison'); grid on;
-
-% H2 mole fraction
-if isfield(res_comp_nobact, 'yH2')
-    subplot(2,3,5);
-    plot(res_bo.yH2, 'b-', 'LineWidth', 2); hold on;
-    plot(res_comp_nobact.yH2, 'r-', 'LineWidth', 2); hold on;
-    if ~nobact
-        plot(res_comp_bact.yH2, 'g-', 'LineWidth', 2);
-        legend('Black-Oil','Comp (No Bact)', 'Comp (With Bact)', 'Location', 'best');
-    else
-        legend('Comp (No Bact)', 'Location', 'best');
-    end
-    xlabel('Time Step'); ylabel('H2 Mole Fraction in Gas');
-    title('H2 Gas Composition'); grid on;
-end
-
-% Total H2 mass in reservoir
-if isfield(res_comp_nobact, 'totMassH2')
-    subplot(2,3,6);
-
-    plot(res_bo.totMassH2, 'b-', 'LineWidth', 2); hold on;
-    plot(res_comp_nobact.totMassH2, 'r-', 'LineWidth', 2); hold on;
-    if ~nobact
-        plot(res_comp_bact.totMassH2, 'g-', 'LineWidth', 2);
-        legend('Black-Oil','Comp (No Bact)', 'Comp (With Bact)', 'Location', 'best');
-    end
-    xlabel('Time Step'); ylabel('Total H2 Mass (kg)');
-    title('H2 Mass in Reservoir'); grid on;
-end
-
-sgtitle('Hydrogen Storage: Black-Oil vs Compositional Model Comparison');
 end

@@ -85,7 +85,7 @@ bc = addBC([], lateralfaces, 'pressure', pressure_bc, 'sat', sat);
 %% Step 1: Generate Relative Permeability and Capillary Pressure Tables
 %
 % This step builds region-dependent SGOF tables (relative permeability and capillary pressure)
-% for a hydrogen-brine system using the `getFluidH2BrineSGOF` utility. 
+% for a hydrogen-brine system using the `getFluidH2BrineSGOF` utility.
 % The output is formatted like ECLIPSE's 'SGOF' keyword format.
 % For details, refer to: `examplePVTGenerationH2Brine`.
 
@@ -117,8 +117,8 @@ SGOF = readSGOFTables(fid, 'SGOF', nreg, 4);  % Read SGOF tables for nreg region
 %   - Water phase (representing brine)
 %   - Gas phase (representing hydrogen)
 %
-% MRST's `initSimpleADIFluid` is used for this simplified setup. Relative permeability 
-% and capillary pressure data are *not* included here, as they are handled separately 
+% MRST's `initSimpleADIFluid` is used for this simplified setup. Relative permeability
+% and capillary pressure data are *not* included here, as they are handled separately
 % via region-dependent SGOF tables.
 % Phase ordering: 'O' = water (brine), 'G' = gas (hydrogen)
 initFluid = initSimpleADIFluid( ...
@@ -161,7 +161,7 @@ xlabel('x'), zlabel('Depth'), title('Initial Pressure [Psi]');
 
 %% Define simple injection schedule
 timesteps = [0.01, 0.025, 0.075, 0.1, repmat(0.5, [1, 6]), ...
-             ones(1, 6), repmat(2, [1, 13]), repmat(3, [1, 59])] * day;
+    ones(1, 6), repmat(2, [1, 13]), repmat(3, [1, 59])] * day;
 
 % Set up schedule with wells and boundary conditions
 schedule_bo = simpleSchedule(timesteps, 'W', W, 'bc', bc);
@@ -239,3 +239,31 @@ fluid_bo = modeldeck.fluid;
 
 model_bo = GenericBlackOilModel(G, rock, fluid_bo, 'gravity', grav, ...
     'disgas', true, 'vapoil', true, 'water', false, 'oil', true, 'gas', true);
+
+%% Copyright notice
+
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

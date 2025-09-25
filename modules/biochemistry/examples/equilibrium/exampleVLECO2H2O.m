@@ -29,7 +29,7 @@ eosModelpr = EquationOfStateModel([], compFluid, eosNamepr);
 %% Define Test Case Parameters
 % Set the test case for different pressures, temperatures, and salinity levels
 z0 = [0.8, 0.2]; % Initial composition
-caseTest = 2; % Choose the test case here
+caseTest = 4; % Choose the test case here
 
 switch caseTest %Source: Thermodynamic study of the CO2-H2O system, S.Chabab (https://hal.science/hal-02310963v1,2019)
     case 1
@@ -89,19 +89,30 @@ fprintf('Errormean SW-Experiment: %12.8f, Errormean PR-Experiment: %12.8f\n', me
 %% plot the results
 plotEosPRSW(pres,xliqCO2Exp,xliqCO2sw,xliqCO2pr)
 
-%{
-Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+%% Copyright notice
 
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify it under the terms of the GNU 
-General Public License as published by the Free Software Foundation, either version 3 of 
-the License, or (at your option) any later version.
-
-MRST is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without 
-even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with MRST. If not, 
-see <http://www.gnu.org/licenses/>.
-%}
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>

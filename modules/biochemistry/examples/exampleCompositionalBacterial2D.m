@@ -113,7 +113,7 @@ nls.LinearSolver = lsolve;
 %% Pack and run simulations
 % --- With bio-clogging
 problemWithClogging = packSimulationProblem(state0, model, schedule, caseNameWithClogging, 'NonLinearSolver', nls);
-simulatePackedProblem(problemWithClogging,  'restartStep', 1);
+simulatePackedProblem(problemWithClogging);
 
 % --- Without clogging
 modelNoClogging = model;
@@ -126,7 +126,7 @@ modelNoClogging = BiochemistryModel(modelNoClogging.G, modelNoClogging.rock, mod
 state0NoClogging = state0;
 caseNameNoClogging = [baseName '_NO_CLOGGING'];
 problemNoClogging = packSimulationProblem(state0NoClogging, modelNoClogging, schedule, caseNameNoClogging, 'NonLinearSolver', nls);
-simulatePackedProblem(problemNoClogging, 'restartStep', 1);
+simulatePackedProblem(problemNoClogging);
 
 % --- Without bacteria
 modelNoBact = model;
@@ -140,7 +140,7 @@ state0NoBact = state0;
 state0NoBact.nbact = 0;
 caseNameNoBact = [baseName '_NO_BACT'];
 problemNoBact = packSimulationProblem(state0NoBact, modelNoBact, schedule, caseNameNoBact, 'NonLinearSolver', nls);
-simulatePackedProblem(problemNoBact, 'restartStep', 1);
+simulatePackedProblem(problemNoBact);
 
 %% Get and compare results
 [wsWithClog, statesWithClog] = getPackedSimulatorOutput(problemWithClogging);
@@ -155,19 +155,30 @@ figure; plotToolbar(model.G, statesNoBact); title('Without Bacterial Effects');
 % Plot well outputs
 figure; plotWellSols({wsWithClog, wsNoClog, wsNoBact});
 
-%{
-Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+%% Copyright notice
 
-This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
-
-MRST is free software: you can redistribute it and/or modify it under the terms of the GNU 
-General Public License as published by the Free Software Foundation, either version 3 of 
-the License, or (at your option) any later version.
-
-MRST is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without 
-even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with MRST. If not, 
-see <http://www.gnu.org/licenses/>.
-%}
+% <html>
+% <p><font size="-1">
+% Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+% </font></p>
+% <p><font size="-1">
+% This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
+% </font></p>
+% <p><font size="-1">
+% MRST is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% </font></p>
+% <p><font size="-1">
+% MRST is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% </font></p>
+% <p><font size="-1">
+% You should have received a copy of the GNU General Public License
+% along with MRST.  If not, see
+% <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses</a>.
+% </font></p>
+% </html>
