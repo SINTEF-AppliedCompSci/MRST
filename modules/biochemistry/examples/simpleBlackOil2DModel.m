@@ -1,5 +1,20 @@
+%% 2D Hydrogen Storage: PVT Table Generation and Black-Oil Simulation
+% ===========================================================================
+% This example demonstrates how to generate and use tabulated PVT data for
+% hydrogen storage simulations using MRST's black-oil model. The script shows:
+%
+% 1. Generation of SGOF tables for relative permeability
+% 2. Creation of solubility tables for H2-water systems  
+% 3. PVT table generation using equation of state
+% 4. Black-oil simulation with tabulated data
+%
+% Key features:
+% - Dome-shaped 2.5D reservoir geometry
+% - Three geological layers (underburden, reservoir, caprock)
+% - Region-dependent relative permeability
+% - Miscible and immiscible flow options
 %% Load Required MRST Modules
-mrstModule add ad-core ad-blackoil ad-props mrst-gui spe10 deckformat
+mrstModule add ad-core ad-blackoil ad-props mrst-gui spe10 deckformat h2store
 
 %% Initialize Gravity
 gravity reset on
@@ -23,13 +38,13 @@ underburden = k <= 6;
 reservoir   = k > 6 & k <= 14;
 caprock     = k > 14;
 
-%% Plot Geological Layers
-clf;
-plotGrid(G, underburden, 'FaceColor', 'g'); hold on
-plotGrid(G, reservoir,   'FaceColor', 'r');
-plotGrid(G, caprock,     'FaceColor', 'b');
-title('2D Dome Grid with 3 Geological Layers');
-view(0, 180), axis tight
+% %% Plot Geological Layers
+% clf;
+% plotGrid(G, underburden, 'FaceColor', 'g'); hold on
+% plotGrid(G, reservoir,   'FaceColor', 'r');
+% plotGrid(G, caprock,     'FaceColor', 'b');
+% title('2D Dome Grid with 3 Geological Layers');
+% view(0, 180), axis tight
 
 %% Petrophysical Properties
 rock = makeRock(G, [10, 10, 10]*milli*darcy, 0.25);
