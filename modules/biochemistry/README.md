@@ -1,34 +1,38 @@
-# Simulation Tools for H\(_2\) Storage in Depleted Reservoirs Using Fully Compositional MRST-Simulator and Bio-Chemistry Model
+# MRST Bio-Chemistry Module for Hydrogen Storage Simulation
 
-This module integrates a bio-chemistry model with the compositional simulator in the MATLAB Reservoir Simulation Toolbox (MRST). It implements the Soerinde Whitson (SW) equation of state (EoS), which has been fitted to experimental data. The EoS can also generate tabulated PVT data for black-oil simulators.
+A comprehensive MATLAB Reservoir Simulation Toolbox (MRST) module for simulating hydrogen storage in depleted reservoirs with bio-chemical reactions and compositional modeling.
 
 ## Overview
 
-The purpose of this module is to simulate the phase behavior and thermodynamic properties of hydrogen storage in depleted reservoirs. It specifically accounts for the effects of temperature, pressure, and salinity on bacterial activity and hydrogen loss. 
+This module extends MRST's capabilities by integrating a bio-chemistry model with the compositional simulator, specifically designed for hydrogen storage applications. It implements the Soreide-Whitson (SW) equation of state fitted to experimental data and enables simulation of microbial activity affecting hydrogen storage operations.
 
-Key features include:
-- **SW EoS**: Fitted to the \( \text{H}_2\text{O-H}_2-\text{CO}_2-\text{CH}_4-\text{N}_2 \) mixture for modeling methanogenesis reactions.
-- **Biochemical Reaction**: The following reaction is simulated:
-  \[
-  4\text{H}_2 + \text{CO}_2 \longrightarrow \text{CH}_4 + 2\text{H}_2\text{O} + \text{energy}
-  \]
+### Key Features
 
-## Prerequisites
+- **Compositional Modeling**: Full compositional simulation for H₂O-H₂-CO₂-CH₄-N₂ mixtures
+- **Bio-Chemistry Integration**: Microbial growth and methanogenesis reactions
+- **Equation of State**: Soreide-Whitson EoS fitted to experimental data
+- **Bacterial Effects**: Simulation of hydrogen loss due to microbial activity
 
-To use this module, ensure you have:
-- **MATLAB**: Version R2021a or newer.
-- **MRST**: MATLAB Reservoir Simulation Toolbox with the compositional module installed.
-- **H2STORE**: [Accessible module for hydrogen storage simulation](https://github.com/ElyesAhmed/MRST/tree/hydrogen/modules/H2store).
+### Biochemical Reaction Model
+
+The module simulates the methanogenesis reaction:
+\[
+4\text{H}_2 + \text{CO}_2 \longrightarrow \text{CH}_4 + 2\text{H}_2\text{O} + \text{energy}
+\]
+
+For detailed methodology and validation, see our publication:
+[**Numerical Modeling of Bio-Reactive Transport During Underground Hydrogen Storage**](https://www.sciencedirect.com/science/article/pii/S0360319925039473)
 
 ## Installation
 
-1. Clone or download this repository:
-   ```bash
-   git clone https://github.com/your-repo-name/bio-chemistry-module.git
+### Prerequisites
 
-# Funding
-
-This work was supported by:
-
-- **HYDROGENi** Norwegian Research and Innovation Centre for Hydrogen and Ammonia (Grant No. 333118).
-- **HYSTORM**   Research Council of Norway HYSTORM Project (Grant No. 315804).
+- **MATLAB**: Version R2021a or newer
+- **MRST**: MATLAB Reservoir Simulation Toolbox (2023b or newer)
+- **Required MRST Modules**:
+  - `compositional`
+  - `ad-blackoil` 
+  - `ad-core`
+  - `ad-props`
+  - `h2store`
+  -`biochemistry`
