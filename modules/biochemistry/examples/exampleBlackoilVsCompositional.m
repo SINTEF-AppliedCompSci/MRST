@@ -5,7 +5,7 @@
 % 2. Compositional model without bacterial effects
 % 3. Compositional model with bacterial growth
 %
-% SEE ALSO: 
+% SEE ALSO:
 %   `simpleExampleBlackOilPVT`, `simpleBlackOil2DModel`
 %
 %
@@ -44,7 +44,7 @@ compFluid = TableCompositionalMixture({'Water', 'Hydrogen', 'CarbonDioxide', 'Me
     {'H2O', 'H2', 'CO2', 'C1'});
 
 %% Common Parameters for Compositional Models
-z0 = [0.995, 0.0, 0.005, 0.0];  % Initial composition [H2O, H2, CO2, C1]
+z0 = [1.0, 0.0, 0.00, 0.0];  % Initial composition [H2O, H2, CO2, C1]
 T0 =  273.15 +60;
 %% Model 1: Compositional without Bacteria
 backend = DiagonalAutoDiffBackend('modifyOperators', true);
@@ -52,7 +52,8 @@ model_comp_nobact = BiochemistryModel(G, rock, fluid_bo, compFluid, ...
     true, backend, 'water', false, 'oil', true, 'gas', true, ...
     'bacteriamodel', false, 'liquidPhase', 'O', 'vaporPhase', 'G');
 model_comp_nobact.gravity = grav;
-
+model_comp_nobact.nonlinearTolerance = 1.0e-6;
+model_comp_nobact.OutputStateFunctions{end+1} = 'ComponentPhaseMass';
 % Initialize compositional state without bacteria
 state0_comp_nobact = initCompositionalState(model_comp_nobact, pInit, T0, [1.0, 0.0], z0);
 
@@ -61,7 +62,9 @@ model_comp_bact = BiochemistryModel(G, rock, fluid_bo, compFluid, ...
     true, backend, 'water', false, 'oil', true, 'gas', true, ...
     'bacteriamodel', true, 'liquidPhase', 'O', 'vaporPhase', 'G');
 model_comp_bact.gravity = grav;
-nbact0 = 1;
+model_comp_bact.OutputStateFunctions{end+1} = 'ComponentPhaseMass';
+model_comp_bact.nonlinearTolerance = 1.0e-6;
+nbact0 = 100;
 model_comp_bact.nbactMax = 1e8;
 % Initialize with bacteria
 state0_comp_bact = initCompositionalStateBacteria(model_comp_bact, pInit, T0, [1.0, 0.0], z0, nbact0);
@@ -75,11 +78,6 @@ schedule_comp.control(1).bc.components = [1.0, 0.0, 0.0, 0.0];
 %% ============ PART 4: RUN SIMULATIONS =====================
 fprintf('=== Running Simulations ===\n');
 
-%% Setup Nonlinear Solver (Common for all models)
-nls = NonLinearSolver();
-lsolve = selectLinearSolverAD(model_bo);
-nls.LinearSolver = lsolve;
-
 %% Run Black-Oil Simulation
 fprintf('1. Running Black-Oil simulation...\n');
 clf;
@@ -89,8 +87,6 @@ fn = getPlotAfterStep(state0_bo, model_bo, schedule_bo, ...
 
 %% Run Compositional without Bacteria
 fprintf('2. Running Compositional simulation (no bacteria)...\n');
-problem_comp_nobact = packSimulationProblem(state0_comp_nobact, model_comp_nobact, schedule_comp, ...
-    'H2Storage_Comp_NoBact', 'NonLinearSolver', nls);
 
 close all;
 fnnobact = getPlotAfterStep(state0_comp_nobact, model_comp_nobact, schedule_comp, 'view', [0, 180], ...
@@ -122,24 +118,38 @@ plotComparisonSummary(results_bo, results_comp_nobact, results_comp_bact);
 
 %% Display Summary Table
 fprintf('\n=== PERFORMANCE COMPARISON ===\n');
-fprintf('Model                 | Avg Pressure | Max H2 Sat | Injected H2 | CPU Time\n');
+fprintf('Model                 | Avg Pressure | Max H2 Sat | Dissolved H2 | CPU Time\n');
 fprintf('---------------------|--------------|------------|-------------|----------\n');
 fprintf('Black-Oil            | %6.1f bar   | %6.4f    | %6.3e kg | %6.1f s\n', ...
     mean(results_bo.pressure)/barsa, max(results_bo.sG), ...
-    sum(results_bo.H2_injected), report_bo.SimulationTime);
+    sum(results_bo.H2_diss), report_bo.SimulationTime);
 
 fprintf('Comp (No Bacteria)   | %6.1f bar   | %6.4f    | %6.3e kg | %6.1f s\n', ...
     mean(results_comp_nobact.pressure)/barsa, max(results_comp_nobact.sG), ...
-    sum(results_comp_nobact.H2_injected), report_bo.SimulationTime);
+    sum(results_comp_nobact.H2_diss), report_bo.SimulationTime);
 
 fprintf('Comp (With Bacteria) | %6.1f bar   | %6.4f    | %6.3e kg | %6.1f s\n', ...
     mean(results_comp_bact.pressure)/barsa, max(results_comp_bact.sG), ...
-    sum(results_comp_bact.H2_injected), report_bo.SimulationTime);
+    sum(results_comp_bact.H2_diss), report_bo.SimulationTime);
 
-% Calculate bacterial effects
-h2_loss = (max(results_comp_nobact.totMassH2) - max(results_comp_bact.totMassH2)) / ...
+% Calculate H2 loss due to bacteria (comparing compositional with vs without bacteria)
+% Reference: compositional without bacteria
+h2_loss_due_to_bacteria = (max(results_comp_nobact.totMassH2) - max(results_comp_bact.totMassH2)) / ...
     max(results_comp_nobact.totMassH2) * 100;
-fprintf('\nBacterial effects: H2 loss = %.2f%%\n', h2_loss);
+fprintf('\nH2 loss due to bacteria: %.2f%%\n', h2_loss_due_to_bacteria);
+
+% Calculate H2 mass error between blackoil and compositional without bacteria
+% Reference: compositional without bacteria
+h2_error_blackoil_vs_comp_nobact = (max(results_bo.totMassH2) - max(results_comp_nobact.totMassH2)) / ...
+    max(results_comp_nobact.totMassH2) * 100;
+fprintf('\nH2 mass error - Blackoil vs Compositional (no bacteria): %.2f%%\n', h2_error_blackoil_vs_comp_nobact);
+
+% Calculate H2 mass error between blackoil and compositional with bacteria
+% Reference: compositional with bacteria
+h2_error_blackoil_vs_comp_bact = (max(results_bo.totMassH2) - max(results_comp_bact.totMassH2)) / ...
+    max(results_comp_bact.totMassH2) * 100;
+fprintf('\nH2 mass error - Blackoil vs Compositional (with bacteria): %.2f%%\n', h2_error_blackoil_vs_comp_bact);
+
 fprintf('\n=== Simulation completed successfully ===\n');
 
 
@@ -158,9 +168,9 @@ colors   = {'b-', 'r-', 'g-'};
 subplot(2,3,1);
 plotSeries(res_list, 'pressure', 'Pressure (bar)', 'Pressure Evolution', false, colors);
 subplot(2,3,2);
-plotSeries(res_list, 'sG', 'H2 Saturation', 'Maximum H2 Saturation', false, colors);
+plotSeries(res_list, 'sG', 'H2 Saturation', 'Mean H2 Saturation', false, colors);
 subplot(2,3,3);
-plotSeries(res_list, 'H2_injected', 'Cumulative H2 (kg)', 'Cumulative H2 Injection', true, colors);
+plotSeries(res_list, 'H2_diss', ' H2 Mass in Water(kg)', 'Dissolved H2', true, colors);
 
 % Final state comparison
 subplot(2,3,4);
@@ -173,7 +183,7 @@ set(gca, 'XTickLabel', labels); title('Final State Comparison'); grid on;
 % H2 mole fraction
 if isfield(res_comp_nobact, 'yH2')
     subplot(2,3,5);
-    plotSeries(res_list, 'yH2', 'H2 Mole Fraction in Gas', 'H2 Gas Composition', false, colors);
+    plotSeries(res_list, 'yH2', 'H2 Mole Fraction in Gas', 'Mean yH2', false, colors);
 end
 
 % Total H2 mass
@@ -214,7 +224,7 @@ nT = numel(states);
 results.pressure     = zeros(nT, 1);
 results.yH2          = zeros(nT, 1);
 results.sG           = zeros(nT, 1);
-results.H2_injected  = zeros(nT, 1);
+results.H2_diss  = zeros(nT, 1);
 results.totMassH2    = zeros(nT, 1);
 
 % Determine model type and setup indices
@@ -241,6 +251,7 @@ elseif isCompositional
     namecp   = model.EOSModel.getComponentNames();
     indH2    = find(strcmp(namecp, 'H2'));
     V_ix     = model.getVaporIndex();
+    L_ix     = model.getLiquidIndex();
     compIndex = indH2; % H2 index in compositional model
 else
     error('Unknown model type: %s', class(model));
@@ -252,14 +263,14 @@ for i = 1:nT
 
     % Common quantities
     results.pressure(i) = mean(state.pressure);
-    results.sG(i)       = max(state.s(:, V_ix));
+    results.sG(i)       = mean(state.s(:, V_ix));
 
     if isBlackOil
-        results.yH2(i) = max(rhoGS ./ (rhoGS + rhoOS .* state.rv));
-        results.H2_injected(i) = max(0, ws{i}.qGs);
+        results.yH2(i) = mean(rhoGS .*state.rs./ (rhoGS + rhoOS .* state.rv));
+        results.H2_diss(i) =sum(state.FlowProps.ComponentPhaseMass{compIndex,L_ix});
     else
-        results.yH2(i) = max(state.y(:, indH2));
-        results.H2_injected(i) = max(0, ws{i}.H2);
+        results.yH2(i) = mean(state.y(:, indH2));
+        results.H2_diss(i) = sum(state.FlowProps.ComponentPhaseMass{compIndex,L_ix});
 
     end
 
@@ -277,7 +288,7 @@ function metrics = calculateMetrics(results)
 metrics.avgPressure = mean(results.pressure);
 metrics.maxPressure = max(results.pressure);
 metrics.maxH2Saturation = max(results.sG);
-metrics.totalInjectedH2 = sum(results.H2_injected);
+metrics.H2diss = sum(results.H2_diss);
 if isfield(results, 'totMassH2')
     metrics.finalH2Mass = results.totMassH2(end);
 end
