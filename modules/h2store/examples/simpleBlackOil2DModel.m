@@ -254,7 +254,9 @@ fluid_bo = modeldeck.fluid;
 
 model_bo = GenericBlackOilModel(G, rock, fluid_bo, 'gravity', grav, ...
     'disgas', true, 'vapoil', true, 'water', false, 'oil', true, 'gas', true);
-
+model_bo.OutputStateFunctions{end+1} = 'ShrinkageFactors';
+model_bo.OutputStateFunctions{end+1} = 'ComponentPhaseMass';
+model_bo.nonlinearTolerance = 1.0e-6;
 %% Copyright notice
 
 % <html>
