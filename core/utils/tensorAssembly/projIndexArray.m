@@ -7,7 +7,9 @@ function [projtbl, indstruct] = projIndexArray(tbl, fds)
 % DESCRIPTION: Project an IndexArray on a subset of indices, meaning that given
 % an IndexArray tbl with field tbl.A and tbl.B. If we project on the index name
 % 'A', we construct an IndexArray projtbl with field projtbl.A such that, for
-% all i, there exists a unique j such that tbl.A(i) = projtbl.A(j)
+% all i, there exists a unique j such that tbl.A(i) = projtbl.A(j).
+%
+% The indices in projtbl are sorted with respect to order given in fds.
 %
 % PARAMETERS:
 %   tbl - IndexArray
