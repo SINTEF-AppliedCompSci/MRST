@@ -30,6 +30,20 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         assert(all(ismember(fdnames1, fdnames2)) && all(ismember(fdnames1, fdnames2)), 'not matching field names');
         fdnames = fdnames1;
     end
+
+    if tbl1.isvirtual || tbl2.isvirtual
+        assert(tbl1.isvirtual && tbl2.isvirtual, 'in case of virtual array, we allow only for concatenation if both indexarrays are virtual');
+        tbl = IndexArray([], 'fdnames', fdnames, 'isvirtual', true, 'num', tbl1.num + tbl2.num);
+        if opt.checkUnique
+            warning('cannot check uniqueness of indices in case of virtual index arrays');
+        end
+        if opt.removeDuplicates
+            warning('we cannot remove duplicates in case of virtual index arrays');
+        end
+        
+        return
+        
+    end
     
     inds1 = tbl1.gets(fdnames);
     inds2 = tbl2.gets(fdnames);
