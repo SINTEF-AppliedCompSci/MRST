@@ -169,9 +169,15 @@ classdef TensorProd
                                 'not belong to fields of second table']);
             ofds1 = fds1(~ismember(fds1, crossfds));
             ofds2 = fds2(~ismember(fds2, crossfds));
-            assert(all(~ismember(ofds1, ofds2)) & all(~ismember(ofds1, ofds2)), ...
+            assert(all(~ismember(ofds1, ofds2)) & all(~ismember(ofds2, ofds1)), ...
                    ['There exist fields with same name in first and second ' ...
                     'table that are neither merged or reduced.']);
+
+            assert(all(ismember(reducefds1, fds1)), ...
+                   ['some fields in reducefds1 are not recognized']);
+
+            assert(all(ismember(reducefds2, fds2)), ...
+                   ['some fields in reducefds2 are not recognized']);
             
             if isempty(prod.pivottbl)
                 
