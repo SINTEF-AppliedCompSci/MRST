@@ -3,11 +3,10 @@ function W = addHybridCellsToWell(W, G, rock, varargin)
 %
 % SYNOPSIS:
 %   W = addHybridCellsToWell(W, G, rock)
-%   setup = spe10_wo(W, G, rock, 'pn1', pv1, ...)
 %
 % DESCRIPTION:
-%   For each well in W, this function finds all hybrid cells adjacent ot
-%   the cells of the well and adds them to the well. Hybrid are grid faces
+%   For each well in W, this function finds all hybrid cells adjacent to the
+%   cells of the well and adds them to the well. Hybrid cells are grid faces
 %   that are assigned a volume in the computational grid. This function is
 %   useful if the wells are added using a function that does not recognize
 %   hybrid cells, e.g., addWellFromTrajectory.
@@ -79,6 +78,7 @@ end
 function W = addWellCells(W, G, rock, cells, aperture, varargin)
 % Add cells
 
+    cells0 = W.cells;
     nc0     = numel(W.cells);
     W.cells = [W.cells; cells];
     nc      = numel(W.cells);
@@ -103,6 +103,16 @@ function W = addWellCells(W, G, rock, cells, aperture, varargin)
     W.cells = W.cells(ix);
     W.WI = W.WI(ix);
     W.dZ = W.dZ(ix);
+
+    if isfield(W, 'trajectory')
+        assert(all(W.trajectory.cell == cells0), ...
+            'W.trajectory.cell must match W.cells');
+        W.trajectory.cell = W.cells;
+        vec = [W.trajectory.vec; [zeros(numel(cells), 2), dz]];
+        W.trajectory.vec = vec(ix,:);
+        weight = [W.trajectory.weight; ones(numel(cells), 1)];
+        W.trajectory.weight = weight(ix);
+    end
     
     % Add remaining fields by repeating W.(fn)(1)
     for fn = fieldnames(W)'
