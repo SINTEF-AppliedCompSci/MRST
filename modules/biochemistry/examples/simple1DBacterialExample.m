@@ -21,7 +21,7 @@
 % ===========================================================================
 
 mrstModule add ad-core ad-props deckformat mrst-gui
-mrstModule add compositional add-autodiff biochemistry
+mrstModule add compositional biochemistry
 mrstVerbose off;
 
 %% Setup base compositional model

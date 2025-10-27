@@ -116,8 +116,8 @@ if model.water &&  isfield(model.fluid, 'krW')
         end
     end
     if (~model.oil || isfield(fluid, 'krOW')) && ...
-       (~model.gas   || isfield(fluid, 'krWG')) 
-        fluid = rmfield(fluid, 'krW');  
+       (~model.gas   || isfield(fluid, 'krWG'))
+        fluid = rmfield(fluid, 'krW');
     else
         warning('Scaling of ''krW''-function ignored');
     end
