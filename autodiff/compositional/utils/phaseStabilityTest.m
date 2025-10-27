@@ -111,7 +111,17 @@ function [xy, S, trivialSolution, K] = checkStability(eos, z, K, p, T, insidePha
     tol_equil = opt.tol_equil;
     nc = numel(p);
     acf = eos.CompositionalMixture.acentricFactors;
-    [A_ij, Bi] = eos.getMixingParameters(p, T, acf, false);
+    if strcmp(eos.shortname,'sw')
+    % For Søreide-Whitson EoS
+        if insidePhaseIsVapor
+            [A_ij, Bi] = eos.getMixingParameters(p, T, acf, false);
+        else
+            [A_ij, Bi] = eos.getMixingParametersH2O(p, T, acf, false);
+        end
+
+    else
+        [A_ij, Bi] = eos.getMixingParameters(p, T, acf, false);
+    end
     
     f_z = getFugacity(eos, A_ij, Bi, z, p, insidePhaseIsVapor);
     % xy is either x or y, depending on context for phase test
