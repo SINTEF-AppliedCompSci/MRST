@@ -44,7 +44,7 @@ classdef EOSSeparator < BasicSeparator
             if useAD
                 [x, y, L] = eos.getPhaseFractionAsADI(state, p, temp, z);
                 acf = eos.CompositionalMixture.acentricFactors;
-                
+
                 % if Soreide-Whitson EoS we treat differently mixing
                 % parameters
                 if (model.eosType==6)
