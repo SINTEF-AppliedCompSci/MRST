@@ -28,9 +28,9 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-clearvars; clc;
+%clearvars; clc;
 mrstModule add ad-blackoil ad-core ad-props mrst-gui deckformat
-mrstModule add compositional biochemistry h2store
+mrstModule add compositional h2-biochem h2store
 
 %% ============ PART 1: BLACK-OIL MODEL (Original Script) =====================
 fprintf('=== Setting up Black-Oil Model ===\n');

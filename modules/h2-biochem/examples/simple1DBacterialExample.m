@@ -21,7 +21,7 @@
 % ===========================================================================
 
 mrstModule add ad-core ad-props deckformat mrst-gui
-mrstModule add compositional biochemistry
+mrstModule add compositional h2-biochem
 mrstVerbose off;
 
 %% Setup base compositional model
