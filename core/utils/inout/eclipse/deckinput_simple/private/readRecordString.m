@@ -62,14 +62,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
       if ~done,
          lin  = regexprep(lin, comment, '');  % Remove comments.
-         done = any(lin == '/');              % Record complete?
+         done = ~isempty(strfind(lin, '/'));  % Record complete?
          data = [data, ' ', lin];  %#ok       % Willfully ignore MLINT.
       end
    end
 
-   p = find(data == '/') - 1;
-   if ~isempty(p),
-      data = data(1 : p);                  % Exclude terminator character.
+   p = strfind(data, '/');
+   if ~isempty(p)
+      data = data(1 : (p(1) - 1));         % Exclude terminator character.
    end
-   data(data == '''') = '';                % Exclude any quote characters.
+   data(strfind(data, '''')) = '';         % Exclude any quote characters.
 end
