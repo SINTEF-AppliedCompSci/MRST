@@ -12,7 +12,7 @@
 clear; clc;
 
 % Add necessary MRST modules
-mrstModule add biochemistry compositional ad-blackoil ad-core ad-props mrst-gui
+mrstModule add h2-biochem compositional ad-blackoil ad-core ad-props mrst-gui
 
 %% Define Composition Mixture
 % Create a compositional mixture with water and hydrogen components
