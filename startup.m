@@ -33,10 +33,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    % Run platform (Octave/Matlab) specific startup routines
    run_platform_specific();
    
-   % Automatically load selected modules for backwards compatibility.
-   autoload = {};
-   load_compat_modules(autoload);
-
    % Display welcome message
    mrstStartupMessage();
 
@@ -85,11 +81,9 @@ function build_mrst_path_tree
    % Add modules as root directories
    dirs = {'autodiff', 'model-io', 'multiscale', 'modules', 'solvers', ...
       'visualization','co2lab'};
-   base_path = fileparts(mfilename('fullpath')); %#ok
-   clear fn
-   for i = 1:numel(dirs)
-      mrstPath('addroot', fullfile(base_path, dirs{i}));
-   end
+    for rdir = reshape(dirs, 1, [])
+       mrstPath('addroot', fullfile(d, rdir{1}));
+    end
 
 end
 
@@ -112,31 +106,6 @@ function activate_3rdparty_modules(mod_3rdparty)
 
    for mod = reshape(mod_3rdparty, 1, [])
       mrstPath('add', mod{1}, thirdparty(mod{1}));
-   end
-end
-
-%--------------------------------------------------------------------------
-
-function load_compat_modules(mlist)
-   if isempty(mlist), return, end
-
-   p = mrstPath('search', mlist{:});
-
-   if isempty(p)
-      mlist = {};
-   elseif iscellstr(p)
-      mlist = mlist(~ cellfun(@isempty, p));
-   end
-
-   if ~isempty(mlist)
-      pl = 's'; if numel(mlist) == 1, pl = ''; end
-
-      fprintf(['Note: Automatically loading selected ', ...
-               'module%s for backwards compatibility:\n'], pl);
-
-      fprintf('  * %s\n', mlist{:});
-
-      mrstModule('add', mlist{:})
    end
 end
 
