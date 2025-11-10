@@ -30,10 +30,10 @@ deck = readEclipseDeck(dataFile);
 
 %% Warn about computational cost
 warning('ComputationalCost:High', ...
-    ['This is a 10-cycle injection example; consider reducing cycles for faster runs.']);
+    ['This is a 5-cycle injection example; consider reducing cycles for faster runs.']);
 
 %% Set up black-oil model and schedule
-[~, ~, state0Bo, modelBo, scheduleBo, ~] = modelForSimple2DAquifer(deck);
+[~, ~, state0Bo, modelBo, scheduleBo, ~] = modelForSimple2DAquifer(deck,'numcycles',10);
 
 %% Convert black-oil to compositional model
 model = convertBlackOilModelToCompositionalModel(modelBo);
