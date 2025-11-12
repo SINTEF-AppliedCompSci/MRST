@@ -71,11 +71,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     trajectories = cell(nw,1);
     for i = 1:nw
         if wellsGiven
-            W(i) = topoSortWellCells(G, W(i)); %#ok
-            coords{i} = G.cells.centroids(W(i).cells,:);
-            traj = computeTraversedCells(G, coords{i});
-            if isfield(G.cells, 'hybrid') && any(G.cells.hybrid(W(i).cells))
-                traj = addHybridCells(G, W(i), traj);
+            if isfield(W(i), 'trajectory')
+                traj = W(i).trajectory;
+            else
+                W(i) = topoSortWellCells(G, W(i)); %#ok
+                coords{i} = G.cells.centroids(W(i).cells,:);
+                traj = computeTraversedCells(G, coords{i});
+                if isfield(G.cells, 'hybrid') && any(G.cells.hybrid(W(i).cells))
+                    traj = addHybridCells(G, W(i), traj);
+                end
             end
             trajectories{i} = traj;
         else
