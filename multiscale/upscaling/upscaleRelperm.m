@@ -120,7 +120,7 @@ if periodic
         dp{j} = 0;
     end
 
-    dp{1} = dp_scale;
+    dp{dir} = dp_scale;
     % Create a periodic grid which couples the edges so that bcl{i}.faces
     % are coupled with bcr{i}.faces for i \in G.griddim
 
