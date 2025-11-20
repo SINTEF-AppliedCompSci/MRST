@@ -1,33 +1,27 @@
-classdef ComponentTotalFlux < StateFunction
-    % Total flux of all components, summed up over all phases
-    properties
-
-    end
+classdef ComponentTotalMolecularDiffFlux < StateFunction
+    % ComponentTotalMolecularDiffFlux - Total molecular diffusion flux
+    % of components summed over all phases.
 
     methods
-        function gp = ComponentTotalFlux(varargin)
-            gp@StateFunction(varargin{:});
-            gp = gp.dependsOn('ComponentPhaseFlux');
-            gp.label = 'V_i';
+        function gp = ComponentTotalMolecularDiffFlux(model, varargin)
+            gp@StateFunction(model, varargin{:});
+            gp = gp.dependsOn('ComponentPhaseMolecularDiffFlux');
+            gp.label = 'J_i^{mol,diff}';
         end
 
         function v = evaluateOnDomain(prop, model, state)
-            ncomp = model.getNumberOfComponents();
-            nph = model.getNumberOfPhases();
-            v = cell(ncomp, 1);
-            phase_flux = prop.getEvaluatedDependencies(state, 'ComponentPhaseFlux');
+            % Get phase-wise diffusion fluxes
+            J_phase = prop.getEvaluatedDependencies(state, 'ComponentPhaseMolecularDiffFlux');
 
+            ncomp = model.getNumberOfComponents();
+            v = cell(ncomp, 1);
+
+            % Sum over phases for each component
             for c = 1:ncomp
-                % Loop over phases where the component may be present
-                for ph = 1:nph
-                    % Check if present
-                    m = phase_flux{c, ph};
-                    if ~isempty(m)
-                        if isempty(v{c})
-                            v{c} = m;
-                        else
-                            v{c} = v{c} + m;
-                        end
+                v{c} = 0;
+                for ph = 1:model.getNumberOfPhases()
+                    if ~isempty(J_phase{c, ph})
+                        v{c} = v{c} + J_phase{c, ph};
                     end
                 end
             end
@@ -36,7 +30,7 @@ classdef ComponentTotalFlux < StateFunction
 end
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

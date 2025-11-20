@@ -26,6 +26,10 @@ classdef BiochemistryGenericFacilityModel < GenericFacilityModel
             ffd = ffd.setStateFunction('PsiGrowthRate', GrowthBactRateSRC(model));
             ffd = ffd.setStateFunction('PsiDecayRate', DecayBactRateSRC(model));
             ffd = ffd.setStateFunction('BactConvRate', BactConvertionRate(model));
+
+            ffd = ffd.setStateFunction('ComponentTotalMolecularDiffFlux', ComponentTotalMolecularDiffFlux(model));
+            ffd = ffd.setStateFunction('ComponentPhaseMolecularDiffFlux', ComponentPhaseMolecularDiffFlux(model));
+
             model.FacilityFlowDiscretization = ffd;
         end
 
