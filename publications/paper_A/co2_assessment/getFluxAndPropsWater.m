@@ -9,8 +9,8 @@ function [vW, mobW] = getFluxAndPropsWater(model, pW, krW, T, gdz)
 
 %{
 Partial copyright 2009-2021, SINTEF Digital, Mathematics & Cybernetics.
-Partial copyright 2021, NORCE Norwegian Research Centre AS, Computational 
-Geosciences and Modeling.
+Partial copyright 2021-2025, NORCE Research AS, Computational Geosciences and
+Modeling.
 
 This file is part of the ad-micp module.
 
