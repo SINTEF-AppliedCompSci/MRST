@@ -1,15 +1,27 @@
 This file briefly describes the content of the the ad-micp module. Inside
 the root folder, you will find the following folders:
 
+* .github,
 * examples,
 * publications,
+* tests,
 * models, and
 * utility.
 
-In addition, this file (Contents.txt), a copy of the license (LICENSE.txt),
-and the README (README.md).
+In addition, this file (CONTENTS.md), a copy of the license (LICENSE.txt),
+the citation (CITATION.cff), contributing guidelines (CONTRIBUTING.md), 
+covenant code of conduct (CODE_OF_CONDUCT.md), changes to ignore (.gitignore),
+a nice gif of the MICP concept (micp-gif.gif), and the README (README.md).
 
-The example folder contains two commented scripts to demonstrate how to
+The .github/workflows folder contains the continuous integration script:
+
+* CI.yml.
+
+The tests folder contains the file to set up the environment to run the test:
+
+* test_runMICP1DCase.m.
+
+The examples folder contains two commented scripts to demonstrate how to
 set up different flow system simulations using this module:
 
 * runMICP1DCase.m and
