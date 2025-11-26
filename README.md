@@ -28,7 +28,7 @@ respect to previous releases, and using this module in macOS with GNU Octave.
 
 ## Requirements
 * MRST (Tested version: mrst-2025a)
-* MATLAB (Tested version: R2023a) or GNU Octave (Tested version: 9.2.0)
+* MATLAB (Tested version: R2023a) or GNU Octave (Tested version: 10.3.0)
 
 ## Installation (MATLAB/GNU Octave)
 The ad-micp module is included in MRST, click [_this link_](https://github.com/SINTEF-AppliedCompSci/MRST/tree/main/modules/ad-micp) 
@@ -70,6 +70,9 @@ Numerical studies of CO2 leakage remediation by micp-based plugging
 technology. In: Røkke, N.A. and Knuutila, H.K. (Eds) Short Papers from the
 11th International Trondheim CCS conference, ISBN: 978-82-536-1714-5,
 284-290.
+
+## Related
+See https://github.com/cssr-tools for additional tools that might be of interest 🙂.
 
 ## Contact
 David Landa-Marbán (dmar@norceresearch.no).
