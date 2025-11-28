@@ -70,8 +70,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         subplot(1, num_tsteps, i);
         
         plume = []; 
-        if opt.plot_plume % && isfield(states{i}, 'h')
-           plume = reports(ix).sol.h(kept_cells);
+       if opt.plot_plume % && isfield(states{i}, 'h')
+           plume = reports(ix).sol.s(:,2) .* Gt.cells.H;
+           %plume = reports(ix).sol.h(kept_cells);
            %plume = stepdata(i).report.sol.h(kept_cells);
         end
         field = [];
