@@ -19,6 +19,7 @@ classdef TestExamples < matlab.unittest.TestCase
                     'mpsaConvergenceTest'      , ...
                     'mpsaPaperConvergenceTests', ...
                     'testRunBiot'};
+
     end
 
     properties
@@ -34,9 +35,10 @@ classdef TestExamples < matlab.unittest.TestCase
         function testRunExample(test, filename)
 
             if ~contains(filename, test.exclude)
-                % FIXME Disable plotting
                 set(0, 'defaultFigureVisible', 'off');
                 fprintf('\n\nRunning %s...\n\n', filename);
+                startup();
+                startup_mpsa();
                 run(filename);
                 close all
                 set(0, 'defaultFigureVisible', 'on');

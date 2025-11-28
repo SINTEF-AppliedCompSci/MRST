@@ -6,3 +6,5 @@ startup_user.m
 *.txt
 *.png
 *.pvd
+*.DS_Store
+*.mexmaca64
