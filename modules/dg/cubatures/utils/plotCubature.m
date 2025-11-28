@@ -41,7 +41,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
     
     if any(strcmpi(class(cubature), {'TriangleCubature', 'TetrahedronCubature'})) && opt.plotTri
-        tri = cubature.triangulation.triPos(cellNo):cubature.triangulation.triPos(cellNo+1)-1;
+        tri = mcolon(cubature.triangulation.triPos(cellNo),cubature.triangulation.triPos(cellNo+1)-1);
         if G.griddim == 2
             trimesh(cubature.triangulation.ConnectivityList(tri,:), ...
                     cubature.triangulation.Points(:,1), ...
