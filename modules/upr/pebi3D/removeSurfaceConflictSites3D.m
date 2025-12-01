@@ -60,7 +60,7 @@ function F = removeSurfaceConflictSites3D(F)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %}  
 
-for i = 1:size(F.l.fPos)-2
+for i = 1:size(F.l.fPos,1)-2
   f1 = F.l.f(F.l.fPos(i):F.l.fPos(i+1)-1);
   c2 = F.l.c(F.l.cPos(i+1):F.l.cPos(i+2)-1);
   [~,removed] = surfaceSufCond3D(F.f.pts(f1,:),F.c.CC(c2,:),F.c.R(c2));
