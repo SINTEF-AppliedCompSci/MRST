@@ -28,7 +28,7 @@ respect to previous releases, and using this module in macOS with GNU Octave.
 
 ## Requirements
 * MRST (Tested version: mrst-2025a)
-* MATLAB (Tested version: R2023a) or GNU Octave (Tested version: 9.2.0)
+* MATLAB (Tested version: R2025b) or GNU Octave (Tested version: 10.3.0)
 
 ## Installation (MATLAB/GNU Octave)
 The ad-micp module is included in MRST, click [_this link_](https://github.com/SINTEF-AppliedCompSci/MRST/tree/main/modules/ad-micp) 
@@ -70,6 +70,18 @@ Numerical studies of CO2 leakage remediation by micp-based plugging
 technology. In: Røkke, N.A. and Knuutila, H.K. (Eds) Short Papers from the
 11th International Trondheim CCS conference, ISBN: 978-82-536-1714-5,
 284-290.
+
+## Related
+Below are some tools that might be of interest; check ‘em out 🙂.
+
+* py-micp: An open-source simulation workflow for field-scale application of microbially induced calcite precipitation technology for leakage remediation (https://github.com/daavid00/py-micp).
+* pyopmspe11: A Python framework using OPM Flow for the CSP SPE11 benchmark project (https://github.com/OPM/pyopmspe11).
+* pycopm: An open-source tool to tailor OPM Flow geological models (https://github.com/cssr-tools/pycopm).
+* plopm: Quick generation of PNGs, GIFs, and VTKs from a OPM Flow type model (https://github.com/cssr-tools/plopm).
+* pofff: An open-source image-based history-matching framework for the FluidFlower benchmark study using OPM Flow (https://github.com/cssr-tools/pofff).
+* pyopmnearwell: A Python framework to simulate near well dynamics using OPM Flow (https://github.com/cssr-tools/pyopmnearwell).
+* expreccs: A Python framework using OPM Flow to simulate regional and site reservoirs for CO2 storage (https://github.com/cssr-tools/expreccs).
+* pymm: An open-source image-based framework for CFD in microsystems (https://github.com/cssr-tools/pymm).
 
 ## Contact
 David Landa-Marbán (dmar@norceresearch.no).
