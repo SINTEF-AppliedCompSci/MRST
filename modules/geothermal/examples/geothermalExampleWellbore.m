@@ -52,10 +52,7 @@ ctrl.groups(2).T = ctrl.W(1).T;
 test.schedule.control(2).Wellbore = ctrl;
 
 %% Set up linear solver
-lsol = setUpGeothermalWellboreLinearSolver(test.model);
-test.model.G.cells.num = test.model.submodels.Reservoir.G.cells.num + ...
-nnz(test.model.submodels.Wellbore.G.cells.type == 0 & ...
-    test.model.submodels.Wellbore.G.cells.hybrid == 0);
+[lsol, test.model] = setUpGeothermalWellboreLinearSolver(test.model);
 
 %% Simulate
 problem = test.getPackedSimulationProblem('LinearSolver', lsol);
