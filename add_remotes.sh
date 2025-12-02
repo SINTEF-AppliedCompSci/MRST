@@ -4,6 +4,7 @@
 
 # Single module repos (third party)
 git remote add ad-micp ssh://git@github.com/daavid00/ad-micp.git
+git remote add ad-scal ssh://git@github.com/SiroosAzizmohammadi/ad-scal.git
 git remote add dual-continuum-mech ssh://git@bitbucket.org/mashworth92/dual-continuum-mech.git
 git remote add dual-porosity ssh://git@bitbucket.org/rafael_march_carbonates_hw/mrst-dual-porosity.git
 git remote add dual-porosity-permeability ssh://git@github.com/nikolai-andrianov/DPDP-MRST.git

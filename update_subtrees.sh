@@ -11,6 +11,7 @@
 
 # Single module repos (third party)
 git subtree pull -m "Update subtree" --prefix modules/ad-micp ad-micp main
+git subtree pull -m "Update subtree" --prefix modules/ad-scal ad-scal main
 git subtree pull -m "Update subtree" --prefix modules/dual-continuum-mech dual-continuum-mech master
 git subtree pull -m "Update subtree" --prefix modules/dual-porosity dual-porosity master
 git subtree pull -m "Update subtree" --prefix modules/dual-porosity-permeability dual-porosity-permeability main
