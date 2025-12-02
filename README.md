@@ -36,8 +36,9 @@ For an introduction to MPSA:
 
 ## Cite
 If you use fv-unsat, please cite:
-* *CHAPTER GOES HERE*
+
+Varela, J., Gasda, S. E., Keilegavlen, E., & Nordbotten, J. M. (2021). A finite-volume-based module for unsaturated poroelasticity. Advanced Modeling with the MATLAB Reservoir Simulation Toolbox.
 
 ## Contact
-Jhabriel Varela (jhabriel.varela@uib.no).
+Jhabriel Varela (jvarela@uptp.edu.py).
 
