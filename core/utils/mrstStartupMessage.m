@@ -74,7 +74,7 @@ function printHeader(isDesktop)
     fprintf(['Welcome to the MATLAB Reservoir Simulation ', ...
              'Toolbox (MRST)!\nYou are using '])
 
-    githead = fullfile(ROOTDIR, '.git', 'refs', 'heads', 'master');
+    githead = fullfile(ROOTDIR, '..','.git', 'refs', 'heads', 'main');
     if exist(githead, 'file')
         % User is using the git-version.
         fid = fopen(githead, 'rt');
@@ -89,7 +89,7 @@ function printHeader(isDesktop)
         fprintf('the development version at commit %s\n', commit);
     else
         % User is using a specific release. Give a bit of extra output.
-        fprintf(['the release version 2024b. To download other ', ...
+        fprintf(['the release version 2025b. To download other ', ...
                  'versions of MRST\n', ...
                  'and view examples and relevant publications, ', ...
                  'please visit ']);
