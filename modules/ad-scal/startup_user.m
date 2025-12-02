@@ -1,0 +1,1 @@
+mrstPath('add', 'ad-scal', fullfile(ROOTDIR,'modules','ad-scal'))

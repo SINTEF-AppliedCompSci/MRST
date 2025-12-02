@@ -1,0 +1,10 @@
+HEADER
+'time'	'total volume rate'	'oil fraction'	'water fraction'
+UNITS
+'hour'	'cm^3/hour'	'percent'	'percent'
+0   	1			0			100
+10		10			0			100
+13		70			0			100
+16		200			0			100
+21		300			0			100
+26      300         0           100

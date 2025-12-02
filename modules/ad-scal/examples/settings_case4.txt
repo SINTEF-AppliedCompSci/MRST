@@ -1,0 +1,134 @@
+# Case 4. Unsteady-state imbibition without capillary pressure (Buckley-Leverett)
+# Only one flow rate of water is injected. It is assumed that the Pc curve is negligible.
+#
+# Comments starts with hash(#) symbol. 
+# Between the keyword and the value should be at least one tab.
+# Press enter key at the end of each line of data, even the last line of the file.
+# Each block is separated by a blank line
+# Data to compare with analytical SS
+
+#-------------------------------------------------
+# GEOMETRY
+#-------------------------------------------------
+LENGTH		8	cm
+DIAMETER	4	cm
+
+#-------------------------------------------------
+# ROCK
+#-------------------------------------------------
+POROSITY		0.25
+PERMEABILITY	100		mD  
+INITIALWATER	0.2 
+
+#-------------------------------------------------
+# FLUID
+#-------------------------------------------------
+DENSITYW		1000	kg/m^3
+DENSITYNW		800		kg/m^3
+VISCOSITYW		1		cP
+VISCOSITYNW		1		cP
+
+#-------------------------------------------------
+# PROCESS
+#-------------------------------------------------
+USS     Imbibition
+
+#-------------------------------------------------
+# SIMULATION
+#-------------------------------------------------
+TYPE		Forward
+NCELLS		80
+#         	number	first_cell_Sw   last_cell_Sw   
+BCELLS		1       0             0
+MAXTIMESTEP	0.03 hour
+RAMPUPSTEPS 5
+HIGH_PERCISION_MODE
+
+#-------------------------------------------------
+# SCHEDULE
+#-------------------------------------------------
+#			fileName
+FILENAME	.\Data\USS\Imbibition\sched_case4_basic.txt
+PINI		1		bar
+POUT		1		bar
+
+#-------------------------------------------------
+# OBSERVATION
+#-------------------------------------------------
+#			fileName
+PRESSURE	 .\Data\USS\Imbibition\pressure_obs_case4.txt
+SWAVG       .\Data\USS\Imbibition\swavg_obs_case4.txt
+PRODUCTION   .\Data\USS\Imbibition\production-obs-case4.txt
+
+#-------------------------------------------------
+# SATURATION FUNCTIONS
+#-------------------------------------------------
+#KR         MODIFIED-COREY      		Swc     Sor     krw@Sor     kro@Swc       nW      nNW     
+KR          MODIFIED-COREY      		 0.2    0.2     0.5         0.5      3       3      
+PC         	ZERO
+
+#-------------------------------------------------
+# PLOT OPTIONS
+#-------------------------------------------------
+STYLE			docked  #docked
+COLORMAP		jet		#parula		hsv
+DISPLAYTIME		hour
+DISPLAYLENGTH	cm
+DISPLAYVOLUME	cm^3
+DISPLAYPRESS	bar
+DISPLAYRATE		cm^3/hour
+
+#-------------------------------------------------
+# OUTPUT OPTIONS
+#-------------------------------------------------
+# SATPROFILE_OUT		.\Results\satProfile.xlsx
+# SAVECONFIG		.\Results\config.txt
+# indicates the path to save the parameters below
+# !quantities keyword has to be activated for this
+QUANTITIES		.\Results\output.txt
+TIME
+SWAVG_OUT
+INJ
+PROD
+DELTAP
+
+#-------------------------------------------------
+# OBJECTIVE FUNCTION CONFIGURATIONS
+#-------------------------------------------------
+EXCEL_FILE_NAME    kr_modified_corey.xlsx
+EXCEL_FILE_PATH    .\Input_templates_for_SCAL_history_match
+#MULTIPOINT         
+#MULTIPOINT_RANDOM_NUMBERS      10
+KR_HM
+KR_MODEL    MODIFIED-COREY
+#PC_HM
+#PC_MODEL    POINT-BY-POINT
+PDIFF_WEIGHT    1
+SWAVG_WEIGHT    1
+PROD_WEIGHT     1
+SAT_PROFILE_WEIGHT      1
+PDIF_ERROR      2
+SWAVG_ERROR     0
+PROD_ERROR      1
+SAT_PROFILE_ERROR       0
+
+#-------------------------------------------------
+# HISTORY MATCH CONFIGURATIONS
+#-------------------------------------------------
+USE_PARALLEL
+OPTIMALITY_TOLERANCE        1e-6
+STEP_TOLERANCE          1e-3
+MAX_FUNCTION_EVALUATIONS    6000
+SCALE_PROBLEM
+OBJECTIVE_FUNCTION_TYPE    normal    #Simultaneous
+#CENT_FILE_NAME      ABC.txt
+#CENT_FILE_PATH      .\SCAL
+HISTORYMATCH_ALGORITHM      active-set
+
+#-------------------------------------------------
+# MCMC SPECIFIC CONFIGURATIONS
+#-------------------------------------------------
+RANDOM_SEED     3751
+SAMPLE_REFINEMENT_COUNT     1
+CHAINSIZE       10000
+MPI_ENABLED   
