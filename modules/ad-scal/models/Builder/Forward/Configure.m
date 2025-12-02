@@ -45,7 +45,7 @@ fprintf("Configuring from: %s\n", name);
 fprintf("Located at: %s\n", filepath);
 
 [fid, msg] = fopen(path_to_settings, 'rt');
-if fid < 0, error([path_to_settings + ': ' + msg]), end
+if fid < 0, error('%s : %s', path_to_settings, msg), end
 
 % initialization of structs
 geometry = struct;
