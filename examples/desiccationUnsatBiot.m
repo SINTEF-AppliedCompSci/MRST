@@ -25,7 +25,7 @@ along with this file.  If not, see <http://www.gnu.org/licenses/>.
 %} 
 
 %% Importing required modules
-clear; clc(); mrstModule add fv-unsat fvbiot distmesh
+clear; clc(); mrstModule add fv-unsat fvbiot upr
 
 %% Creating grid
 
@@ -35,7 +35,7 @@ fd =@(p) sqrt(sum(p.^2, 2)) - r; % circular domain function
 min_x = -r;  max_x = r; % min and max values in x-axis
 min_y = -r;  max_y = r; % min and max values in y-axis                  
 h = (2*r)/25; % step size
-[p, t] = distmesh2d(fd, @huniform, h, [min_x, min_y; max_x, max_y], []);
+[p, t] = distmesh2doriginal(fd, @huniform, h, [min_x, min_y; max_x, max_y], []);
 p = p + r; % shifting triangulation points
 G = triangleGrid(p, t); % creating triangular grid
 G = pebi(G); % creaing Voronoi diagram
