@@ -234,7 +234,7 @@ function txt = getStats(model)
     G = model.G;
     if ~isempty(G)
         txt = [txt, 'Grid contains ', num2str(G.cells.num), ' active cells. '];
-        if ~isempty(model.rock)
+        if isfield(model, 'rock') && ~isempty(model.rock)
             nr = size(model.rock.perm, 2);
             if nr == 1
                 type = 'scalar';
