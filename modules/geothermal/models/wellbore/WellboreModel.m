@@ -106,6 +106,9 @@ classdef WellboreModel < WrapperModel
             memberIx = cell(model.numGroups, 1);
             for g = 1:ng
                 group = groups(g);
+                if ismember(group.name, wnames)
+                    error('Group name %s conflicts with well name', group.name);
+                end
                 group = model.setMissingLimits(group);
                 groups(g) = group;
                 mix = find(ismember(wnames, group.members));
@@ -811,15 +814,9 @@ classdef WellboreModel < WrapperModel
             for i = (nnz(parent) + 1):numel(problem.primaryVariables)
                 dxAbsMax = inf;
                 p = problem.primaryVariables{i};
-%                 if strcmpi(p, 'massFlux'), dxAbsMax = 1e-3*mean(model.G.faces.areas)*litre/second; end
                 % Update wellbore model variables
                 state = model.updateStateFromIncrement(state, dx, problem, p, inf, dxAbsMax);
             end
-            
-%             sgn = sign(state.massFlux);
-%             v = max(abs(state.massFlux), 1e-3);
-%             state.massFlux = v.*sgn;
-%             model = model.applyLimits(state);
 
         end
         %-----------------------------------------------------------------%
