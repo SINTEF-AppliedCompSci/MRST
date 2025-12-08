@@ -214,6 +214,12 @@ classdef IndexArray
             tbl.inds = tbl.inds(:, fdinds);
             
         end
+
+        function tbl = replacefds(tbl, fieldpairs)
+
+            tbl = replacefield(tbl, fieldpairs);
+            
+        end
         
         function tbl = removefds(tbl, fdnames)
         % create table where the column given by fdnames are removed. Note that the function does not
