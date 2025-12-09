@@ -139,6 +139,133 @@ classdef TensorProd
             prod.issetup = false;
             
         end
+
+        function [C, prod] = seval(prod, A, B)
+            
+            reducefds  = prod.reducefds;
+            mergefds   = prod.mergefds;
+
+            crossfds  = {reducefds{:}, mergefds{:}};
+            
+            tbl1 = prod.tbl1;
+            tbl2 = prod.tbl2;
+            
+            if ~isempty(prod.replacefds1)
+                tbl1 = replacefield(tbl1, prod.replacefds1);
+            end
+            if ~isempty(prod.replacefds2)
+                tbl2 = replacefield(tbl2, prod.replacefds2);
+            end
+
+            % some sanity checks on the table's field names.
+            fds1 = tbl1.fdnames;
+            fds2 = tbl2.fdnames;
+
+            assert(all(ismember(mergefds, fds1)), ['There exist merge fields that do ' ...
+                                'not belong to fields of first table']);
+            assert(all(ismember(mergefds, fds2)), ['There exist merge fields that do ' ...
+                                'not belong to fields of second table']);
+            ofds1 = fds1(~ismember(fds1, crossfds));
+            ofds2 = fds2(~ismember(fds2, crossfds));
+            assert(all(~ismember(ofds1, ofds2)) & all(~ismember(ofds2, ofds1)), ...
+                   ['There exist fields with same name in first and second ' ...
+                    'table that are neither merged or reduced.']);
+            
+            lA = tbl1.gets(mergefds);
+            iA = tbl1.gets(ofds1);
+            jA = tbl1.gets(reducefds);
+
+            lB = tbl2.gets(mergefds);
+            jB = tbl2.gets(reducefds);
+            kB = tbl2.gets(ofds2);
+
+            [m_l, ~, b_l] = unique([lA; lB], 'rows');
+
+            b_lA = b_l(1 : size(lA, 1));
+            b_lB = b_l(size(lA, 1) + (1 : size(lB, 1)));
+
+            [b_lA, isort] = sort(b_lA);
+            iA = iA(isort, :);
+            jA = jA(isort, :);
+            A  = A(isort);
+
+            [b_lB, isort] = sort(b_lB);
+            jB = jB(isort, :);
+            kB = kB(isort, :);
+            B  = B(isort);            
+
+            [u_b_lA, n_lA] = rlencode(b_lA);
+            [u_b_lB, n_lB] = rlencode(b_lB);
+
+            zA       = 1;
+            startA   = 1;
+            endA     = n_lA(1);
+            n_u_b_lA = numel(n_lA);
+            
+            zB       = 1;
+            startB   = 1;
+            endB     = n_lB(1);
+            n_u_b_lB = numel(n_lB);
+            
+            alldone = false;
+
+            lCall = [];
+            iCall = [];
+            kCall = [];
+            Call  = [];
+            
+            while ~alldone
+
+                if u_b_lA(zA) == u_b_lB(zB)
+
+                    % do product
+                    [iC, kC, C] = multiSparseProduct(iA(startA:endA, :), ...
+                                                     jA(startA:endA, :), ...
+                                                     A(startA:endA)    , ...
+                                                     jB(startB:endB, :), ...
+                                                     kB(startB:endB, :), ...
+                                                     B(startB:endB));
+
+                    lCall = [lCall; repmat(m_l(u_b_lA(zA)), size(C, 1), 1)];
+                    iCall = [iCall; iC];
+                    kCall = [kCall; kC];
+                    Call  = [Call ; C ];
+                    
+                    zA = zA + 1;
+                    zB = zB + 1;
+
+                    if (zA > n_u_b_lA) || (zA > n_u_b_lA)
+                        alldone = true;
+                    end
+                    
+                elseif u_b_lA(zA) < u_b_lB(zB)
+
+                    % advance A
+                    
+                    zA = zA + 1;
+                    if zA > n_u_b_lA
+                        alldone = true;
+                    end
+
+                else
+
+                    % advance B
+
+                    zB = zB + 1;
+                    if zB > n_u_b_lB
+                        alldone = true;
+                    end
+
+                end
+                
+            end
+
+            C = Call;
+            
+            fdnames = {mergefds{:}, ofds1{:}, ofds2{:}};
+            prod.tbl3 = IndexArray([], 'fdnames', fdnames, 'inds', [lCall, iCall, kCall]);
+            
+        end
         
         function prod = setup(prod)
             
