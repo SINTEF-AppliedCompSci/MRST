@@ -180,36 +180,45 @@ classdef TensorProd
             kB = tbl2.gets(ofds2);
 
             [m_l, ~, b_l] = unique([lA; lB], 'rows');
-
             b_lA = b_l(1 : size(lA, 1));
             b_lB = b_l(size(lA, 1) + (1 : size(lB, 1)));
 
+            [~, ~, b_j] = unique([jA; jB], 'rows');
+            b_jA = b_j(1 : size(jA, 1));
+            b_jB = b_j(size(jA, 1) + (1 : size(jB, 1)));
+
+            [m_i, ~, b_iA] = unique(iA, 'rows');
+            [m_k, ~, b_kB] = unique(kB, 'rows');
+            
             [b_lA, isort] = sort(b_lA);
-            iA = iA(isort, :);
-            jA = jA(isort, :);
-            A  = A(isort);
+            b_iA = b_iA(isort);
+            b_jA = b_jA(isort);
+            A = A(isort);
 
             [b_lB, isort] = sort(b_lB);
-            jB = jB(isort, :);
-            kB = kB(isort, :);
-            B  = B(isort);            
-
+            b_jB = b_jB(isort);
+            b_kB = b_kB(isort);
+            B = B(isort);
+            
             [u_b_lA, n_lA] = rlencode(b_lA);
             [u_b_lB, n_lB] = rlencode(b_lB);
 
             zA       = 1;
             startA   = 1;
             endA     = n_lA(1);
-            n_u_b_lA = numel(n_lA);
+            n_u_b_lA = size(u_b_lA, 1);
             
             zB       = 1;
             startB   = 1;
             endB     = n_lB(1);
-            n_u_b_lB = numel(n_lB);
+            n_u_b_lB = size(u_b_lB, 1);
             
             alldone = false;
 
-            lCall = [];
+
+            b_l   = [];
+            n_b_l = [];
+
             iCall = [];
             kCall = [];
             Call  = [];
@@ -219,23 +228,33 @@ classdef TensorProd
                 if u_b_lA(zA) == u_b_lB(zB)
 
                     % do product
-                    [iC, kC, C] = multiSparseProduct(iA(startA:endA, :), ...
-                                                     jA(startA:endA, :), ...
-                                                     A(startA:endA)    , ...
-                                                     jB(startB:endB, :), ...
-                                                     kB(startB:endB, :), ...
-                                                     B(startB:endB));
 
-                    lCall = [lCall; repmat(m_l(u_b_lA(zA)), size(C, 1), 1)];
-                    iCall = [iCall; iC];
-                    kCall = [kCall; kC];
+                    ind = (startA : endA);
+                    sA = sparse(b_iA(ind), b_jA(ind), A(ind));
+                    ind = (startB : endB);
+                    sB = sparse(b_jB(ind), b_kB(ind), B(ind));
+
+                    sC = sA * sB;
+
+                    [b_iC, b_kC, C] = find(sC);                    
+
+                    b_l(end + 1)   = u_b_lA(zA);
+                    n_b_l(end + 1) = size(C, 1);
+                                            
+                    iCall = [iCall; m_i(b_iC, :)];
+                    kCall = [kCall; m_k(b_kC, :)];
                     Call  = [Call ; C ];
                     
                     zA = zA + 1;
                     zB = zB + 1;
 
-                    if (zA > n_u_b_lA) || (zA > n_u_b_lA)
+                    if (zA > n_u_b_lA) || (zB > n_u_b_lB)
                         alldone = true;
+                    else
+                        startA = endA + 1;
+                        endA   = startA + n_lA(zA) - 1;                        
+                        startB = endB + 1;
+                        endB   = startB + n_lB(zB) - 1;
                     end
                     
                 elseif u_b_lA(zA) < u_b_lB(zB)
@@ -245,6 +264,9 @@ classdef TensorProd
                     zA = zA + 1;
                     if zA > n_u_b_lA
                         alldone = true;
+                    else
+                        startA = endA + 1;
+                        endA   = startA + n_lA(zA) - 1;
                     end
 
                 else
@@ -254,6 +276,9 @@ classdef TensorProd
                     zB = zB + 1;
                     if zB > n_u_b_lB
                         alldone = true;
+                    else
+                        startB = endB + 1;
+                        endB   = startB + n_lB(zB) - 1;
                     end
 
                 end
@@ -261,7 +286,8 @@ classdef TensorProd
             end
 
             C = Call;
-            
+
+            lCall = rldecode(m_l(b_l, :), n_b_l);
             fdnames = {mergefds{:}, ofds1{:}, ofds2{:}};
             prod.tbl3 = IndexArray([], 'fdnames', fdnames, 'inds', [lCall, iCall, kCall]);
             
