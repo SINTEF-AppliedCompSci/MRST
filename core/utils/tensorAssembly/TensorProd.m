@@ -189,107 +189,103 @@ classdef TensorProd
 
             [m_i, ~, b_iA] = unique(iA, 'rows');
             [m_k, ~, b_kB] = unique(kB, 'rows');
-            
+
+            b_l = intersect(b_lA, b_lB, 'sorted');
+
+            LIA = ismember(b_lA, b_l);
+            b_lA = b_lA(LIA);
+            b_iA = b_iA(LIA);
+            b_jA = b_jA(LIA);
+            A    = A(LIA);
+
+            LIA = ismember(b_lB, b_l);
+            b_lB = b_lB(LIA);
+            b_jB = b_jB(LIA);
+            b_kB = b_kB(LIA);
+            B    = B(LIA);
+
             [b_lA, isort] = sort(b_lA);
             b_iA = b_iA(isort);
             b_jA = b_jA(isort);
             A = A(isort);
-
+ 
             [b_lB, isort] = sort(b_lB);
             b_jB = b_jB(isort);
             b_kB = b_kB(isort);
             B = B(isort);
+
+            b_lA_b_iA = unique([b_lA, b_iA], 'rows');
+            [~, nI] = rlencode(b_lA_b_iA(: , 1));
             
+            b_lB_b_kB = unique([b_lB, b_kB], 'rows');
+            [~, nK] = rlencode(b_lB_b_kB(: , 1));
+
+            nalloc = sum(nI.*nK);
+
             [u_b_lA, n_lA] = rlencode(b_lA);
             [u_b_lB, n_lB] = rlencode(b_lB);
 
-            zA       = 1;
+            assert(all(u_b_lA == u_b_lB));
+            u_b_l = u_b_lA;
+            
             startA   = 1;
             endA     = n_lA(1);
-            n_u_b_lA = size(u_b_lA, 1);
             
-            zB       = 1;
             startB   = 1;
             endB     = n_lB(1);
-            n_u_b_lB = size(u_b_lB, 1);
             
+            b_iC_all = zeros(nalloc, 1, 'uint64');
+            b_kC_all = zeros(nalloc, 1, 'uint64');
+            C_all    = zeros(nalloc, 1, 'double');
+            
+            n_u_b_l = [];
+            
+            posC = 0;
+
             alldone = false;
 
-
-            b_l   = [];
-            n_b_l = [];
-
-            iCall = [];
-            kCall = [];
-            Call  = [];
-            
-            while ~alldone
-
-                if u_b_lA(zA) == u_b_lB(zB)
-
-                    % do product
-
-                    ind = (startA : endA);
-                    sA = sparse(b_iA(ind), b_jA(ind), A(ind));
-                    ind = (startB : endB);
-                    sB = sparse(b_jB(ind), b_kB(ind), B(ind));
-
-                    sC = sA * sB;
-
-                    [b_iC, b_kC, C] = find(sC);                    
-
-                    b_l(end + 1)   = u_b_lA(zA);
-                    n_b_l(end + 1) = size(C, 1);
-                                            
-                    iCall = [iCall; m_i(b_iC, :)];
-                    kCall = [kCall; m_k(b_kC, :)];
-                    Call  = [Call ; C ];
-                    
-                    zA = zA + 1;
-                    zB = zB + 1;
-
-                    if (zA > n_u_b_lA) || (zB > n_u_b_lB)
-                        alldone = true;
-                    else
-                        startA = endA + 1;
-                        endA   = startA + n_lA(zA) - 1;                        
-                        startB = endB + 1;
-                        endB   = startB + n_lB(zB) - 1;
-                    end
-                    
-                elseif u_b_lA(zA) < u_b_lB(zB)
-
-                    % advance A
-                    
-                    zA = zA + 1;
-                    if zA > n_u_b_lA
-                        alldone = true;
-                    else
-                        startA = endA + 1;
-                        endA   = startA + n_lA(zA) - 1;
-                    end
-
-                else
-
-                    % advance B
-
-                    zB = zB + 1;
-                    if zB > n_u_b_lB
-                        alldone = true;
-                    else
-                        startB = endB + 1;
-                        endB   = startB + n_lB(zB) - 1;
-                    end
-
-                end
-                
+            if mrstVerbose > 0
+                fprintf('number of sparse multiplication: %d\n ', numel(u_b_l));
             end
 
-            C = Call;
+            for ind_u_b_l = 1 : numel(u_b_l)
+                
+                ind = (startA : endA);
+                sA = sparse(b_iA(ind), b_jA(ind), A(ind));
 
-            lCall = rldecode(m_l(b_l, :), n_b_l);
+                ind = (startB : endB);
+                sB = sparse(b_jB(ind), b_kB(ind), B(ind));
+
+                sC = sA * sB;
+
+                [b_iC, b_kC, C] = find(sC);                    
+
+                nC = size(C, 1);
+                
+                n_u_b_l(end + 1) = nC;
+                
+                b_iC_all(posC  + (1 : nC)) =  b_iC;
+                b_kC_all(posC  + (1 : nC)) =  b_kC;
+                C_all(posC  + (1 : nC))    =  C ;
+                
+                posC = posC + nC;
+
+                if ind_u_b_l < numel(u_b_l)
+                    startA = endA + 1;
+                    endA   = startA + n_lA(ind_u_b_l + 1) - 1;                        
+                    startB = endB + 1;
+                    endB   = startB + n_lB(ind_u_b_l + 1) - 1;
+                end
+
+            end
+
+            fprintf('nalloc : %d, posC : %d, difference : %d\n', nalloc, posC, abs(nalloc - posC));
+            
+            C = C_all(1 : posC);
+
+            lC_all = rldecode(m_l(u_b_l, :), n_u_b_l);
             fdnames = {mergefds{:}, ofds1{:}, ofds2{:}};
-            prod.tbl3 = IndexArray([], 'fdnames', fdnames, 'inds', [lCall, iCall, kCall]);
+            prod.tbl3 = IndexArray([], 'fdnames', fdnames, 'inds', [lC_all, m_i(b_iC_all(1 : posC), :), m_k(b_kC_all(1 : posC), :)]);
             
         end
         
