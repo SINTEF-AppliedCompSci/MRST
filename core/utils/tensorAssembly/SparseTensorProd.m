@@ -201,7 +201,10 @@ classdef SparseTensorProd
 
             end
 
-            fprintf('nalloc : %d, posC : %d, difference : %d\n', nalloc, posC, abs(nalloc - posC));
+            if nalloc < posC
+                warning('allocation was not enough');
+                fprintf('nalloc : %d, posC : %d, difference : %d\n', nalloc, posC, abs(nalloc - posC));
+            end
             
             C = C_all(1 : posC);
 

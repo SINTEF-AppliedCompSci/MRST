@@ -32,7 +32,7 @@ classdef SparseTensor
         function tensor = SparseTensor(vals, tbl)
 
             tensor.vals = vals;
-            tensor.tbl  = tbl
+            tensor.tbl  = tbl;
             
         end
 
