@@ -1,7 +1,7 @@
-classdef SparseTensor
+classdef SparseTensorMatrix
 %
 % SYNOPSIS:
-%   SparseTensor(varargin)
+%   SparseTensorMatrix(varargin)
 %
 % DESCRIPTION:
 %
@@ -53,7 +53,7 @@ classdef SparseTensor
    
     methods
         
-        function tensor = SparseTensor(varargin)
+        function tensor = SparseTensorMatrix(varargin)
             opt = struct('prod'    , [], ...
                          'value'   , [], ...
                          'matlabsparse', false, ...
@@ -159,7 +159,7 @@ classdef SparseTensor
 
         function ttens = transpose(tens)
                 
-            ttens = SparseTensor();
+            ttens = SparseTensorMatrix();
             ttens.tensval     = tens.tensval;
             ttens.col     = tens.row;
             ttens.row     = tens.col;
@@ -185,7 +185,7 @@ classdef SparseTensor
                 
             else
                 
-                tens = SparseTensor();
+                tens = SparseTensorMatrix();
                 tens.fromTbl = tens2.fromTbl;
                 tens.toTbl   = tens1.toTbl;
 
@@ -247,7 +247,7 @@ classdef SparseTensor
         
         function tens = plus(tens1, tens2)
             
-            tens = SparseTensor();
+            tens = SparseTensorMatrix();
             tens.fromTbl = tens1.fromTbl; % = tens2.fromTbl
             tens.toTbl   = tens1.toTbl; % = tens2.toTbl
 

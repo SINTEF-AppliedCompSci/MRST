@@ -6,7 +6,7 @@
 %   IndexArray               - Class used to store multiple-indices.
 %   projIndexArray           - SYNOPSIS:
 %   sortIndexArray           - SYNOPSIS:
-%   SparseTensor             - SYNOPSIS:
+%   SparseTensorMatrix             - SYNOPSIS:
 %   TensorMap                - SYNOPSIS:
 %   TensorProd               - SYNOPSIS:
 
