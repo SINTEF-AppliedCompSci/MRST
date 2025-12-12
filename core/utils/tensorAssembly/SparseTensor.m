@@ -33,6 +33,8 @@ classdef SparseTensor
 
             tensor.vals = vals;
             tensor.tbl  = tbl;
+
+            assert(length(vals) == tbl.num, 'not matching values and index array');
             
         end
 
@@ -42,8 +44,8 @@ classdef SparseTensor
             
             ind = (tensor.vals == 0);
             
-            tensor.vals     = tensor.vals(ind);
-            tensor.tbl.inds = tensor.tbl.inds(ind, :);
+            tensor.vals     = tensor.vals(~ind);
+            tensor.tbl.inds = tensor.tbl.inds(~ind, :);
             
         end
 
