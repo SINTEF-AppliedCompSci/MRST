@@ -25,6 +25,8 @@ classdef SparseTensorMap
                           'replaceToTblfds'  , []);
             
             map = merge_options(map, varargin{:}); 
+
+            map.tensor = tensor;
             
             if isempty(map.replaceFromTblfds)
                 map.replaceFromTblfds = {};
@@ -66,9 +68,9 @@ classdef SparseTensorMap
                                                    'not belong to fields of second table']);
             assert(all(ismember(mergefds, fds1) | ismember(mergefds, fds2)), ['replace  fields do ' ...
                                                                               'not belong to fields of either first or second table']);
-            ofds1 = fds1(~ismember(fds1, mergefds));
-            ofds2 = fds2(~ismember(fds2, mergefds));
-            assert(all(~ismember(ofds1, ofds2)) & all(~ismember(ofds1, ofds2)), ...
+            reducefds = fds1(~ismember(fds1, mergefds));
+            ofds = fds2(~ismember(fds2, mergefds));
+            assert(all(~ismember(reducefds, ofds)) & all(~ismember(reducefds, ofds)), ...
                    ['There exist fields with same name in first and second ' ...
                     'table that are neither merged or reduced.']);
 
@@ -84,7 +86,6 @@ classdef SparseTensorMap
             b_lB = b_l(size(lA, 1) + (1 : size(lB, 1)));
 
             [m_i, ~, b_iA] = unique(iA, 'rows');
-            [m_k, ~, b_kB] = unique(kB, 'rows');
 
             b_l = intersect(b_lA, b_lB, 'sorted');
                         
@@ -96,7 +97,7 @@ classdef SparseTensorMap
             sA = sparse(b_lA, b_iA, A);
             B = sum(sA, 2);
 
-            B = B(b_lB);
+            B = full(B(b_lB));
 
             B = SparseTensor(B, toTbl);
 
