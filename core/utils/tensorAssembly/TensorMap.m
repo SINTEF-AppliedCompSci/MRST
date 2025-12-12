@@ -304,6 +304,7 @@ classdef TensorMap
         function mat = getMatrix(map)
         % get matlab sparse matrix representation of the mapping in term of the local
         % indices of fromTbl and toTbl.
+
             n1 = map.fromTbl.num;
             n2 = map.toTbl.num;
             n  = map.pivottbl.num;

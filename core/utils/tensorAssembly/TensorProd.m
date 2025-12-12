@@ -535,11 +535,48 @@ classdef TensorProd
             
         end
 
-        function M = setupMatrix(prod, vals)
+        function M = setupMatrix(prod, vals, varargin)
+            
+            opts = struct('argindex', 1);            
+            opts = merge_options(opts, varargin{:}); 
+            argindex = opts.argindex;
+            
+            if ~(prod.issetup)
+                prod = prod.setup();
+            end
+            
+            dispind1 = prod.dispind1;
+            dispind2 = prod.dispind2;
+            dispind3 = prod.dispind3;
+            
+            switch argindex
+              case 1
+                col  = dispind2;
+                vals = vals(dispind1);
+                ncol = prod.tbl2.num;
+              case 2
+                col  = dispind1;
+                vals = vals(dispind2);
+                ncol = prod.tbl1.num;
+            end
+            
+            row  = dispind3;
+            nrow = prod.tbl3.num;
 
-            M = SparseTensor();
-            M = M.setFromTensorProd(vals, prod);
-            M = M.getMatrix();
+            % tensor.col     = dispind;
+            % tensor.row     = redind;
+            % tensor.fromTbl = fromTbl;
+            % tensor.toTbl   = toTbl;
+            
+            if isa(vals, 'ADI')
+                vals = vals.value;
+            end
+
+            M = sparse(row, col, vals, nrow, ncol);
+            
+            % M = SparseTensor();
+            % M = M.setFromTensorProd(vals, prod);
+            % M = M.getMatrix();
 
         end
 
