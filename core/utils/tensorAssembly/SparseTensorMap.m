@@ -95,9 +95,16 @@ classdef SparseTensorMap
             A    = A(LIA);
 
             sA = sparse(b_lA, b_iA, A);
-            B = sum(sA, 2);
+            sB = sum(sA, 2);
 
-            B = full(B(b_lB));
+            B = zeros(toTbl.num, 1);
+
+            [~, LOCB] = ismember(b_lB, b_lA);
+
+            indB  = find(LOCB);
+            indsB = LOCB(indB);
+            
+            B(indB) = sB(indsB);
 
             B = SparseTensor(B, toTbl);
 
