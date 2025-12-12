@@ -99,9 +99,26 @@ classdef SparseTensorProd
             jB = tbl2.gets(reducefds);
             kB = tbl2.gets(ofds2);
 
+            if isempty(mergefds)
+                lA = ones(size(lA, 1), 1, 'uint64');
+                lB = ones(size(lB, 1), 1, 'uint64');
+            end
+
+            if isempty(reducefds)
+                jA = ones(size(jA, 1), 1, 'uint64');
+                jB = ones(size(jB, 1), 1, 'uint64');
+            end
+
+            if isempty(ofds1)
+                iA = ones(size(iA, 1), 1, 'uint64');
+            end
+            
+            if isempty(ofds2)
+                kB = ones(size(kB, 1), 1, 'uint64');
+            end
+
             A = prod.tensor1.vals;
             B = prod.tensor2.vals;
-
             
             [m_l, ~, b_l] = unique([lA; lB], 'rows');
             b_lA = b_l(1 : size(lA, 1));
