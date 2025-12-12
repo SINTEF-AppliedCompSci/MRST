@@ -36,6 +36,23 @@ classdef SparseTensor
             
         end
 
+        function tensor = sparsify(tensor)
+
+            % Remove zero values
+            
+            ind = (tensor.vals == 0);
+            
+            tensor.vals     = tensor.vals(ind);
+            tensor.tbl.inds = tensor.tbl.inds(ind, :);
+            
+        end
+
+        function n = num(tensor)
+
+            n = tensor.tbl.num;
+            
+        end
+
     end
     
 end
