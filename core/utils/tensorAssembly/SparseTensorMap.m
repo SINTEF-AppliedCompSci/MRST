@@ -102,7 +102,7 @@ classdef SparseTensorMap
             [~, LOCB] = ismember(b_lB, b_lA);
 
             indB  = find(LOCB);
-            indsB = LOCB(indB);
+            indsB = b_lA(LOCB(indB));
             
             B(indB) = sB(indsB);
 
