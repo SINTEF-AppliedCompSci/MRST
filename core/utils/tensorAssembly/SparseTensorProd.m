@@ -100,20 +100,24 @@ classdef SparseTensorProd
             kB = tbl2.gets(ofds2);
 
             if isempty(mergefds)
+                mergefds = {''};
                 lA = ones(size(lA, 1), 1, 'uint64');
                 lB = ones(size(lB, 1), 1, 'uint64');
             end
 
             if isempty(reducefds)
+                reducefds = {''};
                 jA = ones(size(jA, 1), 1, 'uint64');
                 jB = ones(size(jB, 1), 1, 'uint64');
             end
 
             if isempty(ofds1)
+                ofds1 = {''};
                 iA = ones(size(iA, 1), 1, 'uint64');
             end
             
             if isempty(ofds2)
+                ofds2 = {''};
                 kB = ones(size(kB, 1), 1, 'uint64');
             end
 
@@ -226,11 +230,21 @@ classdef SparseTensorProd
             C = C_all(1 : posC);
 
             lC_all = rldecode(m_l(u_b_l, :), n_u_b_l);
+            
             fdnames = {mergefds{:}, ofds1{:}, ofds2{:}};
-            tbl = IndexArray([], 'fdnames', fdnames, 'inds', [lC_all, m_i(b_iC_all(1 : posC), :), m_k(b_kC_all(1 : posC), :)]);
+            inds    =  [lC_all, m_i(b_iC_all(1 : posC), :), m_k(b_kC_all(1 : posC), :)];
+
+            rmfds = cellfun(@(str) strcmp('', str), fdnames);
+
+            fdnames = fdnames(~rmfds);
+            inds    = inds(:, ~rmfds);
+            
+            tbl = IndexArray([]                , ...
+                             'fdnames', fdnames, ...
+                             'inds'   , inds);
 
             C = SparseTensor(C, tbl);
-            
+
         end
         
     end
