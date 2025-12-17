@@ -20,7 +20,7 @@ classdef SparseTensor
 % SEE ALSO:
 %   `IndexArray`, `TensorProd`.
     
-    properties
+    properties (SetAccess = immutable)
     
         vals % Value of the coefficients of the tensor
         tbl  % index array for the sparsity
@@ -49,6 +49,24 @@ classdef SparseTensor
             
         end
 
+        function v = values(tensor)
+            
+            v = tensor.vals;
+            
+        end
+
+        function inds = indices(tensor)
+            
+            inds = tensor.tbl.inds;
+            
+        end
+        
+        function fds = fdnames(tensor)
+            
+            fds = tensor.tbl.fdnames;
+            
+        end
+        
         function n = num(tensor)
 
             n = tensor.tbl.num;

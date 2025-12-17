@@ -1,10 +1,13 @@
 classdef SparseTensorProd
 
-
-    properties
+    properties (SetAccess = immutable)
 
         tensor1 % first tensor argument
         tensor2 % second tensor argument
+
+    end
+
+    properties
 
         reducefds    % Field names for reduction
         mergefds     % Field names for merging

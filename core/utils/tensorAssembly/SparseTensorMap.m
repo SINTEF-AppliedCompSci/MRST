@@ -1,9 +1,13 @@
 classdef SparseTensorMap
 
     
-    properties
-        
+    properties (SetAccess = immutable)
+
         tensor
+
+    end
+
+    properties
         
         toTbl             % IndexArray for the output space of the mapping
         mergefds          % Field names for merging
