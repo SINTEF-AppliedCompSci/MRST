@@ -19,7 +19,7 @@ classdef IndexArray
 %   `computeVagTrans`
 %
 % SEE ALSO:
-%   `TensorProd`, `TensorMap`, `SparseTensorMatrix`.
+%   `TensorProd`, `TensorMap`, `SparseMatrix`.
     
     properties
         

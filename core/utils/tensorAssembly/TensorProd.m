@@ -52,7 +52,7 @@ classdef TensorProd
 %   `computeVagTrans`
 %
 % SEE ALSO:
-%   `IndexArray`, `SparseTensorMatrix`.
+%   `IndexArray`, `SparseMatrix`.
     
     properties
         tbl1         % Table for first argument
@@ -574,7 +574,7 @@ classdef TensorProd
 
             M = sparse(row, col, vals, nrow, ncol);
             
-            % M = SparseTensorMatrix();
+            % M = SparseMatrix();
             % M = M.setFromTensorProd(vals, prod);
             % M = M.getMatrix();
 
@@ -608,7 +608,7 @@ classdef TensorProd
             
         function [ind1, ind2] = getDispatchInd(prod)
         % In the case where the product is set up to create a bilinear mapping (see
-        % SparseTensorMatrix.setFromTensorProd method), then we can use this function
+        % SparseMatrix.setFromTensorProd method), then we can use this function
         % to obtain the dispatching indices. It can be only used if the pivot
         % space (given by pivottbl) is the same as the space given by
         % tbl1. Hence, the assert statement below, which should be enough to
