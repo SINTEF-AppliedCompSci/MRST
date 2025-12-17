@@ -204,19 +204,28 @@ classdef SparseTensorProd
 
                 sC = sA * sB;
 
-                [b_iC, b_kC, C] = find(sC);                    
+                [b_iC, b_kC, C] = find(sC);
 
-                nC = size(C, 1);
+                if ~isempty(C)
+                    
+                    nC = numel(C);
+                    
+                    n_u_b_l(end + 1) = nC;
+                    
+                    b_iC_all(posC  + (1 : nC)) =  b_iC;
+                    b_kC_all(posC  + (1 : nC)) =  b_kC;
+                    C_all(posC  + (1 : nC))    =  C ;
+                    
+                    posC = posC + nC;
+                    
+                else
+                    
+                    n_u_b_l(end + 1) = 0;
+                    
+                end
                 
-                n_u_b_l(end + 1) = nC;
-                
-                b_iC_all(posC  + (1 : nC)) =  b_iC;
-                b_kC_all(posC  + (1 : nC)) =  b_kC;
-                C_all(posC  + (1 : nC))    =  C ;
-                
-                posC = posC + nC;
-
                 if ind_u_b_l < numel(u_b_l)
+                    
                     startA = endA + 1;
                     endA   = startA + n_lA(ind_u_b_l + 1) - 1;                        
                     startB = endB + 1;
