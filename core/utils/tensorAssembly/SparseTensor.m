@@ -49,6 +49,12 @@ classdef SparseTensor
             
         end
 
+        function tensor = times(tensor, coef)
+
+            tensor = SparseTensor((tensor.vals).*coef, tensor.tbl);
+
+        end
+        
         function v = values(tensor)
             
             v = tensor.vals;
