@@ -48,7 +48,7 @@ classdef SparseTensorSum
 
             assert(numel(fdsB) == numel(fdnames), 'not matching field names for the two Tensors');
 
-            [ok, inds] = ismember(fdsB, fdnames);
+            [ok, inds] = ismember(fdnames, fdsB);
 
             assert(all(ok), 'not matching field names for the two Tensors');
 
