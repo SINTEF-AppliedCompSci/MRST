@@ -23,11 +23,6 @@ classdef SparseTensorSum
         
         function tsum = SparseTensorSum(tensor1, tensor2, varargin)
             
-            opts = struct('replacefds1', [], ...
-                          'replacefds2', [], ...
-                          'coefs1'     , [], ...
-                          'coefs2'     , []);
-            
             tsum = merge_options(tsum, varargin{:}); 
 
             tsum.tensor1 = tensor1;

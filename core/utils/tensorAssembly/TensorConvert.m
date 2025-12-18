@@ -25,10 +25,6 @@ classdef TensorConvert
     methods
         
         function tconv = TensorConvert(varargin)
-            opts = struct('toTbl'            , [], ...
-                          'fromTbl'          , [], ...
-                          'replacefdsToTbl'  , [], ...
-                          'replacefdsFromTbl', []);
             
             tconv = merge_options(tconv, varargin{:}); 
 

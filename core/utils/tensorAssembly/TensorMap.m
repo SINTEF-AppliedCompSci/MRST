@@ -85,14 +85,6 @@ classdef TensorMap
         
         function map = TensorMap(varargin)
             
-            map.fromTbl           = [];
-            map.toTbl             = [];
-            map.replaceFromTblfds = [];
-            map.replaceToTblfds   = [];
-            map.mergefds          = [];
-            map.pivottbl          = [];
-            map.dispind1          = [];
-            map.dispind2          = [];
             map.issetup           = false;
             
             map = merge_options(map, varargin{:}); 

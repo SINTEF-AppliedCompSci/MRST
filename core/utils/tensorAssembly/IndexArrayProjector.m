@@ -16,10 +16,6 @@ classdef IndexArrayProjector
 
         function proj = IndexArrayProjector(varargin)
 
-            proj.tbl        = [];
-            proj.replacefds = [];
-            proj.projfds    = [];
-
             proj = merge_options(proj, varargin{:}); 
 
             if isempty(proj.projfds)

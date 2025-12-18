@@ -28,13 +28,6 @@ classdef CrossIndexArrayGenerator
 
         function gen = CrossIndexArrayGenerator(varargin)
 
-            gen.tbl1        = [];
-            gen.tbl2        = [];
-            gen.replacefds1 = [];
-            gen.replacefds2 = [];
-            gen.mergefds    = [];
-            gen.sortfds     = [];
-            
             gen = merge_options(gen, varargin{:}); 
 
             if isempty(gen.mergefds)

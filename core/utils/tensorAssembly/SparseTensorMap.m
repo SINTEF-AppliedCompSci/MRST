@@ -23,11 +23,6 @@ classdef SparseTensorMap
         
         function map = SparseTensorMap(tensor, varargin)
 
-            opts = struct('toTbl'            , [], ...
-                          'mergefds'         , [], ...
-                          'replaceFromTblfds', [], ...
-                          'replaceToTblfds'  , []);
-            
             map = merge_options(map, varargin{:}); 
 
             map.tensor = tensor;

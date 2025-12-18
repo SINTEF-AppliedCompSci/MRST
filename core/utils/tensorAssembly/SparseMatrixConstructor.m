@@ -32,54 +32,46 @@ classdef SparseMatrixConstructor
    
     methods
         
-        function gen = SparseTensorConstructor(tensor)
+        function smc = SparseTensorConstructor(tensor)
             
-            opts = struct('replacefds1', [], ...
-                          'replacefds2', [], ...
-                          'replacefds3', [], ...
-                          'reducefds'  , [], ...
-                          'reducefds1' , [], ...
-                          'reducefds2' , [], ...
-                          'mergefds'   , []);
-            
-            gen = merge_options(gen, varargin{:}); 
+            smc = merge_options(smc, varargin{:}); 
 
-            gen.tensor = tensor;
+            smc.tensor = tensor;
             
-            if isempty(gen.reducefds)
-                gen.reducefds = {};
+            if isempty(smc.reducefds)
+                smc.reducefds = {};
             end
             
-            if isempty(gen.reducefds1)
-                gen.reducefds1 = {};
+            if isempty(smc.reducefds1)
+                smc.reducefds1 = {};
             end
             
-            if isempty(gen.reducefds2)
-                gen.reducefds2 = {};
+            if isempty(smc.reducefds2)
+                smc.reducefds2 = {};
             end
 
-            if isempty(gen.mergefds)
-                gen.mergefds = {};
+            if isempty(smc.mergefds)
+                smc.mergefds = {};
             end            
             
         end
 
-        function M = eval(gen)
+        function M = eval(smc)
 
             prod = TensorProd;
-            prod.tbl1 = gen.tensor.tbl;
-            prod.tbl2 = gen.fromTbl;
-            prod.tbl3 = gen.toTbl;
+            prod.tbl1 = smc.tensor.tbl;
+            prod.tbl2 = smc.fromTbl;
+            prod.tbl3 = smc.toTbl;
             
-            prod.reducefds   = gen.reducefds;
-            prod.mergefds    = gen.mergefds;
-            prod.replacefds1 = gen.replacefds1;
-            prod.replacefds2 = gen.replacefds2;
-            prod.replacefds3 = gen.replacefds3;
-            prod.reducefds1  = gen.reducefds1;
-            prod.reducefds2  = gen.reducefds2;
+            prod.reducefds   = smc.reducefds;
+            prod.mergefds    = smc.mergefds;
+            prod.replacefds1 = smc.replacefds1;
+            prod.replacefds2 = smc.replacefds2;
+            prod.replacefds3 = smc.replacefds3;
+            prod.reducefds1  = smc.reducefds1;
+            prod.reducefds2  = smc.reducefds2;
 
-            M = prod.setupMatrix(gen.tensor.values);
+            M = prod.setupMatrix(smc.tensor.values);
             
         end
         
