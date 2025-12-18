@@ -49,6 +49,15 @@ classdef SparseTensor
             
         end
 
+        function tensor = setvals(tensors, vals, inds)
+
+            upvals = tensor.values;
+            upvals(inds) = vals;
+            
+            tensor = SparseTensor(upvals, A1.tbl);
+    
+        end
+        
         function tensor = times(tensor, coef)
 
             tensor = SparseTensor((tensor.vals).*coef, tensor.tbl);
