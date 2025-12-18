@@ -32,7 +32,7 @@ classdef SparseMatrixConstructor
    
     methods
         
-        function smc = SparseTensorConstructor(tensor)
+        function smc = SparseMatrixConstructor(tensor, varargin)
             
             smc = merge_options(smc, varargin{:}); 
 
