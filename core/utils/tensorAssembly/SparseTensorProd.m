@@ -188,11 +188,12 @@ classdef SparseTensorProd
 
             for ind_u_b_l = 1 : numel(u_b_l)
                 
-                ind = (startA : endA);
-                sA = sparse(b_iA(ind), b_jA(ind), A(ind));
+                indA = (startA : endA);
+                indB = (startB : endB);
 
-                ind = (startB : endB);
-                sB = sparse(b_jB(ind), b_kB(ind), B(ind));
+                n = max(max(b_jA(indA)), max(b_jB(indB)));
+                sA = sparse(b_iA(indA), b_jA(indA), A(indA), max(b_iA(indA)), n);
+                sB = sparse(b_jB(indB), b_kB(indB), B(indB), n, max(b_kB(indB)));
 
                 sC = sA * sB;
 
