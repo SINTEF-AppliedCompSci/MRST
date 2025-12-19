@@ -14,13 +14,9 @@ classdef SparseTensor
 % RETURNS:
 %   class instance
 %
-% EXAMPLE:
-%   `computeVagTrans`
-%
-% SEE ALSO:
-%   `IndexArray`, `TensorProd`.
+
     
-    properties (SetAccess = immutable)
+    properties
     
         vals % Value of the coefficients of the tensor
         tbl  % index array for the sparsity
@@ -49,18 +45,10 @@ classdef SparseTensor
             
         end
 
-        function tensor = setvals(tensor, vals, inds)
-
-            upvals = tensor.values;
-            upvals(inds) = vals;
-            
-            tensor = SparseTensor(upvals, tensor.tbl);
-    
-        end
         
         function tensor = times(tensor, coef)
 
-            tensor = SparseTensor((tensor.vals).*coef, tensor.tbl);
+            tensor.vals = (tensor.vals).*coef;
 
         end
         
