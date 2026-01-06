@@ -47,10 +47,6 @@ classdef SparseTensorMap
             fromTbl  = map.tensor.tbl;
             toTbl    = map.toTbl;
 
-            if ischar(map.mergefds) && strcmp(map.mergefds, 'all')
-                mergefds = fromTbl.fdnames;
-            end
-            
             if ~isempty(map.replaceFromTblfds)
                 fromTbl = replacefield(fromTbl, map.replaceFromTblfds);
             end
@@ -58,6 +54,10 @@ classdef SparseTensorMap
                 toTbl = replacefield(toTbl, map.replaceToTblfds);
             end
 
+            if ischar(map.mergefds) && strcmp(map.mergefds, 'all')
+                mergefds = fromTbl.fdnames;
+            end
+            
             % some sanity checks on the table's field names.
             fds1 = fromTbl.fdnames;
             fds2 = toTbl.fdnames;
