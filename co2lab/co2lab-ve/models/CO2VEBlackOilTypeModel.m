@@ -341,8 +341,19 @@ end
             
             [state, report] = updateState@ReservoirModel(model, state, problem, dx, ...
                                                          drivingForces);
+
+            % fix overflows in saturation
+            fix_ix = state.s(:,2) > 1 - model.fluid.res_water;
+            state.s(fix_ix, 1) = model.fluid.res_water;
+            state.s(fix_ix, 2) = 1 - model.fluid.res_water;
             
+            state.sGmax = min(state.sGmax, 1 - model.fluid.res_water); % enforce sGmax <= 1 - res_water
             state.sGmax = max(state.sGmax, state.s(:,2)); % enforce sGmax >= sg
+
+            fix_ix = state.s(:,1) > 1 - state.sGmax * model.fluid.res_gas;
+            state.s(fix_ix, 1) = 1 - state.sGmax(fix_ix) * model.fluid.res_gas;
+            state.s(fix_ix, 2) = 1 - state.s(fix_ix, 1);
+
         end
 
 

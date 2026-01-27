@@ -137,11 +137,17 @@ function [h, h_max, dh] = sharp_interface_case(sg, sgmax, Gt, rg, rw, ...
         % have that s = V(h) / Vtot  (where Vtot is the total pore volume of
         % the column).
 
-        column_cellnums = diff(Gt.cells.columnPos);
-        map_columns = Gt.columns.cells;
-        poro_areas(map_columns) = poro(map_columns) .* ...
-            rldecode(Gt.cells.volumes, column_cellnums);
-        poro_areas = poro_areas(:);
+        % determine effective lateral surface are for each 3D cell in each
+        % column, to facilitate vertical integration
+        dz_parent(Gt.columns.cells) = Gt.columns.dz;
+        assert(length(dz_parent) == Gt.parent.cells.num);
+        poro_areas = Gt.parent.cells.volumes ./ dz_parent(:) .* poro(:);
+
+        % column_cellnums = diff(Gt.cells.columnPos);
+        % map_columns = Gt.columns.cells;
+        % poro_areas(map_columns) = poro(map_columns) .* ...
+        %     rldecode(Gt.cells.volumes, column_cellnums);
+        % poro_areas = poro_areas(:);
         
         Vh = @(h, rw) pvol(value(h), rw, poro_areas, Gt);
 
