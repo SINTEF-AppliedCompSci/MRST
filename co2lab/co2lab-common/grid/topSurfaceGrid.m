@@ -1,4 +1,4 @@
-function [Gt, G, transMult] = topSurfaceGrid(G)
+function [Gt, G, transMult, discarded3Dcells] = topSurfaceGrid(G)
 %Make a hybrid grid of the top surface of a 3D grid having a logical
 %ijk-index (e.g., a corner-point grid or a logically Cartesian grid)
 %
@@ -47,6 +47,8 @@ function [Gt, G, transMult] = topSurfaceGrid(G)
 %   transMult - array of transmissibility multipliers, one per face in Gt,
 %      which accounts for the fact that neighboring stacks of grid cells
 %      may be only partially overlapping.
+%   discarded3Dcells - array of cell indices in G that were discarded from
+%                      the 3D grid
 %
 % FIELDS in a 2D top-surface grid:
 %
@@ -159,7 +161,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% Identify columns in layered 3D grid; remove unused cells from G
    % cells in G that will not contribute to the top surface grid 
    % will be removed
-   [active_cols, col_cells, G] = identify_column_cells(G);
+   [active_cols, col_cells, G, discarded3Dcells] = identify_column_cells(G);
    
    %% Identify connectivity between columns
    % Absent the presence of faults, this task would be trivial on cartesian
@@ -713,7 +715,7 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [active_cols, col_cells, G] = identify_column_cells(G)
+function [active_cols, col_cells, G, discard_cells] = identify_column_cells(G)
 % 'active_cols': 'true' for all columns with at least one active cell.
 % 'col_cells': Matrix containing the indices of active cells for each column.
 %              Each column in this matrix correspond to a vertical stack of cells.
