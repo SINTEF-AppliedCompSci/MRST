@@ -114,7 +114,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
   if isfield(G.cells, 'indexMap')
      G.cells.indexMap(cells) = [];
   end
+  if isfield(G.cells, 'global')
+     G.cells.global(cells) = [];
+  end
 
+  
   % new numbering of faces.
   ind     = all(G.faces.neighbors(:,1:2)==0,2);
   facemap = mapExcluding(ind);
