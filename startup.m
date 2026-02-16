@@ -32,7 +32,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    % Run platform (Octave/Matlab) specific startup routines
    run_platform_specific();
-   
+
    % Display welcome message
    mrstStartupMessage();
 
@@ -52,7 +52,7 @@ function build_mrst_path_tree
    d = rootdir();
 
    m = fullfile(d, 'modules');
-   p = split_path(genpath(d));
+   p = split_path(genpath(fullfile(d, 'core')));
 
    % Remove octave_only folders from path
    oct_only = ~cellfun(@isempty, regexp(p, 'octave_only'));
