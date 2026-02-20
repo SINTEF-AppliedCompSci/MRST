@@ -131,7 +131,7 @@ G = computeGeometry(G(1));
 % clear grdecl
 
 % Construct VE grid
-[Gt, G] = topSurfaceGrid(G);
+[Gt, G] = topSurfaceGrid(G, 'discard_below_holes', true);
 
 % Construct structure with petrophyiscal data. Vertical permeability is set
 % to 0.1 times the horizontal permeability. NB!

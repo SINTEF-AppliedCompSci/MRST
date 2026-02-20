@@ -64,7 +64,8 @@ muco2   = co2.mu(p_ref, t_ref) * Pascal * second; % co2 viscosity
 % formation is assumed to contain pure brine in hydrostatic equilibrium.
 
 % Grid and open boundary faces
-[G, rock, bcIx, ~, ~, bcIxVE] = makeJohansenVEgrid();
+
+[G, rock, bcIx, ~, ~, bcIxVE] = makeJohansenVEgrid('remakeGrid', false);
 
 % Setup the well
 wc_global = false(G.cartDims); wc_global(48, 48, 6:10) = true;
@@ -76,7 +77,7 @@ W         = addWell([], G, rock, wc, 'name','injector',...
               'comp_i', [0 1]);    % inject CO2, not water
 
 % Top surface grid, petrophysical data, well, and initial state
-[Gt, G, transMult] = topSurfaceGrid(G);
+[Gt, G, transMult] = topSurfaceGrid(G, 'discard_below_holes', true);
 rock2D             = averageRock(rock, Gt);
 W2D                = convertwellsVE(W, G, Gt, rock2D);
 initState.pressure = rhow * g(3) * Gt.cells.z;

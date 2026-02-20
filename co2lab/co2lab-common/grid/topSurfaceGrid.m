@@ -1,4 +1,4 @@
-function [Gt, G, transMult, discarded3Dcells] = topSurfaceGrid(G)
+function [Gt, G, transMult, discarded3Dcells] = topSurfaceGrid(G, varargin)
 %Make a hybrid grid of the top surface of a 3D grid having a logical
 %ijk-index (e.g., a corner-point grid or a logically Cartesian grid)
 %
@@ -7,6 +7,18 @@ function [Gt, G, transMult, discarded3Dcells] = topSurfaceGrid(G)
 %
 % PARAMETERS:
 %   G       - 3D grid as described by grid_structure.
+%
+% OPTIONAL ARGUMENTS:
+%   'discard_below_holes' - boolean (default: true) that determines whether
+%                           cells below logical 'holes' in a column should
+%                           discarded from the 3D grid and VE grid.
+%                           Reason for discarding: if the missing cells represent
+%                           an impermeable (shale) layer, VE can only be assumed
+%                           to be valid above the layer.
+%                           Reason for not discarding: if the missing cells represent
+%                           a pinchout, but cells above and below are physically
+%                           connected, then VE is possible across the whole column
+%                           and the cells should be included.
 %
 % RETURNS:
 %   Gt - structure representing the top-surface grid. The structure
@@ -149,6 +161,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
+   opt = merge_options(struct('discard_below_holes', true), varargin{:});
+    
    %% Ensure that computeGeometry has been called on G
    if ~isfield(G.faces, 'centroids')
       try
@@ -161,7 +175,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    %% Identify columns in layered 3D grid; remove unused cells from G
    % cells in G that will not contribute to the top surface grid 
    % will be removed
-   [active_cols, col_cells, G, discarded3Dcells] = identify_column_cells(G);
+   [active_cols, col_cells, G, discarded3Dcells] = ...
+       identify_column_cells(G, opt.discard_below_holes);
    
    %% Identify connectivity between columns
    % Absent the presence of faults, this task would be trivial on cartesian
@@ -374,21 +389,23 @@ end
 
 function [cols, col_pos, H] = compute_column_info(G, col_cells, tfaces)
 
-   col_sizes = sum(col_cells~=0, 1)';
-   col_pos = cumsum([1; col_sizes], 1);
+    col_sizes = sum(col_cells~=0, 1)'; % number of cells in each column
+    col_pos = cumsum([1; col_sizes], 1); % indexing for Gt.cells.columnPos
+    
+    start_ix = cumsum([1;repmat(size(col_cells, 1), size(col_cells, 2), 1)], 1);
+    start_ix = start_ix(1:end-1);
+    end_ix = start_ix + col_sizes - 1;
 
-   start_ix = cumsum([1;repmat(size(col_cells, 1), size(col_cells, 2), 1)], 1);
-   start_ix = start_ix(1:end-1);
-   end_ix = start_ix + col_sizes - 1;
-   
-   cols.cells = col_cells(mcolon(start_ix, end_ix))';
-   
-   [top_faces, bot_faces] = identify_lateral_faces(G, cols.cells);
-
-   ref_z = rldecode(G.faces.centroids(tfaces, 3), col_sizes);
-   cols.z = G.faces.centroids(bot_faces, 3) - ref_z;   
-   cols.dz = G.faces.centroids(bot_faces, 3) - G.faces.centroids(top_faces, 3);
-   H = accumarray(rldecode((1:length(col_sizes))', col_sizes'), cols.dz);
+    tmp = col_cells(:);
+    cols.cells = tmp(tmp ~= 0); % list of all cells in all columns, without padding
+    %cols.cells = col_cells(mcolon(start_ix, end_ix))';  % @@ only works if no 'holes'
+    
+    [top_faces, bot_faces] = identify_lateral_faces(G, cols.cells);
+    
+    ref_z = rldecode(G.faces.centroids(tfaces, 3), col_sizes);
+    cols.z = G.faces.centroids(bot_faces, 3) - ref_z;   
+    cols.dz = G.faces.centroids(bot_faces, 3) - G.faces.centroids(top_faces, 3);
+    H = accumarray(rldecode((1:length(col_sizes))', col_sizes'), cols.dz);
    
 end
 
@@ -715,7 +732,8 @@ end
 
 % ----------------------------------------------------------------------------
 
-function [active_cols, col_cells, G, discard_cells] = identify_column_cells(G)
+function [active_cols, col_cells, G, discard_cells] = ...
+        identify_column_cells(G, discard_below_holes)
 % 'active_cols': 'true' for all columns with at least one active cell.
 % 'col_cells': Matrix containing the indices of active cells for each column.
 %              Each column in this matrix correspond to a vertical stack of cells.
@@ -740,24 +758,28 @@ function [active_cols, col_cells, G, discard_cells] = identify_column_cells(G)
    r_ixs_new = mcolon(ones(size(inactive_upper)), lnum - inactive_upper)';
    col_cells = accumarray([r_ixs_new, c_ixs], vals, size(col_cells));
       
-   %% Then, we peel away any cells _below_ remaining, inactive cells
-   
-   % for each row, true until first zero is encountered
-   col_cells_ind = col_cells > 0;
-   keeps = logical(cumprod(col_cells_ind, 1)); 
-   discard_cells = reshape(col_cells(~keeps), [], 1);
-   discard_cells = discard_cells(discard_cells ~= 0);
-   col_cells(~keeps) = 0;
-                          
+   %% Optionally, we peel away any cells _below_ remaining, inactive cells
+
+   discard_cells = [];
+   if discard_below_holes
+       % for each row, true until first zero is encountered
+       col_cells_ind = col_cells > 0;
+       keeps = logical(cumprod(col_cells_ind, 1)); 
+       discard_cells = reshape(col_cells(~keeps), [], 1);
+       discard_cells = discard_cells(discard_cells ~= 0);
+       col_cells(~keeps) = 0;
+   end
+
    % Determine which pillars contain at least one cell
    active_cols = logical(sum(col_cells, 1));
    
    %% Remove discarded cells from parent grid
    if ~isempty(discard_cells)
+       
       G = computeGeometry(removeCells(G, discard_cells));
       % call function again, this time with a grid that does not need any
       % further removals.  (This is the easiest way to deal with the new indexing).
-      [active_cols, col_cells, G] = identify_column_cells(G);
+      [active_cols, col_cells, G] = identify_column_cells(G, discard_below_holes);
    end
 end
 
