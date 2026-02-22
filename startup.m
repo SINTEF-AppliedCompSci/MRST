@@ -119,7 +119,7 @@ end
 
 function run_platform_specific()
    if mrstPlatform('octave')
-      do_run_local(fullfile(rootdir(), 'utils', ...
+      do_run_local(fullfile(rootdir(), 'core', 'utils', ...
                             'octave_only', 'startup_octave.m'));
    end
 end
