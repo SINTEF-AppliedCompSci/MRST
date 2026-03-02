@@ -32,6 +32,8 @@ options.integrate_heterogeneity = true;
 options.xres = 100;
 options.yres = 30;
 options.zres = 10;
+options.length = 2000; % length of the aquifer in meters
+options.depth = 1000;
 options.srw = 0;
 options.srg = 0;
 options.cap_fringe = false;
@@ -48,8 +50,14 @@ options.inj_period = 1 * year;
 options.inj_steps = 12;
 options.migr_period = 2 * year;
 options.migr_steps = 12;
+options.rugosity = 0; % amplitude of topsurface perturbations
 options.relperm_exponents = [2, 2]; % default: quadratic relperm curves
 options.maxTimestepCuts = 14;
+
+options.noise_amplitude = 0; % random noise topsurface perturbations
+options.noise_corrlength = 1;
+
+options.VE_tolerance = 1e-6;
 
 options = merge_options(options, varargin{:});
 
@@ -63,14 +71,16 @@ if options.cross_sectional
     yres = 1; 
 end
 
-[xlen, ylen, zlen] = deal(2000 * meter, 600 * meter, options.thickness);
+[xlen, ylen, zlen] = deal(options.length * meter, 600 * meter, options.thickness);
 
 G = make_testgrid([xres, yres, zres], ...      % x, y and z resolution
                   [xlen, ylen, zlen], ...      % x, y and z lengths
-                  5, options.slope, 1000, ...  % bend, slope and depth
-                  [0.5, 0.3, options.trap1_size;    % trap 1 x-position, width and size
-                   0.75, 0.2, options.trap2_size]); % trap 2 x-position, width and size
-
+                  5, options.slope, options.depth, ...  % bend, slope and depth
+                  [0.5, 0.3, options.trap1_size;       % trap 1 x-position, width and size
+                   0.75, 0.2, options.trap2_size], ... % trap 2 x-position, width and size
+                  'noise_amplitude', options.noise_amplitude, ...
+                  'noise_corrlength', options.noise_corrlength);
+                  
 %% Set up the rest of the simulation input data
 
 % define rock object, one value per gridcell
@@ -254,6 +264,7 @@ fluid_VE = makeVEFluid(G_VE, rock_VE, relperm_model, ...
                        'wat_rho_pvt', [cf_wat, p_ref], ...
                        'pvMult_p_ref', p_ref, ...
                        'pvMult_fac', cf_rock, ...
+                       'rugosity', options.rugosity, ...
                        'residual', [options.srw, options.srg], ...
                        'krmax', krmax, ...        % only relevant if sharp interface
                        'invPc3D', [C, alpha], ... % only relevant if cap. fringe 
@@ -287,6 +298,7 @@ end
 
 %% Simulate injection in VE
 model_VE = CO2VEBlackOilTypeModel(G_VE, rock_VE, fluid_VE);
+model_VE.nonlinearTolerance = options.VE_tolerance;
 
 initState_VE.pressure = pfun(G_VE.cells.z);
 initState_VE.s = repmat([1, 0], G_VE.cells.num, 1);
@@ -303,7 +315,12 @@ model_VE.verbose=true;
 
 tic;
 %nls = NonLinearSolver('useRelaxation', true);
-[wellSol_VE, states_VE] = simulateScheduleAD(initState_VE, model_VE, schedule_VE);
+nls = NonLinearSolver(...
+    'maxTimestepCuts', options.maxTimestepCuts, ...
+    'timeStepSelector', IterationCountTimeStepSelector('targetIterationCount', 12));
+
+[wellSol_VE, states_VE] = simulateScheduleAD(initState_VE, model_VE, schedule_VE, ...
+                                             'NonlinearSolver', nls);
                                              
 timing.simVE = toc;
 states_VE = [{initState_VE}; states_VE];

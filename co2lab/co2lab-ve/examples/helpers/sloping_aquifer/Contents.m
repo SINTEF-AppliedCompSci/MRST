@@ -1,7 +1,6 @@
 % SLOPING_AQUIFER
 %
 % Files
-%   make_testgrid                       - Creating base sloping surface with slight y curvature
 %   open_boundary_conditions            - Undocumented Utility Function
 %   set_fig_standardformat              - Undocumented Utility Function
 %   simple_injection_migration_schedule - Define simple, single-well injection and migration scenario

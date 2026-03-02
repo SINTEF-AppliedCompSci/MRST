@@ -24,8 +24,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    opt.ripples_amplitude_x = 0;
+    opt.ripples_amplitude_x = 0; % sinusoidal topsurface perturbations
     opt.ripples_number_x = 100;
+    opt.noise_amplitude = 0; % random noise topsurface perturbations
+    opt.noise_corrlength = 1;
     opt = merge_options(opt, varargin{:});
     
     %% Creating base sloping surface with slight y curvature
@@ -82,10 +84,42 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         G = add_topsurface_ripples(G, opt.ripples_amplitude_x, opt.ripples_number_x);
     end
 
+    %% add random noise if requested
+    if opt.noise_amplitude > 0
+        G = add_random_noise(G, opt.noise_amplitude, opt.noise_corrlength);
+    end
+    
     %% Compute final geometry and return
     G = computeGeometry(G);
 
 end
+
+% ----------------------------------------------------------------------------
+function G = add_random_noise(G, amplitude, corrlength)
+
+    is_2D = (G.cartDims(2) == 1);
+    
+    %% compute adimensional correlation lengths
+    grid_length = max(max(G.nodes.coords(:, 1:2)) - min(G.nodes.coords(:, 1:2)));
+    clength = corrlength / grid_length;
+    
+    %% generate noise field
+    if is_2D
+        corr_fun = @(xy) exp(-abs(xy(:,1)) / clength^2);
+        ripples = amplitude * GaussianProcess1D(G.cartDims(1)+1, corr_fun);
+        ripples = repmat(ripples(:), 2, 1);
+    else
+        corr_fun = @(xy) exp(-sum(xy.^2, 2) / clength^2);
+        ripples = amplitude * GaussianProcessND(G.cartDims(1:2)+1, corr_fun);
+    end
+    
+    
+    %% adjusting grid nodes
+    dz = repmat(ripples(:), G.cartDims(3)+1, 1);
+    G.nodes.coords(:,3) = G.nodes.coords(:,3) + dz(:);
+end
+
+
 
 % ----------------------------------------------------------------------------
 function G = add_topsurface_ripples(G, amplitude, number)
