@@ -93,6 +93,12 @@ extern "C" {
         enum face_tag *face_tag;  /**< Classification of grid's individual
                                        connections (faces). */
 
+	/* added to make edgeconformal easier*/
+	int    *cell_facePos;       /**< Node (vertex) numbers of each face,
+                                       stored sequentially. */
+        int    *cell_faces;         /**< Start position for each face's
+                                       `face_nodes'. */
+	
         int    number_of_nodes;   /**< Number of unique grid vertices. */
         int    number_of_nodes_on_pillars; /**< Total number of unique cell
                                                 vertices that lie on pillars. */

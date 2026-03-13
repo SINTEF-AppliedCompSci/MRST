@@ -68,7 +68,8 @@ computeFaceTopology(const int *a1, const int *a2,
     int mask[8];
     int k;
     int *f;
-
+    int zn;
+    int i;
     for (k = 0; k < 8; k++) { mask[k] = -1; }
 
     /* Which pillar points should we use? */
@@ -138,15 +139,75 @@ computeFaceTopology(const int *a1, const int *a2,
         }
     }
     f = faces;
-    for (k=7; k>=0; --k){
+    /*for (k=7; k>=0; --k){
         if(mask[k] != -1){
             *f++ = mask[k];
         }
-    }
+      }*/
+    /* upper left*/
+    k=7;
+        if(mask[k] != -1){
+            *f++ = mask[k];
+        }
+        /* intersection top top*/
+    k=6;
+        if(mask[k] != -1){
+            *f++ = mask[k];
+        }
+        /*upper right*/
+    k=5;
+        if(mask[k] != -1){
+            *f++ = mask[k];
+        }
+        /* intersection bottom-top or top bottum */
+    k=4;
+        if(mask[k] != -1){
+            *f++ = mask[k];
+        }
+        /* add possible hanging nodes */
+	
+        if((mask[2] != -1) && (mask[4] != -1)){
+            assert(mask[3] == -1);
+            if((mask[2]-mask[4])> 1){
+                for(zn = mask[4]+1; zn<mask[2]; ++zn){
+                    *f++ = zn;
+                }
+            }
+        }
+	
+        /* lower right */
+    k=3;
+        if(mask[k] != -1){
+            *f++ = mask[k];
+        }
+    k=2;
+        if(mask[k] != -1){
+            *f++ = mask[k];
+        }
+    k=1;
+        if(mask[k] != -1){
+            *f++ = mask[k];
+        }	
+    k=0;
+        if(mask[k] != -1){
+            *f++ = mask[k];
+        }	
+        if((mask[6] != -1) && (mask[0] != -1)){
+            assert(mask[7] == -1);
+            if((mask[0]-mask[6])> 1){
+		fprintf(stdout, "mask 6 %d \n", mask[6]);
+                for(zn = mask[0]-1; zn>mask[6]; --zn){
+                    *f++ = zn;
+		    fprintf(stderr, "adde mpde %d \n", zn);
+                }
+		fprintf(stderr, "mask 0 %d \n", mask[0]);
+            }
+        }
+	
+        
 
-#if DEBUG>1
+#if DEBUG
     /* Check for repeated nodes:*/
-    int i;
     fprintf(stderr, "face: ");
     for (i=0; i<8; ++i){
         fprintf(stderr, "%d ", mask[i]);

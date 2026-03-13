@@ -42,10 +42,13 @@
 #include <string.h>
 
 #include <mex.h>
-
+#include <exception>
+#include <stdexcept>
+#include <iostream>
+#include <string>
 #include "preprocess.h"
 #include "mxgrdecl.h"
-
+#include "make_edge_conformal.hpp"
 
 /* ---------------------------------------------------------------------- */
 static mxArray *
@@ -231,6 +234,67 @@ allocate_cells(size_t nc, size_t ncf)
     }
 
     return cells;
+}
+/* ---------------------------------------------------------------------- */
+static void
+add_cells(struct processed_grid *grid)
+/* ---------------------------------------------------------------------- */
+{
+    size_t c, nc, f, nf, i;
+
+    int c1, c2, cf_tag, nhf;
+    int *pi1, *pi2;
+
+    nc = grid->number_of_cells;
+    nf = grid->number_of_faces;
+
+    /* Simultaneously fill cells.facePos and cells.faces by transposing the
+     * neighbours mapping. */
+    pi1 = grid->cell_facePos;
+    //allocate p1NBNB
+    pi2 = grid->cell_faces;
+    for (i = 0; i < nc + 1; i++) { pi1[i] = 0; }
+
+    /* 1) Count connections (i.e., faces per cell). */
+    for (f = 0; f < nf; f++) {
+        c1 = grid->face_neighbors[2*f + 0];
+        c2 = grid->face_neighbors[2*f + 1];
+
+        if (c1 >= 0) { pi1[c1 + 1] += 1; }
+        if (c2 >= 0) { pi1[c2 + 1] += 1; }
+    }
+
+    /* 2) Define start pointers (really, position *end* pointers at start). */
+    for (c = 1; c <= nc; c++) {
+        pi1[0] += pi1[c];
+        pi1[c]  = pi1[0] - pi1[c];
+    }
+
+    /* 3) Fill connection structure whilst advancing end pointers. */
+    nhf    = pi1[0];
+    pi1[0] = 0;
+    //allocate p2 NBNB
+    for (f = 0; f < nf; f++) {
+        cf_tag = 2*grid->face_tag[f];             /* [1, 3, 5] */
+        c1     = grid->face_neighbors[2*f + 0];
+        c2     = grid->face_neighbors[2*f + 1];
+
+        if (c1 >= 0) {
+            pi2[ pi1[ c1 + 1 ] + 0*nhf ] = f;
+            pi2[ pi1[ c1 + 1 ] + 1*nhf ] = cf_tag + 1;  /* out */
+
+            pi1[ c1 + 1 ] += 1;
+        }
+        if (c2 >= 0) {
+            pi2[ pi1[ c2 + 1 ] + 0*nhf ] = f;
+            pi2[ pi1[ c2 + 1 ] + 1*nhf ] = cf_tag + 0;  /* in */
+
+            pi1[ c2 + 1 ] += 1;
+        }
+    }
+
+    /* Fill cells.indexMap.  Note that despite the name, 'local_cell_index'
+     * really *is* the (zero-based) indexMap of the 'processed_grid'. */
 }
 
 
@@ -436,9 +500,21 @@ mexFunction(int nlhs,       mxArray *plhs[],
     if (args_ok(nlhs, nrhs, prhs)) {
         mx_init_grdecl(&grdecl, prhs[0]);
         tolerance = define_tolerance(nrhs, prhs);
-
-        process_grdecl(&grdecl, tolerance, &g);
-
+	try{
+	    
+	    
+	    if(tolerance < 0){
+		process_grdecl(&grdecl, 0.0, &g);
+		add_cells(&g);
+		make_edge_conformal(&g);
+	    }else{
+		process_grdecl(&grdecl, tolerance, &g);
+	    }
+	}
+	catch(const std::exception &exc){
+	    std::cout << exc.what();
+	    mexErrMsgTxt("Something wrong"); 
+	}
         plhs[0] = allocate_grid(&g, mexFunctionName());
 
         if (plhs[0] != NULL) {

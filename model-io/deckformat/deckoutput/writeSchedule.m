@@ -173,6 +173,19 @@ if isfield(SCHEDULE, 'control')
             fprintf(fid_inc, f.string, regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
             fprintf(fid_inc, '/\n\n');
         end
+        
+        wtemp = []
+        if(isfield(SCHEDULE.control(cstep),'WTEMP'))
+            wtemp = SCHEDULE.control(cstep).WTEMP;
+        end
+        if ~isempty(wtemp) 
+            wtemp = replace_default(wtemp(:, 1:2)).';
+            fprintf(fid_inc,'%s\n',upper('wtemp')); 
+            fmt = getFmtStr(f.string, f.sci, '/');
+            s = sprintf(fmt, wtemp{:});
+            fprintf(fid_inc, f.string, regexprep(s, 'Inf|NaN', '1*', 'ignorecase'));
+            fprintf(fid_inc, '/\n\n');
+        end
 
         bcprop=[];
         if(isfield(SCHEDULE.control(cstep),'BCPROP'))

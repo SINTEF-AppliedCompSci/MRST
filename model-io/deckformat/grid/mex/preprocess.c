@@ -139,7 +139,11 @@ static int
 checkmemory(int nz, struct processed_grid *out, int **intersections)
 {
     int r, m, n, ok;
+    int nx = out->dimensions[0];
+    int ny = out->dimensions[1];
+    //int nz = out->dimensions[2];
 
+    int nc = nx*ny*nz;
     /* Ensure there is enough space to manage the (pathological) case
      * of every single cell on one side of a fault connecting to all
      * cells on the other side of the fault (i.e., an all-to-all cell
@@ -157,19 +161,23 @@ checkmemory(int nz, struct processed_grid *out, int **intersections)
 
     ok = m == out->m;
     if (! ok) {
-        void *p1, *p2, *p3, *p4;
+        void *p1, *p2, *p3, *p4,*p5,*p6;
 
         p1 = realloc(*intersections     , 4*m   * sizeof **intersections);
         p2 = realloc(out->face_neighbors, 2*m   * sizeof *out->face_neighbors);
         p3 = realloc(out->face_ptr      , (m+1) * sizeof *out->face_ptr);
         p4 = realloc(out->face_tag      , 1*m   * sizeof *out->face_tag);
+	p5 = realloc(out->cell_facePos  , (nc+1) * sizeof *out->cell_facePos);
+        p6 = realloc(out->cell_faces    , 2*2*m   * sizeof *out->cell_faces);
 
         if (p1 != NULL) { *intersections      = p1; }
         if (p2 != NULL) { out->face_neighbors = p2; }
         if (p3 != NULL) { out->face_ptr       = p3; }
         if (p4 != NULL) { out->face_tag       = p4; }
-
-        ok = (p1 != NULL) && (p2 != NULL) && (p3 != NULL) && (p4 != NULL);
+	if (p5 != NULL) { out->cell_facePos   = p5; }
+	if (p6 != NULL) { out->cell_faces     = p6; }
+	
+        ok = (p1 != NULL) && (p2 != NULL) && (p3 != NULL) && (p4 != NULL) && (p5 != NULL) && (p6 != NULL);
 
         if (ok) { out->m = m; }
     }
@@ -797,6 +805,9 @@ void process_grdecl(const struct grdecl   *in,
     out->face_ptr         = malloc((out->m + 1) * sizeof *out->face_ptr);
     out->face_tag         = malloc( out->m      * sizeof *out->face_tag);
     out->face_ptr[0]      = 0;
+
+    out->cell_faces = malloc(2*nc*6 * sizeof *out->cell_faces);;
+    out->cell_facePos = malloc((nc+1) * sizeof *out->cell_facePos);
 
     out->dimensions[0]    = in->dims[0];
     out->dimensions[1]    = in->dims[1];
