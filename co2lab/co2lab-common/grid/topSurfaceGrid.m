@@ -741,7 +741,8 @@ function [active_cols, col_cells, G] = identify_column_cells(G)
    %% Then, we peel away any cells _below_ remaining, inactive cells
    
    % for each row, true until first zero is encountered
-   keeps = logical(cumprod(col_cells, 1)); 
+   col_cells_ind = col_cells > 0;
+   keeps = logical(cumprod(col_cells_ind, 1)); 
    discard_cells = reshape(col_cells(~keeps), [], 1);
    discard_cells = discard_cells(discard_cells ~= 0);
    col_cells(~keeps) = 0;

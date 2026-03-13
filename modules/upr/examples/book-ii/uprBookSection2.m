@@ -7,7 +7,7 @@ Gt  = triangleGrid(pts);
 dt  = delaunayTriangulation(pts);
 [CC, r] = circumcenter(dt,(1:size(pts,1)).');
 theta = linspace(0,2*pi)';
-for i = 1:size(CC)
+for i = 1:size(CC,1)
     X = repmat(CC(i,:),100,1) + repmat(r(i),100,2).*[cos(theta), sin(theta)];
     plot(X(:,1), X(:,2),'-','LineWidth',2)
 end

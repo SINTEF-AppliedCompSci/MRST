@@ -153,7 +153,10 @@ schedule.step.control = [ones(50, 1); ...
 %% Create and simulate model
 
 model = CO2VEBlackOilTypeModel(Gt, rock2D, fluid);
-[wellSol, states] = simulateScheduleAD(initState, model, schedule);
+model.verbose=true;
+nls = NonLinearSolver('maxTimestepCuts', 12);
+[wellSol, states] = simulateScheduleAD(initState, model, schedule, ...
+                                       'NonLinearSolver', nls);
 states = [{initState}; states];
  
 %% Animate the plume migration over the whole simulation period

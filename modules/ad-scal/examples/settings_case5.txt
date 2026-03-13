@@ -1,0 +1,130 @@
+# Case 5. Primary Drainage centrifugation
+#
+# Comments starts with hash(#) symbol. 
+# Between the keyword and the value should be at least one tab.
+# Press enter key at the end of each line of data, even the last line of the file.
+# Each block is separated by a blank line
+# Centrifuge Settings with Scores data
+
+#-------------------------------------------------
+# GEOMETRY
+#-------------------------------------------------
+LENGTH		10  cm
+DIAMETER	4   cm
+
+#-------------------------------------------------
+# ROCK
+#-------------------------------------------------
+POROSITY		0.25
+PERMEABILITY	100		mD  
+INITIALWATER	1
+
+#-------------------------------------------------
+# FLUID
+#-------------------------------------------------
+DENSITYW		1000	kg/m^3
+DENSITYNW		800		kg/m^3
+VISCOSITYW		1       cP
+VISCOSITYNW		5		cP
+
+#-------------------------------------------------
+# PROCESS
+#-------------------------------------------------
+CENT	Drainage
+
+#-------------------------------------------------
+# SIMULATION
+#-------------------------------------------------
+TYPE		forward
+NCELLS		100
+#         	number	first_cell_Sw   last_cell_Sw   
+BCELLS		1       1             	1
+#GAUGEOFF	1		cm
+MAXTIMESTEP 	1		hour
+RAMPUPSTEPS      5
+
+#-------------------------------------------------
+# SCHEDULE
+#-------------------------------------------------
+#			fileName
+FILENAME	.\Data\CENT\Drainage\sched_case5.txt
+PINI		1		bar
+POUT		1		bar
+CENTRAD     29.142  cm
+
+#-------------------------------------------------
+# OBSERVATION
+#-------------------------------------------------
+#			fileName
+#SWAVG      .\Data\CENT\Drainage\swavg_obs_case5.txt
+PRODUCTION   .\Data\CENT\Drainage\prod_obs_case5.txt
+
+#-------------------------------------------------
+# SATURATION FUNCTIONS
+#-------------------------------------------------
+#KR			MODIFIED-COREY		Swc		Sor		krw@Sor		kro@Swc		nW		nNW		
+KR          MODIFIED-COREY      0.3     0.      1.0         1.0		3       2       
+PC			TABLE				.\Data\CENT\Drainage\pc_centri_table.txt     
+#PC			TABLE				.\Data\CENT\Drainage\pc_case5_analytical.txt
+#PC			TABLE				.\Data\CENT\Drainage\pc_case5_solution.txt
+#KR    TABLE		.\Data\SS\Drainage\kr_synthetic_SS_hm_solution.txt
+#PC	TABLE		.\Data\CENT\Drainage\pc_case5_hm_solution.txt
+
+#-------------------------------------------------
+# PLOT OPTIONS
+#-------------------------------------------------
+STYLE			docked  #docked
+COLORMAP		jet		#parula		hsv
+DISPLAYTIME		hour
+DISPLAYLENGTH	cm
+DISPLAYVOLUME	cm^3
+DISPLAYPRESS	bar
+DISPLAYRATE		cm^3/hour
+
+#-------------------------------------------------
+# OUTPUT OPTIONS
+#-------------------------------------------------
+
+
+#-------------------------------------------------
+# OBJECTIVE FUNCTION CONFIGURATIONS
+#-------------------------------------------------
+EXCEL_FILE_NAME    kr_point_by_point_+_pc_point_by_point_synthetic_case.xlsx
+EXCEL_FILE_PATH    .\Input_templates_for_SCAL_history_match
+#MULTIPOINT         
+#MULTIPOINT_RANDOM_NUMBERS      10
+KR_HM
+KR_MODEL    POINT-BY-POINT
+PC_HM
+PC_MODEL    POINT-BY-POINT
+PDIFF_WEIGHT    1
+SWAVG_WEIGHT    1
+PROD_WEIGHT     1
+SAT_PROFILE_WEIGHT      1
+PDIF_ERROR      0
+SWAVG_ERROR     0
+PROD_ERROR      0
+SAT_PROFILE_ERROR       0
+
+#-------------------------------------------------
+# HISTORY MATCH CONFIGURATIONS
+#-------------------------------------------------
+USE_PARALLEL
+OPTIMALITY_TOLERANCE        1e-6
+STEP_TOLERANCE          1e-3
+MAX_FUNCTION_EVALUATIONS    6000
+SCALE_PROBLEM
+OBJECTIVE_FUNCTION_TYPE    Simultaneous    #Simultaneous
+CENT_FILE_NAME      settings_case5.txt
+CENT_FILE_PATH      .\SCAL
+HISTORYMATCH_ALGORITHM      active-set
+
+#-------------------------------------------------
+# MCMC SPECIFIC CONFIGURATIONS
+#-------------------------------------------------
+RANDOM_SEED     3751
+SAMPLE_REFINEMENT_COUNT     1
+CHAINSIZE       5000
+#MPI_ENABLED   
+
+

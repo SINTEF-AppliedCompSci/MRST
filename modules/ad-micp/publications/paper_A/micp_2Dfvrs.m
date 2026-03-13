@@ -14,8 +14,8 @@
 % http://www.sintef.no/projectweb/mrst/
 %
 %{
-Copyright 2021, NORCE Norwegian Research Centre AS, Computational 
-Geosciences and Modeling.
+Copyright 2021-2025, NORCE Research AS, Computational Geosciences and
+Modeling.
 
 This file is part of the ad-micp module.
 

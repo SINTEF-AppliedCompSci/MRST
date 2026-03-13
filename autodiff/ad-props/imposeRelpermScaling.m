@@ -101,6 +101,7 @@ if model.oil &&  isfield(model.fluid, 'krO')
 end
 end
 
+
 %--------------------------------------------------------------------------
 
 function warnProblem(prob)

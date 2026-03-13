@@ -106,6 +106,9 @@ end
 [fid, msg] = fopen(fn, 'rt');
 if fid < 0, error([fn, ': ', msg]), end
 
+% Close 'fid' on exit.
+cleanupAction = onCleanup(@() fclose(fid));
+
 cartDims = opt.cartDims;
 numCell  = [-1, prod(cartDims)];
 numCell  = numCell(1 + double(~isempty(cartDims)));
@@ -116,7 +119,6 @@ while ~feof(fid)
    lin = fgetl(fid);
    if lin == -1
       msg = ferror(fid, 'clear');
-      fclose(fid);
       error('readGRDECL:Input:Empty', ...
             'GRDECL file ''%s'' is unreadable.\nSystem reports: %s\n', ...
             fn, msg);
@@ -280,7 +282,6 @@ end
 unrec = unique(unrec);
 grdecl.UnhandledKeywords = unrec;
 
-fclose(fid);
 if isfield(grdecl, 'ACTNUM')
    grdecl.ACTNUM = int32(grdecl.ACTNUM);
 end
@@ -291,8 +292,6 @@ end
 
 function checkDim(cartDims, numCell, kw, fid)
 if isempty(cartDims) || numCell < 1 || any(cartDims < 1)
-   % Don't leave open fd's in MATLAB's workspace when erroring out.
-   fclose(fid);
    error('readGRDECL:Input:NoDim', ...
          'GRDECL keyword ''%s'' found before dimension specification', kw);
 end

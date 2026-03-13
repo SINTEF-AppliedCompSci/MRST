@@ -13,7 +13,6 @@ cd(mrstPath('ad-core'));
 fprintf('%s', res);
 cd(testdir)
 
-%% Setup BattMo
 global MRST_BATCH
 MRST_BATCH = true;
 

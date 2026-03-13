@@ -143,9 +143,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
        locface2nodetbl    = tbls.face2nodetbl;
        loccellfacenodetbl = tbls.cellfacenodetbl;
 
-       loccellfacenodetbl = loccellfacenodetbl.removeInd({'cnfind'});
-       locfacenodetbl     = locfacenodetbl.removeInd({'fnind'});
-       locface2nodetbl    = locface2nodetbl.removeInd({'fnind1', 'fnind2'});
+       loccellfacenodetbl = loccellfacenodetbl.removeInd('cnfind');
+       locfacenodetbl     = locfacenodetbl.removeInd('fnind');
+       locface2nodetbl    = locface2nodetbl.removeInds({'fnind1', 'fnind2'});
        
        % Assembly of B
        prod = TensorProd();

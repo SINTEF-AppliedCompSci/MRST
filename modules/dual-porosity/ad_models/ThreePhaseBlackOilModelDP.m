@@ -1,5 +1,7 @@
 classdef ThreePhaseBlackOilModelDP < DualPorosityReservoirModel
-    % Three phase with optional dissolved gas and vaporized oil
+    % Three phase dual-porosity model with optional dissolved gas and vaporized 
+    % oil
+    %
 properties
     % Flag deciding if gas can be dissolved into the oil phase
     disgas
@@ -539,6 +541,11 @@ end
 end
 
 %{
+Copyright National Key Laboratory of Oil and Gas Reservoir Geology and 
+Exploitation, and National Key Laboratory of Natural Gas Hydrate, 
+Southwest Petroleum University, Chengdu, 610500, China
+Wei Xiong, 18328068580@163.com 
+
 Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

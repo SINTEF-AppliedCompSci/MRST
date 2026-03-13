@@ -18,7 +18,7 @@ gravity reset on;
 mrstVerbose off
 
 % Model options
-krhyst = 0;         % use relative permeability hysteresis
+krhyst = 1;         % use relative permeability hysteresis
 use_mex = 0;
 use_cpr = 0;
 fine_tstep = 0;     % use finer timesteps than deck

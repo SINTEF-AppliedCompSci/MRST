@@ -640,7 +640,7 @@ function output =  coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opt
                     'extra'      , extra);
 
     if opt.includeBc
-        matrices.D    = D;
+        output.matrices.D = D;
         output.bcvals = bcvals;
     end
     

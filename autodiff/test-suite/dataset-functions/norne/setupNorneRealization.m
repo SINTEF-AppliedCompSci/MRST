@@ -74,10 +74,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % The generated data contains 12 extra disconnected cells that need to
     % be accounted for when assigning data
-    if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL())
-        error('Unable to obtain simulation model subset');
-    end
-    
+ 
     grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
     grdecl = convertInputUnits(readGRDECL(grdecl), getUnitSystem('METRIC'));
     actnum = opt.actnum;

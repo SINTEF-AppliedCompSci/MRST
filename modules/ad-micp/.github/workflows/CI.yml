@@ -1,0 +1,38 @@
+name: Run examples
+
+on:
+ push:
+   branches:
+     - main
+ pull_request:
+   
+jobs:
+  run-ad-micp-local:
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest]
+        
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Install octave
+      run: |
+        brew install octave
+    
+    - name: Download mrst (master branch), remove existing ad-micp, and clone ad-micp from the master branch
+      run: |
+        git clone https://github.com/SINTEF-AppliedCompSci/MRST.git
+        pushd MRST/modules
+        rm -rf ad-micp
+        git clone https://github.com/daavid00/ad-micp.git
+      
+    - name: Run the test
+      run: |
+        pushd MRST/modules/ad-micp
+        octave tests/test_runMICP1DCase.m

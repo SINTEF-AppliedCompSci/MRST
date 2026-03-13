@@ -1,12 +1,12 @@
 %% Introduction to the Norne Model
 % Norne is an oil and gas field lies located in the Norwegian Sea. The
 % reservoir is found in Jurrasic sandstone at a depth of 2500 meter below
-% sea level. Operator Statoil and partners (ENI and Petoro) have agreed
+% sea level. Operator Statoil and partners (ENI and Petoro) agreed
 % with NTNU to release large amounts of subsurface data from the Norne
 % field for research and education purposes.  The
 % <http://www.ipt.ntnu.no/~norne/wiki/doku.php Norne Benchmark> datasets
-% are hosted and supported by the Center for Integrated Operations in the
-% Petroleum Industry (IO Center) at NTNU. Recently, the
+% are no longer hosted by the Center for Integrated Operations in the
+% Petroleum Industry (IO Center) at NTNU, but the
 % <http://www.opm-project.org OPM Initiative> released the full simulation
 % model as an open data set on <https://github.com/OPM/opm-data GitHub>.
 %
@@ -18,17 +18,14 @@ mrstModule add deckformat
 %% Read and process the model
 % As the Norne dataset is available from the OPM project's public GitHub
 % repository, we can download a suitable subset of the simulation model and
-% process that subset.  Function |makeNorneSubsetAvailable| checks if the
-% corner-point geometry and associate petrophysical properties (porosity,
-% permeability and net-to-gross factors) is already available and downloads
-% this subset if it is not.  Similarly, function |makeNorneGRDECL| creates
-% a simple .GRDECL file with a known name that includes the datafiles in
-% the correct order.  We refer to example |showSAIGUP| for a more in-depth
+% process that subset. A packaged version of this subset is provided with MRST
+% along with a simple .GRDECL file created with  |makeNorneGRDECL|. This 
+% version is accessed using <matlab:doc('getDatasetPath') getDatasetPath> (If 
+% the model is not available the <matlab:doc('getDatasetPath') getDatasetPath> 
+% function will download and install it for you).
+% We refer to example |showSAIGUP| for a more in-depth
 % discussion of how to read and process such input data.
 
-if ~ (makeNorneSubsetAvailable() && makeNorneGRDECL())
-   error('Unable to obtain simulation model subset');
-end
 
 grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
 grdecl = readGRDECL(grdecl);
@@ -123,10 +120,9 @@ view(-110,50), axis tight off, set(gca,'DataAspect',[20 11 1]); zoom(1.7);
 set(gca,'Clipping','off')
 
 %% Outline petrophysical properties
-% The petrophysical properties are included in the simulation model subset
-% represented by function |makeNorneSubsetAvailable|.  Consequently, the
-% necessary data has been read into the |grdecl| structure.  We can then
-% extract the petrophysical properties. Notice that here, the rock
+% The petrophysical properties are included in the simulation model subset.
+% Consequently, the necessary data has been read into the |grdecl| structure.
+% We can then extract the petrophysical properties. 
 close all, G = G(1);
 rock = grdecl2Rock(grdecl, G.cells.indexMap);
 

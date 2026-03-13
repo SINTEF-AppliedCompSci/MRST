@@ -127,7 +127,9 @@ function [kri, tol, minSat, sgt] = scanRelPerm(sg, sgi, kriVars, minSat, opts)
 
     % Set tolerance for flow reversal and initialize
     assert(nci == numelValue(sgi))   % same n for both sg and sgi
-    tol  = 1e-3;
+    r = 0.1; % fraction of scanning curve saturation range that is smoothed
+             % to seamlessly adjoin drainage curve (improved convergence)
+    tol  = 0;%1e-3;
     kri  = nan(nci, 1);
     AD = getSampleAD(sg, sgi);
     if isa(AD, 'GenericAD')
@@ -146,9 +148,10 @@ function [kri, tol, minSat, sgt] = scanRelPerm(sg, sgi, kriVars, minSat, opts)
 
     % Index for cells where scanning curves are computed. We set a
     % minimum of 5% gas saturation to activate hysteresis.
+
     imb  = all([value(sg) + tol < value(sgi), ...
                 value(sgi) > minSat+sgmn], 2);
-
+    
     if any(imb)
         kri(~imb) = krG(sg(~imb));
         sgiv  = sgi(imb);
@@ -166,8 +169,15 @@ function [kri, tol, minSat, sgt] = scanRelPerm(sg, sgi, kriVars, minSat, opts)
             isAbove = kri > krG(value(sg)) & imb;
             if any(isAbove)
                 kri(isAbove) = krG(sg(isAbove));
-                % kri(isAbove) = krG(value(sg(isAbove))) - 1e-5;
             end
+
+            % apply smoothing where scanning curve meets drainage curve
+            delta = max(r * (sg(imb) - sgt), eps);  % use small number to
+                                                    % avoid ADI zero division
+            krd = krG(sg(imb));
+            alpha = max(min((sgi(imb) - sg(imb))./delta, 1), 0);
+            kri(imb) = alpha .* kri(imb) + (1-alpha) .* krd;
+            
         else
             error(['Indicated hysteresis model in item 2 of EHYSTR' ...
                 ' keyword in the .DATA input file is not supported.'])
