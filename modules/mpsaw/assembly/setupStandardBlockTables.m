@@ -21,11 +21,14 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('useVirtual', true);
+    opt = struct('useVirtual', false, ...
+                 'tblcase', 'empty');
+    
     opt = merge_options(opt, varargin{:});
     useVirtual = opt.useVirtual;
 
     globcelltbl         = globtbls.celltbl;
+    globfacetbl         = globtbls.facetbl;
     globnodetbl         = globtbls.nodetbl;
     globcellnodetbl     = globtbls.cellnodetbl;
     globnodefacetbl     = globtbls.nodefacetbl;
@@ -37,8 +40,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     celltbl = projIndexArray(cellnodetbl, {'cells'});
     
     map = TensorMap();
-    map.fromTbl = globcelltbl;
-    map.toTbl = celltbl;    
+    map.fromTbl  = globcelltbl;
+    map.toTbl    = celltbl;    
     map.mergefds = {'cells'};
     globcell_from_cell = map.getDispatchInd();
     
@@ -54,15 +57,48 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     cellfacetbl = projIndexArray(cellnodefacetbl, {'cells', 'faces'});
     
-    inittbls = struct('celltbl', celltbl, ...
-                      'nodetbl', nodetbl, ...
-                      'facetbl', facetbl, ...
-                      'cellnodetbl', cellnodetbl, ...
-                      'nodefacetbl', nodefacetbl, ...
-                      'cellfacetbl', cellfacetbl, ...
+    inittbls = struct('celltbl'        , celltbl    , ...
+                      'nodetbl'        , nodetbl    , ...
+                      'facetbl'        , facetbl    , ...
+                      'cellnodetbl'    , cellnodetbl, ...
+                      'nodefacetbl'    , nodefacetbl, ...
+                      'cellfacetbl'    , cellfacetbl, ...
                       'cellnodefacetbl', cellnodefacetbl);
-        
-    [tbls, mappings] = setupStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
-    
+
+    switch opt.tblcase
+      case 'mpsa'
+        [tbls, mappings] = setupMpsaStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
+      case 'mpfa'
+        [tbls, mappings] = setupMpfaStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
+      case 'both'
+        [tbls, mappings] = setupMpxaStandardTables(G, 'inittbls', inittbls, 'useVirtual', useVirtual);
+      case 'empty'
+        error('to avoid unnecessary index array setup, provide the tblcase option [mpsa/mpfa/both]')
+      otherwise
+        error('tblcase not recognized')
+    end
+
     mappings.globcell_from_cell = globcell_from_cell;
+
+    % add global tables and mappings in output
+    if useVirtual
+        
+        map = TensorMap();
+        map.fromTbl  = globnodefacetbl;
+        map.toTbl    = nodefacetbl;
+        map.mergefds = {'nodes', 'faces'};
+
+        mappings.globnodeface_from_nodeface = map.getDispatchInd();
+
+        map = TensorMap();
+        map.fromTbl  = globfacetbl;
+        map.toTbl    = facetbl;    
+        map.mergefds = {'faces'};
+        mappings.globface_from_face = map.getDispatchInd();
+    
+        
+    end
+    
+    tbls.globcelltbl = globcelltbl;
+
 end

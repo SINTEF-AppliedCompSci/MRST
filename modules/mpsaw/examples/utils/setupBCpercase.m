@@ -1,4 +1,4 @@
-function loadstruct = setupBCpercase(runcase, G, tbls, mappings, extras)
+function loadstruct = setupBCpercase(runcase, G, tbls, mappings, extras, varargin)
 % Boundary conditions
 
 %{
@@ -20,21 +20,25 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
 
+    useVirtual = opt.useVirtual;
+    
     % One linear form per Dirichlet condition
 
     nodefacetbl        = tbls.nodefacetbl;
-    nodefacecoltbl     = tbls.nodefacecoltbl;
+    nodefacevectbl     = tbls.nodefacevectbl;
     cellnodefacetbl    = tbls.cellnodefacetbl;
-    cellnodefacecoltbl = tbls.cellnodefacecoltbl;
-    coltbl             = tbls.coltbl;
-    cellcoltbl         = tbls.cellcoltbl;
+    cellnodefacevectbl = tbls.cellnodefacevectbl;
+    vectbl             = tbls.vectbl;
+    cellvectbl         = tbls.cellvectbl;
     celltbl            = tbls.celltbl;
     
     nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
     
-    d_num = coltbl.num;
-    cnfc_num = cellnodefacecoltbl.num;
+    d_num = vectbl.num;
+    cnfc_num = cellnodefacevectbl.num;
     
     fno = cellnodefacetbl.get('faces');
     cno = cellnodefacetbl.get('cells');
@@ -85,40 +89,23 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         [extnodefacetbl, indstruct] = crossIndexArray(nodefacetbl, extfacetbl, {'faces'});
         nodeface_from_extnodeface = indstruct{1}.inds;
 
-        extnodefacecoltbl = crossIndexArray(extnodefacetbl, coltbl, {});
+        extnodefacevectbl = crossIndexArray(extnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
+
+        [extcellnodefacetbl, indstruct] = crossIndexArray(extnodefacetbl, cellnodefacetbl, {'nodes', 'faces'});
+
+        extnodeface_from_extcellnodeface  = indstruct{1}.inds;
+        cellnodeface_from_extcellnodeface = indstruct{2}.inds;
+
+        extcellnodefacevectbl = crossIndexArray(extcellnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
 
         map = TensorMap();
-        map.fromTbl  = cellnodefacecoltbl;
-        map.toTbl    = extnodefacecoltbl;
-        map.mergefds = {'faces', 'nodes', 'coldim'};
-
-        % Here, we setup a direct construction of extcellnodefacetbl, which allows us
-        % to avoid map = map.setup()    
-        %    
-        %    map = map.setup();
-        %    extFacetNormals = map.eval(facetNormals);
-
-        u = (1 : extnodefacetbl.num)';
-        v = zeros(nodefacetbl.num, 1);
-        v(nodeface_from_extnodeface) = u;
-        w = v(nodeface_from_cellnodeface);
-        ind = find(w);
-        fds = {'cells', 'nodes', 'faces'};
-        [~, fdind] = ismember(fds, cellnodefacecoltbl.fdnames);
-        extcellnodefacemat = cellnodefacecoltbl.inds(:, fdind);
-        extcellnodefacemat = extcellnodefacemat(ind, 1 : 3);
-
-        extcellnodefacetbl = IndexArray([]);
-        extcellnodefacetbl = extcellnodefacetbl.setup(fds, extcellnodefacemat);
-
-        extnodeface_from_extcellnodeface = w(ind);
-        cellnodeface_from_extcellnodeface = ind;
-
-        extcellnodefacecoltbl = crossIndexArray(extcellnodefacetbl, coltbl, {});
-
-        map.pivottbl = extcellnodefacecoltbl;
+        map.fromTbl  = cellnodefacevectbl;
+        map.toTbl    = extnodefacevectbl;
+        map.mergefds = {'faces', 'nodes', 'vec'};
+        
+        map.pivottbl = extcellnodefacevectbl;
         ecnf_num = extcellnodefacetbl.num;
-        ecnfc_num = extcellnodefacecoltbl.num;
+        ecnfc_num = extcellnodefacevectbl.num;
         [c, i] = ind2sub([d_num, ecnf_num], (1 : ecnfc_num)');
         ind1 = cellnodeface_from_extcellnodeface(i);
         map.dispind1 = sub2ind([d_num, cnfc_num], c, ind1);
@@ -129,11 +116,24 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         extFacetNormals = map.eval(facetNormals);
 
         map = TensorMap();
-        map.fromTbl = extnodefacecoltbl;
-        map.toTbl = nodefacecoltbl;
-        map.mergefds = {'faces', 'nodes', 'coldim'};
+        map.fromTbl  = extnodefacevectbl;
+        map.toTbl    = nodefacevectbl;
+        map.mergefds = {'faces', 'nodes', 'vec'};
 
-        map = map.setup();
+        if useVirtual
+            
+            map.pivottbl = extnodefacevectbl;
+
+            [vec, i] = ind2sub([d_num, extnodefacetbl.num], (1 : extnodefacevectbl.num)');
+            map.dispind1 = (1 : extnodefacevectbl.num)';
+            map.dispind2 = sub2ind([d_num, nodefacetbl.num], vec, nodeface_from_extnodeface(i));
+            map.issetup = true;
+            
+        else
+            
+            map = map.setup();
+            
+        end
 
         extforce = map.eval(-extFacetNormals);
 
@@ -151,12 +151,60 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
             end
 
             sourcetbl.cells = indcell;
-            sourcetbl.num = numel(indcell);
+            sourcetbl       = IndexArray(sourcetbl);
 
-            sourcetbl = crossIndexArray(sourcetbl, coltbl, {});
+            map = TensorMap();
+            map.fromTbl  = celltbl;
+            map.toTbl    = sourcetbl;
+            map.mergefds = {'cells'};
 
-            force = tblmap(force, coltbl, sourcetbl, {'coldim'});
-            force = tblmap(force, sourcetbl, cellcoltbl, {'cells', 'coldim'});
+            cell_from_source = map.getDispatchInd();
+            
+            sourcevectbl = crossIndexArray(sourcetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
+
+            map = TensorMap();
+            map.fromTbl  = vectbl;
+            map.toTbl    = sourcevectbl;
+            map.mergefds = {'vec'};
+
+            if useVirtual
+                
+                map.pivottbl = sourcevectbl;
+                
+                [vec, i] = ind2sub([vectbl.num, sourcetbl.num], (1 : sourcevectbl.num)');
+                map.dispind1 = vec;
+                map.dispind2 = (1 : sourcevectbl.num)';
+
+                map.issetup = true;
+            else
+                
+                map = map.setup();
+                
+            end
+            
+            force = map.eval(force);
+
+            map = TensorMap();
+            map.fromTbl  = sourcevectbl;
+            map.toTbl    = cellvectbl;
+            map.mergefds = {'cells', 'vec'};
+            
+            if useVirtual
+                
+                map.pivottbl = sourcevectbl;
+                
+                [vec, i] = ind2sub([vectbl.num, sourcetbl.num], (1 : sourcevectbl.num)');
+                map.dispind1 = (1 : sourcevectbl.num);
+                map.dispind2 = sub2ind([vectbl.num, celltbl.num], vec, cell_from_source(i));;
+
+                map.issetup = true;
+            else
+                
+                map = map.setup();
+                
+            end
+            
+            force = tblmap(force, sourcetbl, cellvectbl, {'cells', 'vec'});
             
         end
         
@@ -206,22 +254,57 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         [extnodefacetbl, indstruct] = crossIndexArray(nodefacetbl, extfacetbl, {'faces'});
         nodeface_from_extnodeface = indstruct{1}.inds;
 
-        extnodefacecoltbl = crossIndexArray(extnodefacetbl, coltbl, {});
+        extnodefacevectbl = crossIndexArray(extnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
 
         map = TensorMap();
-        map.fromTbl  = cellnodefacecoltbl;
-        map.toTbl    = extnodefacecoltbl;
-        map.mergefds = {'faces', 'nodes', 'coldim'};
+        map.fromTbl  = cellnodefacevectbl;
+        map.toTbl    = extnodefacevectbl;
+        map.mergefds = {'faces', 'nodes', 'vec'};
 
-        map = map.setup();
+        if useVirtual
+
+            [extcellnodefacetbl, indstruct] = crossIndexArray(extnodefacetbl, cellnodefacetbl, {'nodes', 'faces'});
+            
+            extnodeface_from_extcellnodeface  = indstruct{1}.inds;
+            cellnodeface_from_extcellnodeface = indstruct{2}.inds;
+            
+            extcellnodefacevectbl = crossIndexArray(extcellnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
+
+            map.pivottbl = extcellnodefacevectbl;
+
+            [vec, i] = ind2sub([vectbl.num, extcellnodefacetbl.num], (1 : extcellnodefacevectbl.num)');
+            map.dispind1 = sub2ind([vectbl.num, cellnodefacetbl.num], vec, cellnodeface_from_extcellnodeface(i));
+            map.dispind2 = sub2ind([vectbl.num, extnodefacetbl.num], vec, extnodeface_from_extcellnodeface(i));
+
+            map.issetup = true;
+            
+        else
+            
+            map = map.setup();
+            
+        end
         extFacetNormals = map.eval(facetNormals);
 
         map = TensorMap();
-        map.fromTbl = extnodefacecoltbl;
-        map.toTbl = nodefacecoltbl;
-        map.mergefds = {'faces', 'nodes', 'coldim'};
+        map.fromTbl  = extnodefacevectbl;
+        map.toTbl    = nodefacevectbl;
+        map.mergefds = {'faces', 'nodes', 'vec'};
 
-        map = map.setup();
+        if useVirtual
+            
+            map.pivottbl = extnodefacevectbl;
+
+            [vec, i] = ind2sub([vectbl.num, extnodefacetbl.num], (1 : extnodefacevectbl.num)');
+            map.dispind1 = (1 : extnodefacevectbl.num)';
+            map.dispind2 = sub2ind([vectbl.num, nodefacetbl.num], vec, nodeface_from_extnodeface(i));
+
+            map.issetup = true;
+        else
+
+            map = map.setup();
+            
+        end
+        
         extforce = map.eval(-extFacetNormals);
 
       case '3d-gravity'
@@ -249,7 +332,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
                     linform = zeros(3, 1);
                     linform(i) = 1;
-                    linforms{ind}    = repmat(linform, n, 1);
+                    linforms{ind} = repmat(linform, n, 1);
 
                     linformvals{ind} = zeros(n, 1);
 
@@ -261,23 +344,40 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 
         % for ind = 1 : numel(extfaces)
         %     figure
-        %     plotGrid(G, 'facecolor', 'none');
+        %     plotGrid(G, 'facevecor', 'none');
         %     plotFaces(G, extfaces{ind});
         % end
         
         vols = G.cells.volumes;
 
-        ztbl.coldim = 3;
+        ztbl.vec = 3;
         ztbl = IndexArray(ztbl);
 
-        cellztbl = crossIndexArray(celltbl, ztbl, {});
-
+        [cellztbl, indstruct] = crossIndexArray(celltbl, ztbl, {});
+        cell_from_cellztbl = indstruct{1}.inds;
+        vec_from_cellztbl  = indstruct{2}.inds;
+        
         map = TensorMap();
-        map.fromTbl = cellztbl;
-        map.toTbl = cellcoltbl;
-        map.mergefds= {'cells', 'coldim'};
-        map = map.setup();
+        map.fromTbl  = cellztbl;
+        map.toTbl    = cellvectbl;
+        map.mergefds = {'cells', 'vec'};
 
+        if useVirtual
+            
+            map.pivottbl = cellztbl;
+
+            map.dispind1 = (1 : cellztbl.num)';
+            map.dispind2 = sub2ind([vectbl.num, celltbl.num], ...
+                                   vec_from_cellztbl, ...
+                                   cell_from_cellztbl);
+            
+            map.issetup = true;
+            
+        else
+            
+            map = map.setup();
+            
+        end
         rho = extras.rho;
         force = map.eval(rho*vols*10);
         
@@ -294,11 +394,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     bc = setupFaceBC(bc, G, tbls);
 
     if isempty(force)
-        force = zeros(cellcoltbl.num, 1);
+        force = zeros(cellvectbl.num, 1);
     end
 
     if isempty(extforce)
-        extforce = zeros(nodefacecoltbl.num, 1);
+        extforce = zeros(nodefacevectbl.num, 1);
     end
     
     loadstruct.bc       = bc;

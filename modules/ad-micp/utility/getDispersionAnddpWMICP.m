@@ -2,8 +2,8 @@ function [d_m, d_o, d_u, dpW] = getDispersionAnddpWMICP(model, state, poro)
 %  Compute the disperison coefficients and "dpW" on the cell centers.
 
 %{
-Copyright 2021, NORCE Norwegian Research Centre AS, Computational 
-Geosciences and Modeling. 
+Copyright 2021-2025, NORCE Research AS, Computational Geosciences and
+Modeling. 
 
 This file is part of the ad-micp module.
 

@@ -1,0 +1,36 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Landa-Marbán
+  given-names: David
+  orcid: "https://orcid.org/0000-0002-3343-1005"
+contact:
+- family-names: Landa-Marbán
+  given-names: David
+  orcid: "https://orcid.org/0000-0002-3343-1005"
+title: "ad-micp: A module to study CO2 leakage remediation by
+  microbially induced calcite precipitation (MICP)"
+message: If you use this software, please cite our article in the
+  International Journal of Greenhouse Gas Control.
+preferred-citation:
+  authors:
+  - family-names: Landa-Marbán
+    given-names: David
+    orcid: "https://orcid.org/0000-0002-3343-1005"
+  - family-names: Tveit
+    given-names: Svenn
+  - family-names: Kumar
+    given-names: Kundan
+    orcid: "https://orcid.org/0000-0002-3784-4819"
+  - family-names: Gasda
+    given-names: Sarah Eileen
+    orcid: "https://orcid.org/0000-0002-2610-8322"
+  year: 2021
+  doi: 10.1016/j.ijggc.2021.103256
+  issn: 1750-5836
+  pages:: 103256
+  journal: International Journal of Greenhouse Gas Control
+  title: "Practical approaches to study microbially induced calcite
+    precipitation at the field scale"
+  type: article
+  url: "https://www.sciencedirect.com/science/article/pii/S1750583621000086"
+  volume: 106

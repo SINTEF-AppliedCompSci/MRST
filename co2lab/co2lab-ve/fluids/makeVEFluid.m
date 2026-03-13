@@ -190,7 +190,7 @@ function fluid = makeVEFluid(Gt, rock, relperm_model, varargin)
 %
 %  pvMult_p_ref - Reference pressure for pore volume multiplier (default: 10 MPa)
 %  pvMult_fac   - pore volume compressibility (default: 1e-5 / bar)
-%  transMult    - modify transmissilbilties (such as due fo faults in the 3D grid)
+%  transMult    - modify transmissilbilties (such as due to faults in the 3D grid)
 %
 % RETURNS:
 %   fluid - struct containing the following functions (where X = 'W' [water]
@@ -332,13 +332,14 @@ function fun3D = setup_fine_scale_functions(invPc3D, kr3D, fluid, Gt)
         assert(isscalar(kr3D)); % should be a single number
                                 % define a simple Corey
         beta = kr3D; % a scalar exponent was provided
-        kr3D = @(s) max(s - fluid.res_gas, 0) .^ beta;
+        %kr3D = @(s) max(s - fluid.res_gas, 0) .^ beta;
+        kr3D = @(s) s .^ beta;
     end
     assert(isa(kr3D, 'function_handle'));
-    if kr3D(fluid.res_gas/2) > 0
-        warning(['Provided fine-scale relperm function for CO2 inconsistent ' ...
-                 'with value provided for residual saturation.']);
-    end
+    % if kr3D(fluid.res_gas/2) > 0
+    %     warning(['Provided fine-scale relperm function for CO2 inconsistent ' ...
+    %              'with value provided for residual saturation.']);
+    % end
     
     fun3D.kr3D = kr3D;
     % setup fine-scale inverse capillary pressure function

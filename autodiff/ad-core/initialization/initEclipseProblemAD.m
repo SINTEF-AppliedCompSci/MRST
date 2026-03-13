@@ -112,7 +112,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         model = opt.model;
     end
-    
+
     % Set faster backend if grid is sufficiently large and supported by the
     % model.
     if isempty(opt.AutoDiffBackend) 

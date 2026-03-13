@@ -1,5 +1,3 @@
-mrstModule add vemmech mpsaw vem mpfa
-
 close all
 
 params = struct('nref'    , 1, ...

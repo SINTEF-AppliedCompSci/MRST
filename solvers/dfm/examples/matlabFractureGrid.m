@@ -103,7 +103,7 @@ constraints = sort(delTri.Constraints,2);
 
 % Loop over all constraints (the segments of fractures) and find the faces
 % that spans the constraint.
-for iter = 1 : size(constraints)
+for iter = 1 : size(constraints,1)
     % ismember works here since both inputs have been sorted
     fracFace = find(ismember(faceNodes,constraints(iter,:),'rows'));
 

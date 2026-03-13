@@ -94,8 +94,9 @@ classdef MandelModel < BiotModel
             G         = model.G;
             
             tbls = operators.tbls;
+            
             nodefacetbl = tbls.nodefacetbl;
-            facetbl = tbls.facetbl;
+            facetbl     = tbls.facetbl;
             
             bc = model.mech.loadstruct.bc;
             
@@ -109,8 +110,8 @@ classdef MandelModel < BiotModel
             bctopnodefacetbl = crossIndexArray(topfacetbl, bcnodefacetbl, {'faces'});
             
             map = TensorMap();
-            map.fromTbl = nodefacetbl;
-            map.toTbl = facetbl;
+            map.fromTbl  = nodefacetbl;
+            map.toTbl    = facetbl;
             map.mergefds = {'faces'};
             map = map.setup();
             
@@ -118,16 +119,16 @@ classdef MandelModel < BiotModel
             nfareas = 1/nnodeperface.*(G.faces.areas);
             
             map = TensorMap();
-            map.fromTbl = facetbl;
-            map.toTbl = bctopnodefacetbl;
+            map.fromTbl  = facetbl;
+            map.toTbl    = bctopnodefacetbl;
             map.mergefds = {'faces'};
             map = map.setup();
             
             R = map.eval(nfareas);
             
             map = TensorMap();
-            map.fromTbl = bctopnodefacetbl;
-            map.toTbl = bcnodefacetbl;
+            map.fromTbl  = bctopnodefacetbl;
+            map.toTbl    = bcnodefacetbl;
             map.mergefds = {'nodes', 'faces', 'bcinds'};
             map = map.setup();
             

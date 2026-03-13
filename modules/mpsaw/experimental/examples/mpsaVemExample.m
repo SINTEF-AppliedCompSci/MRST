@@ -1,5 +1,3 @@
-mrstModule add vemmech mpsaw mpfa vem
-
 clear all
 
 

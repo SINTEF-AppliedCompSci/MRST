@@ -1,4 +1,4 @@
-function tbl = sortIndexArray(tbl, fds, varargin)
+function [tbl, dispind] = sortIndexArray(tbl, fds, varargin)
 %
 %
 % SYNOPSIS:
@@ -55,11 +55,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     inds = tbl.inds;
     inds = inds(:, fdind2);
     
-    [inds, order] = sortrows(inds);
+    [inds, dispind] = sortrows(inds);
     
     if opt.keepAllFields
 
-        inds = tbl.inds(order, :);
+        inds = tbl.inds(dispind, :);
         
     else
         

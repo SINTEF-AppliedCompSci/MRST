@@ -342,8 +342,8 @@ else
 end
 
 % Compute the CO2 leakage rate after MICP treatment
-lrafterMICP = zeros(max(size(timestepsCO2)), 1);
-for i = 1 : size(timestepsCO2)
+lrafterMICP = zeros(max(size(timestepsCO2,1)), 1);
+for i = 1 : size(timestepsCO2,1)
     lrafterMICP(i) = abs(statesCO2afterMICP{i}.flux(facel, 2));
 end
 
@@ -357,9 +357,9 @@ end
 
 figure;
 hold on
-plot((1 : size(timestepsCO2)) * dt_co2 / day, lrbeforeMICP * 100 /...
+plot((1 : size(timestepsCO2, 1)) * dt_co2 / day, lrbeforeMICP * 100 /...
              QCO2, 'color', [1 0.2 0.2], 'LineWidth', 9, 'LineStyle', '-');
-plot((1 : size(timestepsCO2)) * dt_co2 / day, lrafterMICP * 100 / ...
+plot((1 : size(timestepsCO2, 1)) * dt_co2 / day, lrafterMICP * 100 / ...
                QCO2, 'color', [1 0.5 0], 'LineWidth', 9, 'LineStyle', '-');
 hold off
 legend('Before MICP', 'After MICP', 'Location', 'southeast');
@@ -390,8 +390,8 @@ view(340, 20); axis tight; colorbar; caxis([0 1]);
 
 %% Copyright notice
 %{
-Copyright 2021-2022, NORCE Norwegian Research Centre AS, Computational
-Geosciences and Modeling.
+Copyright 2021-2025, NORCE Research AS, Computational Geosciences and
+Modeling.
 
 This file is part of the ad-micp module.
 

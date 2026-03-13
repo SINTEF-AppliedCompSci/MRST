@@ -17,7 +17,7 @@ switch mycase
         Gt=a.g_top_FMM;
     else
         a=load('/home/hnil/heim/SVN/simmatlab/branches/mrst-reorg/modules/internal/vertical-equil/examples/igems/data/sara/g_top_OSS.mat');
-        Gt=a.g_top_OSS;          
+        Gt=a.g_top_OSS;
     end
     Gt.griddim=2;
     G.cells.cellNodes=getCellNodes(Gt);
@@ -27,10 +27,10 @@ switch mycase
     %mymod='z1_coarse44_uniform'
     mymod='z1_uniform'
     [Gt,rock2D,SVE,rock,invert_axis,G]=readIGEMSgrid(mygrid,mymod);
-    
+
   case 'igems_surface'
     % we can load surfaces from the igems data set the possible names are
-    % the directories  in data/surfaces 
+    % the directories  in data/surfaces
     name='flatNP2';
     name='OSSNP2';
     % there is 100 different surfaces we choose number
@@ -52,7 +52,7 @@ switch mycase
 end
 %% find traps
 tic;[z_spill_loc,g_trap,trap_level,z_spill_level,z_spill_loc_level,Gnew]=findTrappingStructure_dfs(Gt);toc;
-disp('Finnished finding traplevels')
+disp('Finished finding traplevels')
 % find the connection between traps
 [cell_lines,traps]=findCellLines(Gnew,z_spill_loc);
 disp('End find rivers')
@@ -104,4 +104,3 @@ figure(2),clf
 pcolor(reshape(rivers,Gt.cartDims));shading interp
 
 %hold on
-

@@ -6,7 +6,7 @@
 % and the upper right, respectively, in the formation. The injection well
 % is under rate control with target rate 1000 m3/day and upper limit of 800
 % bar on the bottom-hole pressure (bhp), whereas the production well is
-% under pressure control with target bottom-home pressure 260 bar.
+% under pressure control with target bottom-hole pressure 260 bar.
 %
 % We consider a standard EOR setup consisting of a water preflush period of
 % 1260 days, followed by a chemical slug injected over 1700 days, which is

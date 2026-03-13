@@ -1,0 +1,98 @@
+# Case 3. Unsteady-State imbibition with smooth Pc curve
+# Only water injected at increasing flow rates
+#
+# Comments starts with hash(#) symbol. 
+# Between the keyword and the value should be at least one tab.
+# Press enter key at the end of each line of data, even the last line of the file.
+# Each block is separated by a blank line
+# Data to compare with analytical SS
+
+#-------------------------------------------------
+# GEOMETRY
+#-------------------------------------------------
+LENGTH		8	cm
+DIAMETER	4	cm
+
+#-------------------------------------------------
+# ROCK
+#-------------------------------------------------
+POROSITY		0.25
+PERMEABILITY	100		mD  
+INITIALWATER	0.2 
+
+#-------------------------------------------------
+# FLUID
+#-------------------------------------------------
+DENSITYW		1000	kg/m^3
+DENSITYNW		800		kg/m^3
+VISCOSITYW		1		cP
+VISCOSITYNW		5		cP
+
+#-------------------------------------------------
+# PROCESS
+#-------------------------------------------------
+USS     Imbibition
+
+#-------------------------------------------------
+# SIMULATION
+#-------------------------------------------------
+TYPE		Forward
+NCELLS		80
+#         	number	first_cell_Sw   last_cell_Sw   
+BCELLS		1       0             0
+MAXTIMESTEP 	0.2		hour
+RAMPUPSTEPS      10
+HIGH_PERCISION_MODE
+
+#-------------------------------------------------
+# SCHEDULE
+#-------------------------------------------------
+#			fileName
+FILENAME	.\Data\USS\Imbibition\sched_case3.txt
+PINI		1		bar
+POUT		1		bar
+STARTUP     100     second      2325    rpm
+CENTRAD     14.89   cm
+
+#-------------------------------------------------
+# OBSERVATION
+#-------------------------------------------------
+#			fileName
+PRESSURE	.\Data\USS\Imbibition\pressure_obs_case3.txt
+SWAVG       .\Data\USS\Imbibition\swavg_obs_case3.txt
+#SATPROFILE  .\Data\USS\Imbibition\SatProfile_obs_case3.xlsx
+
+#-------------------------------------------------
+# SATURATION FUNCTIONS
+#-------------------------------------------------
+#KR         MODIFIED-COREY      	Swc     Sor     krw@Sor     kro@Swc  nW      nNW     
+KR          MODIFIED-COREY      	0.2    0.2     0.5         0.5      3       3       
+PC         	TABLE              		.\Data\USS\Imbibition\pc_smooth.txt
+
+#-------------------------------------------------
+# PLOT OPTIONS
+#-------------------------------------------------
+STYLE			docked  #docked
+COLORMAP		jet		#parula		hsv
+DISPLAYTIME		hour
+DISPLAYLENGTH	cm
+DISPLAYVOLUME	cm^3
+DISPLAYPRESS	bar
+DISPLAYRATE		cm^3/hour
+
+#-------------------------------------------------
+# OUTPUT OPTIONS
+#-------------------------------------------------
+
+#-------------------------------------------------
+# OBJECTIVE FUNCTION CONFIGURATIONS
+#-------------------------------------------------
+
+#-------------------------------------------------
+# HISTORY MATCH CONFIGURATIONS
+#-------------------------------------------------
+
+#-------------------------------------------------
+# MCMC SPECIFIC CONFIGURATIONS
+#-------------------------------------------------
+

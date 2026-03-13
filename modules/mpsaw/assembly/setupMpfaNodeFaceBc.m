@@ -26,12 +26,13 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     nodefacetbl   = tbls.nodefacetbl;
     
     map = TensorMap();
-    map.fromTbl = bcnodefacetbl;
-    map.toTbl = nodefacetbl;
+    map.fromTbl  = bcnodefacetbl;
+    map.toTbl    = nodefacetbl;
     map.mergefds = {'nodes', 'faces'};
     map = map.setup();
     
     D_T = SparseTensor();
     D_T = D_T.setFromTensorMap(map);
     D = D_T.getMatrix();
+    
 end

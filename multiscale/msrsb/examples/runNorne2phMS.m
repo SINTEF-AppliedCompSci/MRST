@@ -19,10 +19,6 @@ mrstModule add coarsegrid msrsb ad-core mrst-gui incomp
 % vertical permeability.
 mrstModule add deckformat
 
-if ~(makeNorneSubsetAvailable() && makeNorneGRDECL())
-   error('Unable to obtain simulation model subset');
-end
-
 grdecl = fullfile(getDatasetPath('norne'), 'NORNE.GRDECL');
 grdecl = readGRDECL(grdecl);
 usys   = getUnitSystem('METRIC');

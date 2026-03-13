@@ -21,24 +21,24 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    cellnodecolrowtbl = tbls.cellnodecolrowtbl;
-    cellcolrowtbl = tbls.cellcolrowtbl;
-    cellnodetbl = tbls.cellnodetbl;
-    celltbl = tbls.celltbl;
-    coltbl = tbls.coltbl;
+    cellnodevec12tbl = tbls.cellnodevec12tbl;
+    cellvec12tbl     = tbls.cellvec12tbl;
+    cellnodetbl      = tbls.cellnodetbl;
+    celltbl          = tbls.celltbl;
+    vectbl           = tbls.vectbl;
     
     cell_from_cellnode = mappings.cell_from_cellnode;
     
     % shortcuts
-    d_num = coltbl.num;
-    c_num = celltbl.num;
-    cn_num = cellnodetbl.num;
-    cncr_num = cellnodecolrowtbl.num;
+    d_num    = vectbl.num;
+    c_num    = celltbl.num;
+    cn_num   = cellnodetbl.num;
+    cncr_num = cellnodevec12tbl.num;
     
     % Compute number of nodes per cells
     map = TensorMap();
-    map.fromTbl = cellnodetbl;
-    map.toTbl = celltbl;
+    map.fromTbl  = cellnodetbl;
+    map.toTbl    = celltbl;
     map.mergefds = {'cells'};
     map = map.setup();
     
@@ -47,11 +47,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % Compute cell average stress
     prod = TensorProd();
     prod.tbl1 = celltbl;
-    prod.tbl2 = cellnodecolrowtbl;
-    prod.tbl3 = cellcolrowtbl;
+    prod.tbl2 = cellnodevec12tbl;
+    prod.tbl3 = cellvec12tbl;
     prod.mergefds = {'cells'};
     
-    prod.pivottbl = cellnodecolrowtbl;
+    prod.pivottbl = cellnodevec12tbl;
     [r, c, i] = ind2sub([d_num, d_num, cn_num], (1 : cncr_num)');
     prod.dispind1 = cell_from_cellnode(i);
     prod.dispind2 = (1 : cncr_num)';

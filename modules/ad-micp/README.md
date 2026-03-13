@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml/badge.svg)](https://github.com/daavid00/ad-micp/actions/workflows/ad-micp.yml)[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Build Status](https://github.com/daavid00/ad-micp/actions/workflows/CI.yml/badge.svg)](https://github.com/daavid00/ad-micp/actions/workflows/CI.yml)[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 # ad-micp: A module to study CO2 leakage remediation by microbially induced calcite precipitation (MICP)
 
@@ -17,24 +17,43 @@ The numerical examples accompanying this module are:
 * runMICP1DCase.m and
 * runMICP3DCase.m.
 
-In addition, this module includes scripts to run the studies in [A, B].
+In addition, this module includes scripts to run the studies in [A, B], see the [_publications folder_](https://github.com/daavid00/ad-micp/tree/main/publications).
 
 The ad-micp module is compatible with the (freely available) MATLAB
 Reservoir Simulation Toolbox (MRST) provided by SINTEF Digital, see
 http://www.sintef.no/projectweb/mrst/.
 
-See the Wiki for an extended description, information regarding changes
-respect to previous releases, and using this module in macOS with GNU
-Octave.
+See the [_Wiki_](https://github.com/daavid00/ad-micp/wiki) for an extended description, information regarding changes
+respect to previous releases, and using this module in macOS with GNU Octave.
 
 ## Requirements
-* MRST (Tested version: 2023a)
-* MATLAB (Tested version: R2023a) or GNU Octave (Tested version: 8.1.0)
+* MRST (Tested version: mrst-2025a)
+* MATLAB (Tested version: R2025b) or GNU Octave (Tested version: 10.3.0)
 
 ## Installation (MATLAB/GNU Octave)
-* Set the folder's name to 'ad-micp'.
-* Move the folder inside the 'modules' folder in MRST.
-* Run the 'startup.m' file in MRST.
+The ad-micp module is included in MRST, click [_this link_](https://github.com/SINTEF-AppliedCompSci/MRST/tree/main/modules/ad-micp) 
+to see the version of ad-micp included.
+
+If you are interested in using the ad-micp module from the edge version, this can be achieved by the following steps:
+
+```bash
+# Clone MRST
+git clone https://github.com/SINTEF-AppliedCompSci/MRST.git
+# Get inside the modules folder
+cd MRST/modules
+# Remove the ad-micp folder from the MRST folder
+rm -rf ad-micp
+# Clone the ad-micp repo
+git clone https://github.com/daavid00/ad-micp.git
+# Get inside the ad-micp folder
+cd ad-micp
+``` 
+
+Then you can try to run the [_test_runMICP1DCase.m_](https://github.com/daavid00/ad-micp/blob/main/tests/test_runMICP1DCase.m) using octave (octave can be installed by executing `brew install octave`):
+
+```bash
+octave tests/test_runMICP1DCase.m
+```
 
 ## Getting started
 See https://www.youtube.com/watch?v=nvz3bV4QgxM.
@@ -51,6 +70,18 @@ Numerical studies of CO2 leakage remediation by micp-based plugging
 technology. In: Røkke, N.A. and Knuutila, H.K. (Eds) Short Papers from the
 11th International Trondheim CCS conference, ISBN: 978-82-536-1714-5,
 284-290.
+
+## Related
+Below are some tools that might be of interest; check ‘em out 🙂.
+
+* py-micp: An open-source simulation workflow for field-scale application of microbially induced calcite precipitation technology for leakage remediation (https://github.com/daavid00/py-micp).
+* pyopmspe11: A Python framework using OPM Flow for the CSP SPE11 benchmark project (https://github.com/OPM/pyopmspe11).
+* pycopm: An open-source tool to tailor OPM Flow geological models (https://github.com/cssr-tools/pycopm).
+* plopm: Quick generation of PNGs, GIFs, and VTKs from a OPM Flow type model (https://github.com/cssr-tools/plopm).
+* pofff: An open-source image-based history-matching framework for the FluidFlower benchmark study using OPM Flow (https://github.com/cssr-tools/pofff).
+* pyopmnearwell: A Python framework to simulate near well dynamics using OPM Flow (https://github.com/cssr-tools/pyopmnearwell).
+* expreccs: A Python framework using OPM Flow to simulate regional and site reservoirs for CO2 storage (https://github.com/cssr-tools/expreccs).
+* pymm: An open-source image-based framework for CFD in microsystems (https://github.com/cssr-tools/pymm).
 
 ## Contact
 David Landa-Marbán (dmar@norceresearch.no).

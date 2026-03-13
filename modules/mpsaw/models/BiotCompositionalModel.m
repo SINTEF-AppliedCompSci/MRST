@@ -13,9 +13,14 @@ classdef BiotCompositionalModel < GenericOverallCompositionModel
     methods
         
         function model = BiotCompositionalModel(G, rock, fluid, comp, mech, varargin)
+
+            opt = struct('useVirtual', false);
+            [opt, extra] = merge_options(opt, varargin{:});
+
+            useVirtual = opt.useVirtual;
             
-            model = model@GenericOverallCompositionModel(G, rock, fluid, comp, varargin{:});
-            model = merge_options(model, varargin{:});
+            model = model@GenericOverallCompositionModel(G, rock, fluid, comp, extra{:});
+            model = merge_options(model, extra{:});
             
             % Process the grid for mechanical computation
             if ~ismember('createAugmentedGrid', model.G.type)
@@ -28,7 +33,7 @@ classdef BiotCompositionalModel < GenericOverallCompositionModel
             model.bcetazero = false;
             
             % Add mechanical operators  
-            model.operators = setupBiotAdOperators(model);
+            model.operators = setupBiotAdOperators(model, 'useVirtual', useVirtual);
 
             model.BiotPropertyFunctions = BiotPropertyFunctions(model);
             model.MechPropertyFunctions = MechPropertyFunctions(model);

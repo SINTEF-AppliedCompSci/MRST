@@ -1,4 +1,4 @@
-function [matrices, bcvals, extra] = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts)
+function output = coreMpfaAssembly(G, K, bcdirichlet, tbls, mappings, opts, varargin)
 %Undocumented Utility Function
 
 %{
@@ -20,59 +20,62 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+    useVirtual = opt.useVirtual;    
+
     bcetazero = opts.bcetazero;
-    eta = opts.eta;
-    dooptimize = opts.dooptimize;
+    eta       = opts.eta;
     
-    cellcolrowtbl         = tbls.cellcolrowtbl;
-    cellnodecolrowtbl     = tbls.cellnodecolrowtbl;
-    cellnodeface2coltbl   = tbls.cellnodeface2coltbl;
-    cellnodeface2tbl      = tbls.cellnodeface2tbl;
-    cellnodefacecolrowtbl = tbls.cellnodefacecolrowtbl;
-    cellnodefacecoltbl    = tbls.cellnodefacecoltbl;
-    cellnodefacetbl       = tbls.cellnodefacetbl;
-    celltbl               = tbls.celltbl;
-    coltbl                = tbls.coltbl;
-    nodeface2tbl          = tbls.nodeface2tbl;
-    nodefacecoltbl        = tbls.nodefacecoltbl;
-    nodefacetbl           = tbls.nodefacetbl;
+    cellvec12tbl         = tbls.cellvec12tbl;
+    cellnodevec12tbl     = tbls.cellnodevec12tbl;
+    cellnodeface12vectbl = tbls.cellnodeface12vectbl;
+    cellnodeface12tbl    = tbls.cellnodeface12tbl;
+    cellnodefacevec12tbl = tbls.cellnodefacevec12tbl;
+    cellnodefacevectbl   = tbls.cellnodefacevectbl;
+    cellnodefacetbl      = tbls.cellnodefacetbl;
+    celltbl              = tbls.celltbl;
+    vectbl               = tbls.vectbl;
+    nodeface12tbl        = tbls.nodeface12tbl;
+    nodefacevectbl       = tbls.nodefacevectbl;
+    nodefacetbl          = tbls.nodefacetbl;
     
-    if dooptimize
+    if useVirtual
         % fetch the index mappings to set explictly the tensor products or tensor mappings
-        cell_from_cellnodeface     = mappings.cell_from_cellnodeface;
-        nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
-        cellnodeface_1_from_cellnodeface2 = mappings.cellnodeface_1_from_cellnodeface2;
-        cellnodeface_2_from_cellnodeface2 = mappings.cellnodeface_2_from_cellnodeface2;
-        nodeface_1_from_nodeface2 = mappings.nodeface_1_from_nodeface2;
-        nodeface_2_from_nodeface2 = mappings.nodeface_2_from_nodeface2;
+        cell_from_cellnodeface            = mappings.cell_from_cellnodeface;
+        nodeface_from_cellnodeface        = mappings.nodeface_from_cellnodeface;
+        cellnodeface1_from_cellnodeface12 = mappings.cellnodeface1_from_cellnodeface12;
+        cellnodeface2_from_cellnodeface12 = mappings.cellnodeface2_from_cellnodeface12;
+        nodeface1_from_nodeface12         = mappings.nodeface1_from_nodeface12;
+        nodeface2_from_nodeface12         = mappings.nodeface2_from_nodeface12;
     end
     
     % Some shortcuts
     c_num     = celltbl.num;
     cnf_num   = cellnodefacetbl.num;
     nf_num    = nodefacetbl.num;
-    cnfcr_num = cellnodefacecolrowtbl.num;
-    d_num     = coltbl.num;
+    cnfcr_num = cellnodefacevec12tbl.num;
+    d_num     = vectbl.num;
 
-    % g belongs to cellnodefacecoltbl;
-    g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', bcetazero);
+    % g belongs to cellnodefacevectbl;
+    g = computeConsistentGradient(G, eta, tbls, mappings, 'bcetazero', bcetazero, 'useVirtual', useVirtual);
 
-    % facetNormals belongs to cellnodefacecoltbl;
+    % facetNormals belongs to cellnodefacevectbl;
     normals = computeFacetNormals(G, cellnodefacetbl);
 
-    % K belongs to cellcolrowtbl
+    % K belongs to cellvec12tbl
 
     prod = TensorProd();
-    prod.tbl1 = cellcolrowtbl;
-    prod.tbl2 = cellnodefacecoltbl;
-    prod.tbl3 = cellnodefacecoltbl;
-    prod.replacefds2 = {{'coldim', 'rowdim'}};
+    prod.tbl1 = cellvec12tbl;
+    prod.tbl2 = cellnodefacevectbl;
+    prod.tbl3 = cellnodefacevectbl;
+    prod.replacefds1 = {{'vec1', 'vec'}};
+    prod.replacefds2 = {{'vec', 'vec2'}};
     prod.mergefds = {'cells'};
-    prod.reducefds = {'rowdim'};
+    prod.reducefds = {'vec2'};
     
-    if dooptimize
-        prod.pivottbl = cellnodefacecolrowtbl;
+    if useVirtual
+        prod.pivottbl = cellnodefacevec12tbl;
         [r, c, i] = ind2sub([d_num, d_num, cnf_num], (1 : cnfcr_num)');
         prod.dispind1 = sub2ind([d_num, d_num, c_num], r, c, cell_from_cellnodeface(i));
         prod.dispind2 = sub2ind([d_num, cnf_num], r, i);
@@ -85,21 +88,21 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     Kg = prod.eval(K, g);
     
     prod = TensorProd();
-    prod.tbl1 = cellnodefacecoltbl;
-    prod.tbl2 = cellnodefacecoltbl;
-    prod.tbl3 = cellnodeface2tbl;
+    prod.tbl1 = cellnodefacevectbl;
+    prod.tbl2 = cellnodefacevectbl;
+    prod.tbl3 = cellnodeface12tbl;
     prod.replacefds1 = {{'faces', 'faces1'}};
     prod.replacefds2 = {{'faces', 'faces2'}};
     prod.mergefds = {'cells', 'nodes'};
-    prod.reducefds = {'coldim'};
+    prod.reducefds = {'vec'};
     
-    if dooptimize
-        cnf2_num = cellnodeface2tbl.num;
-        cnf2c_num = cellnodeface2coltbl.num;
-        prod.pivottbl = cellnodeface2coltbl;
+    if useVirtual
+        cnf2_num = cellnodeface12tbl.num;
+        cnf2c_num = cellnodeface12vectbl.num;
+        prod.pivottbl = cellnodeface12vectbl;
         [c, i] = ind2sub([d_num, cnf2_num], (1 : cnf2c_num)');
-        prod.dispind1 = sub2ind([d_num, cnf_num], c, cellnodeface_1_from_cellnodeface2(i));
-        prod.dispind2 = sub2ind([d_num, cnf_num], c, cellnodeface_2_from_cellnodeface2(i));
+        prod.dispind1 = sub2ind([d_num, cnf_num], c, cellnodeface1_from_cellnodeface12(i));
+        prod.dispind2 = sub2ind([d_num, cnf_num], c, cellnodeface2_from_cellnodeface12(i));
         prod.dispind3 = i;
         prod.issetup = true;
     else
@@ -112,28 +115,28 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % Setup A11 matrix (facenode dof -> facenode dof)
     
     map = TensorMap();
-    map.fromTbl = cellnodeface2tbl;
-    map.toTbl = nodeface2tbl;
+    map.fromTbl  = cellnodeface12tbl;
+    map.toTbl    = nodeface12tbl;
     map.mergefds = {'nodes', 'faces1', 'faces2'};
     map = map.setup(); % not optimized (use generic setup function)
     
     A11 = map.eval(nKg);
     
     prod = TensorProd();
-    prod.tbl1 = nodeface2tbl;
-    prod.tbl2 = nodefacetbl;
-    prod.tbl3 = nodefacetbl;
+    prod.tbl1        = nodeface12tbl;
+    prod.tbl2        = nodefacetbl;
+    prod.tbl3        = nodefacetbl;
     prod.replacefds1 = {{'faces1', 'faces'}};
     prod.replacefds2 = {{'faces', 'faces2'}};
-    prod.mergefds = {'nodes'};
-    prod.reducefds = {'faces2'};
+    prod.mergefds    = {'nodes'};
+    prod.reducefds   = {'faces2'};
     
-    if dooptimize
-        prod.pivottbl = nodeface2tbl;
-        i = (1 : nodeface2tbl.num)';
+    if useVirtual
+        prod.pivottbl = nodeface12tbl;
+        i = (1 : nodeface12tbl.num)';
         prod.dispind1 = i;
-        prod.dispind2 = nodeface_2_from_nodeface2(i);
-        prod.dispind3 = nodeface_1_from_nodeface2(i);
+        prod.dispind2 = nodeface2_from_nodeface12(i);
+        prod.dispind3 = nodeface1_from_nodeface12(i);
         prod.issetup = true;
     else
         prod = prod.setup();
@@ -152,17 +155,17 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % Setup A12 matrix (cell dof -> facenode dof)
    
     map = TensorMap();
-    map.fromTbl = cellnodeface2tbl;
+    map.fromTbl = cellnodeface12tbl;
     map.toTbl = cellnodefacetbl;
     map.replaceFromTblfds = {{'faces1', 'faces'}};
     map.mergefds = {'cells', 'nodes', 'faces'};
     
-    if dooptimize
-        map.pivottbl = cellnodeface2tbl;
-        cnf2_num = cellnodeface2tbl.num;
+    if useVirtual
+        map.pivottbl = cellnodeface12tbl;
+        cnf2_num = cellnodeface12tbl.num;
         i = (1 : cnf2_num)';
         map.dispind1 = i;
-        map.dispind2 = cellnodeface_1_from_cellnodeface2(i);
+        map.dispind2 = cellnodeface1_from_cellnodeface12(i);
         map.issetup = true;
     else
         map = map.setup();
@@ -177,7 +180,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     prod.tbl3 = nodefacetbl;
     prod.reducefds = {'cells'};
     
-    if dooptimize
+    if useVirtual
         prod.pivottbl = cellnodefacetbl;
         i = (1 : cellnodefacetbl.num)';
         prod.dispind1 = i;
@@ -196,16 +199,16 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % Setup A21 matrix (facenode dof -> cell dof)
 
     map = TensorMap();
-    map.fromTbl = cellnodeface2tbl;
+    map.fromTbl = cellnodeface12tbl;
     map.toTbl = cellnodefacetbl;
     map.replaceFromTblfds = {{'faces2', 'faces'}};
     map.mergefds = {'cells', 'nodes', 'faces'};
     
-    if dooptimize
-        map.pivottbl = cellnodeface2tbl;
-        i = (1 : cellnodeface2tbl.num)';
+    if useVirtual
+        map.pivottbl = cellnodeface12tbl;
+        i = (1 : cellnodeface12tbl.num)';
         map.dispind1 = i;
-        map.dispind2 = cellnodeface_2_from_cellnodeface2(i);
+        map.dispind2 = cellnodeface2_from_cellnodeface12(i);
         map.issetup = true;
     else
         map = map.setup();
@@ -221,7 +224,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     prod.reducefds = {'faces', 'nodes'};
     prod = prod.setup();
     
-    if dooptimize
+    if useVirtual
         prod.pivottbl = cellnodefacetbl;
         i = (1 : cellnodefacetbl.num)';
         prod.dispind1 = i;
@@ -239,15 +242,15 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % Setup A22 matrix (cell dof -> cell dof)
 
     map = TensorMap();
-    map.fromTbl = cellnodeface2tbl;
+    map.fromTbl = cellnodeface12tbl;
     map.toTbl = celltbl;
     map.mergefds = {'cells'};
 
-    if dooptimize
-        map.pivottbl = cellnodeface2tbl;
-        i = (1 : cellnodeface2tbl.num);
+    if useVirtual
+        map.pivottbl = cellnodeface12tbl;
+        i = (1 : cellnodeface12tbl.num);
         map.dispind1 = i;
-        map.dispind2 = cell_from_cellnodeface(cellnodeface_1_from_cellnodeface2(i));
+        map.dispind2 = cell_from_cellnodeface(cellnodeface1_from_cellnodeface12(i));
         map.issetup = true;
     else
         map = map.setup();
@@ -261,7 +264,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     prod.tbl3 = celltbl;
     prod.mergefds = {'cells'};
     
-    if dooptimize
+    if useVirtual
         prod.pivottbl = celltbl;
         i = (1 : celltbl.num);
         prod.dispind1 = i;
@@ -294,5 +297,9 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                       'D', D);
     
     extra.nKg = nKg;
+
+    output = struct('matrices', matrices, ...
+                    'bcvals'  , bcvals  , ...
+                    'extra'   , extra);
     
 end

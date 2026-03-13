@@ -124,12 +124,16 @@ end
 function res = edge_based_trap_analysis(Gt, closed_bedges, closed_fedges, project)
    
     % Identifying closed boundary and fault nodes, if any
-    closed_bnodes = Gt.faces.nodes(mcolon(Gt.faces.nodePos(closed_bedges), ...
-                                          Gt.faces.nodePos(closed_bedges+1)-1));
-
-    closed_fnodes = Gt.faces.nodes(mcolon(Gt.faces.nodePos(closed_fedges), ...
-                                          Gt.faces.nodePos(closed_fedges+1)-1));
-
+    closed_bnodes = sort(Gt.faces.nodes(mcolon(Gt.faces.nodePos(closed_bedges), ...
+                                               Gt.faces.nodePos(closed_bedges+1)-1)));
+    ixs = [diff(closed_bnodes); 1]; 
+    closed_bnodes = closed_bnodes(ixs==0); % keep only nodes that are duplicates
+    
+    closed_fnodes = sort(Gt.faces.nodes(mcolon(Gt.faces.nodePos(closed_fedges), ...
+                                               Gt.faces.nodePos(closed_fedges+1)-1)));
+    ixs = [diff(closed_fnodes); 1];
+    closed_fnodes = closed_fnodes(ixs==0); % keep only nodes that are duplicates
+    
     % Computing essential trap information, based on geometry of edges
     ntraps = computeNodeTraps(Gt, closed_bnodes, closed_fnodes);
 

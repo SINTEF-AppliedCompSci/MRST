@@ -32,7 +32,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opt = struct('coarseDimXY',[]);
+opt = struct('coarseDim',[]);
+
 opt = merge_options(opt, varargin{:});
 
 datafolder = fullfile(getDatasetPath('sleipner2019'),...
@@ -50,9 +51,9 @@ grdecl.PERMZ = grdecl.PERMX;
 
 
 % 
-if ~isempty(opt.coarseDimXY)
+if ~isempty(opt.coarseDim)
+    assert(numel(opt.coarseDim)==3,'Please specify 3 coarse dims!')
     require mrst-experimental
-    coarseDim = [opt.coarseDimXY 1];
     grdecl = cutGrdecl(grdecl,[1 64; 1 112; 1 263]);
     grdecl = coarseGrdecl(grdecl, coarseDim,'only_grid',false);
 end

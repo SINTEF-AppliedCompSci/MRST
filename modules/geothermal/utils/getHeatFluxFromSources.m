@@ -9,7 +9,8 @@ function forces = getHeatFluxFromSources(model, forces, drivingForces)
         propsBC  = bc.propsForce;
         [qAdv, q] = computeAdvectiveHeatFlux( ...
             model, propsRes, propsBC, forces.bc.phaseMass);
-        qCond = computeConductiveHeatFlux(propsRes, propsBC, bc);
+        is_inj = value(q) >= 0;
+        qCond = computeConductiveHeatFlux(propsRes, propsBC, bc, is_inj);
         forces.bc.advHeatFlux = q;
         forces.bc.condHeatFlux = qCond;
         forces.bc.heatFlux = qAdv + qCond;
@@ -21,7 +22,8 @@ function forces = getHeatFluxFromSources(model, forces, drivingForces)
         propsSrc  = src.propsForce;
         [qAdv, q] = computeAdvectiveHeatFlux( ...
             model, propsRes, propsSrc, forces.src.phaseMass);
-        qCond = computeConductiveHeatFlux(propsRes, propsSrc, src);
+        is_inj = value(q) >= 0;
+        qCond = computeConductiveHeatFlux(propsRes, propsSrc, src, is_inj);
         forces.src.advHeatFlux = q;
         forces.src.condHeatFlux = qCond;
         forces.src.heatFlux = qAdv + qCond;
@@ -47,10 +49,13 @@ function [q, qph] = computeAdvectiveHeatFlux(model, propsRes, propsBC, src)
 end
 
 %-------------------------------------------------------------------------%
-function q = computeConductiveHeatFlux(propsRes, propsBC, bc)
+function q = computeConductiveHeatFlux(propsRes, propsBC, bc, is_inj)
 
     is_Hflux = ~isnan(bc.Hflux);
-    q = -(propsRes.Thr + propsRes.Thf).*(propsRes.T - propsBC.T);
+
+    %is_inj = true;
+    if is_inj, TBC = propsBC.T; else, TBC = propsRes.T; end
+    q = -(propsRes.Thr + propsRes.Thf).*(propsRes.T - TBC);
     q(is_Hflux) = bc.Hflux(is_Hflux);
     
 end

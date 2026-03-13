@@ -1,0 +1,140 @@
+# Case 1. Steady-State imbibition with smooth Pc curve.
+# Water and oil injected at increasing water fractional flow, followed by several “bumps”
+# (only water injected for the bumps)
+#
+# Comments starts with hash(#) symbol. 
+# Between the keyword and the value should be at least one tab.
+# Press enter key at the end of each line of data, even the last line of the file.
+# Each block is separated by a blank line
+# Data to compare with analytical SS
+
+#-------------------------------------------------
+# GEOMETRY
+#-------------------------------------------------
+LENGTH		8	cm
+DIAMETER	4	cm
+
+#-------------------------------------------------
+# ROCK
+#-------------------------------------------------
+POROSITY		0.25
+PERMEABILITY	100		mD  
+INITIALWATER	0.2 
+
+#-------------------------------------------------
+# FLUID
+#-------------------------------------------------
+DENSITYW		1000	kg/m^3
+DENSITYNW		800		kg/m^3
+VISCOSITYW		1		cP
+VISCOSITYNW		5		cP
+
+#-------------------------------------------------
+# PROCESS
+#-------------------------------------------------
+SS		Imbibition
+
+#-------------------------------------------------
+# SIMULATION
+#-------------------------------------------------
+TYPE		Forward
+NCELLS		80
+#         number    first_cell_Sw   last_cell_Sw   
+BCELLS		1           0               0
+MAXTIMESTEP 	2		hour
+RAMPUPSTEPS      10
+HIGH_PERCISION_MODE
+
+#-------------------------------------------------
+# SCHEDULE
+#-------------------------------------------------
+#			fileName
+FILENAME	.\Data\SS\Imbibition\sched_case1.txt
+PINI		1		bar
+POUT		1		bar
+#STARTUP     100     second      2325    rpm
+#CENTRAD     14.89   cm
+
+#-------------------------------------------------
+# OBSERVATION
+#-------------------------------------------------
+#			fileName
+PRESSURE	.\Data\SS\Imbibition\pressure_obs_case1.txt
+SWAVG       .\Data\SS\Imbibition\swavg_obs_case1.txt
+SATPROFILE  .\Data\SS\Imbibition\SatProfile_obs_case1.xlsx
+
+#-------------------------------------------------
+# SATURATION FUNCTIONS
+#-------------------------------------------------
+#KR         MODIFIED-COREY      	Swc     Sor     krw@Sor     kro@Swc     nW      nNW     
+KR          MODIFIED-COREY      	0.2    0.2     0.5         0.5      3       3       
+PC			TABLE               	.\Data\SS\Imbibition\pc_smooth.txt
+#PC  ZERO
+#-------------------------------------------------
+# PLOT OPTIONS
+#-------------------------------------------------
+STYLE			docked  #docked
+COLORMAP		jet		#parula		hsv
+DISPLAYTIME		hour
+DISPLAYLENGTH	cm
+DISPLAYVOLUME	cm^3
+DISPLAYPRESS	bar
+DISPLAYRATE		cm^3/hour
+
+#-------------------------------------------------
+# OUTPUT OPTIONS
+#-------------------------------------------------
+#SATPROFILE_OUT		.\Results\satProfile.xlsx
+#SAVECONFIG		.\Results\config.txt
+# indicates the path to save the parameters below
+# !quantities keyword has to be activated for this
+#QUANTITIES		.\Results\output.txt
+#TIME
+#SWAVG_OUT
+#INJ
+#PROD
+#DELTAP
+
+#-------------------------------------------------
+# OBJECTIVE FUNCTION CONFIGURATIONS
+#-------------------------------------------------
+EXCEL_FILE_NAME    kr_modified_corey.xlsx
+EXCEL_FILE_PATH    .\App\Input_templates_for_SCAL_history_match
+#MULTIPOINT         
+#MULTIPOINT_RANDOM_NUMBERS      10
+KR_HM
+KR_MODEL    MODIFIED-COREY
+#PC_HM
+#PC_MODEL    POINT-BY-POINT
+PDIFF_WEIGHT    1
+SWAVG_WEIGHT    1
+PROD_WEIGHT     1
+SAT_PROFILE_WEIGHT      1
+PDIF_ERROR      0
+SWAVG_ERROR     0
+PROD_ERROR      0
+SAT_PROFILE_ERROR       0
+
+#-------------------------------------------------
+# HISTORY MATCH CONFIGURATIONS
+#-------------------------------------------------
+USE_PARALLEL
+OPTIMALITY_TOLERANCE        1e-6
+STEP_TOLERANCE          1e-3
+MAX_FUNCTION_EVALUATIONS    6000
+SCALE_PROBLEM
+OBJECTIVE_FUNCTION_TYPE    normal    #Simultaneous
+#CENT_FILE_NAME      ABC.txt
+#CENT_FILE_PATH      .\SCAL
+HISTORYMATCH_ALGORITHM      active-set
+
+#-------------------------------------------------
+# MCMC SPECIFIC CONFIGURATIONS
+#-------------------------------------------------
+RANDOM_SEED     3751
+SAMPLE_REFINEMENT_COUNT     1
+CHAINSIZE       5000
+#MPI_ENABLED   
+
+
+

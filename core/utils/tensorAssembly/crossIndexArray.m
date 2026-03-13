@@ -58,7 +58,7 @@ function [tbl, indstruct] = crossIndexArray(tbl1, tbl2, crossfields, varargin)
 % RETURNS:
 %   tbl  - IndexArray constructed from tbl1, tbl2 and the given fields
 %   crossfields, as described above 
-%   indstruct - structure used to setup mappings between tbl1, tbl2 and tbl3 
+%   indstruct - structure used to setup mappings between tbl1, tbl2 and tbl 
 %
 % SEE ALSO: `IndexArray`
 %   `projIndexArray`, `sortIndexArray`, `addLocInd`, `replacefield`.
@@ -177,6 +177,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     n2 = tbl2.num;
     
     if (opt.optpureproduct | opt.virtual)
+        
         assert(isempty(crossfields), 'cannot use optpureproduct option in this case');
         % check fieldnames do not intersect
         isnotok = any(ismember(fdnames1, fdnames2)) | any(ismember(fdnames2, ...
@@ -188,19 +189,26 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         n2 = tbl2.num;
 
         if opt.virtual
+
             tbl = IndexArray([], 'fdnames', fdnames, 'isvirtual', true, 'num', n1*n2);
-            return
+            
+        else
+            
+            mat2 = repmat(tbl2.inds, n1, 1);
+            mat1 = rldecode(tbl1.inds, n2*ones(n1, 1));
+            mat = [mat1, mat2];
+            
+            tbl = IndexArray([], 'fdnames', fdnames, 'inds', mat);
+            
         end
         
-        mat2 = repmat(tbl2.inds, n1, 1);
-        mat1 = rldecode(tbl1.inds, n2*ones(n1, 1));
-        mat = [mat1, mat2];
-        
-        tbl = IndexArray([], 'fdnames', fdnames, 'inds', mat);
-        
         if nargout > 1
-            error(['output not implemented for pureproduct option. It should ' ...
-                   'not be difficult though']);
+            
+            indstruct{1}.inds = rldecode((1 : n1)', n2*ones(n1, 1));
+            indstruct{1}.num  = n1;            
+            indstruct{2}.inds = repmat((1 : n2)', n1, 1);
+            indstruct{2}.num  = n2;
+            
         end
         
         return

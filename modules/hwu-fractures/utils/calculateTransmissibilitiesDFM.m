@@ -28,7 +28,7 @@ function Trans = calculateTransmissibilitiesDFM(model)
     half_trans.matfrac_right =  zeros(size(fdom.region));
     
 
-    for kk=1:size(fdom.region)
+    for kk=1:size(fdom.region,1)
         facePos = model.G.cells.facePos(matrix_cells_left(kk)):model.G.cells.facePos(matrix_cells_left(kk)+1)-1;
         cfaces = model.G.cells.faces(facePos);
         Tid = facePos(find(cfaces==fdom.region(kk)));

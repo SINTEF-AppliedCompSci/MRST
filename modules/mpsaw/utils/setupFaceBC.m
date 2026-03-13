@@ -1,8 +1,13 @@
-function nodefacebc = setupFaceBC(bc, G, tbls)
+function [nodefacebc, tbls, mappings] = setupFaceBC(bc, G, tbls, mappings, varargin)
+
+    opt = struct('useVirtual', false);
+    opt = merge_options(opt, varargin{:});
+    
+    useVirtual = opt.useVirtual;
     
     nodefacetbl    = tbls.nodefacetbl;
-    nodefacecoltbl = tbls.nodefacecoltbl;
-    coltbl         = tbls.coltbl;
+    nodefacevectbl = tbls.nodefacevectbl;
+    vectbl         = tbls.vectbl;
 
     % Note that bcfacetbl, as constructed below, has repeated indices (same face can
     % have several linear forms which are imposed on it). We add a local index
@@ -12,19 +17,31 @@ function nodefacebc = setupFaceBC(bc, G, tbls)
     
     bcfacetbl = bcfacetbl.addLocInd('bcinds');
     
-    bcfacecoltbl = crossIndexArray(bcfacetbl, coltbl, {}, 'optpureproduct', true);
+    [bcnodefacetbl, indstruct] = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
+    bcface_from_bcnodeface   = indstruct{1}.inds;
+    nodeface_from_bcnodeface = indstruct{2}.inds;
     
-    bcnodefacetbl = crossIndexArray(bcfacetbl, nodefacetbl, {'faces'});
-    bcnodefacecoltbl = crossIndexArray(bcnodefacetbl, coltbl, {}, 'optpureproduct', ...
-                                  true);
+    bcfacevectbl     = crossIndexArray(bcfacetbl    , vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
+    bcnodefacevectbl = crossIndexArray(bcnodefacetbl, vectbl, {}, 'optpureproduct', true, 'virtual', useVirtual);
     
     bcvals = bc.linformvals;
     % bcvals belongs to bcfacetbl;
     map = TensorMap();
-    map.fromTbl = bcfacetbl;
-    map.toTbl = bcnodefacetbl;
+    map.fromTbl  = bcfacetbl;
+    map.toTbl    = bcnodefacetbl;
     map.mergefds = {'faces', 'bcinds'};
-    map = map.setup();
+
+    if useVirtual
+
+        map.pivottbl = bcnodefacetbl;
+        map.dispind1 = bcface_from_bcnodeface;
+        map.dispind2 = (1 : bcnodefacetbl.num)';
+        map.issetup = true;
+        
+    else
+    
+        map = map.setup();
+    end
     
     bcvals = map.eval(bcvals);
     % bcvals belongs to bcnodefacetbl;
@@ -32,22 +49,40 @@ function nodefacebc = setupFaceBC(bc, G, tbls)
     
     linform = bc.linform;
     linform = reshape(linform', [], 1);
-    % linform belongs to bcfacecoltbl    
+    % linform belongs to bcfacevectbl    
     
     map = TensorMap();
-    map.fromTbl = bcfacecoltbl;
-    map.toTbl = bcnodefacecoltbl;
-    map.mergefds = {'faces', 'bcinds', 'coldim'};
-    map = map.setup();
+    map.fromTbl  = bcfacevectbl;
+    map.toTbl    = bcnodefacevectbl;
+    map.mergefds = {'faces', 'bcinds', 'vec'};
+
+    if useVirtual
+
+        map.pivottbl = bcnodefacevectbl;
+
+        N = bcnodefacetbl.num;
+        [vec, i] = ind2sub([vectbl.num], (1 : bcnodefacevectbl.num)');
+        map.dispind1 = sub2ind([vectbl.num,  N], vec, bcface_from_bcnodeface(i));
+        map.dispind2 = (1 : bcnodefacevectbl.num)';
+        map.issetup = true;
+        
+    else
+    
+        map = map.setup();
+    end
     
     linform = map.eval(linform);
-    % linform now belongs to bcnodefacecoltbl
+    % linform now belongs to bcnodefacevectbl
     
     bcnodefacetbl = replacefield(bcnodefacetbl, {{'bcinds', ''}});
     nodefacebc.bcnodefacetbl = bcnodefacetbl;
     nodefacebc.linform       = linform;
     nodefacebc.linformvals   = bcvals;
 
+    tbls.bcnodefacetbl = bcnodefacetbl;
+    
+    mappings.bcface_from_bcnodeface   = bcface_from_bcnodeface;
+    mappings.nodeface_from_bcnodeface = nodeface_from_bcnodeface;
     
 end
 

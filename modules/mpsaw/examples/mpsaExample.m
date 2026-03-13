@@ -1,7 +1,3 @@
-%% load modules
-
-mrstModule add ad-mechanics ad-core ad-props ad-blackoil vemmech deckformat mrst-gui mpsaw mpfa
-
 clear all
 close all
 
@@ -57,9 +53,10 @@ mu     = ones(nc, 1);
 prop = struct('lambda', lambda, ...
               'mu', mu);
 
+useVirtual = true;
 
-[tbls, mappings] = setupStandardTables(G, 'useVirtual', false);
-loadstruct = setupBCpercase(runcase, G, tbls, mappings);
+[tbls, mappings] = setupMpsaStandardTables(G, 'useVirtual', useVirtual);
+loadstruct = setupBCpercase(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
 
 mech.prop = prop;
 mech.loadstruct = loadstruct;
@@ -74,22 +71,51 @@ u = formatField(u, dim, 'u');
 
 unf = model.getProp(state, 'FaceNodeDisplacement');
 
-cellnodefacecoltbl = tbls.cellnodefacecoltbl;
-nodefacecoltbl = tbls.nodefacecoltbl;
-cellcoltbl = tbls.cellcoltbl;
+cellnodefacevectbl = tbls.cellnodefacevectbl;
+nodefacevectbl     = tbls.nodefacevectbl;
+cellvectbl         = tbls.cellvectbl;
+vectbl             = tbls.vectbl;
 
 map = TensorMap();
-map.fromTbl = nodefacecoltbl;
-map.toTbl = cellnodefacecoltbl;
-map.mergefds = {'nodes', 'faces', 'coldim'};
-map = map.setup();
+map.fromTbl  = nodefacevectbl;
+map.toTbl    = cellnodefacevectbl;
+map.mergefds = {'nodes', 'faces', 'vec'};
+
+if useVirtual
+
+    nodefacetbl     = tbls.nodefacetbl;
+    cellnodefacetbl = tbls.cellnodefacetbl;
+    celltbl         = tbls.celltbl;
+
+    map.pivottbl = cellnodefacevectbl;
+
+    [vec, i] = ind2sub([vectbl.num, cellnodefacetbl.num], (1 : cellnodefacevectbl.num)');
+    map.dispind1 = sub2ind([vectbl.num, nodefacetbl.num], vec, mappings.nodeface_from_cellnodeface(i));
+    map.dispind2 = (1 : cellnodefacevectbl.num)';
+    map.issetup = true;
+else
+    map = map.setup();
+end
+
 ucnf = map.eval(unf);
 
 map = TensorMap();
-map.fromTbl = cellnodefacecoltbl;
-map.toTbl = cellcoltbl;
-map.mergefds = {'cells', 'coldim'};
-map = map.setup();
+map.fromTbl  = cellnodefacevectbl;
+map.toTbl    = cellvectbl;
+map.mergefds = {'cells', 'vec'};
+if useVirtual
+
+    map.pivottbl = cellnodefacevectbl;
+
+    [vec, i] = ind2sub([vectbl.num, cellnodefacetbl.num], (1 : cellnodefacevectbl.num)');
+    map.dispind1 = (1 : cellnodefacevectbl.num)';
+    map.dispind2 = sub2ind([vectbl.num, celltbl.num], vec, mappings.cell_from_cellnodeface(i));
+    map.issetup = true;
+    
+else
+    map = map.setup();
+end
+
 unf = map.eval(ucnf);
 
 unf = formatField(unf, dim, 'u');

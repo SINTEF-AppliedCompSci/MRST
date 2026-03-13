@@ -489,7 +489,6 @@ classdef WellboreModel < WrapperModel
         function [eqs, names, types, state] = getMassFluxEquations(model, state)
         % Equations realting segment mass fluxes to the pressure by means
         % of a wellbore friction model
-
             
             dp = model.getProp(state, 'FrictionLoss');
             [p, s, rho] = model.parentModel.getProps(state, ...
@@ -497,6 +496,7 @@ classdef WellboreModel < WrapperModel
                 's'           , ...
                 'Density'       ...
             );
+            v = model.getProp(state, 'massFlux');
             
             nph = model.getNumberOfPhases();
             
@@ -511,10 +511,20 @@ classdef WellboreModel < WrapperModel
             g   = norm(model.parentModel.gravity);
             dz  = model.parentModel.operators.Grad(model.G.cells.centroids(:,3));
             dpw = model.parentModel.operators.Grad(p);
+            pot = dpw - rhoMix.*g.*dz;
+
+            % Assemble equation. We add the mass flux so that this reduces to a
+            % Darcy-type equation for very low friction loss to avoid singular
+            % systems.
+            % Convert mass flux to velocity
+            [Di, Do] = deal(0, model.G.faces.radius.*2);
+            if size(Do, 2) == 2
+                Di = Do(:,1);
+                Do = Do(:,2);
+            end
+            v   = v./(pi*rhoMix.*((Do/2).^2 - (Di/2).^2));
+            eqs = (pot - dp) + 10*v;
             
-            pot   = dpw - rhoMix.*g.*dz;
-            
-            eqs   = (pot - dp)./(1*atm);
             eqs   = {eqs};
             names = {'flux'};
             types = {'face'};
@@ -676,7 +686,7 @@ classdef WellboreModel < WrapperModel
         % re-initialize the values and change the controls so that the next
         % step keeps within the prescribed ranges.
         
-        
+
             if ~isfield(state, 'wells'), state.wells = model.wells; end
             if ~isfield(state, 'groups'), state.groups = model.groups; end
             % Get driving forces and check that it's non-empty

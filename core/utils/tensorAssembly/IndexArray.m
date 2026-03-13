@@ -81,7 +81,10 @@ classdef IndexArray
                 vnum = opt.num;
                 assert(~isempty(vnum), 'In case of virtual table, the size of the index array should be given');
                 tbl.vnum = vnum;
+            else
+                tbl.isvirtual = false;
             end
+            
             tbl.tblname = opt.tblname;    
         end
 
@@ -158,6 +161,7 @@ classdef IndexArray
         
         function inds = get(tbl, fdname)
         % get index vector for the indexing given by fdname
+            assert(tbl.isvirtual == false, 'This function cannot be used for virtual tables');
             fdnames = tbl.fdnames;
             tblinds = strcmp(fdname, fdnames);
             assert(any(tblinds), 'index array field name not recognized');
@@ -167,6 +171,7 @@ classdef IndexArray
         
         function inds = gets(tbl, getfdnames)
         % get the index vectors for the indexings given by fdnames
+            assert(tbl.isvirtual == false, 'This function cannot be used for virtual tables');
             fdnames = tbl.fdnames;
             inds = tbl.inds;
             [isok, getinds] = ismember(getfdnames, fdnames);
@@ -174,20 +179,25 @@ classdef IndexArray
             inds = tbl.inds(:, getinds);
             
         end    
-        
-        function tbl = removeInd(tbl, rmfdnames)
-        % remove the indices given by the names rmfdnames
+
+        function tbl = removeInd(tbl, rmfdname)
+            
             fdnames = tbl.fdnames;
-            inds = tbl.inds;
+            inds    = tbl.inds;
+
+            [isok, ind] = ismember(rmfdname, fdnames);
+            assert(isok, 'field does not exist');
+            
+            tbl.fdnames(ind) = [];
+            tbl.inds(:, ind) = [];
+            
+        end
+        
+        function tbl = removeInds(tbl, rmfdnames)
+        % remove the indices given by the names rmfdnames
             for i = 1 : numel(rmfdnames)
-                fdname = rmfdnames{i};
-                [isok, ind] = ismember(fdname, fdnames);
-                assert(isok, 'field does not exist');
-                fdnames(ind) = [];
-                inds(:, ind) = [];
+                tbl = tbl.removeInd(rmfdnames{i});
             end
-            tbl.fdnames = fdnames;
-            tbl.inds = inds;
         end    
 
         function tbl = addLocInd(tbl, locindname)

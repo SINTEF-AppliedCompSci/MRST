@@ -178,7 +178,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 setting = SETTINGS.(sarg);
                 if ischar(setting) || isstring(setting)
                     out = setting;
-                elseif isfield(setting, 'value') || isprop(setting, 'value')
+                elseif isfield(setting, 'value') || (~isempty(setting) && isprop(setting, 'value'))
                     out = setting.value;
                 else
                     out = setting;

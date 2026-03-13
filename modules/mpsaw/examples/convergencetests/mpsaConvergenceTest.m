@@ -1,5 +1,3 @@
-mrstModule add vem mpfa mpsaw vemmech libgeometry
-
 close all
 
 %% params setting
@@ -10,19 +8,17 @@ close all
 % gridtype : grid type (see mpsaPaperConvergenceFunc)
 % eta      : Value used to set the position of the continuity point
 
-% Possibility to run vem for comparison
-doVem = false;
-
 %% New Case
-dothiscase = true;
-params = struct('nref'    , 4, ...
+params = struct('nref'    , 3, ...
                 'Nd'      , 3, ...
                 'kappa'   , 10, ...
                 'alpha'   , 0, ...
                 'gridtype', 5, ... % Cartesian
                 'eta'     , 1/4);
 
-output = mpsaPaperConvergenceFunc(params, 'doVem', doVem, 'blocksize', 100);
+useVirtual = true;
+
+output = mpsaPaperConvergenceFunc(params, 'blocksize', 100, 'useVirtual', useVirtual);
 
 figure
 hold on

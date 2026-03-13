@@ -59,19 +59,19 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
    for i = 1:numel(states)
 
-      [h, h_max] = compute_plume_height(Gt, states{i}, fluid.res_water, fluid.res_gas);
-
       if i == 1
          % initial state can contain non-zero co2 saturations (or heights)
          ntg = ones(Gt.cells.num,1);
          if isfield(rock,'ntg')
             ntg = rock.ntg;
          end
-         tot_inj = Gt.cells.volumes .* rock.poro .* ntg .* (1-fluid.res_water) ...
-             .* h .* fluid.rhoG(states{1}.pressure);
+         tot_inj = Gt.cells.volumes .* Gt.cells.H .* rock.poro .* ntg .* (1-fluid.res_water) ...
+             .* states{1}.s(:,2) .* fluid.rhoG(states{1}.pressure);
+         % tot_inj = Gt.cells.volumes .* rock.poro .* ntg .* (1-fluid.res_water) ...
+         %     .* h .* fluid.rhoG(states{1}.pressure);
          tot_inj = sum(tot_inj);
-         reports(i).t         = 0; %#ok
-         reports(i).W         = []; %#ok
+         reports(i).t = 0; %#ok
+         reports(i).W = []; %#ok
       else
          reports(i).t = sum(schedule.step.val(1:i-1)); %#ok
          reports(i).W = schedule.control(schedule.step.control(i-1)).W; %#ok
@@ -81,38 +81,21 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       end
       
       reports(i).sol       = states{i}; %#ok
-      reports(i).sol.h     = h; %#ok
-      reports(i).sol.h_max = h_max; %#ok
       
       rs = 0;
       if isfield(states{i}, 'rs')
          rs = states{i}.rs;
       end
-      reports(i).masses    = massTrappingDistributionVEADI(Gt                   , ...
-                                                        reports(i).sol.pressure , ...
-                                                        reports(i).sol.s(:,2)   , ...
-                                                        reports(i).sol.s(:,1)   , ...
-                                                        reports(i).sol.h        , ...
-                                                        reports(i).sol.h_max    , ...
-                                                        rock                    , ...
-                                                        fluid                   , ...
-                                                        traps                   , ...
-                                                        dh                      , ...
-                                                        'rs', rs); %#ok
+      if isfield(states{i}, 'sGmax')
+          smax = states{i}.sGmax; % we operate with dissolution
+      else
+          smax = states{i}.smax(:,2); % no dissolution.  Current max = historical max
+      end
+      reports(i).masses = massTrappingDistributionVE(states{i}.s(:,2), smax, states{i}.pressure, rs, Gt, fluid, rock, traps, dh);
+      
       leaked = tot_inj - sum(reports(i).masses);
       reports(i).tot_inj = tot_inj;
       reports(i).masses = [reports(i).masses, leaked]; %#ok
    end
    
-end
-% ----------------------------------------------------------------------------
-
-function [h, h_max] = compute_plume_height(Gt, state, sw, sr)
-    
-    if isfield(state, 'sGmax')
-       smax = state.sGmax; % we operate with dissolution
-    else
-       smax = state.smax(:,2); % no dissolution.  Current max = historical max
-    end
-    [h, h_max] = upscaledSat2height(state.s(:,2), smax, Gt, 'resSat', [sw, sr]);
 end

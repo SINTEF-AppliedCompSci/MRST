@@ -3,13 +3,21 @@ classdef MpfaBlackOilModel < GenericBlackOilModel
     properties
         eta
         bcetazero
+
+        % assembly optimisation using virtual index array tables
+        useVirtual        
     end
 
     methods
         
         function model = MpfaBlackOilModel(G, rock, fluid, varargin)
-            
-            model = model@GenericBlackOilModel(G, rock, fluid, varargin{:});
+                        
+            opt = struct('useVirtual', false);
+            [opt, extra] = merge_options(opt, varargin{:});
+
+            useVirtual = opt.useVirtual;
+
+            model = model@GenericBlackOilModel(G, rock, fluid, extra{:});
             model = merge_options(model, varargin{:});
             
             % Process the grid for mechanical computation
@@ -21,7 +29,7 @@ classdef MpfaBlackOilModel < GenericBlackOilModel
             model.bcetazero = false;
             
             % Add mechanical operators  
-            model.operators = setupMpfaAdOperators(model);
+            model.operators = setupMpfaAdOperators(model, 'useVirtual', useVirtual);
 
         end
 

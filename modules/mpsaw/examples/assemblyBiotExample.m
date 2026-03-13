@@ -5,11 +5,7 @@
 clear all
 close all
 
-% load modules
-mrstModule add mimetic mpsaw incomp vemmech mpfa
-
 eta = 0;
-
 bcetazero = false;
 
 %% Define and process geometry
@@ -55,11 +51,11 @@ end
 G = computeGeometry(G);
 dim = G.griddim;
 
-useVirtual = false;
-[tbls, mappings] = setupStandardTables(G, 'useVirtual', useVirtual);
+useVirtual = true;
+[tbls, mappings] = setupMpxaStandardTables(G, 'useVirtual', useVirtual);
 
 % Setup mechanical driving forces (volumetric forces and boundary condition)
-loadstruct = setupBCpercase(runcase, G, tbls, mappings);
+loadstruct = setupBCpercase(runcase, G, tbls, mappings, [], 'useVirtual', useVirtual);
 % Setup fluid driving forces (source terms and boundary condition)
 
 % get some "external faces" from setupBCpercase
@@ -97,13 +93,13 @@ mechprops = struct('lambda', lambda, ...
                    'mu'    , mu);
 
 % Setup fluid parameter properties
-cellcolrowtbl = tbls.cellcolrowtbl;
-colrowtbl = tbls.colrowtbl;
+cellvec12tbl = tbls.cellvec12tbl;
+vec12tbl = tbls.vec12tbl;
 
 map = TensorMap();
-map.fromTbl = colrowtbl;
-map.toTbl = cellcolrowtbl;
-map.mergefds = {'coldim', 'rowdim'};
+map.fromTbl  = vec12tbl;
+map.toTbl    = cellvec12tbl;
+map.mergefds = {'vec1', 'vec2'};
 map = map.setup();
 
 K = [1; 0; 0; 1];
@@ -127,16 +123,16 @@ props = struct('mechprops' , mechprops , ...
 casetype = 'blockassembly';
 switch casetype
   case 'blockassembly'
-    assembly = blockAssembleBiot(G, props, drivingforces, eta, tbls, mappings, 'blocksize', 20, 'verbose', true);
+    assembly = blockAssembleBiot(G, props, drivingforces, eta, tbls, mappings, 'blocksize', 20, 'verbose', true, 'useVirtual', useVirtual);
   case 'standard'
-    assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings);
+    assembly = assembleBiot(G, props, drivingforces, eta, tbls, mappings, 'useVirtual', useVirtual);
 end
 
 B = assembly.B;
 rhs = assembly.rhs;
 sol = B\rhs;
 
-ncc  = tbls.cellcoltbl.num;
+ncc  = tbls.cellvectbl.num;
 nc   = tbls.celltbl.num;
 n1 = 1; n2 = ncc;
 ucc  = sol(n1 : n2);
@@ -169,7 +165,7 @@ end
 
 plotdeformedgrid = true;
 if plotdeformedgrid
-    unc = computeNodeDisp(ucc, tbls);
+    unc = computeNodeDisp(ucc, tbls, mappings, 'useVirtual', useVirtual);
     unvec = reshape(unc, dim, [])';
     figure 
     coef = 1e0;

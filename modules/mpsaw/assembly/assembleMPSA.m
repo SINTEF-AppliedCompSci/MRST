@@ -1,4 +1,4 @@
-function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varargin)
+function [assembly, extra] = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varargin)
 % Assembly of MPSA-weak
 %
 % Reference paper:
@@ -13,18 +13,18 @@ function assembly = assembleMPSA(G, prop, loadstruct, eta, tbls, mappings, varar
     %      [A21, A22,  0];
     %      [D' , 0  ,  0]];
     %
-    % u = [u (displacement at nodefacecoltbl);
-    %      u (displacement at cellcoltbl);
+    % u = [u (displacement at nodefacevectbl);
+    %      u (displacement at cellvectbl);
     %      lagmult (forces in the linear directions at the boundary)];
     %
-    % f = [extforce (force at nodefacecoltbl);
-    %      force    (volumetric force at cellcoltbl);
+    % f = [extforce (force at nodefacevectbl);
+    %      force    (volumetric force at cellvectbl);
     %      bcvals   (for the linear form at the boundary)];
     %
     % A*u = f
     %
     % Note: extforce is sparse and should only give contribution at facets
-    % that are at the boundary
+    % that are at the boundary (otherwise the code will run but the results will be wrong)
     %
     % By construction of the method, the matrix A11 is block-diagonal. Hence,
     % we invert it directly and reduce to a cell-centered scheme.
@@ -48,68 +48,56 @@ You should have received a copy of the GNU General Public License
 along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    
+
     opt = struct('bcetazero'       , true , ...
                  'assemblyMatrices', false, ...
                  'addAdOperators'  , false, ...
+                 'useVirtual'      , false, ...
                  'extraoutput'     , false);
     opt = merge_options(opt, varargin{:});
-    
-    % Recover IndexArrays
-    coltbl                = tbls.coltbl;
-    celltbl               = tbls.celltbl;
-    facetbl               = tbls.facetbl;
-    nodetbl               = tbls.nodetbl;
-    cellnodetbl           = tbls.cellnodetbl;
-    nodefacetbl           = tbls.nodefacetbl;
-    cellcoltbl            = tbls.cellcoltbl;
-    nodecoltbl            = tbls.nodecoltbl;
-    nodefacecoltbl        = tbls.nodefacecoltbl;
-    cellnodefacetbl       = tbls.cellnodefacetbl;
-    cellnodecoltbl        = tbls.cellnodecoltbl;
-    cellnodecolrowtbl     = tbls.cellnodecolrowtbl;
-    cellnodefacecoltbl    = tbls.cellnodefacecoltbl;
-    cellnodefacecolrowtbl = tbls.cellnodefacecolrowtbl;
-    colrowtbl             = tbls.colrowtbl;
-    nodecolrowtbl         = tbls.nodecolrowtbl;
-    col2row2tbl           = tbls.col2row2tbl;
-    cellcol2row2tbl       = tbls.cellcol2row2tbl;
-    cellnodecol2row2tbl   = tbls.cellnodecol2row2tbl;
-    
-    cell_from_cellnode         = mappings.cell_from_cellnode;
-    node_from_cellnode         = mappings.node_from_cellnode;
-    cellnode_from_cellnodeface = mappings.cellnode_from_cellnodeface;
-    nodeface_from_cellnodeface = mappings.nodeface_from_cellnodeface;
-    
-    % Some shortcuts
-    c_num     = celltbl.num;
-    n_num     = nodetbl.num;
-    cnf_num   = cellnodefacetbl.num;
-    cnfc_num  = cellnodefacecoltbl.num;
-    cn_num    = cellnodetbl.num;
-    cncr_num  = cellnodecolrowtbl.num;
-    nf_num    = nodefacetbl.num;
-    nfc_num   = nodefacecoltbl.num;
-    cnfcr_num = cellnodefacecolrowtbl.num;
-    d_num     = coltbl.num;
-    
-    dim = coltbl.num;
 
-    C = setupStiffnessTensor(prop, tbls);
+    useVirtual = opt.useVirtual;
+    
+    % Retrieve IndexArrays
+
+    cellnodetbl = tbls.cellnodetbl;
+    celltbl     = tbls.celltbl;
+    vectbl      = tbls.vectbl;
+    nodefacetbl = tbls.nodefacetbl;
+    facetbl     = tbls.facetbl;
+    
+    dim = vectbl.num;
+
+    C = setupStiffnessTensor(prop, tbls, mappings, 'useVirtual', useVirtual);
     
     map = TensorMap();
-    map.fromTbl = nodefacetbl;
-    map.toTbl = facetbl;
+    map.fromTbl  = nodefacetbl;
+    map.toTbl    = facetbl;
     map.mergefds = {'faces'};
-    map = map.setup();
+
+    if useVirtual
+
+        map.pivottbl = nodefacetbl;
+        map.dispind1 = (1 : nodefacetbl.num)';
+        map.dispind2 = mappings.face_from_nodeface;
+        
+        map.issetup = true;
+        
+    else
+        map = map.setup();
+    end
     
     nnodesperface = map.eval(ones(nodefacetbl.num, 1));
     
     bc = loadstruct.bc;
     opts = struct('eta', eta, ...
                   'bcetazero', opt.bcetazero);
-    [matrices, bcvals, extra] = coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opts);
-    
+    output = coreMpsaAssembly(G, C, bc, nnodesperface, tbls, mappings, opts, 'useVirtual', useVirtual);
+
+    matrices = output.matrices;
+    bcvals   = output.bcvals;
+    extra    = output.extra;
+
     extforce = loadstruct.extforce;
     force = loadstruct.force;
 
@@ -129,7 +117,7 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     % B = [[B11, B12];
     %      [B21, B22]];
     %
-    % u = [u (displacement at cellcoltbl);
+    % u = [u (displacement at cellvectbl);
     %      lagmult];
     %
     % rhs = [-A21*invA11*extforce;  +  [force;
@@ -154,11 +142,11 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     
     rhs = vertcat(adrhs{:});
 
-    % Assembly of operator to compute u_{nodefacecoltbl} from solution of the system
-    % (which consists of the concatenation of u_{cellcol} and lagmult) and
-    % extforce which is a force in nodefacecoltbl
+    % Assembly of operator to compute u_{nodefacevectbl} from solution of the system
+    % (which consists of the concatenation of u_{cellvec} and lagmult) and
+    % extforce which is a force in nodefacevectbl
     %
-    % We have  u_{nodefacecoltbl} = R1*sol + R2*extforce
+    % We have  u_{nodefacevectbl} = R1*sol + R2*extforce
     %
     % where R1 = invA11*[-A12, D] and R2 = invA11
     
@@ -172,6 +160,8 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
                       'extforce', extforce, ...
                       'R1'      , R1      , ...
                       'R2'      , R2);
+
+    extra = output;
     
     if opt.assemblyMatrices
         assembly.matrices = matrices;
@@ -193,10 +183,24 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         alpha = ones(G.cells.num, 1);
         % we need to send number of nodes per cell
         map = TensorMap();
-        map.fromTbl = cellnodetbl;
-        map.toTbl = celltbl;
+        map.fromTbl  = cellnodetbl;
+        map.toTbl    = celltbl;
         map.mergefds = {'cells'};
-        map = map.setup();
+
+        if useVirtual
+
+            map.pivottbl = cellnodetbl;
+            map.dispind1 = (1 : cellnodetbl.num)';
+            map.dispind2 = cell_from_cellnode;
+
+            map.issetup = true;
+            
+        else
+            
+            map = map.setup();
+            
+        end
+        
         nnodespercell = map.eval(ones(cellnodetbl.num, 1));
         cassembly = assembleCouplingTerms(G, eta, alpha, nnodespercell, tbls, mappings);
         cdiv{1} = cassembly.divconsnf;
@@ -225,11 +229,6 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
         
         assembly.adoperators = adoperators;
         
-    end
-        
-    if opt.extraoutput
-        div = matrices.div;
-        assembly.divop = @(sol) mpsaDivOperator(sol, extforce, R1, R2, div);
     end
     
 end

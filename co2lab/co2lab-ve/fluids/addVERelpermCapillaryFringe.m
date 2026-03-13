@@ -161,7 +161,8 @@ function [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table)
                    dinterpTable(table.p, table.SP, value(pb(ixs) + drho_g_loc(ixs) .* H_loc(ixs))); 
         
         MAX_ITER = 2000; % should be largely enough 
-        TOL = 1e-3 * max(dP_aquifer);
+        TOL = 1e-8 * max(dP_aquifer); % for ADI to work properly, this TOL
+                                      % needs to be fairly tight
 
         pb = x_loc .* drho_g_loc; % initial guess
         
@@ -212,7 +213,7 @@ function kr = krG_htable(sg, table, fluid, H, varargin)
     assert(all(SH ./ H <= 1));
     
     gh = interpTable(table.SH, table.h, SH); % h corresponding to our SH
-    kr = interpTable(table.h, table.krH, gh) / H; % averaged relperm corresponding to our SH
+    kr = interpTable(table.h, table.krH, gh) ./ H; % averaged relperm corresponding to our SH
 end
 
 
@@ -230,7 +231,7 @@ function issue_warnings(type, fluid, Gt, rock)
                      'assumption of incompressible fluid.']);
         end
       case 'P-scaled table'
-        if max(rock.poro) ~= min(rock.poro)
+        if max(rock.poro) - min(rock.poro) > sqrt(eps)
             warning(['The ''P-scaled table'' relperm model is used, which ' ...
                      'assumes the same capillary pressure function ' ...
                      'everywhere.  However, provided rock properties are ' ...
@@ -248,9 +249,8 @@ function Pmax = determine_upper_cap_press_limit(fluid, Gt, invPc3D)
     dp = 1 * Pascal;
     max_dp = 2 * mega * Pascal; % we do not foresee upscaled capillary pressures
                                 % reaching higher than this in practice.
-    s = invPc3D(dp);
     tol = 1e-3;
-    while (s < max_dp) && (invPc3D(dp) > fluid.res_water + tol)
+    while (invPc3D(dp) > fluid.res_water + tol)
         dp = dp * 2;
     end
     
@@ -288,6 +288,14 @@ function table = make_CO2_table_h_based(invPc3D, kr3D, Gt, samples, Pmax, drho_s
     table.SH  = truncate_at_aquifer_bottom(SH(:)', h, max(Gt.cells.H));
     table.krH = truncate_at_aquifer_bottom(krH(:)', h, max(Gt.cells.H));
     table.h = h;
+    
+    % if SH reaches max value before end of the table, remove the range where
+    % it is constant (otherwise, the table will not be invertible)
+    SHmax = table.SH(end);
+    ix = find(table.SH >= SHmax, 1, 'first');
+    table.SH(ix+1:end) = [];
+    table.krH(ix+1:end) = [];
+    table.h(ix+1:end) = [];
 end
 
 % ----------------------------------------------------------------------------
@@ -326,5 +334,5 @@ function vec_truncated = truncate_at_aquifer_bottom(vec, h, H)
     % 'chop off' the (theoretical) part of the plume that extends below aquifer
     % bottom
     vec_truncated = vec;
-    vec_truncated(trunctate) = vec(truncate) - interpTable(h, vec, h(truncate) - H);
+    vec_truncated(truncate) = vec(truncate) - interpTable(h, vec, h(truncate) - H);
 end

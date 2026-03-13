@@ -1,4 +1,4 @@
-function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, varargin)
+function [cellnodefacecents, nodefacecents] = computeNodeFaceCentroids(G, eta, tbls, mappings, varargin)
 %Undocumented Utility Function
 
 %{
@@ -21,24 +21,27 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
 
-    opt = struct('bcetazero', false);
+    opt = struct('bcetazero', false, ...
+                 'useVirtual', false);
     opt = merge_options(opt, varargin{:});
-    bcetazero = opt.bcetazero;
 
+    bcetazero  = opt.bcetazero;
+    useVirtual = opt.useVirtual;
+    
     % cellnodefacecents centroid of node-face points, relative to cell
-    % centroids. It belongs to cellnodefacecoltbl
+    % centroids. It belongs to cellnodefacevectbl
     %
-    % nodefacecents centroid of node-face points, belongs to nodefacecoltbl
+    % nodefacecents centroid of node-face points, belongs to nodefacevectbl
 
     cellnodefacetbl    = tbls.cellnodefacetbl;
-    cellnodefacecoltbl = tbls.cellnodefacecoltbl;
-    nodefacecoltbl     = tbls.nodefacecoltbl;
+    cellnodefacevectbl = tbls.cellnodefacevectbl;
+    nodefacevectbl     = tbls.nodefacevectbl;
     
     cno = cellnodefacetbl.get('cells');
     fno = cellnodefacetbl.get('faces');
     nno = cellnodefacetbl.get('nodes');
     
-    % Absolute position of node-face points (in cellnodefacecoltbl)
+    % Absolute position of node-face points (in cellnodefacevectbl)
     ccents = G.cells.centroids(cno, :);
     fcents = G.faces.centroids(fno, :);
     ncents = G.nodes.coords(nno, :);
@@ -53,20 +56,38 @@ along with the MPSA-W module.  If not, see <http://www.gnu.org/licenses/>.
     abscellnodefacecents = bsxfun(@times, eta, ncents) + bsxfun(@times, (1 - ...
                                                       eta), fcents);
     
-    % Relative position of node-face points (in cellnodefacecoltbl)
+    % Relative position of node-face points (in cellnodefacevectbl)
     cellnodefacecents = abscellnodefacecents - ccents;
     
-    cellnodefacecents = reshape(cellnodefacecents', [], 1);
+    cellnodefacecents    = reshape(cellnodefacecents', [], 1);
     abscellnodefacecents = reshape(abscellnodefacecents', [], 1);
 
     map = TensorMap();
-    map.fromTbl = cellnodefacecoltbl;
-    map.toTbl = nodefacecoltbl;
-    map.mergefds = {'nodes', 'faces', 'coldim'};
-    map = map.setup();
+    map.fromTbl  = cellnodefacevectbl;
+    map.toTbl    = nodefacevectbl;
+    map.mergefds = {'nodes', 'faces', 'vec'};
+
+    if useVirtual
+
+        map.pivottbl = cellnodefacevectbl;
+
+        d_num   = tbls.vectbl.num;
+        cnf_num = cellnodefacetbl.num;
+        [vec, i] = ind2sub([d_num, cnf_num], (1 : cellnodefacevectbl.num)');
+
+        map.dispind1 = (1 : cellnodefacevectbl.num)';
+        map.dispind2 = sub2ind([d_num, tbls.nodefacetbl.num], vec, mappings.nodeface_from_cellnodeface(i));
+        
+        map.issetup = true;
+        
+    else
+        
+        map = map.setup();
+        
+    end
     
     nodefacecents = map.eval(abscellnodefacecents);
-    coef = map.eval(ones(cellnodefacecoltbl.num, 1));
+    coef = map.eval(ones(cellnodefacevectbl.num, 1));
     
     nodefacecents = 1./coef.*nodefacecents;
 

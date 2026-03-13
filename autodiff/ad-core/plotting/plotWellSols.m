@@ -653,7 +653,7 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
     end
     
     switch lower(fld)
-        case {'qws', 'qos', 'qgs', 'rate', 'qts', 'qwr', 'qgr', 'qor', 'qtr'}
+        case {'qws', 'qos', 'qgs', 'rate', 'qts', 'qwr', 'qgr', 'qor', 'qtr', 'qwsft'}
             switch lower(fld)
                 case {'qos', 'qor'}
                     ph = 'oil';
@@ -661,6 +661,8 @@ function [tit, d, yl, doCsum] = getWellUnit(d, fld, usys, isCsum, hasTimesteps)
                     ph = 'water';
                 case {'qgs', 'qgr'}
                     ph = 'gas';
+                case 'qwsft'
+                    ph = 'surfactant';
                 otherwise
                     ph = 'total';
             end
