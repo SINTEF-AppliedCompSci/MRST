@@ -46,7 +46,7 @@
 #define MIN(i,j) ((i)<(j) ? (i) : (j))
 #define MAX(i,j) ((i)>(j) ? (i) : (j))
 
-#define DEBUG 1
+#define DEBUG 0
 
 /*------------------------------------------------------*/
 /*                                                      */
@@ -195,12 +195,12 @@ computeFaceTopology(const int *a1, const int *a2,
         if((mask[6] != -1) && (mask[0] != -1)){
             assert(mask[7] == -1);
             if((mask[0]-mask[6])> 1){
-		fprintf(stdout, "mask 6 %d \n", mask[6]);
+		/* fprintf(stdout, "mask 6 %d \n", mask[6]); */
                 for(zn = mask[0]-1; zn>mask[6]; --zn){
                     *f++ = zn;
-		    fprintf(stderr, "adde mpde %d \n", zn);
+		    /* fprintf(stderr, "adde mpde %d \n", zn); */
                 }
-		fprintf(stderr, "mask 0 %d \n", mask[0]);
+		/* fprintf(stderr, "mask 0 %d \n", mask[0]); */
             }
         }
 	
@@ -208,16 +208,16 @@ computeFaceTopology(const int *a1, const int *a2,
 
 #if DEBUG
     /* Check for repeated nodes:*/
-    fprintf(stderr, "face: ");
+    /* fprintf(stderr, "face: "); */
     for (i=0; i<8; ++i){
-        fprintf(stderr, "%d ", mask[i]);
+        /* fprintf(stderr, "%d ", mask[i]); */
         for (k=0; k<8; ++k){
             if (i!=k && mask[i] != -1 && mask[i] == mask[k]){
-                fprintf(stderr, "Repeated node in faulted face\n");
+                /* fprintf(stderr, "Repeated node in faulted face\n"); */
             }
         }
     }
-    fprintf(stderr, "\n");
+    /* fprintf(stderr, "\n"); */
 #endif
 
 

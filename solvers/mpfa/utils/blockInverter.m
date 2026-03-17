@@ -65,6 +65,14 @@ function iA = invertDiagonalBlocks(A, sz)
 
       V(p2 + (1 : n2)) = inv(full(A(i, i)));
 
+      rc = rcond(full(A(i, i)));
+      if rc < 1e-18
+          if any(isinf(abs(V(p2 + (1 : n2)))))
+              fprintf('node : %d\n', b);
+              keyboard
+          end
+      end
+      
       p1 = p1 + n;
       p2 = p2 + n2;
    end
