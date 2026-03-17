@@ -1,6 +1,6 @@
 classdef SparseTensorProd
 
-    properties (SetAccess = immutable)
+    properties (SetAccess = private)
 
         tensor1 % first tensor argument
         tensor2 % second tensor argument
@@ -61,20 +61,17 @@ classdef SparseTensorProd
             mergefds   = prod.mergefds;
 
             crossfds  = {reducefds{:}, mergefds{:}};
-            
-            tbl1 = prod.tensor1.tbl;
-            tbl2 = prod.tensor2.tbl;
 
             if ~isempty(prod.replacefds1)
-                tbl1 = replacefield(tbl1, prod.replacefds1);
+                prod.tensor1.tbl = replacefield(prod.tensor1.tbl, prod.replacefds1);
             end
             if ~isempty(prod.replacefds2)
-                tbl2 = replacefield(tbl2, prod.replacefds2);
+                prod.tensor2.tbl = replacefield(prod.tensor2.tbl, prod.replacefds2);
             end
 
             % some sanity checks on the table's field names.
-            fds1 = tbl1.fdnames;
-            fds2 = tbl2.fdnames;
+            fds1 = prod.tensor1.tbl.fdnames;
+            fds2 = prod.tensor2.tbl.fdnames;
 
             assert(all(ismember(mergefds, fds1)), ['There exist merge fields that do ' ...
                                 'not belong to fields of first table']);
@@ -85,7 +82,54 @@ classdef SparseTensorProd
             assert(all(~ismember(ofds1, ofds2)) & all(~ismember(ofds2, ofds1)), ...
                    ['There exist fields with same name in first and second ' ...
                     'table that are neither merged or reduced.']);
+
+            if ~isempty(prod.reducefds1)
+                
+                assert(all(ismember(prod.reducefds1, ofds1)), ['There exist pre-reduced fields of tbl1 ' ...
+                                                               'that do not belong to ofds1']);
+                stm = SparseTensorMap(prod.tensor1);
+                stm.toTbl    = projIndexArray(prod.tensor1.tbl, fds1(~ismember(fds1, prod.reducefds1)));
+                stm.mergefds = stm.toTbl.fdnames;
+                
+                tensor1 = stm.eval();
+
+                A    = tensor1.vals;
+                tbl1 = tensor1.tbl;
+
+                fds1  = tbl1.fdnames;
+                ofds1 = fds1(~ismember(fds1, crossfds));
+                
+            else
+                
+                A    = prod.tensor1.vals;
+                tbl1 = prod.tensor1.tbl;
+                
+            end
+
+            if ~isempty(prod.reducefds2)
+                
+                assert(all(ismember(prod.reducefds2, ofds2)), ['There exist pre-reduced fields of tbl2 ' ...
+                                                               'that do not belong to ofds2']);
+                stm = SparseTensorMap(prod.tensor2);
+                stm.toTbl    = projIndexArray(prod.tensor2.tbl, fds2(~ismember(fds2, prod.reducefds2)));
+                stm.mergefds = stm.toTbl.fdnames;
+                
+                tensor2 = stm.eval();
+
+                B    = tensor2.vals;
+                tbl2 = tensor2.tbl;
+                
+                fds2  = tbl2.fdnames;
+                ofds2 = fds2(~ismember(fds2, crossfds));
+                
+            else
+                
+                B    = prod.tensor2.vals;
+                tbl2 = prod.tensor2.tbl;
+                
+            end
             
+
             lA = tbl1.gets(mergefds);
             iA = tbl1.gets(ofds1);
             jA = tbl1.gets(reducefds);
@@ -116,8 +160,6 @@ classdef SparseTensorProd
                 kB = ones(size(kB, 1), 1, 'uint64');
             end
 
-            A = prod.tensor1.vals;
-            B = prod.tensor2.vals;
             
             [m_l, ~, b_l] = unique([lA; lB], 'rows');
             b_lA = b_l(1 : size(lA, 1));
