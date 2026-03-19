@@ -54,7 +54,8 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-opt = struct('outputSimGrid', false);
+    opt = struct('outputSimGrid', false, ...
+                 'tolerance', 0);
 opt     = merge_options(opt, varargin{:});
 outputRock  = nargout >= 2;
 outputTrans = nargout >= 3;
@@ -89,11 +90,11 @@ grdecl = struct('cartDims', cartDims, ...
 dispif(mrstVerbose, 'Creating MRST-grid ...');
 try
     mrstModule add libgeometry
-    G = mprocessGRDECL(grdecl, 'SplitDisconnected', false);
+    G = mprocessGRDECL(grdecl, 'SplitDisconnected', false, 'Tolerance', opt.tolerance);
     G = mcomputeGeometry(G);
 catch
     dispif(mrstVerbose, '(calling efficent mex-routines failed ...)');
-    G = processGRDECL(grdecl, 'SplitDisconnected', false);
+    G = processGRDECL(grdecl, 'SplitDisconnected', false, 'Tolerance', opt.tolerance);
     G = computeGeometry(G);
 end
 dispif(mrstVerbose, 'done.\n' )
