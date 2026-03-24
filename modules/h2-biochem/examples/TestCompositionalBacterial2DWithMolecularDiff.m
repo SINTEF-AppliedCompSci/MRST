@@ -98,8 +98,8 @@ fluidStatic.pvMultR = @(p, nbact) 1;
 pA_off = runCase([baseName '_A_CLOG_MD_OFF'],  G, rockA,      fluidA,      compFluid, EOS, modelBo.gravity, state0Base, comp0, schedule, nls, true,  false, nbact0);
 pA_on  = runCase([baseName '_A_CLOG_MD_ON'],   G, rockA,      fluidA,      compFluid, EOS, modelBo.gravity, state0Base, comp0, schedule, nls, true,  true,  nbact0);
 
-%pB_off = runCase([baseName '_B_NOCLG_MD_OFF'], G, rockStatic, fluidStatic, compFluid, EOS, modelBo.gravity, state0Base, comp0, schedule, nls, true,  false, nbact0);
-%pB_on  = runCase([baseName '_B_NOCLG_MD_ON'],  G, rockStatic, fluidStatic, compFluid, EOS, modelBo.gravity, state0Base, comp0, schedule, nls, true,  true,  nbact0);
+pB_off = runCase([baseName '_B_NOCLG_MD_OFF'], G, rockStatic, fluidStatic, compFluid, EOS, modelBo.gravity, state0Base, comp0, schedule, nls, true,  false, nbact0);
+pB_on  = runCase([baseName '_B_NOCLG_MD_ON'],  G, rockStatic, fluidStatic, compFluid, EOS, modelBo.gravity, state0Base, comp0, schedule, nls, true,  true,  nbact0);
 
 %pC_off = runCase([baseName '_C_NOBAC_MD_OFF'], G, rockStatic, fluidStatic, compFluid, EOS, modelBo.gravity, state0Base, comp0, schedule, nls, false, false, 0);
 pC_on  = runCase([baseName '_C_NOBAC_MD_ON'],  G, rockStatic, fluidStatic, compFluid, EOS, modelBo.gravity, state0Base, comp0, schedule, nls, false, true,  0);

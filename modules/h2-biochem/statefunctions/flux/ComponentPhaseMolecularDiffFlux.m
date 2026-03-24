@@ -7,9 +7,33 @@ classdef ComponentPhaseMolecularDiffFlux < StateFunction
     % Millington-Quirk:
     %   (phi*S)*tau_MQ = (phi*S)^(7/3) / phi^2
 
+    properties
+        % Diffusion parameters (can be overridden by user)
+        Tref = 273.15 + 40;      % Reference temperature for gas diffusion [K]
+        pref = 101325;            % Reference pressure for gas diffusion [Pa] (1 atm)
+        minPorosity = 1e-12;      % Minimum porosity for numerical stability
+        minDiffusivity = 1e-30;   % Minimum diffusivity for numerical stability
+        tortuosityExponent = 7/3; % Exponent for Millington-Quirk tortuosity
+        gasDiffExponent = 1.75;   % Temperature exponent for gas diffusion scaling
+
+        % Default liquid diffusion coefficient [m^2/s]
+        defaultLiquidDiffusivity = 1e-9;
+
+        % Default Lennard-Jones parameters for unknown components
+        defaultSigma = 3.5;       % Default collision diameter [Å]
+        defaultEpsilon = 150.0;   % Default well depth [K]
+
+        % Binary diffusion coefficient constant (Chapman-Enskog)
+        % D_ij = binaryDiffConstant / (sqrt(M_ij) * sigma_ij^2)
+        binaryDiffConstant = 1e-4 * 0.001858;  % [cm^2/s] conversion factor
+    end
+
     methods
         function sf = ComponentPhaseMolecularDiffFlux(model, varargin)
             sf@StateFunction(model, varargin{:});
+
+            % Allow user to override properties
+            sf = merge_options(sf, varargin{:});
 
             % Core dependencies
             sf = sf.dependsOn('Density', 'PVTPropertyFunctions');
@@ -59,7 +83,7 @@ function J = localMolecularDiffusionFluxes(sf, model, state)
     else
         phi = model.rock.poro;
     end
-    phi_safe = max(phi, 1e-12);
+    phi_safe = max(phi, sf.minPorosity);
 
     % --- Density
     rho = sf.getEvaluatedExternals(model, state, 'Density');
@@ -68,15 +92,13 @@ function J = localMolecularDiffusionFluxes(sf, model, state)
     [xc, yc] = localGetMoleFractions(model, state);
 
     % Diffusion parameters
-    [Dliq_ref, paramLJ] = localLoadDiffusionDatabase(model);
-    Dij_ref = localBinaryDiffusionReference(model, paramLJ);
+    [Dliq_ref, paramLJ] = localLoadDiffusionDatabase(sf, model);
+    Dij_ref = localBinaryDiffusionReference(sf, model, paramLJ);
 
     % Gas scaling
     [p, T] = model.getProps(state, 'pressure', 'temperature');
-    Tref = 273.15 + 40;
-    pref = atm;
     p_safe = max(p, 1e-8*barsa);
-    gasScale = (T./Tref).^1.75 .* (pref./p_safe);
+    gasScale = (T./sf.Tref).^sf.gasDiffExponent .* (sf.pref./p_safe);
 
     % Initialize
     J = cell(ncomp, nph);
@@ -90,11 +112,12 @@ function J = localMolecularDiffusionFluxes(sf, model, state)
 
         % (phi*S)*tau_MQ
         phiS = phi .* s;
-        geom = (phiS).^(7/3) .* (phi_safe).^(-2);
+        geom = (phiS).^(sf.tortuosityExponent) .* (phi_safe).^(-2);
 
         if ph == L_ix
             for c = 1:ncomp
                 Kc = geom .* rho{ph} .* Dliq_ref(c);
+                Kc = max(Kc, sf.minDiffusivity);
                 Kf = localFaceHarmonicAvg(op, Kc);
                 J{c, ph} = -Kf .* op.Grad(xc{c});
             end
@@ -107,11 +130,13 @@ function J = localMolecularDiffusionFluxes(sf, model, state)
                     if j == c, continue; end
                     yj  = localGetComponentVector(yAll, j);
                     Dij = Dij_ref(c, j) .* gasScale;
-                    invDi = invDi + yj ./ max(Dij, 1e-30);
+                    Dij = max(Dij, sf.minDiffusivity);
+                    invDi = invDi + yj ./ Dij;
                 end
-                Di_mix = 1 ./ max(invDi, 1e-30);
+                Di_mix = 1 ./ max(invDi, sf.minDiffusivity);
 
                 Kc = geom .* rho{ph} .* Di_mix;
+                Kc = max(Kc, sf.minDiffusivity);
                 Kf = localFaceHarmonicAvg(op, Kc);
                 J{c, ph} = -Kf .* op.Grad(yc{c});
             end
@@ -120,7 +145,7 @@ function J = localMolecularDiffusionFluxes(sf, model, state)
 end
 
 function [xc, yc] = localGetMoleFractions(model, state)
-    if isfield(state, 'rs') || isfield(state, 'rv')   
+    if isfield(state, 'rs') || isfield(state, 'rv')
         error('Black-oil diffusion with rs/rv is not supported here.');
     end
     [x, y] = model.getProps(state, 'x', 'y');
@@ -155,12 +180,12 @@ function Kf = localFaceHarmonicAvg(op, Kc)
     end
 end
 
-function [Dliq_ref, paramLJ] = localLoadDiffusionDatabase(model)
+function [Dliq_ref, paramLJ] = localLoadDiffusionDatabase(sf, model)
     namecp = model.compFluid.names();
     ncomp  = numel(namecp);
 
-    Dliq_ref = 1e-9 * ones(ncomp, 1);
-    paramLJ  = repmat([3.5, 150.0], ncomp, 1);
+    Dliq_ref = sf.defaultLiquidDiffusivity * ones(ncomp, 1);
+    paramLJ  = repmat([sf.defaultSigma, sf.defaultEpsilon], ncomp, 1);
 
     db.Dliq = struct('h2',6.44e-9,'c1',2.15e-9,'methane',2.15e-9,'co2',2.72e-9, ...
         'h2o',3.29e-9,'water',3.29e-9,'n2',2.86e-9,'c2',1.72e-9, ...
@@ -180,7 +205,7 @@ function [Dliq_ref, paramLJ] = localLoadDiffusionDatabase(model)
     end
 end
 
-function Dij_ref = localBinaryDiffusionReference(model, paramLJ)
+function Dij_ref = localBinaryDiffusionReference(sf, model, paramLJ)
     ncomp = size(paramLJ, 1);
     Molmass = 1e3 .* model.compFluid.molarMass; % kg/mol -> g/mol
     sigma = paramLJ(:, 1); % Å
@@ -194,7 +219,7 @@ function Dij_ref = localBinaryDiffusionReference(model, paramLJ)
             end
             sqrtMij   = sqrt(2 * Molmass(i) * Molmass(j) / (Molmass(i) + Molmass(j)));
             sigma_ij2 = 0.25 * (sigma(i) + sigma(j))^2;
-            Dij_ref(i, j) = 1e-4 * 0.001858 / (sqrtMij * sigma_ij2);
+            Dij_ref(i, j) = sf.binaryDiffConstant / (sqrtMij * sigma_ij2);
         end
     end
     Dij_ref = 0.5*(Dij_ref + Dij_ref.');
