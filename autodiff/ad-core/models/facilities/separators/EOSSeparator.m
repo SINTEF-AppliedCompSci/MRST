@@ -45,22 +45,12 @@ classdef EOSSeparator < BasicSeparator
                 [x, y, L] = eos.getPhaseFractionAsADI(state, p, temp, z);
                 acf = eos.CompositionalMixture.acentricFactors;
 
-                % if Soreide-Whitson EoS we treat differently mixing
-                % parameters
-                if (model.eosType==6)
-                    [A_ij, Bi] = eos.getMixingParametersH2O(p, temp, acf, true);
-                    [~, A_L, B_L] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
-                    [A_ij, Bi] = eos.getMixingParameters(p, temp, acf, true);
-                    [~, A_V, B_V] = eos.getPhaseMixCoefficients(y, A_ij, Bi);
-                    Z_L = eos.setZDerivatives(Z_L, A_L, B_L);
-                    Z_V = eos.setZDerivatives(Z_V, A_V, B_V);
-                else
-                    [A_ij, Bi] = eos.getMixingParameters(p, temp, acf, true);
-                    [~, A_L, B_L] = eos.getPhaseMixCoefficients(x, A_ij, Bi);
-                    [~, A_V, B_V] = eos.getPhaseMixCoefficients(y, A_ij, Bi);
-                    Z_L = eos.setZDerivatives(Z_L, A_L, B_L);
-                    Z_V = eos.setZDerivatives(Z_V, A_V, B_V);
-                end
+                [A_ij_L, Bi_L] = eos.getLiquidMixingParameters(p, temp, acf, true);
+                [~, A_L, B_L] = eos.getPhaseMixCoefficients(x, A_ij_L, Bi_L);
+                [A_ij, Bi] = eos.getMixingParameters(p, temp, acf, true);
+                [~, A_V, B_V] = eos.getPhaseMixCoefficients(y, A_ij, Bi);
+                Z_L = eos.setZDerivatives(Z_L, A_L, B_L);
+                Z_V = eos.setZDerivatives(Z_V, A_V, B_V);
             else
                 x = state.x;
                 y = state.y;

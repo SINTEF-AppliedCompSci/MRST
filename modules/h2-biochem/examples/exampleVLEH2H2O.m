@@ -21,11 +21,9 @@ disp(compFluid);
 
 %% Initialize Thermodynamic Model
 % Choose an equation of state model for the calculations
-eosNamesw = 'sw'; % Soreide-Whitson (SW) model
-eosModelsw = EquationOfStateModel([], compFluid, eosNamesw);
+eosModelsw = SoreideWhitsonEos([], compFluid); % Soreide-Whitson (SW) model
 
-eosNamepr = 'pr'; % Peng Robinson (PR) model
-eosModelpr = EquationOfStateModel([], compFluid, eosNamepr);
+eosModelpr = EquationOfStateModel([], compFluid, 'pr'); % Peng Robinson (PR) model
 
 %% Define Test Case Parameters
 % Set the test case for different pressures, temperatures, and salinity levels

@@ -20,11 +20,9 @@ compFluid = TableCompositionalMixture({'Water', 'CarbonDioxide'}, {'H2O', 'CO2'}
 disp(compFluid);
 %% Initialize Thermodynamic Model
 % Choose an equation of state model for the calculations
-eosNamesw = 'sw'; % Soreide-Whitson (SW) model
-eosModelsw = EquationOfStateModel([], compFluid, eosNamesw);
+eosModelsw = SoreideWhitsonEos([], compFluid); % Soreide-Whitson (SW) model
 
-eosNamepr = 'pr'; % Peng Robinson (PR) model
-eosModelpr = EquationOfStateModel([], compFluid, eosNamepr);
+eosModelpr = EquationOfStateModel([], compFluid, 'pr'); % Peng Robinson (PR) model
 
 %% Define Test Case Parameters
 % Set the test case for different pressures, temperatures, and salinity levels
@@ -33,26 +31,26 @@ caseTest = 4; % Choose the test case here
 
 switch caseTest %Source: Thermodynamic study of the CO2-H2O system, S.Chabab (https://hal.science/hal-02310963v1,2019)
     case 1
-        eosModel.msalt=1.13;
+        eosModelsw.msalt=1.13;
         Temp=[323.02, 322.97, 323.03, 323.04, 372.33, 372.31, 372.29, 372.29, 372.25]*Kelvin;
         pres=[53.450, 75.550, 100.350, 145.080, 31.148, 60.500, 108.840, 151.920, 191.980]*barsa;
         xliqCO2Exp=[0.01030, 0.01290, 0.01510, 0.01700,0.00390, 0.00750, 0.01130, 0.01360, 0.01570];
 
 
     case 2
-        eosModel.msalt=1;
+        eosModelsw.msalt=1;
         Temp=[373.38, 373.37, 373.41]*Kelvin;
         pres=[16.983, 32.527, 68.182]*barsa;
         xliqCO2Exp=[0.00237, 0.00426, 0.00833];
 
     case 3
-        eosModel.msalt=3.01;
+        eosModelsw.msalt=3.01;
         Temp=[342.82, 342.81, 342.82, 372.39, 372.42, 372.41 , 372.43, 372.45, 372.45]*Kelvin;
         pres=[30.391, 72.559, 100.910, 25.556, 71.417, 100.517, 152.433, 199.597, 229.817]*barsa;
         xliqCO2Exp=[0.00441, 0.00880, 0.01057, 0.00292, 0.00707, 0.00878, 0.01141, 0.01258, 0.01337];
 
     case 4
-        eosModel.msalt=0;
+        eosModelsw.msalt=0;
         Temp=[323.2, 323.2, 323.2, 323.2, 323.2, 323.2, 333.2, 333.2, 333.2,...
             333.2, 333.2, 333.2, 353.1, 353.1, 353.1, 353.1, 353.1, 353.1]*Kelvin;
         pres=[40.5, 60.6, 80.8, 100.9, 121, 141.1, 40.5, 60.6, 80.8, 100.9,...

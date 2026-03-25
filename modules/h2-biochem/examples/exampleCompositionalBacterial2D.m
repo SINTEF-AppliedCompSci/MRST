@@ -42,7 +42,7 @@ state0 = convertBlackOilStateToCompositional(modelBo, state0Bo);
 %% Define compositional fluid (H2, H2O, CO2, CH4)
 compFluid = TableCompositionalMixture({'Water', 'Hydrogen', 'CarbonDioxide', 'Methane'}, ...
     {'H2O', 'H2', 'CO2', 'C1'});
-EOS = EquationOfStateModel([], compFluid, 'sw');
+EOS = SoreideWhitsonEos([], compFluid);
 model.EOSModel = EOS;
 
 nc = model.G.cells.num;

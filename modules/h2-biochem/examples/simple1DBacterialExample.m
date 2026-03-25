@@ -39,9 +39,8 @@ schedule.step.val     = schedule.step.val(1:400);
 schedule.step.control = schedule.step.control(1:400);
 
 %% EOS setup: Soreide-Whitson
-model.EOSModel = EquationOfStateModel( ...
-    model.G, model.EOSModel.CompositionalMixture, 'sw');
-model.EOSModel.msalt = 5;
+model.EOSModel = SoreideWhitsonEos( ...
+    model.G, model.EOSModel.CompositionalMixture, 'msalt', 5);
 
 %% Residual saturations and relperm adjustments
 % Define residual saturations for water, gas, and oil.

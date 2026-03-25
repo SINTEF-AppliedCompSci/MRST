@@ -72,7 +72,7 @@ classdef BiochemistryModel < GenericOverallCompositionModel
                     compSymbols = {'H2', 'H2O', 'N2', 'CO2', 'C1'};
                     compFluid = TableCompositionalMixture(compNames, compSymbols);
                     model.gammak = [-4.0, 2.0, 0.0, -1.0, 1.0];  % Stoichiometric coefficients
-                    model.EOSModel = EquationOfStateModel([], compFluid, 'sw');
+                    model.EOSModel = SoreideWhitsonEos([], compFluid);
                 else
                     warning('MethanogenicArchae is the default; other reactions not implemented.');
                 end
@@ -91,7 +91,7 @@ classdef BiochemistryModel < GenericOverallCompositionModel
                     model.gammak(indC1)  =  1.0;
                 end
                 model.compFluid = compFluid;
-                model.EOSModel = EquationOfStateModel([], compFluid, 'sw');
+                model.EOSModel = SoreideWhitsonEos([], compFluid);
             end
 
             % Validate bacterial formulation
