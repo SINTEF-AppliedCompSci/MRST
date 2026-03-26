@@ -278,6 +278,9 @@ classdef BiochemistryModel < GenericOverallCompositionModel
 
         function forces = validateDrivingForces(model, forces, varargin)
             forces = validateDrivingForces@GenericOverallCompositionModel(model, forces, varargin{:});
+            if isa(model.EOSModel, 'SoreideWhitsonEos')
+                forces = validateCompositionalForcesSW(model, forces, varargin{:});
+            end
         end
 
         function state = initStateAD(model, state, vars, names, origin)
