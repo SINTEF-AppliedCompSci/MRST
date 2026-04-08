@@ -62,6 +62,7 @@ classdef SparseMatrixConstructor
             prod.tbl1 = smc.tensor.tbl;
             prod.tbl2 = smc.fromTbl;
             prod.tbl3 = smc.toTbl;
+            prod.settbl3 = false;
             
             prod.reducefds   = smc.reducefds;
             prod.mergefds    = smc.mergefds;

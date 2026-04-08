@@ -361,6 +361,9 @@ classdef TensorProd
             else
                 
                 tbl3 = prod.tbl3;
+                if ~isempty(prod.replacefds3)
+                    tbl3 = replacefield(tbl3, prod.replacefds3);
+                end 
                 fds3 = tbl3.fdnames;
                 
                 fds3 = fds3(~ismember(fds3, reducefds1));
