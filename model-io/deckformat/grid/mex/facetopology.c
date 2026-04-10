@@ -46,7 +46,7 @@
 #define MIN(i,j) ((i)<(j) ? (i) : (j))
 #define MAX(i,j) ((i)>(j) ? (i) : (j))
 
-#define DEBUG 1
+#define DEBUG 0
 
 /*------------------------------------------------------*/
 /*                                                      */
