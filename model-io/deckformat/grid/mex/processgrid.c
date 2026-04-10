@@ -501,14 +501,12 @@ mexFunction(int nlhs,       mxArray *plhs[],
         mx_init_grdecl(&grdecl, prhs[0]);
         tolerance = define_tolerance(nrhs, prhs);
 	try{
-	    
-	    
 	    if(tolerance < 0){
-		process_grdecl(&grdecl, 0.0, &g);
-		add_cells(&g);
-		make_edge_conformal(&g);
-	    }else{
-		process_grdecl(&grdecl, tolerance, &g);
+            process_grdecl(&grdecl, -tolerance, &g);
+            add_cells(&g);
+            make_edge_conformal(&g);
+	    } else {
+            process_grdecl(&grdecl, tolerance, &g);
 	    }
 	}
 	catch(const std::exception &exc){

@@ -65,9 +65,12 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   opt = struct('Verbose', mrstVerbose, 'Tolerance', 0.0, ...
-                'CheckGrid', true, 'SplitDisconnected', true, ...
-                'PreserveCpNodes', false);
+    opt = struct('Verbose'           , mrstVerbose, ...
+                 'Tolerance'         , 0.0        , ...
+                 'CheckGrid'         , true       , ...
+                 'SplitDisconnected' , true       , ...
+                 'setupConformalGrid', true       , ...
+                 'PreserveCpNodes'   , false);
    opt = merge_options(opt, varargin{:});
 
    assert (~opt.PreserveCpNodes, ...
@@ -80,7 +83,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       grdecl.ACTNUM = int32(grdecl.ACTNUM);
    end
 
-   G = processgrid_mex(grdecl,opt.Tolerance);
+   tolerance = opt.Tolerance;
+   
+   if opt.setupConformalGrid
+       if tolerance == 0
+           error('Conformal grid with zero tolerance is not directly acessible. Change to a small tolerance value')
+       end
+       tolerance = -tolerance;
+   end
+   G = processgrid_mex(grdecl, tolerance);
 
    % Guarantee type DOUBLE for indices.  Needed, for instance, if the grid
    % is used in constructing linear operators in the AD framework (which
