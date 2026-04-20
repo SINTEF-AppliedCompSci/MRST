@@ -176,6 +176,17 @@ classdef IndexArray
             inds = tbl.inds(:, tblinds);
             
         end    
+
+        function inds = getunique(tbl, fdname)
+            inds = tbl.get(fdname);
+            inds = unique(inds);
+        end
+
+        function inds = getsunique(tbl, getfdnames)
+            inds = tbl.gets(getfdnames);
+            inds = unique(inds, 'rows');
+        end
+        
         
         function inds = gets(tbl, getfdnames)
             
@@ -247,7 +258,8 @@ classdef IndexArray
         function print(tbl, varargin)
         % Display IndexArray in terminal
             opt = struct('range', (1 : tbl.num)', ...
-                         'fdnames', {tbl.fdnames});
+                         'fdnames', {tbl.fdnames}, ...
+                         'unique', false);
 
             opt = merge_options(opt, varargin{:});
 
@@ -255,10 +267,15 @@ classdef IndexArray
             assert(all(found), 'some field names were not found');
             
             indrow = opt.range;
+            inds = tbl.inds(indrow, indcol);
+
+            if opt.unique
+                inds = unique(inds, 'rows');
+            end
             
             try
 
-                t = array2table(tbl.inds(indrow, indcol));
+                t = array2table(inds);
                 t.Properties.VariableNames = tbl.fdnames(indcol);
                 disp(t)
                 
@@ -266,7 +283,7 @@ classdef IndexArray
                 
                 fprintf('%s ', tbl.fdnames{indcol});
                 fprintf('\n');
-                display(tbl.inds(indrow, indcol));
+                display(inds);
                 
             end
         end
