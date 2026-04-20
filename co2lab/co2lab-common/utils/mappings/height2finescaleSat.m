@@ -95,8 +95,10 @@ function [s, smax, seff] = cap_fringe_h2s(h, hmax, Gt, sw, sg, invPc3D, rhoW, rh
     iface_depth_max_all = to_finescale(hmax + Gt.cells.z);
     drho_all = to_finescale(rhoW - rhoG);
     
-    celltops    = Gt.parent.cells.centroids(:,3) - remap(Gt.columns.dz, Gt.columns.cells) / 2; 
-    cellbottoms = Gt.parent.cells.centroids(:,3) + remap(Gt.columns.dz, Gt.columns.cells) / 2; 
+    % celltops    = Gt.parent.cells.centroids(:,3) - remap(Gt.columns.dz, Gt.columns.cells) / 2; 
+    % cellbottoms = Gt.parent.cells.centroids(:,3) + remap(Gt.columns.dz, Gt.columns.cells) / 2;
+    cellbottoms = remap(Gt.columns.z, Gt.columns.cells) + to_finescale(Gt.cells.z);
+    celltops = cellbottoms - remap(Gt.columns.dz, Gt.columns.cells);
     
     % compute capillary pressure and take inverse to get effective and max saturations
     seff = compute_cell_saturations(celltops, cellbottoms, iface_depth_all, drho_all, invPc3D);

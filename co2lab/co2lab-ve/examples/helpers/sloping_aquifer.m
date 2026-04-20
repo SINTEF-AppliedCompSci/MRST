@@ -1,5 +1,5 @@
 function [G, states_3D, G_VE, states_VE, sat_VE3D, timing, wellcell, model, ...
-          model_VE, schedule, schedule_VE] = sloping_aquifer(varargin)
+          model_VE, schedule, schedule_VE, fluid] = sloping_aquifer(varargin)
 %Undocumented Utility Function
 
 %{
