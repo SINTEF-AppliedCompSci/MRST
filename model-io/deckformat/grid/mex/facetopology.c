@@ -196,12 +196,12 @@ computeFaceTopology(const int *a1, const int *a2,
     if((mask[6] != -1) && (mask[0] != -1)){
         assert(mask[7] == -1);
         if((mask[0]-mask[6])> 1){
-            fprintf(stdout, "mask 6 %d \n", mask[6]);
+            /* fprintf(stdout, "mask 6 %d \n", mask[6]); */
             for(zn = mask[0]-1; zn>mask[6]; --zn){
                 *f++ = zn;
-                fprintf(stderr, "adde mpde %d \n", zn);
+                /* fprintf(stderr, "adde mpde %d \n", zn); */
             }
-            fprintf(stderr, "mask 0 %d \n", mask[0]);
+            /* fprintf(stderr, "mask 0 %d \n", mask[0]); */
         }
     }
 	
