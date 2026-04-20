@@ -140,72 +140,71 @@ computeFaceTopology(const int *a1, const int *a2,
     }
     f = faces;
     /*for (k=7; k>=0; --k){
-        if(mask[k] != -1){
-            *f++ = mask[k];
-        }
+      if(mask[k] != -1){
+      *f++ = mask[k];
+      }
       }*/
     /* upper left*/
     k=7;
-        if(mask[k] != -1){
-            *f++ = mask[k];
-        }
-        /* intersection top top*/
+    if(mask[k] != -1){
+        *f++ = mask[k];
+    }
+    /* intersection top top*/
     k=6;
-        if(mask[k] != -1){
-            *f++ = mask[k];
-        }
-        /*upper right*/
+    if(mask[k] != -1){
+        *f++ = mask[k];
+    }
+    /*upper right*/
     k=5;
-        if(mask[k] != -1){
-            *f++ = mask[k];
-        }
-        /* intersection bottom-top or top bottum */
+    if(mask[k] != -1){
+        *f++ = mask[k];
+    }
+    /* intersection bottom-top or top bottum */
     k=4;
-        if(mask[k] != -1){
-            *f++ = mask[k];
-        }
-        /* add possible hanging nodes */
+    if(mask[k] != -1){
+        *f++ = mask[k];
+    }
+    /* add possible hanging nodes */
 	
-        if((mask[2] != -1) && (mask[4] != -1)){
-            assert(mask[3] == -1);
-            if((mask[2]-mask[4])> 1){
-                for(zn = mask[4]+1; zn<mask[2]; ++zn){
-                    *f++ = zn;
-                }
+    if((mask[2] != -1) && (mask[4] != -1)){
+        assert(mask[3] == -1);
+        if((mask[2]-mask[4])> 1){
+            for(zn = mask[4]+1; zn<mask[2]; ++zn){
+                *f++ = zn;
             }
         }
+    }
 	
-        /* lower right */
+    /* lower right */
     k=3;
-        if(mask[k] != -1){
-            *f++ = mask[k];
-        }
+    if(mask[k] != -1){
+        *f++ = mask[k];
+    }
     k=2;
-        if(mask[k] != -1){
-            *f++ = mask[k];
-        }
+    if(mask[k] != -1){
+        *f++ = mask[k];
+    }
     k=1;
-        if(mask[k] != -1){
-            *f++ = mask[k];
-        }	
+    if(mask[k] != -1){
+        *f++ = mask[k];
+    }	
     k=0;
-        if(mask[k] != -1){
-            *f++ = mask[k];
-        }	
-        if((mask[6] != -1) && (mask[0] != -1)){
-            assert(mask[7] == -1);
-            if((mask[0]-mask[6])> 1){
-		fprintf(stdout, "mask 6 %d \n", mask[6]);
-                for(zn = mask[0]-1; zn>mask[6]; --zn){
-                    *f++ = zn;
-		    fprintf(stderr, "adde mpde %d \n", zn);
-                }
-		fprintf(stderr, "mask 0 %d \n", mask[0]);
-            }
-        }
-	
-        
+    if(mask[k] != -1){
+        *f++ = mask[k];
+    }	
 
+    if((mask[6] != -1) && (mask[0] != -1)){
+        assert(mask[7] == -1);
+        if((mask[0]-mask[6])> 1){
+            fprintf(stdout, "mask 6 %d \n", mask[6]);
+            for(zn = mask[0]-1; zn>mask[6]; --zn){
+                *f++ = zn;
+                fprintf(stderr, "adde mpde %d \n", zn);
+            }
+            fprintf(stderr, "mask 0 %d \n", mask[0]);
+        }
+    }
+	
 #if DEBUG
     /* Check for repeated nodes:*/
     fprintf(stderr, "face: ");
@@ -257,8 +256,8 @@ faceintersection(const int *a1, const int *a2,
 }
 
 
-#define MEANINGFUL_FACE(i, j)                                   \
-    (! ((a1[i]   == INT_MIN) && (b1[j]   == INT_MIN)) &&        \
+#define MEANINGFUL_FACE(i, j)                               \
+    (! ((a1[i]   == INT_MIN) && (b1[j]   == INT_MIN)) &&    \
      ! ((a1[i+1] == INT_MAX) && (b1[j+1] == INT_MAX)))
 
 
@@ -303,125 +302,125 @@ void findconnections(int n, int *pts[4],
         while ((j < n-1) &&
                ((b1[j] < a1[i + 1]) ||
                 (b2[j] < a2[i + 1])))
-        {
-            /* pinched b-cell */
-            if ((b1[j] == b1[j + 1]) &&
-                (b2[j] == b2[j + 1])) {
+            {
+                /* pinched b-cell */
+                if ((b1[j] == b1[j + 1]) &&
+                    (b2[j] == b2[j + 1])) {
 
-                itop[j+1] = itop[j];
-                ++j;
-                continue;
-            }
-
-
-            /* --------------------------------------------------------- */
-            /* face a(i,i+1) and face b(j,j+1) have nonzero intersection */
-            /* --------------------------------------------------------- */
-            if (faceintersection(a1+i, a2+i, b1+j, b2+j)){
+                    itop[j+1] = itop[j];
+                    ++j;
+                    continue;
+                }
 
 
-                /* Completely matching faces */
-                if (((a1[i] == b1[j]) && (a1[i+1] == b1[j+1])) &&
-                    ((a2[i] == b2[j]) && (a2[i+1] == b2[j+1]))) {
+                /* --------------------------------------------------------- */
+                /* face a(i,i+1) and face b(j,j+1) have nonzero intersection */
+                /* --------------------------------------------------------- */
+                if (faceintersection(a1+i, a2+i, b1+j, b2+j)){
 
-                    if (MEANINGFUL_FACE(i, j)) {
 
-                        int cell_a = i%2 != 0 ? (i-1)/2 : -1;
-                        int cell_b = j%2 != 0 ? (j-1)/2 : -1;
+                    /* Completely matching faces */
+                    if (((a1[i] == b1[j]) && (a1[i+1] == b1[j+1])) &&
+                        ((a2[i] == b2[j]) && (a2[i+1] == b2[j+1]))) {
 
-                        if (cell_a != -1 || cell_b != -1){
-                            *c++ = cell_a;
-                            *c++ = cell_b;
+                        if (MEANINGFUL_FACE(i, j)) {
 
-                            /* face */
-                            *f++ = a1[i];
-                            *f++ = a2[i];
+                            int cell_a = i%2 != 0 ? (i-1)/2 : -1;
+                            int cell_b = j%2 != 0 ? (j-1)/2 : -1;
 
-                            /* avoid duplicating nodes in pinched faces  */
-                            if (a2[i+1] != a2[i]) {
-                                assert(a2[i+1]>a2[i]);
-                                for(zn = a2[i]+1; zn<=a2[i+1]; ++zn){
-                                    *f++ = zn;
+                            if (cell_a != -1 || cell_b != -1){
+                                *c++ = cell_a;
+                                *c++ = cell_b;
+
+                                /* face */
+                                *f++ = a1[i];
+                                *f++ = a2[i];
+
+                                /* avoid duplicating nodes in pinched faces  */
+                                if (a2[i+1] != a2[i]) {
+                                    assert(a2[i+1]>a2[i]);
+                                    for(zn = a2[i]+1; zn<=a2[i+1]; ++zn){
+                                        *f++ = zn;
+                                    }
+                                    /* *f++ = a2[i+1];*/
                                 }
-                                /* *f++ = a2[i+1];*/
-                            }
-                            if (a1[i+1] != a1[i]) {
-                                assert(a1[i+1]>a1[i]);
-                                for(zn = a1[i+1]; zn>a1[i]; --zn){
-                                    *f++ = zn;
+                                if (a1[i+1] != a1[i]) {
+                                    assert(a1[i+1]>a1[i]);
+                                    for(zn = a1[i+1]; zn>a1[i]; --zn){
+                                        *f++ = zn;
+                                    }
+                                    /* *f++ = a1[i+1];*/
                                 }
-                                /* *f++ = a1[i+1];*/
+
+                                out->face_ptr[++out->number_of_faces] = f - out->face_nodes;
+
                             }
-
-                            out->face_ptr[++out->number_of_faces] = f - out->face_nodes;
-
+                            else{
+                                ;
+                            }
                         }
-                        else{
-                            ;
+                    }
+
+                    /* Non-matching faces */
+                    else{
+
+                        /* Find new intersection */
+                        if (LINE_INTERSECTION(a1[i+1], a2[i+1],
+                                              b1[j+1], b2[j+1])) {
+                            itop[j+1] = out->number_of_nodes++;
+
+                            /* store point numbers of intersecting lines */
+                            *intersectionlist++ = a1[i+1];
+                            *intersectionlist++ = a2[i+1];
+                            *intersectionlist++ = b1[j+1];
+                            *intersectionlist++ = b2[j+1];
+
+
+                        }else{
+                            itop[j+1] = -1;
+                        }
+
+                        /* Update intersection record */
+                        intersect[0] = ibottom[j  ];  /* i   x j   */
+                        intersect[1] = ibottom[j+1];  /* i   x j+1 */
+                        intersect[2] = itop[j  ];     /* i+1 x j   */
+                        intersect[3] = itop[j+1];     /* i+1 x j+1 */
+
+
+                        /* Add face to list of faces if no INT_MIN or
+                         * INT_MAX appear in a or b. */
+                        if (MEANINGFUL_FACE(i,j)) {
+
+                            /*
+                              Even indices refer to space between cells,
+                              odd indices refer to cells
+                            */
+                            int cell_a = i%2 != 0 ? (i-1)/2 : -1;
+                            int cell_b = j%2 != 0 ? (j-1)/2 : -1;
+
+
+
+                            if (cell_a != -1 || cell_b != -1){
+                                *c++ = cell_a;
+                                *c++ = cell_b;
+
+                                f = computeFaceTopology(a1+i, a2+i, b1+j, b2+j, intersect, f);
+
+                                out->face_ptr[++out->number_of_faces] = f - out->face_nodes;
+                            }
+                            else{
+                                ;
+                            }
                         }
                     }
                 }
 
-                /* Non-matching faces */
-                else{
+                /* Update candidates for restart of j for in next i-iteration */
+                if (b1[j] < a1[i+1]) { k1 = j; }
+                if (b2[j] < a2[i+1]) { k2 = j; }
 
-                    /* Find new intersection */
-                    if (LINE_INTERSECTION(a1[i+1], a2[i+1],
-                                          b1[j+1], b2[j+1])) {
-                        itop[j+1] = out->number_of_nodes++;
-
-                        /* store point numbers of intersecting lines */
-                        *intersectionlist++ = a1[i+1];
-                        *intersectionlist++ = a2[i+1];
-                        *intersectionlist++ = b1[j+1];
-                        *intersectionlist++ = b2[j+1];
-
-
-                    }else{
-                        itop[j+1] = -1;
-                    }
-
-                    /* Update intersection record */
-                    intersect[0] = ibottom[j  ];  /* i   x j   */
-                    intersect[1] = ibottom[j+1];  /* i   x j+1 */
-                    intersect[2] = itop[j  ];     /* i+1 x j   */
-                    intersect[3] = itop[j+1];     /* i+1 x j+1 */
-
-
-                    /* Add face to list of faces if no INT_MIN or
-                     * INT_MAX appear in a or b. */
-                    if (MEANINGFUL_FACE(i,j)) {
-
-                        /*
-                           Even indices refer to space between cells,
-                           odd indices refer to cells
-                        */
-                        int cell_a = i%2 != 0 ? (i-1)/2 : -1;
-                        int cell_b = j%2 != 0 ? (j-1)/2 : -1;
-
-
-
-                        if (cell_a != -1 || cell_b != -1){
-                            *c++ = cell_a;
-                            *c++ = cell_b;
-
-                            f = computeFaceTopology(a1+i, a2+i, b1+j, b2+j, intersect, f);
-
-                            out->face_ptr[++out->number_of_faces] = f - out->face_nodes;
-                        }
-                        else{
-                            ;
-                        }
-                    }
-                }
+                j = j+1;
             }
-
-            /* Update candidates for restart of j for in next i-iteration */
-            if (b1[j] < a1[i+1]) { k1 = j; }
-            if (b2[j] < a2[i+1]) { k2 = j; }
-
-            j = j+1;
-        }
 
 
 
