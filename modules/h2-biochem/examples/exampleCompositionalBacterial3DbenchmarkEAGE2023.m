@@ -105,8 +105,7 @@ nbj_prod    = 30*day; nbj_idle1 = 20*day;
 schedule.step.val(1) = 1*day;
 
 %% EOS and Model
-eosname = 'sw';
-compEOS = EquationOfStateModel(G, compFluid, eosname);
+compEOS = SoreideWhitsonEos(G, compFluid);
 
 backend = DiagonalAutoDiffBackend('modifyOperators', true);
 
