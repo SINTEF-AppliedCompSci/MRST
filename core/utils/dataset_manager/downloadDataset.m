@@ -79,8 +79,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         ok = false;
     else
         % Static, non-empty string URL for dataset file.  Direct Download.
-
-        ok = do_download(info, askFirst, @()download_URL(info, pth));
+        try 
+            ok = do_download(info, askFirst, @()download_URL(info, pth));
+        catch
+            fail(info, pth);
+            ok = false;
+        end
     end
 
     if nargout
