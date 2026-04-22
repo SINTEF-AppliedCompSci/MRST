@@ -76,6 +76,44 @@ classdef SparseTensor
             
         end
 
+        function tensor2 = sort(tensor, fdnames)
+
+            [tbl, dispind] = sortIndexArray(tensor.tbl, fdnames, 'keepAllFields', true);
+
+            tensor2 = tensor;
+            
+            tensor2.vals = tensor.vals(dispind);
+            tensor2.tbl  = tbl;
+            
+        end
+        
+        function table = print(tensor, varargin)
+
+            tbl = tensor.tbl;
+            
+            opt = struct('range', (1 : tbl.num)', ...
+                         'fdnames', {tbl.fdnames});
+
+            opt = merge_options(opt, varargin{:});
+            
+            [found, indcol] = ismember(opt.fdnames, tbl.fdnames);
+            assert(all(found), 'some field names were not found');
+
+            indrow = opt.range;
+            inds = tbl.inds(indrow, indcol);
+
+            vals = [tensor.vals(indrow), double(inds)];
+            
+
+            fdnames = horzcat({'values'}, tbl.fdnames(indcol));
+            fmt = sprintf('%%10s %s \n', strcat(repmat('%10s ', 1, numel(indcol))));
+            fprintf(fmt, fdnames{:});
+            fprintf('\n');
+            fmt = sprintf('%%10g %s \n', strcat(repmat('%10d ', 1, numel(indcol))));
+            fprintf(fmt, vals');
+            
+        end
+
     end
     
 end
