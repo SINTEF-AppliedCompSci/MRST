@@ -1,5 +1,7 @@
 close all
 
+mrstModule add libgeometry vem vemmech mpfa
+
 %% params setting
 % nref     : degree of refinement
 % Nd       : dimension (2D or 3D)

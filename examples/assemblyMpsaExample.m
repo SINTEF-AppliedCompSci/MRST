@@ -8,6 +8,8 @@
 clear all
 close all
 
+mrstModule add mpfa vemmech
+
 eta = 0;
 bcetazero = false;
 

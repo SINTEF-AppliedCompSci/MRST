@@ -1,6 +1,9 @@
 clear all
 close all
 
+mrstModule add ad-core ad-props mpfa compositional mrst-gui
+
+
 %% Setup geometry
 
 dims = [41, 20];
@@ -22,7 +25,7 @@ pv = sum(poreVolume(G, rock));
 
 %% setup fluid and wells 
 
-[f, info] = getCompositionalFluidCase('verysimple');
+[f, info] = getBenchmarkMixture('verysimple');
 eos = EquationOfStateModel(G, f);
 
 pRef = 50*barsa;

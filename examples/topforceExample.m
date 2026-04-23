@@ -4,6 +4,8 @@
 clear all
 close all
 
+mrstModule add ad-core mpfa mrst-gui
+
 %% Load required modules
 %% Setup grid
 physdim = [1, 1] * meter;

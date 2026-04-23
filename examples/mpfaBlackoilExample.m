@@ -1,6 +1,8 @@
 clear all
 close all
 
+mrstModule add ad-props ad-blackoil ad-core mpfa mrst-gui
+
 % Rectangular reservoir with a skew grid.
 dims = [41, 20];
 G = cartGrid(dims, [2, 1]);

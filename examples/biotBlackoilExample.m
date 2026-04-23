@@ -1,6 +1,8 @@
 clear all
 close all
 
+mrstModule add ad-props ad-blackoil ad-core mpfa mrst-gui
+
 %% Setup geometry
 
 dims = [30, 30];

@@ -8,6 +8,8 @@
 clear all
 close all
 
+mrstModule add mpfa
+
 dimcase = 2;
 switch dimcase
   case 2
