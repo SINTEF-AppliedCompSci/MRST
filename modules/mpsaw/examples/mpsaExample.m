@@ -1,6 +1,8 @@
 clear all
 close all
 
+mrstModule add ad-core mpfa
+
 %% Define and process geometry
 % Construct a Cartesian grid 
 runcases = {'2d-refinement', ...

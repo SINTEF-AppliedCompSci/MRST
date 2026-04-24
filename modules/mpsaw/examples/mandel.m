@@ -26,6 +26,8 @@
 clear all
 close all
 
+mrstModule add ad-core mpfa
+
 % Discretization parameters
 params.nx     = 100;
 params.ny     = 10;

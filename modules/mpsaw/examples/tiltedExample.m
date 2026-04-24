@@ -1,6 +1,8 @@
 clear all
 close all
 
+mrstModule add mpfa vemmech
+
 N = 20;
 G = cartGrid([N, N], [1 , 1]);
 angle = 10/180*pi;
