@@ -291,7 +291,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
      case {'S table', 'P-scaled table', 'P-K-scaled table'}
        fun3D = setup_fine_scale_functions(opt.invPc3D, opt.kr3D, fluid, Gt);
        fluid = addVERelpermCapillaryFringe(fluid, Gt, rock, fun3D.invPc3D, ...
-                                           fun3D.kr3D, 'type', relperm_model);
+                                           fun3D.kr3D, ...
+                                           'hyst_model', opt.hyst_model, ...
+                                           'type', relperm_model, 'samples', 200000);
        if isfield(fun3D, 'pc3D')
            % the fine-scale capillary function (of sw) is given.  Store it
            % for reference.
@@ -445,7 +447,10 @@ function opt = default_options()
 
    % Modify transmissibilities (such as due to faults in the 3D grid)
    opt.transMult = [];
-   
+
+   % hysteresis model (endpoint scaling or fixed residual; only relevant for
+   % capillary fringe models)
+   opt.hyst_model = 'endpoint scaling'; % 'endpoint scaling' or 'fixed residual'
 end
 
 % ----------------------------------------------------------------------------
