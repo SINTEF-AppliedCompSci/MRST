@@ -24,6 +24,7 @@ subplot(1,2,2), plotCellData(G, rock2.poro,'EdgeAlpha',.1),
 view(130,30); axis tight off
 
 %% Exercise 2.5.3
+mrstModule add mrst-gui
 newplot
 G = computeGeometry(cartGrid([58 48 10]));
 load rock1.mat;

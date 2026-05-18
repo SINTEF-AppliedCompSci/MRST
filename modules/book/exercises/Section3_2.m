@@ -15,6 +15,7 @@ G = myTriangleGrid([x y z], tri); plotGrid(G); view(3);
 
 %% Exercise 3.2.3
 % Use triangle to mesh polygonal outlines
+mrstModule add triangle
 pts = [-1 -1; 0 -.5; 1 -1; 1 1; 0 .5; -1 1; -1 -1];
 edges = (1:7).'; edges(:,2) = edges([2:end 1],1);
 G = mex_triangleGrid(pts, edges, 'maxArea', 1e-2);
@@ -32,16 +33,16 @@ plotGrid(G); axis equal tight; view(2)
 
 %% Exercise 3.2.4
 % A few examples of distmesh grids
-mrstModule add distmesh
+mrstModule add upr
 fd= @(p) sqrt(sum(p.^2,2))-1';
-[p,t]=distmesh2d(fd,@huniform,0.2,[-1,-1;1,1],[]);
+[p,t]=distmesh2d(fd,@huniform,0.2,[-1,-1;1,1],[],false);
 G = triangleGrid(p, t);
 clf
 plotGrid(G); axis off tight
 
 %%
 fd=@(p) -0.3+abs(0.7-sqrt(sum(p.^2,2)));
-[p,t]=distmesh2d(fd,@huniform,0.1,[-1,-1;1,1],[]);
+[p,t]=distmesh2d(fd,@huniform,0.1,[-1,-1;1,1],[],false);
 G = triangleGrid(p, t);
 clf
 plotGrid(G); axis off tight
@@ -52,7 +53,7 @@ pin  = .5*[cos(phi),sin(phi)];
 phi  =(0:6)'/6*2*pi;
 pout =[cos(phi),sin(phi)];
 fd   = @(p) ddiff(dpoly(p, pout), dpoly(p,pin));
-[p,t]=distmesh2d(fd,@huniform,0.1,[-1,-1;1,1],[pout; pin]);
+[p,t]=distmesh2d(fd,@huniform,0.1,[-1,-1;1,1],[pout; pin],false);
 G = triangleGrid(p, t);
 clf
 plotGrid(G); axis off tight
