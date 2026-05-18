@@ -45,24 +45,3 @@ rock.perm = repmat((950*P(:) + 50)*milli*darcy,n,1);
 rock.perm = rock.perm(G.cells.indexMap);
 clf, plotCellData(G,log10(rock.perm),'EdgeAlpha',.1);
 view(80,80); axis tight off
-
-%%
-% A famous mouse grid
-img = imread(fullfile('img','mickey.png')); img=double(img);
-G = cartGrid(size(img));
-img = img(:)/max(img(:));
-G = removeCells(G,img==1);
-rock.perm = (950*img+50)*milli*darcy; 
-rock.perm=rock.perm(G.cells.indexMap);
-clf, plotCellData(G,rock.perm,'EdgeAlpha',.3); view(53,80); axis tight off
-
-%%
-% Version with only n cells in vertical direction
-n = 10;
-img = imread(fullfile('img','mickey.png')); img=double(img(:,:,1));
-G = cartGrid([size(img),n]);
-img = img(:)/max(img(:));
-G = removeCells(G,repmat(img==1,n,1));
-rock.perm = repmat((950*img+50)*milli*darcy,n,1); 
-rock.perm=rock.perm(G.cells.indexMap);
-clf, plotCellData(G,rock.perm,'EdgeAlpha',.3); view(53,80); axis tight off
