@@ -343,6 +343,8 @@ classdef UIItem < handle
         %% Remaining set/get     
         function set.collapse(d, val)
             if ~val
+                % Restore panel children's visibility before expanding.
+                set(d.panel.Children, 'Visible', 'on');
                 if strcmp(d.collapseDirection, 'down')
                     d.Position(4) = d.fullHeight;
                 else
@@ -350,12 +352,9 @@ classdef UIItem < handle
                     d.Position = [p(1), p(2)-(d.fullHeight-d.titleHeight), p(3), d.fullHeight];
                 end
             else
-                % Push all controls below the panel bottom boundary before
-                % shrinking, so they cannot overdraw the title bar.
-                c = d.Children;
-                for k = 1:numel(c)
-                    c(k).Position(2) = -c(k).Position(4) - 1;
-                end
+                % Hide panel children before collapsing so they do not
+                % overdraw the title bar while the item is collapsed.
+                set(d.panel.Children, 'Visible', 'off');
                 if strcmp(d.collapseDirection, 'down')
                     d.Position(4) = d.titleHeight;
                 else

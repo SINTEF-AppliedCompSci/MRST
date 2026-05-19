@@ -263,6 +263,8 @@ classdef UIMenu < handle
         %------------------------------------------------------------------
         function set.collapse(m, val)
             if ~val
+                % Restore direct children's visibility before expanding.
+                set(m.Children, 'Visible', 'on');
                 if strcmp(m.collapseDirection, 'down')
                     m.Position(4) = m.fullHeight;
                 else
@@ -270,11 +272,9 @@ classdef UIMenu < handle
                     m.Position = [p(1), p(2)-(m.fullHeight-m.titleHeight), p(3), m.fullHeight];
                 end
             else
-                % Push all child panels below the panel bottom boundary
-                % before shrinking, so they cannot overdraw the title bar.
-                for k = 1:numel(m.Children)
-                    m.Children(k).Position(2) = -m.Children(k).Position(4) - 1;
-                end
+                % Hide direct children before collapsing so they do not
+                % overdraw the title bar while the panel is collapsed.
+                set(m.Children, 'Visible', 'off');
                 if strcmp(m.collapseDirection, 'down')
                     m.Position(4) = m.titleHeight;
                 else
