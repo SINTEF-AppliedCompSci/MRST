@@ -77,7 +77,8 @@ classdef UIItem < handle
             end
             
             d.panel = uipanel('Parent', p, 'Units', 'pixels', 'Position', opt.Position, ...
-                              'ButtonDownFcn', @d.toggleCollapse, 'Visible', 'off');
+                              'ButtonDownFcn', @d.toggleCollapse, ...
+                              'TitlePosition', 'lefttop', 'Visible', 'off');
             
             % add cosmetic panel
             %if ~strcmp(d.style.name, 'simple')
