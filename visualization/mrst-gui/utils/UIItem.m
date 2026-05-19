@@ -183,25 +183,23 @@ classdef UIItem < handle
         %------------------------------------------------------------------
         function set.Enable(d, val)
             if any(strcmp(val, {'on', 'off', 'all', 'inactive'}))
-                % if previous was 'on', save to enableState
-                 c = d.panel.Children;
-%                 get(c(isprop(c, 'Enable')), 'Enable')
+                % Use d.Children (explicitly maintained list) rather than
+                % d.panel.Children which may include internal objects added
+                % by newer MATLAB versions (R2025a+).
+                c = d.Children;
                 if strcmp(val, 'off')
-                    d.enableState = get(c, 'Enable');
-                    %d.enableState = arrayfun(@(c)c.Enable, d.panel.Children, 'UniformOutput', false);
+                    if ~isempty(c)
+                        d.enableState = arrayfun(@(x)x.Enable, c, 'UniformOutput', false);
+                    end
                 end
-                if strcmp(val, 'on') && ~isempty(d.enableState) % set to previous enableState
-                    if ischar(d.enableState)
-                        c.Enable = d.enableState;
-                    else
-                        for k = 1:numel(c)
-                            c(k).Enable = d.enableState{k};
-                        end
+                if strcmp(val, 'on') && ~isempty(d.enableState) && numel(c) == numel(d.enableState)
+                    % restore previous per-child enable state
+                    for k = 1:numel(c)
+                        c(k).Enable = d.enableState{k};
                     end
                 else
                     if strcmp(val, 'all'), val = 'on'; end
                     d.setProp('Enable', val);
-                   % set(d.panel.Children, 'Enable', val);
                 end
             end
         end
