@@ -64,6 +64,7 @@ classdef UIMenu < handle
                                'Position',          opt.Position, ...
                                'ButtonDownFcn',     @m.resize, ...
                                'SizeChangedFcn',    @m.destributeItems, ...
+                               'TitlePosition',     'lefttop', ...
                                'Visible',           'off');
             
             m.items = opt.items;
@@ -262,6 +263,8 @@ classdef UIMenu < handle
         %------------------------------------------------------------------
         function set.collapse(m, val)
             if ~val
+                % Restore direct children's visibility before expanding.
+                set(m.Children, 'Visible', 'on');
                 if strcmp(m.collapseDirection, 'down')
                     m.Position(4) = m.fullHeight;
                 else
@@ -269,6 +272,9 @@ classdef UIMenu < handle
                     m.Position = [p(1), p(2)-(m.fullHeight-m.titleHeight), p(3), m.fullHeight];
                 end
             else
+                % Hide direct children before collapsing so they do not
+                % overdraw the title bar while the panel is collapsed.
+                set(m.Children, 'Visible', 'off');
                 if strcmp(m.collapseDirection, 'down')
                     m.Position(4) = m.titleHeight;
                 else
@@ -280,8 +286,8 @@ classdef UIMenu < handle
             m.Title = m.Title;
         end
         function val = get.collapse(m)
-            % may not be exacttly equal due to round-off
-            if (m.panel.Position(4) - m.titleHeight) < .1
+            % Use outer Position (which includes outerMargins, consistent with set.collapse)
+            if (m.Position(4) - m.titleHeight) < .1
                 val = true;
             else
                 val = false;
@@ -290,7 +296,7 @@ classdef UIMenu < handle
         
         function toggleCollapse(d, ~, ~)
             p = d.CurrentPoint;
-            if p(2) > d.panel.Position(4) - d.titleHeight -1
+            if p(2) > d.Position(4) - d.titleHeight - 1
                 if d.collapse
                     d.collapse = false;
                 else

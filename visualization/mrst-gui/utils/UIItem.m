@@ -77,7 +77,8 @@ classdef UIItem < handle
             end
             
             d.panel = uipanel('Parent', p, 'Units', 'pixels', 'Position', opt.Position, ...
-                              'ButtonDownFcn', @d.toggleCollapse, 'Visible', 'off');
+                              'ButtonDownFcn', @d.toggleCollapse, ...
+                              'TitlePosition', 'lefttop', 'Visible', 'off');
             
             % add cosmetic panel
             %if ~strcmp(d.style.name, 'simple')
@@ -182,25 +183,23 @@ classdef UIItem < handle
         %------------------------------------------------------------------
         function set.Enable(d, val)
             if any(strcmp(val, {'on', 'off', 'all', 'inactive'}))
-                % if previous was 'on', save to enableState
-                 c = d.panel.Children;
-%                 get(c(isprop(c, 'Enable')), 'Enable')
+                % Use d.Children (explicitly maintained list) rather than
+                % d.panel.Children which may include internal objects added
+                % by newer MATLAB versions (R2025a+).
+                c = d.Children;
                 if strcmp(val, 'off')
-                    d.enableState = get(c, 'Enable');
-                    %d.enableState = arrayfun(@(c)c.Enable, d.panel.Children, 'UniformOutput', false);
+                    if ~isempty(c)
+                        d.enableState = arrayfun(@(x)x.Enable, c, 'UniformOutput', false);
+                    end
                 end
-                if strcmp(val, 'on') && ~isempty(d.enableState) % set to previous enableState
-                    if ischar(d.enableState)
-                        c.Enable = d.enableState;
-                    else
-                        for k = 1:numel(c)
-                            c(k).Enable = d.enableState{k};
-                        end
+                if strcmp(val, 'on') && ~isempty(d.enableState) && numel(c) == numel(d.enableState)
+                    % restore previous per-child enable state
+                    for k = 1:numel(c)
+                        c(k).Enable = d.enableState{k};
                     end
                 else
                     if strcmp(val, 'all'), val = 'on'; end
                     d.setProp('Enable', val);
-                   % set(d.panel.Children, 'Enable', val);
                 end
             end
         end
@@ -342,6 +341,8 @@ classdef UIItem < handle
         %% Remaining set/get     
         function set.collapse(d, val)
             if ~val
+                % Restore panel children's visibility before expanding.
+                set(d.panel.Children, 'Visible', 'on');
                 if strcmp(d.collapseDirection, 'down')
                     d.Position(4) = d.fullHeight;
                 else
@@ -349,6 +350,9 @@ classdef UIItem < handle
                     d.Position = [p(1), p(2)-(d.fullHeight-d.titleHeight), p(3), d.fullHeight];
                 end
             else
+                % Hide panel children before collapsing so they do not
+                % overdraw the title bar while the item is collapsed.
+                set(d.panel.Children, 'Visible', 'off');
                 if strcmp(d.collapseDirection, 'down')
                     d.Position(4) = d.titleHeight;
                 else

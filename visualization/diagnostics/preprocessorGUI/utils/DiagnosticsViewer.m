@@ -378,7 +378,6 @@ classdef DiagnosticsViewer < handle
                 s2.msel.Enable  = 'on';  s2.msel.collapse = 0;
                 s2.dsel.Enable  = 'on';
                 s2.asel.Enable  = 'on';
-                s2.rsel.Enable  = 'on';
                 s2.fdsel.Enable  = 'on';
                 s3.fsel.collapse = 1;
                 s3.wsel.collapse = 0;

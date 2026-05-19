@@ -48,7 +48,8 @@ props = struct('BackgroundColor',        standard, ...
 panelProps = struct('HighlightColor',       blue, ...
                     'ShadowColor',      standard, ...
                     'BorderType',         'none', ...
-                    'BorderWidth',            0);
+                    'BorderWidth',            0, ...
+                    'TitlePosition',   'lefttop');
                 
 dummyPanelProps = panelProps;                
    
@@ -161,11 +162,11 @@ setProps(d.dummyPanel, dummyPanelProps)
 d.layout.styleName = styleName;
 d.layout.opt  = layoutOpt; 
 yMrg = sum(d.layout.params.outerMargins(3:4));
-if isa(d, 'UIMenu')
-    d.titleHeight = ceil(18*d.FontSize/10) + yMrg + panelProps.BorderWidth;
-else
-    d.titleHeight = ceil(18*d.titleFontSize/10) + yMrg + panelProps.BorderWidth;
-end   
+% Measure actual panel title bar height dynamically so the layout adapts to
+% the MATLAB version (the title bar pixel height changed between R2024b and
+% R2025a).  Fall back to the font-size formula when the measurement is not
+% yet available (e.g. panel not yet drawn).
+d.titleHeight = getPanelTitleHeight(d.panel) + yMrg;
 end
  
 function setProps(d, props)
@@ -193,4 +194,57 @@ function params = getDefaultsMenuParams()
                     'dummyOuterMargins',  [0 0 0 0], ...  %
                     'vskipMenu',                  1, ...
                     'vskipItem',                  5);       
+end
+
+function h = getPanelTitleHeight(panel)
+% Reliably measure the uipanel title bar height across MATLAB versions.
+%
+% Strategy (in order of preference):
+%  1. Create a throw-away off-screen test panel that has a visible border
+%     (BorderType='line') so InnerPosition accurately excludes the title bar.
+%     Force TitlePosition='lefttop' so the title is at the top regardless of
+%     the MATLAB version default.  Use drawnow('nocallbacks') to flush the
+%     layout engine before reading InnerPosition.
+%  2. Version-based fallback: R2025a+ uses a taller title bar (~24 px at 10
+%     pt) than R2024b and earlier (~18 px at 10 pt).
+    try
+        % Create an off-screen test panel so the measurement causes no flicker.
+        % BorderType='line' gives a predictable InnerPosition:
+        %   InnerPosition.y   = borderWidth  (bottom border)
+        %   InnerPosition.h   = panelH - titleBarH - borderWidth  (bottom border only,
+        %                       title replaces the top border)
+        % => titleBarH = panelH - InnerPosition.y - InnerPosition.h
+        tmpPanel = uipanel('Parent',        panel.Parent, ...
+                           'Units',         'pixels', ...
+                           'FontName',      panel.FontName, ...
+                           'FontSize',      panel.FontSize, ...
+                           'TitlePosition', 'lefttop', ...
+                           'BorderType',    'line', ...
+                           'BorderWidth',   1, ...
+                           'Title',         'T', ...
+                           'Position',      [0 -9999 200 200]);
+        drawnow('nocallbacks');
+        ip = tmpPanel.InnerPosition;
+        pp = tmpPanel.Position;
+        delete(tmpPanel);
+        h = pp(4) - ip(2) - ip(4);
+        if h > 0 && h <= 60
+            return;
+        end
+    catch
+        % ignore and fall through to fallback
+    end
+    % Version-based fallback.  R2025a changed the default UI font metrics,
+    % making the panel title bar taller.
+    try
+        v    = version('-release');           % e.g. '2024b' or '2025a'
+        year = str2double(v(1:4));            % numeric year
+    catch
+        year = 0;
+    end
+    if year >= 2025
+        h = ceil(24 * panel.FontSize / 10);  % R2025a and later
+    else
+        h = ceil(18 * panel.FontSize / 10);  % R2024b and earlier
+    end
 end
