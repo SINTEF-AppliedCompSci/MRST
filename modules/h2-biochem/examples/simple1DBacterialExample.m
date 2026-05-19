@@ -78,9 +78,9 @@ compFluid = TableCompositionalMixture( ...
     {'H2O','H2','C1','CO2'});
 
 backend = DiagonalAutoDiffBackend('modifyOperators', true);
-model   = BiochemistryModel(model.G, model.rock, model.fluid, compFluid,...
-    true, backend, 'water', false, 'oil', true, 'gas', true,...
-    'bacteriamodel', true, 'molecularDiffusion', true,'liquidPhase','O','vaporPhase','G');
+model   = BiochemistryModel(model.G, model.rock, model.fluid, compFluid, ...
+    true, backend, 'water', false, 'oil', true, 'gas', true, ...
+    'bacteriamodel', true, 'liquidPhase','O','vaporPhase','G');
 
 %% Shut Wells
 schedule.control.W(1).components = [0.001, 0.958, 0.001, 0.05];
@@ -95,7 +95,7 @@ state0 = initCompositionalStateBacteria(model, initPress, initTemp, [0,1], ...
 %% Scenario 1: with bacterial clogging
 prob1 = packSimulationProblem(state0, model, schedule, 'bio_clogging');
 prob1.SimulatorSetup.model.OutputStateFunctions{end} = 'ComponentPhaseMass';
-simulatePackedProblem(prob1, 'RestartStep',1);
+simulatePackedProblem(prob1);
 [ws1, st1] = getPackedSimulatorOutput(prob1);
 
 %% Scenario 2: bacteria but no clogging

@@ -6,8 +6,7 @@ classdef GrowthBactRateSRC < StateFunction
     %
     % DESCRIPTION:
     %   Computes the bacterial growth rate in each grid cell based on:
-    %   - H2 and CO2 concentrations (Monod kinetics) for Methacenic archae
-    %   - H2 and SO4(2-) concentrations (Monod kinetics) for Sulfate reducing bacteria
+    %   - H2 and CO2 concentrations (Monod kinetics)
     %   - Bacterial population density
     %   - Liquid phase saturation and density
     %   - Pore volume

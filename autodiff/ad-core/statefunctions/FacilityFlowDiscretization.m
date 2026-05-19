@@ -10,11 +10,11 @@ classdef FacilityFlowDiscretization < StateFunctionGrouping
         InjectionSurfaceDensity % Density of injected fluid at surface
         Mobility                % Phase mobilities in connecting cells
     end
-
+    
     methods
         function group = FacilityFlowDiscretization(model)
             group@StateFunctionGrouping('FacilityFluxProps');
-
+            
             group = group.setStateFunction('PhaseFlux', WellPhaseFlux(model));
             ctf = ComponentTotalFlux(model);
             ctf.label = 'Q_i';

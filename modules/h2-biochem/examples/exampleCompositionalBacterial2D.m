@@ -33,7 +33,7 @@ warning('ComputationalCost:High', ...
     ['This is a 5-cycle injection example; consider reducing cycles for faster runs.']);
 
 %% Set up black-oil model and schedule
-[~, ~, state0Bo, modelBo, scheduleBo, ~] = modelForSimple2DAquifer(deck,'numcycles',2);
+[~, ~, state0Bo, modelBo, scheduleBo, ~] = modelForSimple2DAquifer(deck,'numcycles',10);
 
 %% Convert black-oil to compositional model
 model = convertBlackOilModelToCompositionalModel(modelBo);
@@ -66,7 +66,7 @@ end
 diagonal_backend = DiagonalAutoDiffBackend('modifyOperators', true);
 arg = {model.G, model.rock, model.fluid, compFluid,...
     false, diagonal_backend, 'oil', true, 'gas', true, ... % Define phases for water-oil system
-    'bacteriamodel', bacteriamodel,'molecularDiffusion', true, 'liquidPhase', 'O', ...
+    'bacteriamodel', bacteriamodel, 'liquidPhase', 'O', ...
     'vaporPhase', 'G'}; % Set phases and EOS model
 model = BiochemistryModel(arg{:});
 model.gravity = modelBo.gravity;
@@ -113,20 +113,20 @@ nls.LinearSolver = lsolve;
 %% Pack and run simulations
 % --- With bio-clogging
 problemWithClogging = packSimulationProblem(state0, model, schedule, caseNameWithClogging, 'NonLinearSolver', nls);
-simulatePackedProblem(problemWithClogging, 'RestartStep',1);
+simulatePackedProblem(problemWithClogging);
 
 % --- Without clogging
 modelNoClogging = model;
 modelNoClogging.rock.perm = perm0;
 modelNoClogging.rock.poro = poro0;
 modelNoClogging.fluid.pvMultR = @(p, nbact) 1;
-modelNoClogging = BiochemistryModel(modelNoClogging.G, modelNoClogging.rock, modelNoClogging.fluid, compFluid,...
+modelNoClogging = BiochemistryModel(modelNoClogging.G, modelNoClogging.rock, modelNoClogging.fluid, compFluid, ...
     false, DiagonalAutoDiffBackend('modifyOperators', true), 'oil', true, 'gas', true, ...
-    'bacteriamodel', true, 'molecularDiffusion', false,'liquidPhase', 'O', 'vaporPhase', 'G');
+    'bacteriamodel', true, 'liquidPhase', 'O', 'vaporPhase', 'G');
 state0NoClogging = state0;
 caseNameNoClogging = [baseName '_NO_CLOGGING'];
 problemNoClogging = packSimulationProblem(state0NoClogging, modelNoClogging, schedule, caseNameNoClogging, 'NonLinearSolver', nls);
-simulatePackedProblem(problemNoClogging, 'RestartStep',1);
+simulatePackedProblem(problemNoClogging);
 
 % --- Without bacteria
 modelNoBact = model;
@@ -135,12 +135,12 @@ modelNoBact.rock.poro = poro0;
 modelNoBact.fluid.pvMultR = @(p, nbact) 1;
 modelNoBact = BiochemistryModel(modelNoBact.G, modelNoBact.rock, modelNoBact.fluid, compFluid, ...
     false, DiagonalAutoDiffBackend('modifyOperators', true), 'oil', true, 'gas', true, ...
-    'bacteriamodel', false,'molecularDiffusion', false, 'liquidPhase', 'O', 'vaporPhase', 'G');
+    'bacteriamodel', false, 'liquidPhase', 'O', 'vaporPhase', 'G');
 state0NoBact = state0;
 state0NoBact.nbact = 0;
 caseNameNoBact = [baseName '_NO_BACT'];
 problemNoBact = packSimulationProblem(state0NoBact, modelNoBact, schedule, caseNameNoBact, 'NonLinearSolver', nls);
-simulatePackedProblem(problemNoBact, 'RestartStep',1);
+simulatePackedProblem(problemNoBact);
 
 %% Get and compare results
 [wsWithClog, statesWithClog] = getPackedSimulatorOutput(problemWithClogging);

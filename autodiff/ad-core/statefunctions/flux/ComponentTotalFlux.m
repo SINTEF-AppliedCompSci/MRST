@@ -3,20 +3,20 @@ classdef ComponentTotalFlux < StateFunction
     properties
 
     end
-
+    
     methods
         function gp = ComponentTotalFlux(varargin)
             gp@StateFunction(varargin{:});
             gp = gp.dependsOn('ComponentPhaseFlux');
             gp.label = 'V_i';
         end
-
+        
         function v = evaluateOnDomain(prop, model, state)
             ncomp = model.getNumberOfComponents();
             nph = model.getNumberOfPhases();
             v = cell(ncomp, 1);
             phase_flux = prop.getEvaluatedDependencies(state, 'ComponentPhaseFlux');
-
+            
             for c = 1:ncomp
                 % Loop over phases where the component may be present
                 for ph = 1:nph
