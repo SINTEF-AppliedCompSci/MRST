@@ -270,6 +270,11 @@ classdef UIMenu < handle
                     m.Position = [p(1), p(2)-(m.fullHeight-m.titleHeight), p(3), m.fullHeight];
                 end
             else
+                % Push all child panels below the panel bottom boundary
+                % before shrinking, so they cannot overdraw the title bar.
+                for k = 1:numel(m.Children)
+                    m.Children(k).Position(2) = -m.Children(k).Position(4) - 1;
+                end
                 if strcmp(m.collapseDirection, 'down')
                     m.Position(4) = m.titleHeight;
                 else
