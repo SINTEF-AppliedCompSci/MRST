@@ -161,11 +161,11 @@ setProps(d.dummyPanel, dummyPanelProps)
 d.layout.styleName = styleName;
 d.layout.opt  = layoutOpt; 
 yMrg = sum(d.layout.params.outerMargins(3:4));
-if isa(d, 'UIMenu')
-    d.titleHeight = ceil(18*d.FontSize/10) + yMrg + panelProps.BorderWidth;
-else
-    d.titleHeight = ceil(18*d.titleFontSize/10) + yMrg + panelProps.BorderWidth;
-end   
+% Measure actual panel title bar height dynamically so the layout adapts to
+% the MATLAB version (the title bar pixel height changed between R2024b and
+% R2025a).  Fall back to the font-size formula when the measurement is not
+% yet available (e.g. panel not yet drawn).
+d.titleHeight = getPanelTitleHeight(d.panel) + yMrg;
 end
  
 function setProps(d, props)
@@ -193,4 +193,26 @@ function params = getDefaultsMenuParams()
                     'dummyOuterMargins',  [0 0 0 0], ...  %
                     'vskipMenu',                  1, ...
                     'vskipItem',                  5);       
+end
+
+function h = getPanelTitleHeight(panel)
+% Measure the actual uipanel title bar height in pixels from InnerPosition.
+% This approach handles MATLAB version differences: the title bar pixel
+% height changed between R2024b and R2025a.  Falls back to a font-size
+% based estimate when the geometry is not yet available.
+    try
+        ip = panel.InnerPosition;
+        pp = panel.Position;
+        if pp(4) > 0
+            measured = pp(4) - ip(2) - ip(4);
+            if measured > 0 && measured <= 60  % sanity: title bar < 60 px
+                h = measured;
+                return;
+            end
+        end
+    catch
+        % ignore and fall through to fallback
+    end
+    % Fallback: classic formula (works for MATLAB < R2025a at 10pt font)
+    h = ceil(18 * panel.FontSize / 10);
 end

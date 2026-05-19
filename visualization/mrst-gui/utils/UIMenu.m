@@ -280,8 +280,8 @@ classdef UIMenu < handle
             m.Title = m.Title;
         end
         function val = get.collapse(m)
-            % may not be exacttly equal due to round-off
-            if (m.panel.Position(4) - m.titleHeight) < .1
+            % Use outer Position (which includes outerMargins, consistent with set.collapse)
+            if (m.Position(4) - m.titleHeight) < .1
                 val = true;
             else
                 val = false;
@@ -290,7 +290,7 @@ classdef UIMenu < handle
         
         function toggleCollapse(d, ~, ~)
             p = d.CurrentPoint;
-            if p(2) > d.panel.Position(4) - d.titleHeight -1
+            if p(2) > d.Position(4) - d.titleHeight - 1
                 if d.collapse
                     d.collapse = false;
                 else
