@@ -2,7 +2,7 @@ function fluid = addVERelpermCapillaryFringe(fluid, Gt, rock2D, invPc3D, kr3D, v
 %Undocumented Utility Function
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

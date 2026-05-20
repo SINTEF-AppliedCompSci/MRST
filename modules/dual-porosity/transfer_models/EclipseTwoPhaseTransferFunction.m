@@ -159,7 +159,7 @@ classdef EclipseTwoPhaseTransferFunction < TransferFunction
 
 end
 %{
-Copyright 2009-2016 SINTEF ICT, Applied Mathematics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

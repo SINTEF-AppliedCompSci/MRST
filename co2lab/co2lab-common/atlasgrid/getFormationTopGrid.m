@@ -22,7 +22,7 @@ function [Gt, rock2D, petrodata] = getFormationTopGrid(formation, coarsening_lev
 %                          heterogeneous properties.
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

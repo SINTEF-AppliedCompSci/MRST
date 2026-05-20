@@ -78,7 +78,7 @@ set(get(hh,'Children'),'FaceColor',[.6 .6 .6]);
 set(hc,'Fontsize',16,'FontWeight','bold', 'XTick', 0.5, 'XTickLabel','mD');
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

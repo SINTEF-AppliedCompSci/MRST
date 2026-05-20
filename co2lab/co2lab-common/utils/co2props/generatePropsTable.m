@@ -28,7 +28,7 @@ function generatePropsTable(savedir, fluidname, pname, P_range, T_range, P_num, 
 % given the option to install it using `pip` when running this function.
 % 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

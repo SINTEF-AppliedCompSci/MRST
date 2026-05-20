@@ -2,7 +2,7 @@ function [ model, schedule, initState, states, wellSols ] = calibrateSleipnerSet
 % Setup the IEAGHG Sleipner model, including grid, entry rates, etc.
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -13,7 +13,7 @@ function problem = transformProblem(problem, varargin)
     % i and j, initilized to 0 if empty.
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

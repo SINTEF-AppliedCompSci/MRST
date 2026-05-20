@@ -30,7 +30,7 @@ function masses = massTrappingDistributionVE(S, Smax, pressure, rs, Gt, fluidVE,
 %            masses[7] : mass of 'free' gas (i.e. not trapped in any way)
 
 %{
-Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

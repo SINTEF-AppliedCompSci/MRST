@@ -47,7 +47,7 @@ h=colorbar('horiz'); ticks=25*2.^(0:5);
 set(h,'XTick',log10(ticks),'XTickLabel',ticks);
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

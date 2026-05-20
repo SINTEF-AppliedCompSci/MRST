@@ -53,7 +53,7 @@ function [problem, state] = equationsWaterDP(state0, state, model, dt, drivingFo
 %   equationsBlackOil, ThreePhaseBlackOilModel
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -193,7 +193,7 @@ end
 %--------------------------------------------------------------------------
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

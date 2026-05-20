@@ -4,7 +4,7 @@ function [poro, C]  = poroFromPerm(perm, avg_poro, tol)
 % relation: K = C φ^3 / (1-φ)^2
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

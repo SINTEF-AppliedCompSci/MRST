@@ -21,7 +21,7 @@ function state = eCPAinitCompositionalState(model, p, T, s0, z0, DPDP, eos)
 %
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

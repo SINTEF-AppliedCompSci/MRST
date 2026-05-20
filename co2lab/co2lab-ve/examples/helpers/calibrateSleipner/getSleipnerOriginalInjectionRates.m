@@ -8,7 +8,7 @@ function [ inj_year, inj_rates ] = getSleipnerOriginalInjectionRates()
     % Reservoir density was reported to be 695.89 kg/m3
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

@@ -106,7 +106,7 @@ quiver3(sC(i,1),sC(i,2),sC(i,3),...
 hold off
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

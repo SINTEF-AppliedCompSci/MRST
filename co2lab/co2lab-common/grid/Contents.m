@@ -6,7 +6,7 @@
 %   topSurfaceGrid       - Make a hybrid grid of the top surface of a 3D grid having a logical
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

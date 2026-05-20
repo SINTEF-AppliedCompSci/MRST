@@ -2,7 +2,7 @@ function [problem, state] = eCPAequationsNaturalVariables(state0, state, model, 
 % Equations for natural variables formulation using eCPA EOS
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
@@ -485,7 +485,7 @@ function [sO, sG] = setMinimums(model, state, sW, sO, sG, pureVapor, pureLiquid)
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

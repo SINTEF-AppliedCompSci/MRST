@@ -2,7 +2,7 @@ function partition = decomposeDomain(model, W, varargin)
     % Utility functio to get reasonable domain decmposition
 
 %{
-Copyright 2009-2020 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

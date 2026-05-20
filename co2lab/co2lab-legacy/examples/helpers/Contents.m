@@ -8,7 +8,7 @@
 %   sinusDeckAdiVE        - Make a GRDECL structure for simple sloping sinus-formed reservoir.
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

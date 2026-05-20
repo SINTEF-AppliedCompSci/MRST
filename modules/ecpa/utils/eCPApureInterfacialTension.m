@@ -2,7 +2,7 @@ function [IFT, rho_L, rho_V] = eCPApureInterfacialTension(eos, T)
 % Estimate interfacial tension of pure substances
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

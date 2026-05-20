@@ -16,7 +16,7 @@ function p3D = pVE_to_p3D(Gt, pVE, fluid)
 %         domain (found in Gt.parent).
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

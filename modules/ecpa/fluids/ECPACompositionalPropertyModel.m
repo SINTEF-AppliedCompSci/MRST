@@ -84,7 +84,7 @@ classdef ECPACompositionalPropertyModel < PropertyModel
                 end
                 E = 1e-3 .* M .* alp .* rho  + P ./ rho;
                 d_mu = 1e-6.*rho.*L.*E.* (1000.*M./(3.*R.*T)).^0.5 .*exp(B.*(E./(R.*T)).^1.5);
-                mu = 1e-7 .* (mu0_m + d_mu); % Pa¡¤s
+                mu = 1e-7 .* (mu0_m + d_mu); % Paï¿½ï¿½s
             else
                 % Compute viscosity using the Lohrenz, Bray and Clark
                 % correlation for hydrocarbon mixtures (LBC viscosity)
@@ -206,7 +206,7 @@ classdef ECPACompositionalPropertyModel < PropertyModel
 end
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

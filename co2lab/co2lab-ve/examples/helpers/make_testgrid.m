@@ -6,7 +6,7 @@ function G = make_testgrid(res, extent, bend, slope, depth, bumps, varargin)
 % y-dimension), and 'heigh' is the amplitude of the trap (in meters)
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

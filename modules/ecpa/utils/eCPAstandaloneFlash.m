@@ -17,7 +17,7 @@ function [L, x, y, Z_L, Z_V, rhoL, rhoV, reports] = eCPAstandaloneFlash(p, T, z,
 %   `EquationOfStateModel`
 
 %{
-Copyright 2009-2022 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

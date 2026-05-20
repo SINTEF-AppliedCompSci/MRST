@@ -67,7 +67,7 @@ fluid.krPts.ow = [0,    1 - swc];
 fluid.krPts.og = [0,    1 - sgr];
 end
 %{
-Copyright 2009-2025 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

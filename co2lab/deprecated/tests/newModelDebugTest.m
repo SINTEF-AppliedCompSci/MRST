@@ -166,7 +166,7 @@ subplot(1,2,2); plotCellData(G, s2, 'edgealpha', 0.1); view(0,0);
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

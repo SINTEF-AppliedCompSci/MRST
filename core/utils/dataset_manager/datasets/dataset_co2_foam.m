@@ -2,7 +2,7 @@ function [info, present] = dataset_co2_foam()
 % Info function for the dataset accompanying the co2-foam module 
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

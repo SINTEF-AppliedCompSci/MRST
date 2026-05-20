@@ -26,7 +26,7 @@
 %   15% and a mean horizontal permeability of 143 mD (vertical permeability approximately 
 %   3 mD).
 % - The Brooks–Corey model for capillary pressure is utilized, with parameters 
-%   𝜆 = 2.0 and 𝑃𝑒 = 0.1 bar.
+%    = 2.0 and  = 0.1 bar.
 % - The simulation retains a conversion phase as a build-up phase, contrasting with the 
 %   original setup where the reservoir was initially saturated with a gas mixture; 
 %   our initial state is brine.
@@ -164,7 +164,7 @@ xlabel('Time (months)');
 %
 % <html>
 % <p><font size="-1">
-% Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+% Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 % </font></p>
 % <p><font size="-1">
 % This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).

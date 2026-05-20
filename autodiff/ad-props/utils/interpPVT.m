@@ -3,7 +3,7 @@ function [f, dfdx, dfdy] = interpPVT(T, x, v, flag, method, useMex)
 % where flag indicates if the saturated curve is to be used for each entry
 
 %{
-Copyright 2009-2024 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

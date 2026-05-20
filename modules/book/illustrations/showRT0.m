@@ -43,7 +43,7 @@ surf(x,y,z); hold off; axis equal tight off
 view(-45,60); zoom(1.3); set(gca,'Projection','perspective')
 set(gca,'Clipping','off');
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 

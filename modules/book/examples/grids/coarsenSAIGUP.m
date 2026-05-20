@@ -202,7 +202,7 @@ set(gca,'xdir','reverse','YAxisLocation','right',...
 set(h,'FaceColor',[.7 .7 .7],'EdgeColor',[.6 .6 .6]);
 
 %{
-Copyright 2009-2018 SINTEF Digital, Mathematics & Cybernetics.
+Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 
 This file is part of The MATLAB Reservoir Simulation Toolbox (MRST).
 
