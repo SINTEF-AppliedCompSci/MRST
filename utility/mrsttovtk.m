@@ -38,7 +38,7 @@ function mrsttovtk(G, states, name, formatn)
 %   mrsttovtk(G,{states{10:10:100}},'states','%.6g');
 
 %{
-Copyright 2021-2025, NORCE Research AS, Computational Geosciences and
+Copyright 2021-2026, NORCE Research AS, Computational Geosciences and
 Modeling. 
 This file is part of the ad-micp module.
 ad-micp is free software: you can redistribute it and/or modify

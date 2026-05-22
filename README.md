@@ -27,8 +27,8 @@ See the [_Wiki_](https://github.com/daavid00/ad-micp/wiki) for an extended descr
 respect to previous releases, and using this module in macOS with GNU Octave.
 
 ## Requirements
-* MRST (Tested version: mrst-2025b)
-* MATLAB (Tested version: R2025b) or GNU Octave (Tested version: 10.3.0)
+* MRST (Tested version: mrst-2026a)
+* MATLAB (Tested version: R2025b) or GNU Octave (Tested version: 11.1.0)
 
 ## Installation (MATLAB/GNU Octave)
 The ad-micp module is included in MRST, click [_this link_](https://github.com/SINTEF-AppliedCompSci/MRST/tree/main/modules/ad-micp) 
