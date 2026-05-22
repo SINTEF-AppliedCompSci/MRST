@@ -9,7 +9,7 @@ classdef MICPModel < TwoPhaseOilWaterModel
 
 %{ 
 Partial copyright 2009-2021, SINTEF Digital, Mathematics & Cybernetics.
-Partial copyright 2021-2025, NORCE Research AS, Computational Geosciences and
+Partial copyright 2021-2026, NORCE Research AS, Computational Geosciences and
 Modeling.
 
 This file is part of the ad-micp module.

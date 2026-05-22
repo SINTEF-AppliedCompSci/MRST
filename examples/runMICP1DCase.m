@@ -259,7 +259,7 @@ mrsttovtk(G, states, 'states', '%f');
 
 %% Copyright notice
 %{
-Copyright 2021-2025, NORCE Research AS, Computational Geosciences and
+Copyright 2021-2026, NORCE Research AS, Computational Geosciences and
 Modeling.
 
 This file is part of the ad-micp module.
