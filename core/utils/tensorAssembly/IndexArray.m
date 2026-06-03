@@ -210,6 +210,11 @@ classdef IndexArray
         % create table with only the indices given by fdnames, by removing columns. Note that the function does not
         % check for uniqueness of the rows and should therefore be used with care.
 
+            if ischar(fdnames)
+                tbl = tbl.filterfds({fdnames});
+                return
+            end
+            
             newnameinds = [];
             newnames = {};
             for ifd = 1 : numel(fdnames)
