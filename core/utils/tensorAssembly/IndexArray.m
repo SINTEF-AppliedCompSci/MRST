@@ -130,6 +130,12 @@ classdef IndexArray
             tbl.inds = inds;            
              
         end
+
+        function tbl = sort(tbl, fds, varargin)
+
+            tbl = sortIndexArray(tbl, fds, varargin{:});
+            
+        end
         
         function tbl = duplicateInd(tbl, fdcell)
         %   tbl    - IndexArray
