@@ -87,7 +87,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
    
    if opt.setupConformalGrid
        if tolerance == 0
-           error('Conformal grid with zero tolerance is not directly acessible. Change to a small tolerance value')
+           fprintf('\nConformal grid with zero tolerance is not directly acessible. Change to a small tolerance value\n');
+           error('Conformal grid with zero tolerance is not directly acessible. Change to a small tolerance value');
        end
        tolerance = -tolerance;
    end
