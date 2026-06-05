@@ -45,6 +45,12 @@ classdef SparseTensor
             
         end
 
+        function tensor = extract(tensor, inds)
+
+            tensor.vals     = tensor.vals(inds);
+            tensor.tbl.inds = tensor.tbl.inds(inds, :);
+            
+        end
         
         function tensor = times(tensor, coef)
 
