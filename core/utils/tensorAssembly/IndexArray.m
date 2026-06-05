@@ -206,6 +206,23 @@ classdef IndexArray
             
         end    
 
+        function fdinds = getindfds(tbl, fdnames)
+
+            if ischar(fdnames)
+                fdinds = tbl.getindfds({fdnames});
+                return
+            end
+
+            deprecated = any(cellfun(@iscell, fdnames));
+            if deprecated
+                error('option not supported any more');
+            end
+              
+            [isok, fdinds] = ismember(fdnames, tbl.fdnames);
+            assert(all(isok), 'field does not exist');
+            
+        end
+        
         function tbl = filterfds(tbl, fdnames)
         % create table with only the indices given by fdnames, by removing columns. Note that the function does not
         % check for uniqueness of the rows and should therefore be used with care.
@@ -214,24 +231,8 @@ classdef IndexArray
                 tbl = tbl.filterfds({fdnames});
                 return
             end
-            
-            newnameinds = [];
-            newnames = {};
-            for ifd = 1 : numel(fdnames)
-                fdname = fdnames{ifd};
-                if iscell(fdname)
-                    newnameinds(end + 1) = ifd;
-                    newnames{end + 1} = fdname{2};
-                    fdnames{ifd} =  fdname{1};
-                end
-            end
-            [isok, fdinds] = ismember(fdnames, tbl.fdnames);
-            assert(all(isok), 'field does not exist');
 
-            if ~isempty(newnameinds)
-                fdnames(newnameinds) = newnames;
-            end
-            
+            fdinds = tbl.getindfds(fdnames);
             tbl.fdnames = fdnames;
             tbl.inds = tbl.inds(:, fdinds);
             
@@ -247,8 +248,7 @@ classdef IndexArray
         % create table where the column given by fdnames are removed. Note that the function does not
         % check for uniqueness of the rows and should therefore be used with care.
 
-            [isok, fdinds] = ismember(fdnames, tbl.fdnames);
-            assert(all(isok), 'field does not exist');
+            fdinds = tbl.getindfds(fdnames);
             
             tbl.fdnames(fdinds) = [];
             tbl.inds(:, fdinds) = [];
