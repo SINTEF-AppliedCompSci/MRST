@@ -1,5 +1,13 @@
-function [iseq, tens1, tens2] = compareSparseTensor(tens1, tens2)
+function [iseq, tens1, tens2] = compareSparseTensor(tens1, tens2, options)
 
+    if nargin < 3
+        options = [];
+    end
+
+    options = setDefaultStructField(options, 'useTolerance', false);
+    options = setDefaultStructField(options, 'toleranceType', 'relative');
+    options = setDefaultStructField(options, 'tolerance', 1e-12);
+    
     fdnames1 = tens1.tbl.fdnames;
     fdnames2 = tens2.tbl.fdnames;
     
@@ -22,11 +30,41 @@ function [iseq, tens1, tens2] = compareSparseTensor(tens1, tens2)
 
     tens2 = stm.eval();
 
-    if all(tens1.vals == tens2.vals)
-        iseq = true;
+    if options.useTolerance
+
+        tol = options.tolerance;
+        
+        switch options.toleranceType
+
+          case 'relative'
+            m = max(abs(tens1.vals), abs(tens2.vals));
+            if all(abs(tens1.vals(m > 0) - tens2.vals(m > 0))./m(m > 0) < tol)
+                iseq = true;
+            else
+                iseq = false;
+            end
+            
+          case 'absolute'
+            
+            if all(abs(tens1.vals - tens2.vals) < tol)
+                iseq = true;
+            else
+                iseq = false;
+            end
+            
+          otherwise
+            
+            error('toleranceType not recognized')
+            
+        end
+        
     else
-        iseq = false;
+        
+        if all(tens1.vals == tens2.vals)
+            iseq = true;
+        else
+            iseq = false;
+        end
     end
-    
     
 end
