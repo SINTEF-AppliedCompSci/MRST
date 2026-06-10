@@ -131,6 +131,12 @@ classdef IndexArray
              
         end
 
+        function tbl = proj(tbl, fds)
+
+            tbl = projIndexArray(tbl, fds);
+
+        end
+        
         function tbl = sort(tbl, fds, varargin)
 
             tbl = sortIndexArray(tbl, fds, varargin{:});
