@@ -53,6 +53,10 @@ classdef IndexArray
                          'inds'     , [], ...
                          'num', []);
             opt = merge_options(opt, varargin{:}); 
+
+            if nargin < 1
+                structtbl = [];
+            end
             
             if ~isempty(structtbl)
                 fdnames = fieldnames(structtbl)';
