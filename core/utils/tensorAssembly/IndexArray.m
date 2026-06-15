@@ -272,6 +272,12 @@ classdef IndexArray
             
         end    
 
+        function isunique = checkUnique(tbl)
+
+            isunique = (size(unique(tbl.inds, 'rows'), 1) == tbl.num);
+
+        end
+        
         function print(tbl, varargin)
         % Display IndexArray in terminal
             opt = struct('range', (1 : tbl.num)', ...
