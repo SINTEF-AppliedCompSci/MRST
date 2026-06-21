@@ -21,9 +21,13 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     % type can be 'linear cap.', 'S table', 'P-scaled table' or 'P-K-scaled table'.
-    opt = struct('type', 'P-scaled table', 'samples', 2000);
+    opt = struct('type', 'P-scaled table', 'samples', 2000, 'hyst_model', 'endpoint scaling');
     opt = merge_options(opt, varargin{:});
 
+    assert(strcmpi(opt.hyst_model, 'endpoint scaling') || strcmpi(opt.hyst_model, 'fixed residual'), ...
+           'Unknown hysteresis model');
+    fluid.hyst_model = opt.hyst_model;
+    
     % Warn user if data doesn't fulfill the assumptions for the model he/she
     % has chosen
     issue_warnings(opt.type, fluid, Gt, rock2D);
@@ -42,16 +46,18 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         fluid.krW = @(sw, p, varargin) krW_simple(sw, fluid, varargin{:});
       case 'P-scaled table'
         table = make_CO2_table_p_based(invPc3D, kr3D, opt.samples, Pmax);
-        fluid.pcWG = @(sg, p, varargin) pcWG_ptable(sg, p, table, fluid, Gt.cells.H, varargin{:});
-        fluid.krG = @(sg, p, varargin) krG_ptable(sg, p, table, fluid, Gt.cells.H, varargin{:});
+        fluid.pcWG = @(sg, p, varargin) pcWG_ptable(sg, p, table, fluid, Gt.cells.H,...
+                                                    fluid.hyst_model, varargin{:});
+        fluid.krG = @(sg, p, varargin) krG_ptable(sg, p, table, fluid, Gt.cells.H, ...
+                                                  fluid.hyst_model, varargin{:});
         fluid.krW = @(sw, p, varargin) krW_simple(sw, fluid, varargin{:});
       case 'P-K-scaled table'
         kscale = sqrt(rock2D.poro ./ (rock2D.perm)) * fluid.surface_tension;
         table = make_CO2_table_p_based(invPc3D, kr3D, opt.samples, max(Pmax / kscale));
         fluid.pcWG = @(sg, p, varargin) ...
-            pcWG_ptable(sg, p, table, fluid, Gt.cells.H, 'kscale', kscale, varargin{:});
+            pcWG_ptable(sg, p, table, fluid, Gt.cells.H, 'kscale', kscale, fluid.hyst_model, varargin{:});
         fluid.krG = @(sg, p, varargin) ...
-            krG_ptable(sg, p, table, fluid, Gt.cells.H, 'kscale', kscale, varargin{:});
+            krG_ptable(sg, p, table, fluid, Gt.cells.H, 'kscale', kscale, fluid.hyst_model, varargin{:});
         fluid.krW = @(sw, p, varargin) krW_simple(sw, fluid, varargin{:});
       otherwise
         error('Unknown VE relperm model');
@@ -60,6 +66,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % add fine-scale functions to fluid object
     fluid.invPc3D = invPc3D;
     fluid.kr3D = kr3D;
+    
 end
 
 % ----------------------------------------------------------------------------
@@ -71,9 +78,9 @@ function kr = krW_simple(sw, fluid, varargin)
     if isempty(opt.sGmax)
         opt.sGmax = 1-sw; 
     end
-        
+
     sg = free_sg(1-sw, opt.sGmax, fluid.res_water, fluid.res_gas);
-    
+            
     sw_eff = sw - (sg./(1-fluid.res_water)) .* fluid.res_water;
     sw_eff(sw_eff<0) = 0; % Should not logically happen, but just in case
     
@@ -82,18 +89,25 @@ function kr = krW_simple(sw, fluid, varargin)
 end
 
 % ----------------------------------------------------------------------------
-function kr = krG_ptable(sg, p, table, fluid, H, varargin)
+function kr = krG_ptable(sg, p, table, fluid, H, hyst_model, varargin)
     opt = merge_options(struct('sGmax', [], 'kscale', 1), varargin{:});
     if isempty(opt.sGmax)
         opt.sGmax = sg;
     end
     
     drho = fluid.rhoW(p) - fluid.rhoG(p);
-    sg = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas);
+
+    if strcmpi(hyst_model, 'endpoint scaling')
+        sg = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas);
+    else
+        sg = free_sg_sharp(sg, opt.sGmax, fluid.res_gas, H, drho, table);
+    end
     
     [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table);
     
     kr = interpTable(table.SP, table.krP, SP ./ opt.kscale);
+
+    kr(kr < 0) = 0; % @@in case of negative values due to extrapolation
     
     if any(value(H_trunc))
         % adjust for truncated plumes
@@ -108,20 +122,83 @@ function kr = krG_ptable(sg, p, table, fluid, H, varargin)
 end
 
 % ----------------------------------------------------------------------------
-function pc = pcWG_ptable(sg, p, table, fluid, H, varargin)
+function pc = pcWG_ptable(sg, p, table, fluid, H, hyst_model, varargin)
     opt = merge_options(struct('sGmax', [], 'kscale', 1), varargin{:});    
     if isempty(opt.sGmax)
         opt.sGmax = sg;
     end
     
     drho = fluid.rhoW(p) - fluid.rhoG(p);
-    sg = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas);
-
+    if strcmpi(hyst_model, 'endpoint scaling')
+        sg = free_sg(sg, opt.sGmax, fluid.res_water, fluid.res_gas);
+    else
+        sg = free_sg_sharp(sg, opt.sGmax, fluid.res_gas, H, drho, table);
+    end
+    
     SP = compute_untruncated_SP(H, drho, sg, table) ./ opt.kscale;
     
     pc = interpTable(table.SP, table.p, SP) .* opt.kscale;
     
 end
+
+% ----------------------------------------------------------------------------
+function fsg = free_sg_sharp(sg, sGmax, rn, H, drho, table)
+
+    hfun = @(s) interpTable(table.SP, table.p, ...
+                            compute_untruncated_SP(H, drho, s, table)) ./ ...
+                            (drho * norm(gravity));
+
+    hmax = min(H, hfun(sGmax));
+    fsg = sg;
+
+    has_res = (sg < sGmax) & (hfun(sg) < H); % criteria for having residual trapping
+
+    if any(has_res)
+        % We have s_free = s - s_res, and s_res = (hmax - h(s_free)) * rn
+        % We thus seek the root of the function:
+        % F(s_free) = s_free + (hmax - hfun(s_free))/H * rn - sg
+        % We will use Newton to solve this, and we need the derivative of F
+
+        % determine local variables that only relate to cells with residual trapping
+        s_loc = sg(has_res);
+        sGmax_loc = sGmax(has_res);
+        H_loc = H(has_res);
+        hmax_loc = hmax(has_res);
+        drho_g_loc = drho(has_res) .* norm(gravity);
+        
+        % note that we have already established that h < H, so it won't be truncated, and SP=s*dP_aquifer
+        SPfun_loc = @(s) s .* drho_g_loc .* H_loc;
+        
+        hfun_loc = @(s) interpTable(table.SP, table.p, SPfun_loc(s)) ./ drho_g_loc;
+        dhfun_loc = @(s) dinterpTable(table.SP, table.p, value(SPfun_loc(s))) .* H_loc;
+        
+        F_loc = @(s_free) s_free + (hmax_loc - hfun_loc(s_free))./H_loc * rn - s_loc;
+        dF_loc = @(s_free) 1 - dhfun_loc(s_free)./H_loc * rn;
+
+        MAX_ITER = 2000; % should be largely enough
+        TOL = 1e-8; % for ADI to work properly, this
+                    % needs to be fairly tight
+        s_free = s_loc; % initial guess
+        for iter = 1:MAX_ITER
+            res = F_loc(s_free);
+            if any(res > TOL)
+                ixs = res > TOL;
+                df = dF_loc(s_free);
+                s_free(ixs) = s_free(ixs) - res(ixs) ./ df(ixs); % apply Newton
+                s_free(ixs) = min(s_free(ixs), sGmax_loc(ixs)); % do not exceed maximum saturation
+            else
+                % all free saturations are within tolerance
+                break;
+            end
+        end
+        if any(res > TOL)
+            warning('Did not converge when computing free saturation');
+        end
+        fsg(has_res) = s_free;
+    end
+    
+end
+
 
 % ----------------------------------------------------------------------------
 function [SP, H_trunc] = compute_untruncated_SP(H, drho, sg, table)
@@ -272,7 +349,7 @@ end
 function table = make_CO2_table_h_based(invPc3D, kr3D, Gt, samples, Pmax, drho_surf)
     
     Hmax = Pmax / drho_surf / norm(gravity); % NB: using h directly is only strictly
-                                             % valid in the incompresssible case
+                                             % valid in the incompressible case
     h = linspace(0, Hmax, samples);
     dh = h(2) - h(1);
     
