@@ -449,8 +449,11 @@ function opt = default_options()
    opt.transMult = [];
 
    % hysteresis model (endpoint scaling or fixed residual; only relevant for
-   % capillary fringe models)
-   opt.hyst_model = 'endpoint scaling'; % 'endpoint scaling' or 'fixed residual'
+   % capillary fringe models).  The 'endpoint scaling' model has remaining,
+   % residual saturation depending on initial saturation (from zero up to the
+   % maximum residual saturation value , wheras the 'fixed residual' model has
+   % one constant residual value equal to maximum residual saturation.
+   opt.hyst_model = 'endpoint scaling'; % 'endpoint scaling' or 'fixed residual'.  
 end
 
 % ----------------------------------------------------------------------------
