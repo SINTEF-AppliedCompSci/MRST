@@ -104,9 +104,9 @@ classdef TensorMap
                 return
             end
             
-            mergefds  = map.mergefds;
-            fromTbl = map.fromTbl;
-            toTbl = map.toTbl;
+            mergefds = map.mergefds;
+            fromTbl  = map.fromTbl;
+            toTbl    = map.toTbl;
             
             if ~isempty(map.replaceFromTblfds)
                 fromTbl = replacefield(fromTbl, map.replaceFromTblfds);
@@ -115,6 +115,14 @@ classdef TensorMap
                 toTbl = replacefield(toTbl, map.replaceToTblfds);
             end
 
+            if ischar(map.mergefds) && strcmp(map.mergefds, 'allFrom')
+                mergefds = fromTbl.fdnames;
+            end
+
+            if ischar(map.mergefds) && strcmp(map.mergefds, 'allTo')
+                mergefds = toTbl.fdnames;
+            end
+            
             % some sanity checks on the table's field names.
             fds1 = fromTbl.fdnames;
             fds2 = toTbl.fdnames;
