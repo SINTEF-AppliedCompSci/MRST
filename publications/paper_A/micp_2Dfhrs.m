@@ -1,18 +1,22 @@
-% Setting up and solving the 2D flow horizontal rectangular system (2Dfhrs)
-% In MATLAB, this file produces Figure 7 in:
+%% Two-dimensional horizontal rectangular MICP treatment
 %
-% Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. Practical 
-% approaches to study microbially induced calcite precipitation at the 
-% field scale. Int. J. Greenh. Gas Control 106, 103256.
-% https://doi.org/10.1016/j.ijggc.2021.103256. 
+% Set up and solve the two-dimensional horizontal rectangular-flow system
+% (2Dfhrs).
 %
-% In GNU Octave, this file creates and prints the results in the folder 
-% vtk_micp_2Dfhrs which can be visualized using ParaView. The example 
-% assumes MRST is the Matlab/Octave path. For information on 
-% MRST-functions, confer the MRST documentation at
+% In MATLAB, this example produces Figure 7 from:
 %
-% http://www.sintef.no/projectweb/mrst/
+% Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. Practical
+% approaches to study microbially induced calcite precipitation at the
+% field scale. International Journal of Greenhouse Gas Control 106, 103256.
 %
+% https://doi.org/10.1016/j.ijggc.2021.103256
+%
+% In GNU Octave, the example writes the results to the
+% `vtk_micp_2Dfhrs` directory for visualization in ParaView.
+%
+% The example assumes that MRST and the `ad-micp` module are available on
+% the MATLAB or GNU Octave path.
+
 %{
 Copyright 2021-2026, NORCE Research AS, Computational Geosciences and
 Modeling.
@@ -26,246 +30,458 @@ the Free Software Foundation, either version 3 of the License, or
 
 ad-micp is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this file.  If not, see <http://www.gnu.org/licenses/>.
+along with this file. If not, see <http://www.gnu.org/licenses/>.
 %}
 
-% To get distmesh for first time, uncomment and run the following lines
-% pth = fullfile(ROOTDIR, 'utils', '3rdparty', 'distmesh');
-% mkdir(pth)
-% unzip('http://persson.berkeley.edu/distmesh/distmesh.zip', pth);
-% mrstPath('reregister','distmesh', pth);
+%% Required modules
 
-% Required modules
-pth = fullfile(ROOTDIR, 'utils', '3rdparty', 'distmesh');
-mrstPath('reregister', 'distmesh', pth);
+distmeshPath = fullfile(ROOTDIR, 'utils', '3rdparty', 'DistMesh');
+% Download DistMesh if it is not already available.
+if ~isfolder(distmeshPath)
+    distmeshUrl = ...
+        'https://github.com/popersson/DistMesh/archive/refs/tags/v1.1.zip';
+    distmeshArchive = fullfile(tempdir, 'distmesh.zip');
+    extractionDirectory = tempname;
+    mkdir(extractionDirectory);
+    if isfile(distmeshArchive)
+        delete(distmeshArchive);
+    end
+    urlwrite(distmeshUrl, distmeshArchive);
+    unzip(distmeshArchive, extractionDirectory);
+    extractedDistmeshPath = fullfile( ...
+        extractionDirectory, 'DistMesh-1.1');
+    if isfolder(distmeshPath)
+        rmdir(distmeshPath, 's');
+    end
+    movefile(extractedDistmeshPath, distmeshPath);
+    if isfile(distmeshArchive)
+        delete(distmeshArchive);
+    end
+    if isfolder(extractionDirectory)
+        rmdir(extractionDirectory, 's');
+    end
+end
+
+mrstPath('reregister', 'distmesh', distmeshPath);
 mrstModule add ad-blackoil ad-core ad-micp distmesh
 
-% Grid 
-L = 75;            % Aquifer length, m
-Wh = 10;           % Aquifer width, m
-if exist('OCTAVE_VERSION', 'builtin') ~= 0 %GNU Octave
-    B = 25;        % hmin to hmax transition radius, m
-    hmin = 1;      % Minimum grid size, m
-    hmax = 10;     % Maximum grid size, m
-    fd = @(p) drectangle(p, -L, L, -Wh, Wh);
-    fh = @(p) min(hmin + 0.3 * abs(dcircle(p, 0, 0, 0)), hmin) .* ...
-    (abs(dcircle(p, 0, 0, 0)) < B) + min(hmin + 0.3 * abs(dcircle(p, 0, ...
-                          0, B)), hmax) .* (abs(dcircle(p, 0, 0, 0)) >= B);
-    [p, t] = distmesh2d(fd, fh, hmin, [-L, -Wh ; L, Wh], ...
-                             [-L, -Wh ; L, -Wh ; -L, Wh ; L , Wh ; 0 , 0]);
-    G = makeLayeredGrid(pebi(triangleGrid(p, t)), 1);
-    close
-else %MATLAB
-    [X1, Y1] = meshgrid(-L : 5 : L, -Wh : 5 : Wh);
-    [X2, Y2] = meshgrid(-30 : 0.5 : -1.5, -Wh : 0.5 : Wh);
-    [X3, Y3] = meshgrid(1.5 :0.5 : 30, -Wh : 0.5 : Wh);
-    rr = -1 : 0.125 : 0;
-    Pw = [];
-    for l = 4 * exp(rr)
-        [x,y,z] = cylinder(l, 50); 
-        Pw = [Pw [x(1, :) ; y(1, :)]];
+%% Grid
+
+aquiferLength = 75;  % Aquifer half-length, m
+aquiferWidth = 10;   % Aquifer half-width, m
+
+if exist('OCTAVE_VERSION', 'builtin') ~= 0
+    % Fix the random seed to improve mesh reproducibility.
+    rand('seed', 0);
+    randn('seed', 0);
+
+    if exist('AD_MICP_TEST', 'var')
+        % Smaller case for the test.
+        transitionRadius = 25; % Grid-refinement transition radius, m
+        minimumGridSize = 3;   % Minimum grid size, m
+        maximumGridSize = 10;  % Maximum grid size, m
+    else
+        transitionRadius = 25; % Grid-refinement transition radius, m
+        minimumGridSize = 1;   % Minimum grid size, m
+        maximumGridSize = 10;  % Maximum grid size, m
     end
-    Pw = [Pw [0 ; 0]];
-    Pw1 = bsxfun(@plus, Pw, [0 ; 0]);
-    P = unique([Pw1' ; X1(:) Y1(:) ; X2(:) Y2(:) ; X3(:) Y3(:)], 'rows');
-    G = triangleGrid(P);
+
+    distanceFunction = @(points) drectangle( ...
+        points, -aquiferLength, aquiferLength, ...
+        -aquiferWidth, aquiferWidth);
+
+    sizeFunction = @(points) ...
+        min(minimumGridSize + ...
+        0.3 .* abs(dcircle(points, 0, 0, 0)), minimumGridSize) .* ...
+        (abs(dcircle(points, 0, 0, 0)) < transitionRadius) + ...
+        min(minimumGridSize + ...
+        0.3 .* abs(dcircle(points, 0, 0, transitionRadius)), ...
+        maximumGridSize) .* ...
+        (abs(dcircle(points, 0, 0, 0)) >= transitionRadius);
+
+    boundingBox = [ ...
+        -aquiferLength, -aquiferWidth; ...
+         aquiferLength,  aquiferWidth];
+
+    fixedPoints = [ ...
+        -aquiferLength, -aquiferWidth; ...
+         aquiferLength, -aquiferWidth; ...
+        -aquiferLength,  aquiferWidth; ...
+         aquiferLength,  aquiferWidth; ...
+         0,               0];
+
+    if exist('AD_MICP_TEST', 'var')
+        % Disable DistMesh figures during automated tests.
+        previousFigureVisibility = ...
+            get(0, 'defaultFigureVisible');
+        set(0, 'defaultFigureVisible', 'off');
+        figureVisibilityCleanup = onCleanup(@() ...
+            set(0, 'defaultFigureVisible', ...
+            previousFigureVisibility));
+        existingFigures = findall(0, 'Type', 'figure');
+    end
+
+    [gridPoints, gridTriangles] = distmesh2d( ...
+        distanceFunction, sizeFunction, minimumGridSize, ...
+        boundingBox, fixedPoints);
+
+    G = makeLayeredGrid( ...
+        pebi(triangleGrid(gridPoints, gridTriangles)), 1);
+
+    if exist('AD_MICP_TEST', 'var')
+        % Delete only figures created by DistMesh.
+        newFigures = setdiff( ...
+            findall(0, 'Type', 'figure'), ...
+            existingFigures);
+        if ~isempty(newFigures)
+            delete(newFigures);
+        end
+        % Restore the original default figure visibility immediately.
+        clear figureVisibilityCleanup
+    else
+        close
+    end
+else
+    [coarseX, coarseY] = meshgrid( ...
+        -aquiferLength : 5 : aquiferLength, ...
+        -aquiferWidth : 5 : aquiferWidth);
+
+    [leftFineX, leftFineY] = meshgrid( ...
+        -30 : 0.5 : -1.5, ...
+        -aquiferWidth : 0.5 : aquiferWidth);
+
+    [rightFineX, rightFineY] = meshgrid( ...
+        1.5 : 0.5 : 30, ...
+        -aquiferWidth : 0.5 : aquiferWidth);
+
+    radialCoordinates = -1 : 0.125 : 0;
+    wellPoints = [];
+
+    for radius = 4 .* exp(radialCoordinates)
+        [xCoordinates, yCoordinates, ~] = cylinder(radius, 50);
+        wellPoints = [wellPoints, ...
+                      [xCoordinates(1, :); yCoordinates(1, :)]]; %#ok<AGROW>
+    end
+
+    wellPoints = [wellPoints, [0; 0]];
+
+    gridPoints = unique([ ...
+        wellPoints'; ...
+        coarseX(:), coarseY(:); ...
+        leftFineX(:), leftFineY(:); ...
+        rightFineX(:), rightFineY(:)], ...
+        'rows');
+
+    G = triangleGrid(gridPoints);
     G = computeGeometry(G);
     G = makeLayeredGrid(pebi(G), 1);
 end
+
 G = computeGeometry(G);
-c = G.cells.centroids;
-C = ones(G.cells.num, 1);
 
-% Rock
-K0 = 1e-12 * C;              % Aquifer permeability, m^2
-porosity = 0.2;              % Aquifer porosity, [-]
-rock = makeRock(G, K0, porosity);
+cellCentroids = G.cells.centroids;
+cellTemplate = ones(G.cells.num, 1);
 
-% Fluid properties
-fluid.muw = 2.535e-4;        % Water viscocity, Pa s                            
-fluid.bW = @(p) 0 * p + 1;   % Water formation volume factor, [-]
-fluid.bO = @(p) 0 * p + 1;   % CO2 formation volume factor, [-]
-fluid.rhoWS = 1045;          % Water density, kg/m^3
-fluid.rhoOS = 479;           % CO2 density, kg/m^3
+%% Rock properties
 
-% Remaining model parameters (we put them on the fluid structure)
-fluid.rho_b = 35;            % Density (biofilm), kg/m^3
-fluid.rho_c = 2710;          % Density (calcite), kg/m^3
-fluid.k_str = 2.6e-10;       % Detachment rate, m/(Pa s)
-fluid.diffm = 2.1e-9;        % Diffusion coefficient (microbes), m^2/s
-fluid.diffo = 2.32e-9;       % Diffusion coefficient (oxygen), m^2/s
-fluid.diffu = 1.38e-9;       % Diffusion coefficient (urea), m^2/s
-fluid.alphaL = 1e-3;         % Disperison coefficient (longitudinal), m
-fluid.alphaT = 4e-4;         % Disperison coefficient (transverse), m
-fluid.eta = 3;               % Fitting factor, [-]
-fluid.k_o = 2e-5;            % Half-velocity constant (oxygen), kg/m^3
-fluid.k_u = 21.3;            % Half-velocity constant (urea), kg/m^3
-fluid.mu = 4.17e-5;          % Maximum specific growth rate, 1/s
-fluid.mu_u = 0.0161;         % Maximum rate of urease utilization, 1/s
-fluid.k_a = 8.51e-7;         % Microbial attachment rate, 1/s                                         
-fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
-fluid.Y = 0.5;               % Yield growth coefficient, [-]
-fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
-fluid.F = 0.5;               % Oxygen consumption factor, [-]
-fluid.crit = 0.1;            % Critical porosity, [-]
-fluid.kmin = 1e-20;          % Minimum permeability, m^2
-fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
+initialPermeability = 1e-12 .* cellTemplate; % Permeability, m^2
+initialPorosity = 0.2;                       % Porosity, [-]
+
+rock = makeRock(G, initialPermeability, initialPorosity);
+
+%% Fluid and MICP model properties
+
+fluid.muw = 2.535e-4;       % Water viscosity, Pa s
+fluid.bW = @(pressure) ...
+    0 .* pressure + 1;      % Water formation volume factor, [-]
+fluid.bO = fluid.bW;        % Compatibility field, [-]
+fluid.rhoWS = 1045;         % Water density, kg/m^3
+fluid.rhoOS = 479;          % CO2 density, kg/m^3
+
+fluid.rho_b = 35;           % Biofilm density, kg/m^3
+fluid.rho_c = 2710;         % Calcite density, kg/m^3
+fluid.k_str = 2.6e-10;      % Detachment coefficient, m/(Pa s)
+fluid.diffm = 2.1e-9;       % Microorganism diffusion, m^2/s
+fluid.diffo = 2.32e-9;      % Oxygen diffusion, m^2/s
+fluid.diffu = 1.38e-9;      % Urea diffusion, m^2/s
+fluid.alphaL = 1e-3;        % Longitudinal dispersivity, m
+fluid.alphaT = 4e-4;        % Transverse dispersivity, m
+fluid.eta = 3;              % Permeability fitting factor, [-]
+fluid.k_o = 2e-5;           % Oxygen half-velocity constant, kg/m^3
+fluid.k_u = 21.3;           % Urea half-velocity constant, kg/m^3
+fluid.mu = 4.17e-5;         % Maximum specific growth rate, 1/s
+fluid.mu_u = 0.0161;        % Maximum urease utilization rate, 1/s
+fluid.k_a = 8.51e-7;        % Microorganism attachment rate, 1/s
+fluid.k_d = 3.18e-7;        % Microorganism death rate, 1/s
+fluid.Y = 0.5;              % Growth yield coefficient, [-]
+fluid.Yuc = 1.67;           % Calcite-to-urea yield coefficient, [-]
+fluid.F = 0.5;              % Oxygen consumption factor, [-]
+fluid.crit = 0.1;           % Critical porosity, [-]
+fluid.kmin = 1e-20;         % Minimum permeability, m^2
 
 % Porosity-permeability relationship
-fluid.K = @(poro) (K0 .* ((poro - fluid.crit) / (porosity - fluid.crit))...
-               .^ fluid.eta + fluid.kmin) .* K0 ./ (K0 + fluid.kmin) .* ...
-                  (poro > fluid.crit) + fluid.kmin .* (poro <= fluid.crit);
+normalizedPorosity = @(currentPorosity) max( ...
+    (currentPorosity - fluid.crit) ./ ...
+    (initialPorosity - fluid.crit), 0);
 
-% Injection strategy
-N = 18; % Number of injection phases in the injection strategy
-M = zeros(N, 6); % The entries per row are: time, dt, rate, m, o, and u.
-dt_on = hour; % Time step when the well is on
-dt_off = 10 * hour;  % Time step when the well is off
+fluid.K = @(currentPorosity) max( ...
+    (initialPermeability .* ...
+    normalizedPorosity(currentPorosity) .^ fluid.eta + ...
+    fluid.kmin) .* initialPermeability ./ ...
+    (initialPermeability + fluid.kmin), fluid.kmin);
 
-M(1, :)  = [20 * hour,   dt_on,  7.2e-4  , 0.01, 0,      0];
-M(2, :)  = [20 * hour,   dt_on,  7.2e-4  , 0,    0,      0];
-M(3, :)  = [100 * hour,  dt_off, 0       , 0,    0,      0];
-M(4, :)  = [20 * hour,   dt_on,  7.2e-4  , 0,    0.04,   0];
-M(5, :)  = [20 * hour,   dt_on,  7.2e-4  , 0,    0,      0];
-M(6, :)  = [50 * hour,   dt_off, 0       , 0,    0,      0];
-M(7, :)  = [20 * hour,   dt_on,  7.2e-4  , 0,    0,    300];
-M(8, :)  = [20 * hour,   dt_on,  7.2e-4  , 0,    0,      0];
-M(9, :)  = [230 * hour,  dt_off, 0       , 0,    0,      0];
-M(10, :) = [20 * hour,   dt_on,  7.2e-4  , 0.01, 0,      0];
-M(11, :) = [20 * hour,   dt_on,  7.2e-4  , 0,    0,      0];
-M(12, :) = [100 * hour,  dt_off, 0       , 0,    0,      0];
-M(13, :) = [20 * hour,   dt_on,  7.2e-4  , 0,    0.04,   0];
-M(14, :) = [20 * hour,   dt_on,  7.2e-4  , 0,    0,      0];
-M(15, :) = [50 * hour,   dt_off, 0       , 0,    0,      0];
-M(16, :) = [20 * hour,   dt_on,  7.2e-4  , 0,    0,    300];
-M(17, :) = [20 * hour,   dt_on,  7.2e-4  , 0,    0,      0];
-M(18, :) = [230 * hour,  dt_off, 0       , 0,    0,      0];
-              
-% Create well
-r = 0.15;  
-[~, iw] = min(abs(c(:, 1) .^ 2 + c(:, 2) .^ 2));
-W = addWell([], G, rock, iw, 'Type', 'rate', 'Comp_i', [1, 0], ...
-                                             'Val',  M(1, 3), 'Radius', r);
-G.injectionwellonboundary = 0;
-W.m = M(1, 4);      
-W.o = M(1, 5);
-W.u = M(1, 6); 
+%% Injection strategy
+%
+% Each row of `injectionStrategy` contains:
+%
+%   1. Phase duration, s
+%   2. Simulation timestep, s
+%   3. Injection rate, m^3/s
+%   4. Microorganism concentration, kg/m^3
+%   5. Oxygen concentration, kg/m^3
+%   6. Urea concentration, kg/m^3
+%
+% The first nine phases comprise the first MICP treatment, and the final
+% nine phases repeat the strategy for the second treatment.
 
-% Boundary condition
-f = boundaryFaces(G);
-f = f(abs(G.faces.normals(f, 1)) > eps & abs(G.faces.centroids(f, 1)) > ...
-                                                                 L - 0.01);
-bc = addBC([], f, 'pressure', atm, 'sat', [0 0]);
-bc.o = zeros(size(bc.sat, 1), 1);
-bc.u = zeros(size(bc.sat, 1), 1);
-bc.m = zeros(size(bc.sat, 1), 1);
-bc.b = zeros(size(bc.sat, 1), 1);
-bc.c = zeros(size(bc.sat, 1), 1);
+activeTimeStep = hour;
+shutInTimeStep = 10 * hour;
 
-% Setup some schedule
-nt = sum(M(:, 1) ./ M(:, 2));
-timesteps = repmat(dt_on, nt, 1);
-schedule = simpleSchedule(timesteps, 'W', W, 'bc', bc);
-for i = 2 : N 
-    schedule.control(i) = schedule.control(i - 1);
-    schedule.step.control(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
-                                                                  end) = i;
-    schedule.step.val(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
-                                                            end) = M(i, 2);
-    schedule.control(i).W.val = M(i, 3);
-    schedule.control(i).W.m = M(i, 4);
-    schedule.control(i).W.o = M(i, 5);
-    schedule.control(i).W.u = M(i, 6);
+injectionStrategy = [ ...
+     20 * hour, activeTimeStep, 7.2e-4, 0.01, 0,    0; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0,    0; ...
+    100 * hour, shutInTimeStep, 0,      0,    0,    0; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0.04, 0; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0,    0; ...
+     50 * hour, shutInTimeStep, 0,      0,    0,    0; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0,  300; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0,    0; ...
+    230 * hour, shutInTimeStep, 0,      0,    0,    0; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0.01, 0,    0; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0,    0; ...
+    100 * hour, shutInTimeStep, 0,      0,    0,    0; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0.04, 0; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0,    0; ...
+     50 * hour, shutInTimeStep, 0,      0,    0,    0; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0,  300; ...
+     20 * hour, activeTimeStep, 7.2e-4, 0,    0,    0; ...
+    230 * hour, shutInTimeStep, 0,      0,    0,    0];
+
+if exist('AD_MICP_TEST', 'var')
+    injectionStrategy = [ ...
+        5 * hour, activeTimeStep, 7.2e-4, 0.01, 0.04, 300];
 end
 
-% Maximum injected oxygen and urea concentrations.
-fluid.Comax = max(M(:, 5));             
-fluid.Cumax = max(M(:, 6));  
+numberOfPhases = size(injectionStrategy, 1);
 
-% Create model
+%% Injection well
+
+wellRadius = 0.15;
+
+[~, wellCell] = min( ...
+    cellCentroids(:, 1) .^ 2 + cellCentroids(:, 2) .^ 2);
+
+W = addWell([], G, rock, wellCell, 'Type', 'rate', ...
+    'Comp_i', [1, 0], 'Val', injectionStrategy(1, 3), ...
+    'Radius', wellRadius);
+
+W.m = injectionStrategy(1, 4);
+W.o = injectionStrategy(1, 5);
+W.u = injectionStrategy(1, 6);
+
+% The injection well is not located on the model boundary.
+G.injectionwellonboundary = 0;
+
+%% Outflow boundary condition
+
+boundaryFaceIndices = boundaryFaces(G);
+
+outflowFaces = boundaryFaceIndices( ...
+    abs(G.faces.normals(boundaryFaceIndices, 1)) > eps & ...
+    abs(G.faces.centroids(boundaryFaceIndices, 1)) > ...
+    aquiferLength - 0.01);
+
+bc = addBC([], outflowFaces, 'pressure', atm, 'sat', [0 0]);
+
+numberOfBoundaryFaces = size(bc.sat, 1);
+
+bc.m = zeros(numberOfBoundaryFaces, 1);
+bc.o = zeros(numberOfBoundaryFaces, 1);
+bc.u = zeros(numberOfBoundaryFaces, 1);
+bc.b = zeros(numberOfBoundaryFaces, 1);
+bc.c = zeros(numberOfBoundaryFaces, 1);
+
+%% Construct simulation schedule
+
+stepsPerPhase = round( ...
+    injectionStrategy(:, 1) ./ injectionStrategy(:, 2));
+
+totalNumberOfSteps = sum(stepsPerPhase);
+
+timesteps = zeros(totalNumberOfSteps, 1);
+controlIndices = zeros(totalNumberOfSteps, 1);
+
+firstStep = 1;
+
+for phaseIndex = 1 : numberOfPhases
+    lastStep = firstStep + stepsPerPhase(phaseIndex) - 1;
+
+    timesteps(firstStep : lastStep) = ...
+        injectionStrategy(phaseIndex, 2);
+
+    controlIndices(firstStep : lastStep) = phaseIndex;
+
+    firstStep = lastStep + 1;
+end
+
+schedule = simpleSchedule(timesteps, 'W', W, 'bc', bc);
+
+baseControl = schedule.control(1);
+schedule.control = repmat(baseControl, numberOfPhases, 1);
+
+for phaseIndex = 1 : numberOfPhases
+    schedule.control(phaseIndex).W.val = ...
+        injectionStrategy(phaseIndex, 3);
+
+    schedule.control(phaseIndex).W.m = ...
+        injectionStrategy(phaseIndex, 4);
+
+    schedule.control(phaseIndex).W.o = ...
+        injectionStrategy(phaseIndex, 5);
+
+    schedule.control(phaseIndex).W.u = ...
+        injectionStrategy(phaseIndex, 6);
+end
+
+schedule.step.control = controlIndices;
+schedule.step.val = timesteps;
+
+phaseEndSteps = cumsum(stepsPerPhase);
+
+% Maximum injected oxygen and urea concentrations
+fluid.Comax = max(injectionStrategy(:, 5));
+fluid.Cumax = max(injectionStrategy(:, 6));
+
+%% Create model
+
 model = MICPModel(G, rock, fluid);
 model.toleranceMB = 1e-14;
 model.nonlinearTolerance = 1e-14;
 
-% Initial condition
+%% Initial state
+
 state0 = initState(G, W, atm, [1, 0]);
+
 state0.m = zeros(G.cells.num, 1);
 state0.o = zeros(G.cells.num, 1);
 state0.u = zeros(G.cells.num, 1);
 state0.b = zeros(G.cells.num, 1);
 state0.c = zeros(G.cells.num, 1);
 
-% Simulate case (GNU Octave/MATLAB)
-if exist('OCTAVE_VERSION', 'builtin') ~= 0
-    ok = 'true';
-    fn = checkCloggingMICP(ok);
-else
-    fn = getPlotAfterStepMICP(state0, model, 0, 90);
-end
-[~, states] = simulateScheduleAD(state0, model, schedule, ...
-                                                        'afterStepFn', fn);
+%% Run the simulation
 
-% Write the results to be read in ParaView (GNU Octave)
 if exist('OCTAVE_VERSION', 'builtin') ~= 0
-    mkdir vtk_micp_2Dfhrs;
-    cd vtk_micp_2Dfhrs;
-    mrsttovtk(G, states, 'states_2Dfhrs', '%f');
+    [~, states] = simulateScheduleAD(state0, model, schedule);
+else
+    afterStepFunction = getPlotAfterStepMICP(state0, model, 0, 90);
+
+    [~, states] = simulateScheduleAD(state0, model, schedule, ...
+                             'afterStepFn', afterStepFunction);
+end
+
+%% Export results in GNU Octave
+
+if exist('OCTAVE_VERSION', 'builtin') ~= 0
+    outputDirectory = fullfile(pwd, 'vtk_micp_2Dfhrs');
+
+    if ~isfolder(outputDirectory)
+        mkdir(outputDirectory);
+    end
+
+    outputName = fullfile(outputDirectory, 'states_2Dfhrs');
+    mrsttovtk(G, states, outputName, '%f');
+
+    fprintf('VTK results written to:\n  %s.pvd\n', outputName);
     return
 end
 
-% Figure 7 paper (MATLAB)
+%% Figure 7
+
 lW = 2;
 fS = 8;
+
 figure;
-c = flipud(jet);
-sz = size(c, 1);
-c = c((round(70 * sz / 256)) : end, :);
+
+colorMap = flipud(jet);
+numberOfColors = size(colorMap, 1);
+colorMap = colorMap(round(70 * numberOfColors / 256) : end, :);
+
 set(gcf, 'PaperUnits', 'inches', 'PaperPosition', [0 0 6.83 1.85]);
+
+% In the full example, phase 9 marks the end of the first treatment. In the
+% shortened test case, use the final available phase.
+firstTreatmentPhase = min(9, numberOfPhases);
+firstTreatmentState = phaseEndSteps(firstTreatmentPhase);
+
 n1 = subplot(1, 2, 1);
-colormap (n1, c);
+colormap(n1, colorMap);
 caxis([0 100]);
 axis equal tight
 colorbar()
-cb = colorbar; 
+cb = colorbar;
 title(cb, '$\%$', 'FontSize', fS, 'Interpreter', 'latex', ...
                                                       'FontName', 'Arial');
 set(cb, 'location', 'northoutside', 'YTick', [0 25 50 75 100]);
 xlabel({'x [m]' ; '(a)'}, 'FontSize', fS, 'FontName', 'Arial');
-ylabel('y [m]','FontSize', fS, 'FontName', 'Arial');
-s = plotCellData(G, 100 * (1 - fluid.K(porosity - states{sum(M(1 : ...
-    (N / 2), 1) ./ M(1 : (N / 2), 2))}.c - states{sum(M(1 : (N / 2), 1) ...
-                                         ./ M(1 : (N / 2), 2))}.b) ./ K0));
+ylabel('y [m]', 'FontSize', fS, 'FontName', 'Arial');
+
+firstTreatmentPorosity = max( ...
+    initialPorosity - states{firstTreatmentState}.c - ...
+    states{firstTreatmentState}.b, model.minimumPorosity);
+
+s = plotCellData(G, 100 .* (1 - ...
+    fluid.K(firstTreatmentPorosity) ./ initialPermeability));
+
 s.EdgeColor = 'none';
 title('Permeability reduction (after phase I)', 'FontSize', fS, ...
                               'FontName', 'Arial', 'Interpreter', 'latex');
-set(gca, 'FontSize', fS, 'XTick', -L : 25 : L, 'YTick', -Wh : 10 : Wh, ...
-                                     'color', 'none', 'FontName', 'Arial');
-ylim([-Wh, Wh]);
-rectangle('Position', [10, -Wh, 5, 2 * Wh], 'LineWidth', lW, ...
-                                 'LineStyle', '-', 'edgecolor', '[0 0 0]');
+set(gca, 'FontSize', fS, 'XTick', -aquiferLength : 25 : aquiferLength, ...
+    'YTick', -aquiferWidth : 10 : aquiferWidth, 'color', 'none', ...
+    'FontName', 'Arial');
+ylim([-aquiferWidth, aquiferWidth]);
+rectangle('Position', [10, -aquiferWidth, 5, 2 * aquiferWidth], ...
+              'LineWidth', lW, 'LineStyle', '-', 'edgecolor', '[0 0 0]');
+
 n2 = subplot(1, 2, 2);
 axis equal tight
-colormap (n2, c);
+colormap(n2, colorMap);
 caxis([0 100]);
-cb = colorbar; 
+cb = colorbar;
 title(cb, '$\%$', 'FontSize', fS, 'Interpreter', 'latex', ...
                                                       'FontName', 'Arial');
 set(cb, 'location', 'northoutside', 'YTick', [0 25 50 75 100]);
 xlabel({'x [m]' ; '(b)'}, 'FontSize', fS, 'FontName', 'Arial');
 ylabel('y [m]', 'FontSize', fS, 'FontName', 'Arial');
-s = plotCellData(G, 100 * (1 - fluid.K(porosity - states{end}.c - ...
-                                                    states{end}.b) ./ K0));
+
+finalPorosity = max( ...
+    initialPorosity - states{end}.c - states{end}.b, ...
+    model.minimumPorosity);
+
+s = plotCellData(G, 100 .* (1 - ...
+    fluid.K(finalPorosity) ./ initialPermeability));
+
 s.EdgeColor = 'none';
-title('Permeability reduction (after phase II)', 'FontSize', fS , ...
+title('Permeability reduction (after phase II)', 'FontSize', fS, ...
                               'FontName', 'Arial', 'Interpreter', 'latex');
-set(gca, 'FontSize', fS, 'XTick', -L : 25 : L, 'YTick', -Wh : 10 : Wh , ...
-                                     'color', 'none', 'FontName', 'Arial');
-ylim([-Wh, Wh]);
-rectangle('Position', [10, -Wh, 5, 2 * Wh], 'LineWidth', lW, ...
-                                 'LineStyle', '-', 'edgecolor', '[0 0 0]');
-%print -depsc2 Fig7.eps 
+set(gca, 'FontSize', fS, 'XTick', -aquiferLength : 25 : aquiferLength, ...
+    'YTick', -aquiferWidth : 10 : aquiferWidth, 'color', 'none', ...
+    'FontName', 'Arial');
+ylim([-aquiferWidth, aquiferWidth]);
+rectangle('Position', [10, -aquiferWidth, 5, 2 * aquiferWidth], ...
+              'LineWidth', lW, 'LineStyle', '-', 'edgecolor', '[0 0 0]');
+
+% print -depsc2 Fig7.eps

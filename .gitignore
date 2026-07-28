@@ -35,3 +35,6 @@ octave-workspace
 
 # MRST folder
 MRST/
+
+# Tests
+test_outputs

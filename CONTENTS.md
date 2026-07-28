@@ -64,7 +64,6 @@ The models folder contains the parent class for declaring the MICP model:
 
 Finally, in the utility folder, you will find the following functions:
 
-* checkCloggingMICP.m,
 * equationsMICP.m,
 * getDispersionAnddpWMICP.m,
 * getFluxAndPropsMICP.m,

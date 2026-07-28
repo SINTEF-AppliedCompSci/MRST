@@ -1,11 +1,14 @@
-function [vW, mobW] = getFluxAndPropsWater(model, pW, krW, T, gdz)
-%  Function to compute the water fluxes and mobilities.
-% 
-% This function is modified from a file in The MATLAB Reservoir Simulation
-% Toolbox (MRST), see
-%   mrst/modules/ad-eor/utils/getFluxAndPropsWaterPolymer_BO.m 
+function [waterFlux, waterMobility] = ...
+        getFluxAndPropsWater( ...
+        model, waterPressure, waterRelativePermeability, ...
+        transmissibility, gravityGradient)
+% Compute water flux and cell mobility.
 %
-% We refer to that function for a complete commented version of the file. 
+% This function is modified from a file in the MATLAB Reservoir Simulation
+% Toolbox (MRST), see
+%   mrst/modules/ad-eor/utils/getFluxAndPropsWaterPolymer_BO.m
+%
+% We refer to that function for a complete commented version of the file.
 
 %{
 Partial copyright 2009-2021, SINTEF Digital, Mathematics & Cybernetics.
@@ -21,17 +24,36 @@ the Free Software Foundation, either version 3 of the License, or
 
 ad-micp is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this file.  If not, see <http://www.gnu.org/licenses/>.
+along with this file. If not, see <http://www.gnu.org/licenses/>.
 %}
     fluid = model.fluid;
-    s = model.operators;
-    dpW    = s.Grad(pW) - fluid.rhoWS .* gdz;   
-    upcw  = (value(dpW) <= 0);
-    [krWf, krW] = s.splitFaceCellValue(s, upcw, krW);    
-    mobW   = krW / fluid.muw;    
-    vW = -(krWf / fluid.muw) .* T .* dpW;
+    operators = model.operators;
+
+    waterPotentialDifference = ...
+        operators.Grad(waterPressure) - ...
+        fluid.rhoWS .* gravityGradient;
+
+    upstreamWater = ...
+        value(waterPotentialDifference) <= 0;
+
+    [faceRelativePermeability, cellRelativePermeability] = ...
+        operators.splitFaceCellValue( ...
+        operators, ...
+        upstreamWater, ...
+        waterRelativePermeability);
+
+    waterMobility = ...
+        cellRelativePermeability ./ fluid.muw;
+
+    faceMobility = ...
+        faceRelativePermeability ./ fluid.muw;
+
+    waterFlux = ...
+        -faceMobility .* ...
+        transmissibility .* ...
+        waterPotentialDifference;
 end
