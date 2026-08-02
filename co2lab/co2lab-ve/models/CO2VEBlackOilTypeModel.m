@@ -159,7 +159,6 @@ end
             m = masses{co2_comp_ix, co2_ph_ix};
         end
         
-        
 % ------------------------------------------------------------------------        
 
         function eta = computeDissolutionTransfer(model, state0, state, dt)
@@ -181,6 +180,7 @@ end
             
             rsmax = model.fluid.dis_max;
             rs0 = model.getProp(state0, 'rs');
+            %rs = model.getProp(state, 'rs');            
             
             state_rsmax = state;
             state_rsmax.rs = state_rsmax.rs * 0 + rsmax;
@@ -209,8 +209,9 @@ end
             co2_phase_flux = phase_fluxes{2, 2}; % @@ second component (CO2) in second phase (CO2)
             
             co2_inflow = -1 * model.operators.C' * co2_phase_flux;
-            max_supply = max_supply + max(value(co2_inflow), 0.0);
-
+            %max_supply = max_supply + max(value(co2_inflow), 0.0);
+            max_supply = max_supply + co2_inflow; % @@
+            
             % The maximum amount of CO2 mass that can be dissolved in a cell
             % will be limited by the most strict of the two above bounds
             max_transfer = max(min(max_demand, max_supply), 0);
@@ -223,8 +224,8 @@ end
             % fulfil this at all times.
             sW_touched = model.brineSaturationInTwoPhaseZone(state);
             min_dissolved = model.fluid.dis_max .* sW_touched .* bW .* pv; % @@ NB: This assumes 
-            cur_dissolved = rs0 .* sW .* bW .* pv;                         % vertical heterogeneity.
-            min_transfer = max(min_dissolved - cur_dissolved, 0) / dt;     % Generalize this!
+            prev_dissolved = rs0 .* sW .* bW .* pv;                        % vertical homogeneity.
+            min_transfer = max(min_dissolved - prev_dissolved, 0) / dt;    % Generalize this!
             
 
             % The amount of actually dissolved CO2 is also limited by the
@@ -232,15 +233,16 @@ end
             basic_rate = model.fluid.dis_rate .* pv ./ model.G.cells.H; % rate per area multiplied
                                                                         % by CO2/brine interface
                                                                         % area in cell
-            eta =  min(basic_rate, max_transfer);
-            %eta = min(max(basic_rate, min_transfer), max_transfer);
+
+            eta = min(max(basic_rate, min_transfer), max_transfer);
+            %eta =  min(basic_rate, max_transfer);
             %eta = max(min(basic_rate, max_transfer), min_transfer);
         end
 
         
 % ------------------------------------------------------------------------        
         function sW_touched = brineSaturationInTwoPhaseZone(model, state)
-            % @@ This function must be generalized to the vertically non-heterogeneous case!
+            % @@ This function must be generalized to the vertically non-homogeneous case!
             sG = model.getProp(state, 'sg');
             sGmax = model.getProp(state, 'sGmax');
             sW = 1 - sG;
@@ -248,7 +250,7 @@ end
             [rw, rg] = deal(model.fluid.res_water, model.fluid.res_gas);
             
             [h, h_max] = upscaledSat2height(sG, sGmax, model.G, ...
-                                            'resSat', [rw, rg]); % @@ additional arguments for non-heterogeneous
+                                            'resSat', [rw, rg]); % @@ additional arguments for heterogen.
             H = model.G.cells.H;
             
             sW_untouched = (H - h_max) ./ H; % part of water saturation that were always below CO2 plume

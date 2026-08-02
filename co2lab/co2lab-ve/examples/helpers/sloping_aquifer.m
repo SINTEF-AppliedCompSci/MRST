@@ -33,6 +33,8 @@ options.xres = 100;
 options.yres = 30;
 options.zres = 10;
 options.length = 2000; % length of the aquifer in meters
+options.width = 600; % width of the aquifer in meters
+options.thickness = 20 * meter; 
 options.depth = 1000;
 options.srw = 0;
 options.srg = 0;
@@ -42,7 +44,6 @@ options.skip_3D = false;
 options.avg_perm = 400 * milli * darcy;
 options.avg_poro = 0.2;
 options.slope = 0.04;
-options.thickness = 20 * meter; 
 options.trap1_size = 20;
 options.trap2_size = 10;
 options.mass_injection_rate = 20 * kilo * 1e3 / year;
@@ -59,7 +60,17 @@ options.noise_corrlength = 1;
 
 options.VE_tolerance = 1e-6;
 
+% 3D model does not support dissolution, so if dissolution is set to 'true',
+% 'skip_3D' must also be set to 'true'.
+options.dissolution = false;
+options.dis_rate = 0;
+options.dis_max = 0;
+
 options = merge_options(options, varargin{:});
+
+if options.dissolution && ~options.skip_3D
+    error('Dissolution is not supported in 3D. Please set ''skip_3D'' to ''true'' if you want to include dissolution in the model.');
+end
 
 
 %% Set up a 3D test grid with two structual traps
@@ -71,7 +82,7 @@ if options.cross_sectional
     yres = 1; 
 end
 
-[xlen, ylen, zlen] = deal(options.length * meter, 600 * meter, options.thickness);
+[xlen, ylen, zlen] = deal(options.length * meter, options.width * meter, options.thickness);
 
 G = make_testgrid([xres, yres, zres], ...      % x, y and z resolution
                   [xlen, ylen, zlen], ...      % x, y and z lengths
@@ -268,9 +279,12 @@ fluid_VE = makeVEFluid(G_VE, rock_VE, relperm_model, ...
                        'residual', [options.srw, options.srg], ...
                        'krmax', krmax, ...        % only relevant if sharp interface
                        'invPc3D', [C, alpha], ... % only relevant if cap. fringe 
-                       'kr3D', kr3D ...           % only relevant if cap. fringe
+                       'kr3D', kr3D, ...           % only relevant if cap. fringe
+                       'dissolution', options.dissolution, ...
+                       'dis_rate', options.dis_rate, ...
+                       'dis_max', options.dis_max ...
                        );
-                                                
+
 
 %% Simulate injection in 3D
 if options.cap_fringe
@@ -303,6 +317,9 @@ model_VE.nonlinearTolerance = options.VE_tolerance;
 initState_VE.pressure = pfun(G_VE.cells.z);
 initState_VE.s = repmat([1, 0], G_VE.cells.num, 1);
 initState_VE.sGmax = initState_VE.s(:,2);
+if options.dissolution
+    initState_VE.rs = zeros(G_VE.cells.num, 1);
+end
 
 bc_VE = open_boundary_conditions(G_VE, pfun, options.cross_sectional);
 

@@ -72,6 +72,54 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
         
         s3D.s = [1-s3D.s, s3D.s];
+
+        if isfield(state, 'rs')
+            % dissolution of CO2 in water is included.  Convert upscaled dissolved CO2 saturation
+            % to fine-scale
+            rs_max = fluid.dis_max;
+            fraction = state.rs ./ rs_max; % fraction of maximum dissolved CO2 saturation
+            poro3D = opt.poro3D;
+            if isempty(poro3D)
+                poro3D = ones(G.cells.num, 1); % asssumed vertically uniform (value will be
+                                               % normalized away, so won't affect results)
+            end
+
+            % compute total amount of brine in each column
+            bvol3D = poro3D .* s3D.s(:, 1);
+            bvol2D = integrateVertically(bvol3D, Gt.cells.H, Gt);
+            bvol2D_saturated = fraction .* bvol2D; % volume of brine that is  saturated with
+                                                   % dissolved CO2 in each column
+
+            % compute how far the dissolved CO2 has penetrated downinto the column.
+            % Find the root of the equation using a simple Newton-Raphson method
+            h_guess = fraction .* Gt.cells.H; % initial guess for penetration depth
+            tol = 1e-10; % should be enough to determine interface depth to satisfactory accuracy
+            error = inf;
+            max_iter = 1000; % usually we should never need this
+            cur_iter = 0;
+            while cur_iter < max_iter
+                cur_iter = cur_iter + 1;
+                [f, df] = integrateVertically(bvol3D, h_guess, Gt);
+                f = f - bvol2D_saturated; % value of the equation at current guess
+                error = abs(f); % update error
+                if error < tol
+                    break; % solution found
+                end
+                h_guess = h_guess - f ./ df; % update guess using Newton-Raphson step
+            end
+            if cur_iter == max_iter
+                warning('Maximum number of iterations reached while computing dissolved CO2 penetration depth. Results may be inaccurate.');
+            end
+
+            % use the computed penetration depth to determine the fine-scale
+            % dissolved CO2 saturation.  We can hijack height2finescaleSat
+            % function for this, by treating the dissolved CO2 saturation as a
+            % sharp-interface model with zero residual saturation and zero
+            % maximum saturation.
+            s3D.rs = height2finescaleSat(h_guess, h_guess, Gt, 0, 0) .* rs_max; 
+            
+        end
+
         
         states3D{i} = s3D;
     end
