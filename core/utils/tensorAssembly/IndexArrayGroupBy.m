@@ -71,6 +71,13 @@ classdef IndexArrayGroupBy < handle
             
         end
 
+        function ctbl = currenttbl(iagb)
+        % current group
+            ctbl = iagb.bytbl;
+            ctbl.inds = ctbl.inds(iagb.i, :);
+            
+        end
+        
         function gtbl = grouptbl(iagb)
             
             gtbl = IndexArray([], ...
