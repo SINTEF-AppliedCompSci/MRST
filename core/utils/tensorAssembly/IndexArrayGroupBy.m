@@ -85,6 +85,15 @@ classdef IndexArrayGroupBy < handle
                               'inds', iagb.tbl.inds(iagb.startInd() : iagb.endInd(), iagb.ind_ofdnames));
             
         end
+
+        function subtbl = subtbl(iagb)
+            
+            gtbl = iagb.grouptbl();
+            ctbl = iagb.currenttbl();
+            
+            subtbl = crossIndexArray(ctbl, gtbl, {}, 'optpureproduct', true);
+            
+        end
         
     end
     
