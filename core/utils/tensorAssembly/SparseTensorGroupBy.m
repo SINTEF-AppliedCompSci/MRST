@@ -31,16 +31,12 @@ classdef SparseTensorGroupBy < handle
     
     methods
 
-        function stgb = SparseTensorGroupBy(tensor, gfdnames, prod)
+        function stgb = SparseTensorGroupBy(tensor, gfdnames)
 
             stgb.iagb = IndexArrayGroupBy(tensor.tbl, gfdnames);
             stgb.vals = tensor.vals;
             stgb.i = 0;
 
-            if nargin > 2
-                stgb.prod = prod;
-            end
-            
         end
 
         function gt = gtensor(stgb)
