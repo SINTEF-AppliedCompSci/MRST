@@ -1,3 +1,8 @@
+%{
+MRST_TEST_OPTIONS
+interactive: true
+tags:        interactive
+%}
 %% Example demonstrating different options for AMGCL
 % Note that these choices mirror the names given in the AMGCL
 % documentation: https://amgcl.readthedocs.io/en/latest/runtime.html

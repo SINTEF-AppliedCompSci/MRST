@@ -1,3 +1,8 @@
+%{
+MRST_TEST_OPTIONS
+interactive: true
+tags:        interactive
+%}
 %% Diagnostics GUI using MRST simulation output
 %
 % This example shows how to use the diagnostics post processing GUI and

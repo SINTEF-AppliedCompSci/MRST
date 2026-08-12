@@ -1,3 +1,8 @@
+%{
+MRST_TEST_OPTIONS
+interactive: true
+tags:        interactive
+%}
 %% Lightweight diagnostics for egg ensemble
 %
 % This example shows how to setup an ensemble, calculate flow diagnostics based

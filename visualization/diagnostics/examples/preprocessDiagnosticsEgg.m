@@ -1,3 +1,8 @@
+%{
+MRST_TEST_OPTIONS
+interactive: true
+tags:        interactive
+%}
 %% Diagnostics GUI for plotting 3D flow diagnostics fields for multiple ensemble
 % members
 %

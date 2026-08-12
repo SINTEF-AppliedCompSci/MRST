@@ -1,3 +1,7 @@
+%{
+MRST_TEST_OPTIONS
+tags: slow
+%}
 %% Managing simulations: Restart, packed problems and more
 % When using MRST to simulate larger or many problems, it is best to ensure
 % that the results are stored to disk in a predictible manner. Otherwise,

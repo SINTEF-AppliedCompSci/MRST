@@ -1,3 +1,7 @@
+%{
+MRST_TEST_OPTIONS
+tags: slow
+%}
 %% Simulate a large example using parts of SPE10
 % This example is a larger example demonstrating the solver on a medium
 % size grid (66,000 cells) with a relatively large amount of time steps

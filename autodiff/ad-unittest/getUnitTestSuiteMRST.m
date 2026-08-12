@@ -1,5 +1,22 @@
 function suite = getUnitTestSuiteMRST()
-%Undocumented Utility Function
+%Build a unit test suite from ad-unittest and all registered MRST modules.
+%
+% DESCRIPTION:
+%   Collects matlab.unittest.TestCase subclasses from:
+%     1. The fixed folders in the ad-unittest module (test_models, test_utils).
+%     2. Any ``tests/`` or ``UnitTests/`` subdirectory in every registered
+%        MRST module, provided the directory contains files whose names
+%        match the convention  ``Test*.m``  or  ``*Test.m``.
+%
+% RETURNS:
+%   suite - matlab.unittest.TestSuite aggregating all discovered tests.
+%
+% NOTE:
+%   Discovery silently skips directories that cause errors during scan
+%   (e.g. missing dependencies) to keep the runner robust.
+%
+% SEE ALSO:
+%   runPreReleaseTests, getIntegrationTestSuiteMRST
 
 %{
 Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
@@ -22,12 +39,53 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     mrstModule add ad-unittest
     import matlab.unittest.TestSuite;
-    adpath = mrstPath('query', 'ad-unittest');
-    
+
+    % --- 1. Fixed ad-unittest folders (always included) -----------------
+    adpath     = mrstPath('query', 'ad-unittest');
     unitfolders = {'test_models', 'test_utils'};
-    suite = [];
+    suite = TestSuite.empty();
     for i = 1:numel(unitfolders)
         p = fullfile(adpath, unitfolders{i});
-        suite = [suite, matlab.unittest.TestSuite.fromFolder(p)];
+        if isfolder(p)
+            suite = [suite, TestSuite.fromFolder(p)]; %#ok<AGROW>
+        end
+    end
+
+    % --- 2. Auto-discover from every registered module ------------------
+    mods    = mrstPath();
+    testDirs = {'tests', 'UnitTests'};
+
+    for im = 1:numel(mods)
+        modPath = mrstPath('query', mods{im});
+        if isempty(modPath), continue; end
+
+        for id = 1:numel(testDirs)
+            candidate = fullfile(modPath, testDirs{id});
+            if ~isfolder(candidate), continue; end
+
+            % Only include files that follow Test*.m or *Test.m convention
+            files = [dir(fullfile(candidate, 'Test*.m')); ...
+                     dir(fullfile(candidate, '*Test.m'))];
+            if isempty(files), continue; end
+
+            % Add directory to path temporarily so fromFile can resolve it
+            wasOnPath = contains(path(), candidate);
+            if ~wasOnPath
+                addpath(candidate);
+            end
+            for fi = 1:numel(files)
+                fpath = fullfile(candidate, files(fi).name);
+                try
+                    s = TestSuite.fromFile(fpath);
+                    suite = [suite, s]; %#ok<AGROW>
+                catch ME
+                    warning('mrst:unitTestDiscovery', ...
+                        'Skipping %s: %s', fpath, ME.message);
+                end
+            end
+            if ~wasOnPath
+                rmpath(candidate);
+            end
+        end
     end
 end
