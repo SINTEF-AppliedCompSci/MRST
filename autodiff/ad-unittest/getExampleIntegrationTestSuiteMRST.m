@@ -56,10 +56,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = merge_options(opt, varargin{:});
     
     mrstModule add ad-unittest
-    import matlab.unittest.TestSuite;
-    import matlab.unittest.selectors.HasParameter;
 
-    suite = TestSuite.fromClass(?MRSTExampleTests);
+    suite = matlab.unittest.TestSuite.fromClass(?MRSTExampleTests);
 
     if nargin > 0 && ~isempty(modules)
         if ~iscell(modules)

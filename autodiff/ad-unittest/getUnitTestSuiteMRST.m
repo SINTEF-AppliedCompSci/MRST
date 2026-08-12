@@ -38,21 +38,29 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     mrstModule add ad-unittest
-    import matlab.unittest.TestSuite;
+
+    % Collect sub-suites in a cell array to avoid vertcat issues with
+    % matlab.unittest.TestSuite across MATLAB releases.
+    parts = {};
 
     % --- 1. Fixed ad-unittest folders (always included) -----------------
-    adpath     = mrstPath('query', 'ad-unittest');
+    adpath      = mrstPath('query', 'ad-unittest');
     unitfolders = {'test_models', 'test_utils'};
-    suite = TestSuite.empty();
     for i = 1:numel(unitfolders)
         p = fullfile(adpath, unitfolders{i});
         if isfolder(p)
-            suite = [suite, TestSuite.fromFolder(p)]; %#ok<AGROW>
+            try
+                s = matlab.unittest.TestSuite.fromFolder(p);
+                parts{end+1} = s; %#ok<AGROW>
+            catch ME
+                warning('mrst:unitTestDiscovery', ...
+                    'Skipping folder %s: %s', p, ME.message);
+            end
         end
     end
 
     % --- 2. Auto-discover from every registered module ------------------
-    mods    = mrstPath();
+    mods     = mrstPath();
     testDirs = {'tests', 'UnitTests'};
 
     for im = 1:numel(mods)
@@ -76,8 +84,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             for fi = 1:numel(files)
                 fpath = fullfile(candidate, files(fi).name);
                 try
-                    s = TestSuite.fromFile(fpath);
-                    suite = [suite, s]; %#ok<AGROW>
+                    s = matlab.unittest.TestSuite.fromFile(fpath);
+                    parts{end+1} = s; %#ok<AGROW>
                 catch ME
                     warning('mrst:unitTestDiscovery', ...
                         'Skipping %s: %s', fpath, ME.message);
@@ -87,5 +95,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 rmpath(candidate);
             end
         end
+    end
+
+    % Combine all collected sub-suites
+    if isempty(parts)
+        suite = matlab.unittest.TestSuite.empty();
+    else
+        suite = horzcat(parts{:});
     end
 end
