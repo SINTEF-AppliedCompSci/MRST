@@ -1,12 +1,23 @@
-function suite = getUnitTestSuiteMRST()
+function suite = getUnitTestSuiteMRST(varargin)
 %Build a unit test suite from ad-unittest and all registered MRST modules.
+%
+% SYNOPSIS:
+%   suite = getUnitTestSuiteMRST()
+%   suite = getUnitTestSuiteMRST('modules', {'mod1', 'mod2'})
 %
 % DESCRIPTION:
 %   Collects matlab.unittest.TestCase subclasses from:
 %     1. The fixed folders in the ad-unittest module (test_models, test_utils).
+%        These are always included regardless of the 'modules' filter.
 %     2. Any ``tests/`` or ``UnitTests/`` subdirectory in every registered
 %        MRST module, provided the directory contains files whose names
 %        match the convention  ``Test*.m``  or  ``*Test.m``.
+%
+% OPTIONAL PARAMETERS:
+%   'modules' - Cell array of module names.  When provided, only tests from
+%               those modules are included (step 2 above).  The fixed
+%               ad-unittest folders (step 1) are always included.
+%               Default: {} (include all registered modules).
 %
 % RETURNS:
 %   suite - matlab.unittest.TestSuite aggregating all discovered tests.
@@ -39,6 +50,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     mrstModule add ad-unittest
 
+    opt = struct('modules', {{}});
+    opt = merge_options(opt, varargin{:});
+
+    filterMods = opt.modules;
+    if ~isempty(filterMods) && ischar(filterMods)
+        filterMods = {filterMods};
+    end
+
     % Collect sub-suites in a cell array to avoid vertcat issues with
     % matlab.unittest.TestSuite across MATLAB releases.
     parts = {};
@@ -60,7 +79,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     % --- 2. Auto-discover from every registered module ------------------
-    mods     = mrstPath();
+    if isempty(filterMods)
+        mods = mrstPath();
+    else
+        mods = filterMods;
+    end
     testDirs = {'tests', 'UnitTests'};
 
     for im = 1:numel(mods)

@@ -110,10 +110,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % =====================================================================
     if any(opt.tier == 1)
         fprintf('\n%s\n Running Tier 1: Unit Tests\n%s\n', repmat('=',1,60), repmat('=',1,60));
-        suite = getUnitTestSuiteMRST();
-        if ~isempty(opt.modules)
-            suite = filter_by_modules(suite, opt.modules);
-        end
+        suite = getUnitTestSuiteMRST('modules', opt.modules);
         res = run_suite(suite, 'unit', opt, xmlDir);
         results(end+1) = struct('tier', 1, 'name', 'unit', 'result', {res});
     end
