@@ -1,23 +1,14 @@
-function suite = getUnitTestSuiteMRST(varargin)
-%Build a unit test suite from mrst-testing and all registered MRST modules.
+function suite = getIntegrationTestSuiteMRST()
+%Build an integration test suite from all registered MRST modules.
 %
 % SYNOPSIS:
-%   suite = getUnitTestSuiteMRST()
-%   suite = getUnitTestSuiteMRST('modules', {'mod1', 'mod2'})
+%   suite = getIntegrationTestSuiteMRST()
 %
 % DESCRIPTION:
 %   Collects matlab.unittest.TestCase subclasses from:
-%     1. The fixed folder in the mrst-testing module (tests/unitTests).
-%        This is always included regardless of the 'modules' filter.
-%     2. Any ``tests/unitTests/`` subdirectory in every registered
-%        MRST module, provided the directory contains files whose names
-%        match the convention  ``Test*.m``  or  ``*Test.m``.
-%
-% OPTIONAL PARAMETERS:
-%   'modules' - Cell array of module names.  When provided, only tests from
-%               those modules are included (step 2 above).  The fixed
-%               mrst-testing folder (step 1) is always included.
-%               Default: {} (include all registered modules).
+%   Any ``tests/integrationTests/`` subdirectory in every registered
+%   MRST module, provided the directory contains files whose names
+%   match the convention  ``Test*.m``  or  ``*Test.m``.
 %
 % RETURNS:
 %   suite - matlab.unittest.TestSuite aggregating all discovered tests.
@@ -27,7 +18,7 @@ function suite = getUnitTestSuiteMRST(varargin)
 %   (e.g. missing dependencies) to keep the runner robust.
 %
 % SEE ALSO:
-%   runPreReleaseTests, getIntegrationTestSuiteMRST
+%   runTests, getUnitTestSuiteMRST
 
 %{
 Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
@@ -49,42 +40,15 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
     mrstModule add mrst-testing
-
-    opt = struct('modules', {{}});
-    opt = merge_options(opt, varargin{:});
-
-    filterMods = opt.modules;
-    if ~isempty(filterMods) && ischar(filterMods)
-        filterMods = {filterMods};
-    end
+    import matlab.unittest.TestSuite;
 
     % Collect sub-suites in a cell array to avoid vertcat issues with
     % matlab.unittest.TestSuite across MATLAB releases.
     parts = {};
 
-    % --- 1. Fixed mrst-testing folder (always included) -----------------
-    mtpath      = mrstPath('query', 'mrst-testing');
-    unitfolders = {'tests/unitTests'};
-    for i = 1:numel(unitfolders)
-        p = fullfile(mtpath, unitfolders{i});
-        if isfolder(p)
-            try
-                s = matlab.unittest.TestSuite.fromFolder(p);
-                parts{end+1} = s; %#ok<AGROW>
-            catch ME
-                warning('mrst:unitTestDiscovery', ...
-                    'Skipping folder %s: %s', p, ME.message);
-            end
-        end
-    end
-
-    % --- 2. Auto-discover from every registered module ------------------
-    if isempty(filterMods)
-        mods = mrstPath();
-    else
-        mods = filterMods;
-    end
-    testDirs = {'tests/unitTests', 'UnitTests'};
+    % Auto-discover from every registered module
+    mods = mrstPath();
+    testDirs = {'tests/integrationTests'};
 
     for im = 1:numel(mods)
         modPath = mrstPath('query', mods{im});
@@ -107,10 +71,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             for fi = 1:numel(files)
                 fpath = fullfile(candidate, files(fi).name);
                 % Skip plain scripts — only load files that define a
-                % matlab.unittest.TestCase subclass.  Plain scripts
-                % (tutorial/demo files) would otherwise be picked up as
-                % script-based tests whose %%-sections run in isolation,
-                % causing failures due to missing cross-section state.
+                % matlab.unittest.TestCase subclass.
                 if ~isTestCaseClass(fpath)
                     continue
                 end
@@ -118,7 +79,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                     s = matlab.unittest.TestSuite.fromFile(fpath);
                     parts{end+1} = s; %#ok<AGROW>
                 catch ME
-                    warning('mrst:unitTestDiscovery', ...
+                    warning('mrst:integrationTestDiscovery', ...
                         'Skipping %s: %s', fpath, ME.message);
                 end
             end
@@ -153,3 +114,4 @@ function tf = isTestCaseClass(fpath)
         '^\s*classdef\s+\w+\s*<[^%\n]*matlab\.unittest\.TestCase', ...
         'once', 'lineanchors'));
 end
+

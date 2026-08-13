@@ -30,7 +30,7 @@ function results = runPreReleaseTests(varargin)
 %                    belonging to these modules are executed.  Default: all.
 %   'excludeTags'  - Cell array of example tags to exclude in Tier 3.
 %                    Default: {'slow', 'data-required'}.
-%   'writeXML'     - Write JUnit XML results to ad-unittest/output/XML/.
+% 'writeXML'     - Write JUnit XML results to mrst-testing/output/XML/.
 %                    Default: false.
 %   'stopOnFail'   - Stop the test run on first failure. Default: false.
 %   'parallel'     - Run tests in parallel (requires Parallel Computing
@@ -92,14 +92,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     opt = applyEnvOverrides(opt);
     opt = merge_options(opt, varargin{:});
 
-    mrstModule add ad-unittest
+    mrstModule add mrst-testing ad-unittest
 
     import matlab.unittest.TestRunner;
     import matlab.unittest.TestSuite;
 
     xmlDir = '';
     if opt.writeXML
-        xmlDir = fullfile(mrstPath('query', 'ad-unittest'), 'output', 'XML');
+        xmlDir = fullfile(mrstPath('query', 'mrst-testing'), 'output', 'XML');
         if ~isfolder(xmlDir), mkdir(xmlDir); end
     end
 
@@ -240,9 +240,9 @@ function opt = applyEnvOverrides(opt)
 end
 
 function printSummary(results)
-    % Determine the MRST root (two levels above the ad-unittest module).
-    adPath   = mrstPath('query', 'ad-unittest');
-    mrst_root = fileparts(fileparts(adPath));   % …/autodiff/ad-unittest -> MRST root
+    % Determine the MRST root (two levels above the mrst-testing module).
+    mtPath    = mrstPath('query', 'mrst-testing');
+    mrst_root = fileparts(fileparts(mtPath));   % …/testing/mrst-testing -> MRST root
 
     % ---- Aggregate table ------------------------------------------------
     fprintf('\n%s\n Pre-Release Test Summary\n%s\n', repmat('=',1,60), repmat('=',1,60));

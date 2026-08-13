@@ -1,4 +1,4 @@
-function results = runTestsAD(varargin)
+function results = runTests(varargin)
 %Undocumented Utility Function
 
 %{

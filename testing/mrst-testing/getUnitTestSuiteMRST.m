@@ -62,7 +62,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % matlab.unittest.TestSuite across MATLAB releases.
     parts = {};
 
-    % --- 1. Fixed mrst-testing folder (always included) -----------------
+    % --- 1. Fixed mrst-testing folders (always included) -----------------
     mtpath      = mrstPath('query', 'mrst-testing');
     unitfolders = {'tests/unitTests'};
     for i = 1:numel(unitfolders)

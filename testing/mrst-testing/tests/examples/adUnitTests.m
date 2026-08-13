@@ -34,9 +34,9 @@ tests = matlab.unittest.TestSuite.fromClass(?TestAdjoints);
 result_adjoints = run(tests);
 
 %% Run all simulation tests
-folder = mrstPath('query', 'mrst-testing');
+folder = mrstPath('query', 'ad-unittest');
 
-tests = matlab.unittest.TestSuite.fromFolder(fullfile(folder, 'tests', 'integrationTests'));
+tests = matlab.unittest.TestSuite.fromFolder(fullfile(folder, 'test_sim'));
 results = run(tests);
 
 %%

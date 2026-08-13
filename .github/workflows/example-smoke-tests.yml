@@ -61,7 +61,7 @@ jobs:
           command: |
             cd(getenv('GITHUB_WORKSPACE'));
             startup();
-            mrstModule add ad-unittest;
+            mrstModule add mrst-testing;
             % Map matrix.module value to registered module names
             groupName = '${{ matrix.module }}';
             allMods   = mrstPath();
@@ -100,14 +100,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: junit-smoke-${{ matrix.module }}
-          path: autodiff/ad-unittest/output/XML/*.xml
+          path: testing/mrst-testing/output/XML/*.xml
           retention-days: 30
 
       - name: Publish test results
         if: always()
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: autodiff/ad-unittest/output/XML/*.xml
+          files: testing/mrst-testing/output/XML/*.xml
           check_name: Smoke Tests (${{ matrix.module }})
 
   # -----------------------------------------------------------------------
@@ -138,7 +138,7 @@ jobs:
           command: |
             cd(getenv('GITHUB_WORKSPACE'));
             startup();
-            mrstModule add ad-unittest;
+            mrstModule add mrst-testing;
             % Run ONLY the slow-tagged examples (not excluded here)
             runPreReleaseTests('tier', 3, 'excludeTags', {'data-required'}, ...
                                'writeXML', true);
@@ -148,12 +148,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: junit-slow-examples
-          path: autodiff/ad-unittest/output/XML/*.xml
+          path: testing/mrst-testing/output/XML/*.xml
           retention-days: 14
 
       - name: Publish test results
         if: always()
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: autodiff/ad-unittest/output/XML/*.xml
+          files: testing/mrst-testing/output/XML/*.xml
           check_name: Slow Examples
