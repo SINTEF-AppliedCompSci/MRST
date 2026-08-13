@@ -83,6 +83,10 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         mods = mrstPath();
     else
         mods = filterMods;
+        % Always test ad-unittest itself when a module filter is active
+        if ~any(strcmpi(mods, 'ad-unittest'))
+            mods = ['ad-unittest', mods];
+        end
     end
     testDirs = {'tests/unitTests', 'UnitTests'};
 

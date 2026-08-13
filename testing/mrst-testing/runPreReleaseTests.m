@@ -123,7 +123,12 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % Simulation integration tests (matlab.unittest based)
         intSuite = getIntegrationTestSuiteMRST();
         if ~isempty(opt.modules)
-            intSuite = filter_by_modules(intSuite, opt.modules);
+            % Ensure ad-unittest is always included when filtering
+            mods = opt.modules;
+            if ~any(strcmpi(mods, 'ad-unittest'))
+                mods = ['ad-unittest', mods];
+            end
+            intSuite = filter_by_modules(intSuite, mods);
         end
         res = run_suite(intSuite, 'integration', opt, xmlDir);
         results(end+1) = struct('tier', 2, 'name', 'integration', 'result', {res});
