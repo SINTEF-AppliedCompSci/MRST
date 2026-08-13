@@ -2,7 +2,7 @@ function flatstructviewer = compareStructs(mstruct1, mstruct2, name1, name2)
 %%
 % Compare two json structures, set a flag 'equal', 'different' or 'missing' on each entry. Returns the results as an instance of |FlatStructViewer| for visualization.
 %
-    
+
     if nargin == 2
         name1 = 'mstruct1';
         name2 = 'mstruct2';
@@ -11,27 +11,27 @@ function flatstructviewer = compareStructs(mstruct1, mstruct2, name1, name2)
     flatstructviewer1 = flattenStruct(mstruct1, 'doprint', false);
     flatstructviewer2 = flattenStruct(mstruct2, 'doprint', false);
 
-    flatjson1 = flatstructviewer1.flatjson;
-    flatjson2 = flatstructviewer2.flatjson;
+    flatstruct1 = flatstructviewer1.flatstruct;
+    flatstruct2 = flatstructviewer2.flatstruct;
 
-    fd1 = flatjson1(:, 1);
-    fd2 = flatjson2(:, 1);
+    fd1 = flatstruct1(:, 1);
+    fd2 = flatstruct2(:, 1);
 
     [fd, ia, ib] = intersect(fd1, fd2);
 
-    flatjsondifferent = {};
-    flatjsoncommon    = {};
-    flatjsonmissing   = {};
+    flatstructdifferent = {};
+    flatstructcommon    = {};
+    flatstructmissing   = {};
 
     for ii = 1 : numel(ia)
-        val1 = flatjson1{ia(ii), 2};
-        val2 = flatjson2{ib(ii), 2};
+        val1 = flatstruct1{ia(ii), 2};
+        val2 = flatstruct2{ib(ii), 2};
         isequal = compareValue(val1, val2);
         entry = {fd{ii}, val1, val2};
         if isequal
-            flatjsoncommon{end + 1} = entry;
+            flatstructcommon{end + 1} = entry;
         else
-            flatjsondifferent{end + 1} = entry;
+            flatstructdifferent{end + 1} = entry;
         end
 
     end
@@ -40,32 +40,32 @@ function flatstructviewer = compareStructs(mstruct1, mstruct2, name1, name2)
     ismissing1(ib) = false;
     ismissing1 = find(ismissing1);
     for ii = 1 : numel(ismissing1)
-        entry = {flatjson2{ismissing1(ii), 1}, NaN, flatjson2{ismissing1(ii), 2}};
-        flatjsonmissing{end + 1} = entry;
+        entry = {flatstruct2{ismissing1(ii), 1}, NaN, flatstruct2{ismissing1(ii), 2}};
+        flatstructmissing{end + 1} = entry;
     end
 
     ismissing2 = true(numel(fd1), 1);
     ismissing2(ia) = false;
     ismissing2 = find(ismissing2);
     for ii = 1 : numel(ismissing2)
-        entry = {flatjson1{ismissing2(ii), 1}, flatjson1{ismissing2(ii), 2}, NaN};
-        flatjsonmissing{end + 1} = entry;
+        entry = {flatstruct1{ismissing2(ii), 1}, flatstruct1{ismissing2(ii), 2}, NaN};
+        flatstructmissing{end + 1} = entry;
     end
 
-    flatjsoncommon    = vertcat(flatjsoncommon{:});
-    flatjsondifferent = vertcat(flatjsondifferent{:});
-    flatjsonmissing   = vertcat(flatjsonmissing{:});
+    flatstructcommon    = vertcat(flatstructcommon{:});
+    flatstructdifferent = vertcat(flatstructdifferent{:});
+    flatstructmissing   = vertcat(flatstructmissing{:});
 
-    n                 = size(flatjsoncommon, 1);
-    flatjsoncommon    = horzcat(flatjsoncommon, repmat({'equal'}, n, 1));
-    n                 = size(flatjsondifferent, 1);
-    flatjsondifferent = horzcat(flatjsondifferent, repmat({'different'}, n, 1));
-    n                 = size(flatjsonmissing, 1);
-    flatjsonmissing   = horzcat(flatjsonmissing, repmat({'missing'}, n, 1));
+    n                 = size(flatstructcommon, 1);
+    flatstructcommon    = horzcat(flatstructcommon, repmat({'equal'}, n, 1));
+    n                 = size(flatstructdifferent, 1);
+    flatstructdifferent = horzcat(flatstructdifferent, repmat({'different'}, n, 1));
+    n                 = size(flatstructmissing, 1);
+    flatstructmissing   = horzcat(flatstructmissing, repmat({'missing'}, n, 1));
 
-    flatjsonboth = vertcat(flatjsoncommon, flatjsondifferent, flatjsonmissing);
+    flatstructboth = vertcat(flatstructcommon, flatstructdifferent, flatstructmissing);
 
-    flatstructviewer = FlatStructViewer(flatjsonboth, {'parameter name', name1, name2, 'comparison'});
+    flatstructviewer = FlatStructViewer(flatstructboth, {'parameter name', name1, name2, 'comparison'});
 
 end
 
