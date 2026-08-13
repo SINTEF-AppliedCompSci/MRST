@@ -240,6 +240,11 @@ function opt = applyEnvOverrides(opt)
 end
 
 function printSummary(results)
+    % Determine the MRST root (two levels above the ad-unittest module).
+    adPath   = mrstPath('query', 'ad-unittest');
+    mrst_root = fileparts(fileparts(adPath));   % …/autodiff/ad-unittest -> MRST root
+
+    % ---- Aggregate table ------------------------------------------------
     fprintf('\n%s\n Pre-Release Test Summary\n%s\n', repmat('=',1,60), repmat('=',1,60));
     fprintf('%-5s  %-25s  %6s  %6s  %6s\n', 'Tier', 'Suite', 'Passed', 'Failed', 'Total');
     fprintf('%s\n', repmat('-',1,60));
@@ -265,32 +270,107 @@ function printSummary(results)
         fprintf('RESULT: ALL TESTS PASSED\n');
     end
 
-    % Per-test listing
+    % ---- Per-test listing grouped by module/class -----------------------
     fprintf('\n%s\n Individual Test Results\n%s\n', repmat('-',1,60), repmat('-',1,60));
+
+    % Collect all test results across tiers in one flat list.
+    allRes  = [];
+    allTier = [];
     for i = 1:numel(results)
-        r   = results(i);
-        res = r.result;
+        res = results(i).result;
         if isempty(res), continue; end
-        fprintf('  [Tier %d / %s]\n', r.tier, r.name);
-        for j = 1:numel(res)
-            if res(j).Passed
+        allRes  = [allRes,  res ];          %#ok<AGROW>
+        allTier = [allTier, repmat(results(i).tier, 1, numel(res))]; %#ok<AGROW>
+    end
+
+    if isempty(allRes)
+        fprintf('  (no test results)\n');
+        fprintf('%s\n', repmat('-',1,60));
+        return
+    end
+
+    % Resolve class name -> relative file path for every test.
+    classNames = cell(numel(allRes), 1);
+    filePaths  = cell(numel(allRes), 1);
+    for j = 1:numel(allRes)
+        parts       = strsplit(allRes(j).Name, '/');
+        className   = parts{1};
+        classNames{j} = className;
+        fp = which(className);
+        if isempty(fp)
+            fp = '';
+        else
+            fp = makeRelativePath(fp, mrst_root);
+        end
+        filePaths{j} = fp;
+    end
+
+    % Group by (className, filePath) so each class appears once.
+    [~, ia] = unique(classNames, 'stable');
+    groups  = classNames(ia);
+
+    for g = 1:numel(groups)
+        cls  = groups{g};
+        mask = strcmp(classNames, cls);
+        fp   = filePaths{find(mask, 1)};
+
+        % Module heading with clickable file link.
+        if ~isempty(fp)
+            link = makeLink(fp, mrst_root);
+            fprintf('  %s  (%s)\n', cls, link);
+        else
+            fprintf('  %s\n', cls);
+        end
+
+        idx = find(mask);
+        for k = 1:numel(idx)
+            j    = idx(k);
+            res  = allRes(j);
+            tier = allTier(j);
+            nameParts = strsplit(res.Name, '/');
+            method    = nameParts{end};
+
+            if res.Passed
                 status = 'PASS';
-            elseif res(j).Failed
+            elseif res.Failed
                 status = 'FAIL';
             else
                 status = 'SKIP';
             end
-            % Resolve source file: Name is 'ClassName/MethodName' or
-            % 'ClassName' for script-based tests.
-            testName = res(j).Name;
-            parts    = strsplit(testName, '/');
-            className = parts{1};
-            fpath = which(className);
-            if isempty(fpath)
-                fpath = '(path unknown)';
-            end
-            fprintf('    [%s]  %s\n          %s\n', status, testName, fpath);
+            fprintf('    [%s]  %s  (Tier %d)\n', status, method, tier);
         end
     end
     fprintf('%s\n', repmat('-',1,60));
+end
+
+% -------------------------------------------------------------------------
+
+function rel = makeRelativePath(absPath, root)
+%Return absPath relative to root, normalising separators.
+    % Ensure both end without separator for clean prefix removal.
+    if ~endsWith(root, filesep)
+        root = [root, filesep];
+    end
+    if strncmp(absPath, root, numel(root))
+        rel = absPath(numel(root)+1:end);
+    else
+        rel = absPath;   % outside MRST root — return as-is
+    end
+end
+
+% -------------------------------------------------------------------------
+
+function link = makeLink(relPath, mrst_root)
+%Return a MATLAB Command Window hyperlink for relPath.
+    absPath = fullfile(mrst_root, relPath);
+    % matlab: open URL for opening a file in the editor
+    url  = ['matlab:open(''' strrep(absPath, '''', '''''') ''')'];
+    link = ['<a href="' url '">' relPath '</a>'];
+end
+
+% -------------------------------------------------------------------------
+
+function tf = endsWith(str, suffix)
+    n  = numel(suffix);
+    tf = numel(str) >= n && strcmp(str(end-n+1:end), suffix);
 end
