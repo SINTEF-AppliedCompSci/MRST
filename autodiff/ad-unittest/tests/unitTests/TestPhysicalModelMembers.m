@@ -2,7 +2,7 @@ classdef TestPhysicalModelMembers < matlab.unittest.TestCase
     methods
         function test = TestPhysicalModelMembers()
             mrstModule reset
-            mrstModule add mrst-testing ad-core
+            mrstModule add mrst-testing ad-core ad-unittest
         end
     end
     
