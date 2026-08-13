@@ -264,4 +264,24 @@ function printSummary(results)
     else
         fprintf('RESULT: ALL TESTS PASSED\n');
     end
+
+    % Per-test listing
+    fprintf('\n%s\n Individual Test Results\n%s\n', repmat('-',1,60), repmat('-',1,60));
+    for i = 1:numel(results)
+        r   = results(i);
+        res = r.result;
+        if isempty(res), continue; end
+        fprintf('  [Tier %d / %s]\n', r.tier, r.name);
+        for j = 1:numel(res)
+            if res(j).Passed
+                status = 'PASS';
+            elseif res(j).Failed
+                status = 'FAIL';
+            else
+                status = 'SKIP';
+            end
+            fprintf('    [%s]  %s\n', status, res(j).Name);
+        end
+    end
+    fprintf('%s\n', repmat('-',1,60));
 end
