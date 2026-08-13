@@ -106,6 +106,14 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             end
             for fi = 1:numel(files)
                 fpath = fullfile(candidate, files(fi).name);
+                % Skip plain scripts — only load files that define a
+                % matlab.unittest.TestCase subclass.  Plain scripts
+                % (tutorial/demo files) would otherwise be picked up as
+                % script-based tests whose %%-sections run in isolation,
+                % causing failures due to missing cross-section state.
+                if ~isTestCaseClass(fpath)
+                    continue
+                end
                 try
                     s = matlab.unittest.TestSuite.fromFile(fpath);
                     parts{end+1} = s; %#ok<AGROW>
@@ -126,4 +134,22 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         suite = horzcat(parts{:});
     end
+end
+
+% -------------------------------------------------------------------------
+
+function tf = isTestCaseClass(fpath)
+%Return true only if fpath defines a classdef that inherits from
+%matlab.unittest.TestCase.  Plain scripts return false.
+    tf = false;
+    try
+        txt = fileread(fpath);
+    catch
+        return
+    end
+    % Look for:  classdef <Name> < matlab.unittest.TestCase
+    % (possibly with extra whitespace / multiple inheritance)
+    tf = ~isempty(regexp(txt, ...
+        '^\s*classdef\s+\w+\s*<[^%\n]*matlab\.unittest\.TestCase', ...
+        'once', 'lineanchors'));
 end

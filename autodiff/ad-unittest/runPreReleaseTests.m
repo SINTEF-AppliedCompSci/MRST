@@ -280,7 +280,16 @@ function printSummary(results)
             else
                 status = 'SKIP';
             end
-            fprintf('    [%s]  %s\n', status, res(j).Name);
+            % Resolve source file: Name is 'ClassName/MethodName' or
+            % 'ClassName' for script-based tests.
+            testName = res(j).Name;
+            parts    = strsplit(testName, '/');
+            className = parts{1};
+            fpath = which(className);
+            if isempty(fpath)
+                fpath = '(path unknown)';
+            end
+            fprintf('    [%s]  %s\n          %s\n', status, testName, fpath);
         end
     end
     fprintf('%s\n', repmat('-',1,60));
