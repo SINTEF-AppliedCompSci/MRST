@@ -1,22 +1,24 @@
-% Setting up and solving the system to compare to OPM simulation results.
+%% MRST and OPM comparison for the MICP model
+%
+% This example sets up and solves a one-dimensional MICP treatment problem
+% in MRST and compares the results with corresponding OPM simulation data.
 %
 % In MATLAB, this file produces Figure 3 in:
 %
-% Landa-Marbán, D., Kumar, K., Tveit, S., Gasda, S.E. Numerical studies of 
-% CO2 leakage remediation by micp-based plugging technology. In: Røkke, 
-% N.A. and Knuutila, H.K. (Eds) Short Papers from the 11th International 
-% Trondheim CCS conference, ISBN: 978-82-536-1714-5, 284-290. 
+% Landa-Marbán, D., Kumar, K., Tveit, S., Gasda, S.E. Numerical studies of
+% CO2 leakage remediation by MICP-based plugging technology. In: Røkke,
+% N.A. and Knuutila, H.K. (Eds.), Short Papers from the 11th International
+% Trondheim CCS Conference, ISBN 978-82-536-1714-5, pp. 284-290.
 %
-% In GNU Octave, this file creates and prints the results in the folder 
-% vtk_micp_mrst_opm which can be visualized using ParaView. The example 
-% assumes MRST is the Matlab/Octave path. For information on 
-% MRST-functions, confer the MRST documentation at:
+% In GNU Octave, this file writes the simulation results to the
+% `vtk_micp_mrst_opm` folder for visualization in ParaView.
 %
-% http://www.sintef.no/projectweb/mrst/
-%
+% The example assumes that MRST and the `ad-micp` module are available on
+% the MATLAB or GNU Octave path.
+
 %{
 Copyright 2021-2026, NORCE Research AS, Computational Geosciences and
-Modeling. 
+Modeling.
 
 This file is part of the ad-micp module.
 
@@ -27,128 +29,169 @@ the Free Software Foundation, either version 3 of the License, or
 
 ad-micp is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this file.  If not, see <http://www.gnu.org/licenses/>.
+along with this file. If not, see <http://www.gnu.org/licenses/>.
 %}
 
 % Required modules
 mrstModule add ad-blackoil ad-core ad-micp
 
-% Grid 
-L = 100;                     % Aquifer length, m
-G = tensorGrid(0 : L, [0 1], [0 1]);
+%% Grid
+domainLength = 100;  % Aquifer length, m
+G = tensorGrid(0 : domainLength, [0 1], [0 1]);
 G = computeGeometry(G);
-C = ones(G.cells.num, 1); 
+cellTemplate = ones(G.cells.num, 1);
 
-% Rock
-K0 = 1e-14 * C;              % Aquifer permeability, m^2
-porosity = 0.15;             % Aquifer porosity, [-]
-rock = makeRock(G, K0, porosity);
+%% Rock properties
+initialPermeability = 1e-14 .* cellTemplate;  % Permeability, m^2
+initialPorosity = 0.15;                       % Porosity, [-]
+rock = makeRock(G, initialPermeability, initialPorosity);
 
-% Fluid properties
-fluid.muw = 2.535e-4;        % Water viscocity, Pa s                            
-fluid.bW = @(p) 0 * p + 1;   % Water formation volume factor, [-]
-fluid.bO = @(p) 0 * p + 1;   % CO2 formation volume factor, [-]
+%% Fluid and MICP model properties
+fluid.muw = 2.535e-4;        % Water viscosity, Pa s
+fluid.bW = @(pressure) ...
+    0 .* pressure + 1;       % Water formation volume factor, [-]
+fluid.bO = fluid.bW;         % Compatibility field, [-]
 fluid.rhoWS = 1045;          % Water density, kg/m^3
 fluid.rhoOS = 479;           % CO2 density, kg/m^3
 
-% Remaining model parameters (we put them on the fluid structure)
-fluid.rho_b = 35;            % Density (biofilm), kg/m^3
-fluid.rho_c = 2710;          % Density (calcite), kg/m^3
-fluid.k_str = 2.6e-10;       % Detachment rate, m/(Pa s)
-fluid.diffm = 0;             % Diffusion coefficient (microbes), m^2/s
-fluid.diffo = 0;             % Diffusion coefficient (oxygen), m^2/s
-fluid.diffu = 0;             % Diffusion coefficient (urea), m^2/s
-fluid.alphaL = 0;            % Disperison coefficient (longitudinal), m
-fluid.alphaT = 0;            % Disperison coefficient (transverse), m
-fluid.eta = 3;               % Fitting factor, [-]
-fluid.k_o = 2e-5;            % Half-velocity constant (oxygen), kg/m^3
-fluid.k_u = 21.3;            % Half-velocity constant (urea), kg/m^3
+fluid.rho_b = 35;            % Biofilm density, kg/m^3
+fluid.rho_c = 2710;          % Calcite density, kg/m^3
+fluid.k_str = 2.6e-10;       % Detachment coefficient, m/(Pa s)
+fluid.diffm = 0;             % Microorganism diffusion, m^2/s
+fluid.diffo = 0;             % Oxygen diffusion, m^2/s
+fluid.diffu = 0;             % Urea diffusion, m^2/s
+fluid.alphaL = 0;            % Longitudinal dispersivity, m
+fluid.alphaT = 0;            % Transverse dispersivity, m
+fluid.eta = 3;               % Permeability fitting factor, [-]
+fluid.k_o = 2e-5;            % Oxygen half-velocity constant, kg/m^3
+fluid.k_u = 21.3;            % Urea half-velocity constant, kg/m^3
 fluid.mu = 4.17e-5;          % Maximum specific growth rate, 1/s
-fluid.mu_u = 0.0161;         % Maximum rate of urease utilization, 1/s
-fluid.k_a = 8.51e-7;         % Microbial attachment rate, 1/s                                         
-fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
-fluid.Y = 0.5;               % Yield growth coefficient, [-]
-fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
+fluid.mu_u = 0.0161;         % Maximum urease utilization rate, 1/s
+fluid.k_a = 8.51e-7;         % Microorganism attachment rate, 1/s
+fluid.k_d = 3.18e-7;         % Microorganism death rate, 1/s
+fluid.Y = 0.5;               % Growth yield coefficient, [-]
+fluid.Yuc = 1.67;            % Calcite-to-urea yield coefficient, [-]
 fluid.F = 0.5;               % Oxygen consumption factor, [-]
 fluid.crit = 0.1;            % Critical porosity, [-]
 fluid.kmin = 1e-20;          % Minimum permeability, m^2
-fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation  
 
 % Porosity-permeability relationship
-fluid.K = @(poro) (K0 .* ((poro - fluid.crit) / (porosity - fluid.crit))...
-               .^ fluid.eta + fluid.kmin) .* K0 ./ (K0 + fluid.kmin) .* ...
-                  (poro > fluid.crit) + fluid.kmin .* (poro <= fluid.crit);      
-              
-% Injection strategy
-N = 9;              % Number of injection phases in the injection strategy.
-M = zeros(N, 6);    % The entries per row are: time, dt, rate, m, o, and u.
-dt_on = hour;       % Time step when the well is on.
-dt_off = 5 * hour;  % Time step when the well is off.
+normalizedPorosity = @(porosity) max( ...
+    (porosity - fluid.crit) ./ ...
+    (initialPorosity - fluid.crit), 0);
+fluid.K = @(porosity) max( ...
+    (initialPermeability .* ...
+    normalizedPorosity(porosity) .^ fluid.eta + ...
+    fluid.kmin) .* initialPermeability ./ ...
+    (initialPermeability + fluid.kmin), ...
+    fluid.kmin);
 
-M(1, :) = [20 * hour,   dt_on,  2 / day , 0.01, 0,      0];
-M(2, :) = [20 * hour,   dt_on,  2 / day , 0,    0,      0];
-M(3, :) = [100 * hour,  dt_off, 0       , 0,    0,      0];
-M(4, :) = [20 * hour,   dt_on,  2 / day , 0,    0.04,   0];
-M(5, :) = [20 * hour,   dt_on,  2 / day , 0,    0,      0];
-M(6, :) = [50 * hour,   dt_off, 0       , 0,    0,      0];
-M(7, :) = [20 * hour,   dt_on,  2 / day , 0,    0,    300];
-M(8, :) = [20 * hour,   dt_on,  2 / day , 0,    0,      0];
-M(9, :) = [230 * hour,  dt_off, 0       , 0,    0,      0];
+%% Injection strategy
+%
+% Each row of `injectionStrategy` contains:
+%
+%   1. Phase duration, s
+%   2. Simulation timestep, s
+%   3. Injection rate, m^3/s
+%   4. Microorganism concentration, kg/m^3
+%   5. Oxygen concentration, kg/m^3
+%   6. Urea concentration, kg/m^3
 
-% Create well
-r = 0.15;                       % Well radius, m
-W = addWell([], G, rock, 1, 'Type', 'rate', 'Comp_i', [1, 0], ...
-                                              'Val', M(1, 3), 'Radius', r);
-W = addWell(W, G, rock, G.cells.num, 'Type', 'bhp', 'Comp_i', [1, 0], ...
-                                                  'Val', atm, 'Radius', r);
+activeTimeStep = hour;
+shutInTimeStep = 5 * hour;
+injectionStrategy = [ ...
+     20 * hour, activeTimeStep, 2 / day, 0.01, 0,    0; ...
+     20 * hour, activeTimeStep, 2 / day, 0,    0,    0; ...
+    100 * hour, shutInTimeStep, 0,       0,    0,    0; ...
+     20 * hour, activeTimeStep, 2 / day, 0,    0.04, 0; ...
+     20 * hour, activeTimeStep, 2 / day, 0,    0,    0; ...
+     50 * hour, shutInTimeStep, 0,       0,    0,    0; ...
+     20 * hour, activeTimeStep, 2 / day, 0,    0,  300; ...
+     20 * hour, activeTimeStep, 2 / day, 0,    0,    0; ...
+    230 * hour, shutInTimeStep, 0,       0,    0,    0];
 
-G.injectionwellonboundary = 1;  % The injection well is on the boundary
-G.cellsinjectionwell = 1; 
-                                              
-for i = 1 : 2
-    W(i).m = 0;
-    W(i).o = 0;
-    W(i).u = 0;
+if exist('AD_MICP_TEST', 'var')
+    injectionStrategy = [ ...
+        10 * hour, activeTimeStep, 2 / day, 0.01, 0.04, 300];
 end
-W(1).m = M(1, 4);      
-W(1).o = M(1, 5);
-W(1).u = M(1, 6);
+numberOfPhases = size(injectionStrategy, 1);
 
-% Setup some schedule
-nt = sum(M(:, 1) ./ M(:, 2)); 
-timesteps = repmat(dt_on, nt, 1);
+%% Injection and pressure-control wells
+wellRadius = 0.15;
+W = addWell([], G, rock, 1, ...
+    'Type', 'rate', 'Comp_i', [1, 0], ...
+    'Val', injectionStrategy(1, 3), 'Radius', wellRadius);
+W = addWell(W, G, rock, G.cells.num, ...
+    'Type', 'bhp', 'Comp_i', [1, 0], ...
+    'Val', atm, 'Radius', wellRadius);
+% The injection well lies on the boundary. This information is used to
+% correct the reconstructed cell velocity in the dispersion calculation.
+G.injectionwellonboundary = 1;
+G.cellsinjectionwell = 1;
+for wellIndex = 1 : numel(W)
+    W(wellIndex).m = 0;
+    W(wellIndex).o = 0;
+    W(wellIndex).u = 0;
+end
+W(1).m = injectionStrategy(1, 4);
+W(1).o = injectionStrategy(1, 5);
+W(1).u = injectionStrategy(1, 6);
+
+%% Construct simulation schedule
+stepsPerPhase = round( ...
+    injectionStrategy(:, 1) ./ injectionStrategy(:, 2));
+totalNumberOfSteps = sum(stepsPerPhase);
+timesteps = zeros(totalNumberOfSteps, 1);
+controlIndices = zeros(totalNumberOfSteps, 1);
+firstStep = 1;
+
+for phaseIndex = 1 : numberOfPhases
+    lastStep = ...
+        firstStep + stepsPerPhase(phaseIndex) - 1;
+
+    timesteps(firstStep : lastStep) = ...
+        injectionStrategy(phaseIndex, 2);
+
+    controlIndices(firstStep : lastStep) = ...
+        phaseIndex;
+
+    firstStep = lastStep + 1;
+end
 schedule = simpleSchedule(timesteps, 'W', W);
-for i = 2 : N 
-    schedule.control(i) = schedule.control(i - 1);
-    schedule.step.control(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
-                                                                  end) = i;
-    schedule.step.val(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
-                                                            end) = M(i, 2);
-    schedule.control(i).W(1).val = M(i, 3);
-    schedule.control(i).W(1).m = M(i, 4);
-    schedule.control(i).W(1).o = M(i, 5);
-    schedule.control(i).W(1).u = M(i, 6);
+baseControl = schedule.control(1);
+schedule.control = repmat(baseControl, numberOfPhases, 1);
+for phaseIndex = 1 : numberOfPhases
+    schedule.control(phaseIndex).W(1).val = ...
+        injectionStrategy(phaseIndex, 3);
+
+    schedule.control(phaseIndex).W(1).m = ...
+        injectionStrategy(phaseIndex, 4);
+
+    schedule.control(phaseIndex).W(1).o = ...
+        injectionStrategy(phaseIndex, 5);
+
+    schedule.control(phaseIndex).W(1).u = ...
+        injectionStrategy(phaseIndex, 6);
 end
+schedule.step.control = controlIndices;
+schedule.step.val = timesteps;
+phaseEndSteps = cumsum(stepsPerPhase);
+% Maximum injected oxygen and urea concentrations
+fluid.Comax = max(injectionStrategy(:, 5));
+fluid.Cumax = max(injectionStrategy(:, 6));
 
-% Maximum injected oxygen and urea concentrations.
-fluid.Comax = max(M(:, 5));             
-fluid.Cumax = max(M(:, 6));
-
-% Create model
+%% Create model and solver
 model = MICPModel(G, rock, fluid);
 model.toleranceMB = 1e-14;
 model.nonlinearTolerance = 1e-14;
-
-% Set up solver
 solver = getNonLinearSolver(model);
 solver.LinearSolver.tolerance = 1e-14;
 
-% Initial condition
+%% Initial state
 state0 = initState(G, W, atm, [1, 0]);
 state0.m = zeros(G.cells.num, 1);
 state0.o = zeros(G.cells.num, 1);
@@ -156,21 +199,32 @@ state0.u = zeros(G.cells.num, 1);
 state0.b = zeros(G.cells.num, 1);
 state0.c = zeros(G.cells.num, 1);
 
-% Simulate case (GNU Octave/MATLAB)
+%% Run the simulation
 if exist('OCTAVE_VERSION', 'builtin') ~= 0
-    ok = 'true';
-    fn = checkCloggingMICP(ok);
+    [~, states] = simulateScheduleAD( ...
+        state0, model, schedule, ...
+        'NonLinearSolver', solver);
 else
-    fn = getPlotAfterStepMICP(state0, model, 0, 270);
-end
-[~, states] = simulateScheduleAD(state0, model, schedule, ...
-                             'NonLinearSolver', solver, 'afterStepFn', fn);
+    afterStepFunction = ...
+        getPlotAfterStepMICP(state0, model, 0, 270);
 
-% Write the results to be read in ParaView (GNU Octave)
+    [~, states] = simulateScheduleAD( ...
+        state0, model, schedule, ...
+        'NonLinearSolver', solver, ...
+        'afterStepFn', afterStepFunction);
+end
+
+%% Export results in GNU Octave
 if exist('OCTAVE_VERSION', 'builtin') ~= 0
-    mkdir vtk_micp_mrst_opm;
-    cd vtk_micp_mrst_opm;
-    mrsttovtk(G, states, 'states', '%f');
+    outputDirectory = fullfile(pwd, 'vtk_micp_mrst_opm');
+    if ~isfolder(outputDirectory)
+        mkdir(outputDirectory);
+    end
+    outputName = fullfile(outputDirectory, 'states');
+    mrsttovtk(G, states, outputName, '%f');
+    fprintf( ...
+        'VTK results written to:\n  %s.pvd\n', ...
+        outputName);
     return
 end
 
@@ -210,12 +264,12 @@ set(gcf, 'PaperUnits', 'centimeters', 'PaperPosition', [0 0 16 27]);
 n2 = subplot(5, 1, 2);
 hold on
 plot(0, 0, 'color', [0 0 0], 'LineStyle', '-');
-for i = 1 : N 
+for i = 1 : numberOfPhases 
     plot(G.cells.centroids(1 : 2 : end, 1), ...
             states_OPM{i + 1}.m(1 : 2 : end, 1), 'o', 'MarkerSize', mS, ...
                           'MarkerEdgeColor', [0 0 1], 'LineStyle', 'none');
     plot(G.cells.centroids(:, 1), ...
-         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.m, 'color', pltCls{i}, ...
+         states{phaseEndSteps(i)}.m, 'color', pltCls{i}, ...
                                       'LineWidth', lW, 'LineStyle', lS{i});                   
 end                                   
 line([pL(1) pL(1)], [0 W(1).m], 'color', 'red', ...
@@ -242,12 +296,12 @@ set(gca, 'FontSize', fS, 'FontName', 'Arial', 'XTick', (0 : 20 : L), ...
 n5 = subplot(5, 2, 5);
 hold on
 plot(0,0, 'color', [0 0 0], 'LineStyle', '-');
-for i = 1 : N 
+for i = 1 : numberOfPhases 
     plot(G.cells.centroids(1 : 2 : end, 1), ...
             states_OPM{i + 1}.o(1 : 2 : end, 1), 'o', 'MarkerSize', mS, ...
                           'MarkerEdgeColor', [0 0 1], 'LineStyle', 'none');
     plot(G.cells.centroids(:, 1), ...
-         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.o, 'color', pltCls{i}, ...
+         states{phaseEndSteps(i)}.o, 'color', pltCls{i}, ...
                                       'LineWidth', lW, 'LineStyle', lS{i});                   
 end                                              
 line([pL(1) pL(1)], [0 fluid.Comax], 'color', 'red', ...
@@ -274,12 +328,12 @@ set(gca, 'FontSize', fS, 'FontName', 'Arial', 'XTick', (0 : 10 : 40), ...
 n6 = subplot(5, 2, 6);
 hold on
 plot(0, 0, 'color',[0 0 0], 'LineStyle', '-');
-for i = 1 : N 
+for i = 1 : numberOfPhases 
     plot(G.cells.centroids(1 : 2 : end, 1), ...
             states_OPM{i + 1}.b(1 : 2 : end, 1), 'o', 'MarkerSize', mS, ...
                           'MarkerEdgeColor', [0 0 1], 'LineStyle', 'none');
     plot(G.cells.centroids(:, 1), ...
-         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.b, 'color', pltCls{i}, ...
+         states{phaseEndSteps(i)}.b, 'color', pltCls{i}, ...
                                       'LineWidth', lW, 'LineStyle', lS{i});                   
 end
 line([pL(1) pL(1)], [0 0.00015], 'color', 'red', ...
@@ -304,12 +358,12 @@ set(gca, 'FontSize', fS, 'FontName', 'Arial', 'XTick', (0 : 10 : 40), ...
 n7 = subplot(5, 2, 7);
 hold on
 plot(0, 0, 'color', [0 0 0], 'LineStyle', '-');
-for i = 1 : N 
+for i = 1 : numberOfPhases 
     plot(G.cells.centroids(1 : 2 : end, 1), ...
             states_OPM{i + 1}.u(1 : 2 : end, 1), 'o', 'MarkerSize', mS, ...
                           'MarkerEdgeColor', [0 0 1], 'LineStyle', 'none');
     plot(G.cells.centroids(:, 1), ...
-         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.u, 'color', pltCls{i}, ...
+         states{phaseEndSteps(i)}.u, 'color', pltCls{i}, ...
                                       'LineWidth', lW, 'LineStyle', lS{i});                   
 end                                                   
 line([pL(1) pL(1)], [0 fluid.Cumax], 'color', 'red', ...
@@ -334,12 +388,12 @@ set(gca, 'FontSize', fS, 'FontName', 'Arial', 'XTick', (0 : 10 : 40), ...
 n8 = subplot(5, 2, 8);
 hold on
 plot(0, 0, 'color', [0 0 0], 'LineStyle', '-');
-for i = 1 : N 
+for i = 1 : numberOfPhases 
     plot(G.cells.centroids(1 : 2 : end, 1), ...
             states_OPM{i + 1}.c(1 : 2 : end, 1), 'o', 'MarkerSize', mS, ...
                           'MarkerEdgeColor', [0 0 1], 'LineStyle', 'none');
     plot(G.cells.centroids(:, 1), ...
-         states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.c, 'color', pltCls{i}, ...
+         states{phaseEndSteps(i)}.c, 'color', pltCls{i}, ...
                                       'LineWidth', lW, 'LineStyle', lS{i});                   
 end
 line([pL(1) pL(1)], [0 0.02], 'color', 'red', ...
@@ -367,15 +421,15 @@ set(gca, 'FontSize', fS, 'FontName', 'Arial', 'XTick', (0 : 10 : 40), ...
 n9 = subplot(5, 2, 9);
 hold on
 plot(0, 0, 'color', [0 0 0], 'LineStyle', '-');
-for i = 1 : N 
+for i = 1 : numberOfPhases 
     plot(G.cells.centroids(1 : 2 : end, 1), 100 / porosity * ( ...
               states_OPM{i + 1}.b(1 : 2 : end, 1) + states_OPM{i + 1}.c ...
                               (1 : 2 : end, 1)), 'o', 'MarkerSize', mS, ...
                                'MarkerEdgeColor', [0 0 1], 'LineStyle', ...
                                                                    'none');
     plot(G.cells.centroids(:, 1), 100 / porosity * ( ...
-                            states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.b + ...
-                            states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.c), ... 
+                            states{phaseEndSteps(i)}.b + ...
+                            states{phaseEndSteps(i)}.c), ... 
                                    'color', pltCls{i}, 'LineWidth', lW, ...
                                                        'LineStyle', lS{i});                   
 end
@@ -400,13 +454,13 @@ set(gca, 'FontSize', fS, 'FontName', 'Arial', 'XTick', (0 : 10 : 40), ...
                                                     'YTick', (0 : 5 : 20)); 
 n10 = subplot(5, 2, 10);
 hold on 
-for i = 1 : N 
+for i = 1 : numberOfPhases 
     plot(G.cells.centroids(:, 1), 100 * (1 - fluid.K(porosity - ...
-     states{sum(M(1 : i, 1) ./ M(1 : i, 2))}.b - states{sum(M(1 : i, 1) ...
-       ./ M(1 : i, 2))}.c) ./ K0), 'color', pltCls{i}, 'LineWidth', lW, ...
+     states{phaseEndSteps(i)}.b - states{phaseEndSteps(i)}.c) ...
+        ./ K0), 'color', pltCls{i}, 'LineWidth', lW, ...
                                                        'LineStyle', lS{i});                   
 end
-for i = 1 : N 
+for i = 1 : numberOfPhases 
     k = 100 * (1 - fluid.K(porosity - states_OPM{i + 1}.b - ...
                                                states_OPM{i + 1}.c) ./ K0);  
     plot(G.cells.centroids(1 : 2 : end, 1), k(1 : 2 : end), 'o', ...

@@ -1,38 +1,43 @@
-name: Run examples
+name: Run ad-micp
 
 on:
- push:
-   branches:
-     - main
  pull_request:
    
 jobs:
   run-ad-micp-local:
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest]
-        
-    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    timeout-minutes: 20        
+    runs-on: macos-26
+    env:
+      HOMEBREW_NO_REQUIRE_TAP_TRUST: "1"
 
     steps:
-    - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
+    - uses: actions/checkout@v5
 
     - name: Install octave
       run: |
         brew install octave
     
-    - name: Download mrst (master branch), remove existing ad-micp, and clone ad-micp from the master branch
+    - name: Download MRST, DistMesh, and install PR version
       run: |
-        git clone https://github.com/SINTEF-AppliedCompSci/MRST.git
-        pushd MRST/modules
-        rm -rf ad-micp
-        git clone https://github.com/daavid00/ad-micp.git
+        git clone --single-branch --depth 1 https://github.com/SINTEF-AppliedCompSci/MRST.git
+
+        rm -rf MRST/modules/ad-micp
+        mkdir -p MRST/modules/ad-micp
+
+        # Copy the repository checked out from the PR
+        rsync -a \
+          --exclude='.git/' \
+          --exclude='MRST/' \
+          "$GITHUB_WORKSPACE/" \
+          MRST/modules/ad-micp/
+
+        # Install the current master version of DistMesh (for now to a version fixing a few warnings).
+        git clone --branch dev --single-branch --depth 1 https://github.com/daavid00/DistMesh.git MRST/core/utils/3rdparty/DistMesh
+        rm -rf MRST/core/utils/3rdparty/DistMesh/.git
       
     - name: Run the test
       run: |
-        pushd MRST/modules/ad-micp
-        octave tests/test_runMICP1DCase.m
+        cd MRST/modules/ad-micp
+        octave --no-gui --quiet tests/tests.m

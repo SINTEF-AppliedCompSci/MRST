@@ -1,45 +1,45 @@
 function mrsttovtk(G, states, name, formatn)
-%  Write one or more data sets into the files name.pvd and name-n.vtu 
+%  Write one or more data sets into the files name.pvd and name-n.vtu
 %  for visualization in ParaView.
 %
 % SYNOPSIS:
-%       mrsttovtk(G, struct('data1', data, 'data2', data), name, formatn)
+%       mrsttovtk(G, states, name, formatn)
 %
 % PARAMETERS:
 %   G       - Grid data structure.
 %
-%   data    - Scalar cell data.
+%   states  - Structure or cell array of structures containing cell data.
 %
-%   name    - Name of the outputs files name.pvd and name-n.vtu.
+%   name    - Name of the output files name.pvd and name-n.vtu.
 %
 %   formatn - Format for writing numerical values.
 %
 % NOTES:
-%   The function `mrsttovtk` only writes cell values (e.g., pressures) but 
-%   currenlty not values on faces (e.g., fluxes). This function supports 3D 
-%   tetrahedral, polyhedral, and corner-pont grids, 2D cartesian, triangular,
+%   The function `mrsttovtk` only writes cell values (e.g., pressures), but
+%   currently not values on faces (e.g., fluxes). This function supports 3D
+%   tetrahedral, polyhedral, and corner-point grids, 2D Cartesian, triangular,
 %   and polygonal grids, and 1D grids.
 %
 % EXAMPLE:
-%   Let us consider the grid from the MRST 2019 book (pp 97, Fig 3.31):
-%   G = simpleGrdecl([20, 20, 5], @(x) .25*(x-.5),'flat',true);
+%   Let us consider the grid from the MRST 2019 book (pp. 97, Fig. 3.31):
+%   G = simpleGrdecl([20, 20, 5], @(x) .25*(x-.5), 'flat', true);
 %   G = processGRDECL(G);
 %
-%   % 1) Writting the content in G.cells.indexMap into the files states.pvd
-%   and states-00001.vtu for visualization in ParaView (this since indexMap
-%   is the only field with the same numbers of values as grid cells).
-%   mrsttovtk(G,G.cells,'states','%.6g');
+%   % 1) Writing the content in G.cells.indexMap into the files states.pvd
+%   and states-00001.vtu for visualization in ParaView (since indexMap
+%   is the only field with the same number of values as grid cells).
+%   mrsttovtk(G, G.cells, 'states', '%.6g');
 %
-%   % 2) After making a structure with 100 values, we run the mrsttovtk 
-%   function to write the values to be visualized each 10 values in ParaView.
-%   for i=1:100
-%       states{i}.index=i^2*G.cells.indexMap;
+%   % 2) After making a structure with 100 values, we run the mrsttovtk
+%   function to write every tenth value for visualization in ParaView.
+%   for i = 1 : 100
+%       states{i}.index = i^2*G.cells.indexMap;
 %   end
-%   mrsttovtk(G,{states{10:10:100}},'states','%.6g');
+%   mrsttovtk(G, {states{10:10:100}}, 'states', '%.6g');
 
 %{
 Copyright 2021-2026, NORCE Research AS, Computational Geosciences and
-Modeling. 
+Modeling.
 This file is part of the ad-micp module.
 ad-micp is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -50,291 +50,317 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
-along with this file.  If not, see <http://www.gnu.org/licenses/>.
+along with this file. If not, see <http://www.gnu.org/licenses/>.
 %}
-    clear Text
-    form = sprintf('%s',formatn);
-    forms = sprintf('%s ',formatn);
-    Text{1} = sprintf('\t\t\t<Points>\n');
-    Text{size(Text,2)+1} = sprintf(['\t\t\t\t<DataArray type="Float32" ' ...
-            'Name="Coordinates" NumberOfComponents="3" format="ascii">\n']);
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
+    valueFormat = formatn;
+    spacedValueFormat = [formatn ' '];
+    geometryText = cell(0, 1);
+
+    geometryText{end + 1} = sprintf('\t\t\t<Points>\n');
+    geometryText{end + 1} = sprintf([ ...
+        '\t\t\t\t<DataArray type="Float32" Name="Coordinates" ' ...
+        'NumberOfComponents="3" format="ascii">\n']);
+    geometryText{end + 1} = sprintf('\t\t\t\t\t');
+
+    coordinates = zeros(G.nodes.num, 3);
+    coordinates(:, 1 : G.griddim) = ...
+        G.nodes.coords(:, 1 : G.griddim);
+
     if G.griddim == 1
-        tg = 3;
-        for i = 1 : G.nodes.num - 1
-            Text{size(Text, 2) + 1} = sprintf([forms forms forms], ...
-              G.nodes.coords(i, 1), 0, 0);
-        end
-        Text{size(Text,2)+1}=sprintf([forms forms form '\n'], ...
-        G.nodes.coords(end,1),0,0);
+        vtkCellType = 3;
     elseif G.griddim == 2
-        if 4*G.cells.num==size(G.cells.faces, 1)
-            tg = 8;
+        if 4*G.cells.num == size(G.cells.faces, 1)
+            vtkCellType = 8;
         else
-            tg = 7;
+            vtkCellType = 7;
         end
-        for i=1:G.nodes.num-1
-            Text{size(Text,2)+1}=sprintf([forms forms forms], ...
-              G.nodes.coords(i,1),G.nodes.coords(i,2),0);
-        end
-        Text{size(Text,2)+1}=sprintf([forms forms form '\n'], ...
-        G.nodes.coords(end,1),G.nodes.coords(end,2),0);
     else
-        tg = 42;
-        for i=1:G.nodes.num-1
-            Text{size(Text,2)+1}=sprintf([forms forms forms], ...
-              G.nodes.coords(i,1),G.nodes.coords(i,2),G.nodes.coords(i,3));
-        end
-        Text{size(Text,2)+1}=sprintf([forms forms form '\n'], ...
-        G.nodes.coords(end,1),G.nodes.coords(end,2),G.nodes.coords(end,3));
+        vtkCellType = 42;
     end
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
-    Text{size(Text,2)+1}=sprintf('\t\t\t</Points>\n');
-    Text{size(Text,2)+1}=sprintf('\t\t\t<Cells>\n');
-    Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="UInt8" ' ...
-                 'Name="types" NumberOfComponents="1" format="ascii">\n']);
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
-    Text{size(Text,2)+1}=sprintf(repmat([num2str(tg),' '], 1, G.cells.num-1));
-    Text{size(Text,2)+1}=sprintf('%d\n',tg);
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
-    ii=rldecode(1:G.cells.num, diff(G.cells.facePos), 2)==1;
+
+    if G.nodes.num > 1
+        coordinateFormat = repmat( ...
+            spacedValueFormat, 1, 3*(G.nodes.num - 1));
+        geometryText{end + 1} = sprintf( ...
+            coordinateFormat, ...
+            reshape(coordinates(1 : end - 1, :)', [], 1));
+    end
+
+    geometryText{end + 1} = sprintf( ...
+        [spacedValueFormat spacedValueFormat valueFormat '\n'], ...
+        coordinates(end, :));
+    geometryText{end + 1} = sprintf('\t\t\t\t</DataArray>\n');
+    geometryText{end + 1} = sprintf('\t\t\t</Points>\n');
+    geometryText{end + 1} = sprintf('\t\t\t<Cells>\n');
+    geometryText{end + 1} = sprintf([ ...
+        '\t\t\t\t<DataArray type="UInt8" Name="types" ' ...
+        'NumberOfComponents="1" format="ascii">\n']);
+    geometryText{end + 1} = sprintf('\t\t\t\t\t');
+
+    if G.cells.num > 1
+        geometryText{end + 1} = sprintf( ...
+            '%d ', repmat(vtkCellType, 1, G.cells.num - 1));
+    end
+
+    geometryText{end + 1} = sprintf('%d\n', vtkCellType);
+    geometryText{end + 1} = sprintf('\t\t\t\t</DataArray>\n');
+
+    cellConnectivity = cell(G.cells.num, 1);
+    faceOffsetLengths = zeros(G.cells.num, 1);
+    faceNodes = cell(G.faces.num, 1);
+
+    for face = 1 : G.faces.num
+        faceNodeRows = ...
+            G.faces.nodePos(face) : G.faces.nodePos(face + 1) - 1;
+        faceNodes{face} = G.faces.nodes(faceNodeRows, 1)' - 1;
+    end
+
     if G.griddim == 3
-        Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Int32" ' ...
-                 'Name="faces" NumberOfComponents="1" format="ascii">\n']);
-        Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
-        Text{size(Text,2)+1}=sprintf('%d',sum(ii));
-        kk=-1;
-        mm=0;
-        for j=G.cells.faces(ii,1)'
-            jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==j;
-            Text{size(Text,2)+1}=sprintf(repmat(' %d', 1,...
-                           sum(jj)+1),sum(jj),G.faces.nodes(jj,1)-1);
-            ll=unique([G.faces.nodes(jj,1)'-1 kk]);
-            kk=ll;
-            mm=sum(jj)+mm;
-        end 
-        offsets{1}=ll(2:end);
-        faceoffsets{1}=mm+sum(ii)+1;
-        for i=2:G.cells.num
-            ii=rldecode(1:G.cells.num, diff(G.cells.facePos), 2)==i;
-            Text{size(Text,2)+1}=sprintf(' %d',sum(ii));
-            kk=-1;
-            mm=0;
-            for j=G.cells.faces(ii,1)'
-                jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==j;
-                Text{size(Text,2)+1}=sprintf(repmat(' %d', 1,...
-                           sum(jj)+1),sum(jj),G.faces.nodes(jj,1)-1);
-                ll=unique([G.faces.nodes(jj,1)'-1 kk]);
-                kk=ll;
-                mm=sum(jj)+mm;
-            end 
-            offsets{i}=ll(2:end);
-            faceoffsets{i}=mm+sum(ii)+1;
+        faceText = cell(G.faces.num, 1);
+
+        for face = 1 : G.faces.num
+            nodes = faceNodes{face};
+            faceText{face} = sprintf( ...
+                repmat(' %d', 1, numel(nodes) + 1), ...
+                numel(nodes), nodes);
         end
-        Text{size(Text,2)+1}=sprintf('\n');
-        Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
-    else
-        kk=-1;
-        mm=0;
-        vct=zeros(max(size(G.cells.faces(ii,1))),1);
-        jjj=G.cells.faces(ii,1)';
-        jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==jjj(1);
-        [ll,id,ic]=unique([G.faces.nodes(jj,1)'-1 kk],"stable");
-        c = setdiff (ll, kk);
-        vct(1)=c(1);
-        vct(2)=c(2);
-        kk=ll;
-        mm=sum(jj)+mm;
-        itr=3;
-        for indx=2:size(jjj, 2)-1
-            j=jjj(indx);
-            jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==j;
-            [ll,id,ic]=unique([G.faces.nodes(jj,1)'-1 kk],"stable");
-            c = setdiff (ll, kk);
-            vct(itr)=c;
-            kk=ll;
-            mm=sum(jj)+mm;
-            itr=itr+1;
-        end 
-        offsets{1}=vct;
-        faceoffsets{1}=mm+sum(ii)+1;
-        for i=2:G.cells.num
-            ii=rldecode(1:G.cells.num, diff(G.cells.facePos), 2)==i;
-            kk=-1;
-            mm=0;
-            vct=zeros(max(size(G.cells.faces(ii,1))),1);
-            jjj=G.cells.faces(ii,1)';
-            jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==jjj(1);
-            [ll,id,ic]=unique([G.faces.nodes(jj,1)'-1 kk],"stable");
-            c = setdiff (ll, kk);
-            vct(1)=c(1);
-            vct(2)=c(2);
-            kk=ll;
-            mm=sum(jj)+mm;
-            itr=3;
-            for indx=2:size(jjj, 2)-1
-                j=jjj(indx);
-                jj=rldecode(1:G.faces.num, diff(G.faces.nodePos), 2)==j;
-                ll=unique([G.faces.nodes(jj,1)'-1 kk],"stable");
-                c = setdiff (ll, kk);
-                vct(itr)=c;
-                kk=ll;
-                mm=sum(jj)+mm;
-                itr=itr+1;
-            end 
-            offsets{i}=vct;
-            faceoffsets{i}=mm+sum(ii)+1;
-        end
-    end
-    Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Int32" ' ...
-               'Name="offsets" NumberOfComponents="1" format="ascii">\n']);
-    ii=0;
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
-    for i=1:G.cells.num-1
-        ii=max(size(offsets{i}))+ii;
-        Text{size(Text,2)+1}=sprintf('%d ',ii);    
-    end 
-    Text{size(Text,2)+1}=sprintf('%d\n',max(size(offsets{G.cells.num})) ...
-                                                                      +ii);  
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
-    Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Int32" '...
-          'Name="connectivity" NumberOfComponents="1" format="ascii">\n']);
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
-    for i=1:G.cells.num-1
-        Text{size(Text,2)+1}=sprintf(repmat('%d ', 1, ...
-                                  max(size(offsets{i}))),offsets{i});   
-    end
-    Text{size(Text,2)+1}=sprintf(repmat('%d ', 1, ...
-        max(size(offsets{G.cells.num}))-1),offsets{G.cells.num}(1:end-1));
-    Text{size(Text,2)+1}=sprintf('%d\n',offsets{G.cells.num}(end));                   
-    Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
-    if G.griddim == 3
-        Text{size(Text,2)+1}=sprintf(['\t\t\t\t<DataArray type="Int32" '...
-           'Name="faceoffsets" NumberOfComponents="1" format="ascii">\n']);
-	    Text{size(Text,2)+1}=sprintf('\t\t\t\t\t');
-        ii=0;
-        for i=1:G.cells.num-1
-            ii=faceoffsets{i}+ii;
-            Text{size(Text,2)+1}=sprintf('%d ',ii);
-        end
-        Text{size(Text,2)+1}=sprintf('%d\n',faceoffsets{G.cells.num}+ii);
-        Text{size(Text,2)+1}=sprintf('\t\t\t\t</DataArray>\n');
-    end
-    Text{size(Text,2)+1}=sprintf('\t\t\t</Cells>\n');
-    Text{size(Text,2)+1}=sprintf('\t\t</Piece>\n');
-    Text{size(Text,2)+1}=sprintf('\t</UnstructuredGrid>\n');
-    Text{size(Text,2)+1}=sprintf('</VTKFile>\n');
-    Text = [Text{:}];
-    if max(size(states))>1
-        state0=states{1};
-    else
-        state0=states;
-    end
-    fields=fieldnames(state0);
-    CellData=fields;
-    for m=1:max(size(fields))
-        if max(size(getfield(state0,fields{m})))~=G.cells.num
-            CellData(ismember(CellData,fields{m}))=[];
-        end
-    end
-    filename = sprintf('%s.pvd',name);
-    fileIDpvd = fopen(filename,'w');
-    fprintf(fileIDpvd,'<?xml version="1.0"?>\n');
-    fprintf(fileIDpvd,'<VTKFile type="Collection"\n');
-    fprintf(fileIDpvd,'\t\t\t\t version="0.1"\n');
-    fprintf(fileIDpvd,'\t\t\t\t byte_order="LittleEndian"\n');
-    fprintf(fileIDpvd,'\t\t\t\t compressor="vtkZLibDataCompressor">\n');
-    fprintf(fileIDpvd,'\t<Collection>\n');
-    
-    filename = sprintf('%s-%.05d.vtu',name,1);
-    fileID = fopen(filename,'w');
-    fprintf(fileID,'<?xml version="1.0"?>\n');
-    fprintf(fileID,['<VTKFile type="UnstructuredGrid" version="0.1" '...
-                                          'byte_order="LittleEndian">\n']);
-    fprintf(fileID,'\t<UnstructuredGrid>\n');
-    fprintf(fileID,['\t\t<Piece NumberOfCells="%d" '...
-                        'NumberOfPoints="%d">\n'],G.cells.num,G.nodes.num);
-    fprintf(fileID,'\t\t\t<CellData Scalars="Variables">\n');
-    for m=1:size(CellData,1)
-        values=getfield(state0,CellData{m});
-        if min(size(values))~=1
-            for o=1:min(size(values))
-                fprintf(fileID,['\t\t\t\t<DataArray type="Float32" '...
-                'Name="%s-%d" NumberOfComponents="1" format="ascii">\n']...
-                                                           ,CellData{m},o);
-                fprintf(fileID,'\t\t\t\t\t');                                       
-                fprintf(fileID,repmat(forms,1,G.cells.num-1), ...
-                                                        values(1:end-1,o));
-                fprintf(fileID,[form '\n'],values(end,o));
-                fprintf(fileID,'\t\t\t\t</DataArray>\n');
+
+        geometryText{end + 1} = sprintf([ ...
+            '\t\t\t\t<DataArray type="Int32" Name="faces" ' ...
+            'NumberOfComponents="1" format="ascii">\n']);
+        geometryText{end + 1} = sprintf('\t\t\t\t\t');
+
+        for cellIndex = 1 : G.cells.num
+            cellFaceRows = G.cells.facePos(cellIndex) : ...
+                G.cells.facePos(cellIndex + 1) - 1;
+            cellFaces = G.cells.faces(cellFaceRows, 1)';
+
+            if cellIndex == 1
+                geometryText{end + 1} = sprintf( ...
+                    '%d', numel(cellFaces));
+            else
+                geometryText{end + 1} = sprintf( ...
+                    ' %d', numel(cellFaces));
             end
-        else
-            fprintf(fileID,['\t\t\t\t<DataArray type="Float32" '...
-            'Name="%s" NumberOfComponents="1" format="ascii">\n'], ...
-                                                              CellData{m});
-            fprintf(fileID,'\t\t\t\t\t');
-            fprintf(fileID,repmat(forms, 1,G.cells.num-1), ...
-                                                        values(1:end-1,1));
-            fprintf(fileID,[form '\n'],values(end,1));
-            fprintf(fileID,'\t\t\t\t</DataArray>\n');
+
+            cellNodes = -1;
+            numberOfFaceEntries = 0;
+
+            for face = cellFaces
+                nodes = faceNodes{face};
+                geometryText{end + 1} = faceText{face};
+                cellNodes = unique([nodes cellNodes]);
+                numberOfFaceEntries = ...
+                    numberOfFaceEntries + numel(nodes);
+            end
+
+            cellConnectivity{cellIndex} = cellNodes(2 : end);
+            faceOffsetLengths(cellIndex) = ...
+                numberOfFaceEntries + numel(cellFaces) + 1;
+        end
+
+        geometryText{end + 1} = sprintf('\n');
+        geometryText{end + 1} = sprintf('\t\t\t\t</DataArray>\n');
+    else
+        for cellIndex = 1 : G.cells.num
+            cellFaceRows = G.cells.facePos(cellIndex) : ...
+                G.cells.facePos(cellIndex + 1) - 1;
+            cellFaces = G.cells.faces(cellFaceRows, 1)';
+            connectivity = zeros(numel(cellFaces), 1);
+            nodes = faceNodes{cellFaces(1)};
+            cellNodes = unique([nodes -1], 'stable');
+            newNodes = setdiff(cellNodes, -1);
+
+            connectivity(1) = newNodes(1);
+            connectivity(2) = newNodes(2);
+
+            numberOfFaceEntries = numel(nodes);
+            connectivityIndex = 3;
+
+            for faceIndex = 2 : numel(cellFaces) - 1
+                face = cellFaces(faceIndex);
+                nodes = faceNodes{face};
+                updatedCellNodes = unique( ...
+                    [nodes cellNodes], 'stable');
+                newNodes = setdiff(updatedCellNodes, cellNodes);
+                connectivity(connectivityIndex) = newNodes;
+                cellNodes = updatedCellNodes;
+                numberOfFaceEntries = ...
+                    numberOfFaceEntries + numel(nodes);
+                connectivityIndex = connectivityIndex + 1;
+            end
+
+            cellConnectivity{cellIndex} = connectivity;
+            faceOffsetLengths(cellIndex) = ...
+                numberOfFaceEntries + numel(cellFaces) + 1;
         end
     end
-    fprintf(fileID,'\t\t\t</CellData>\n');
-    fprintf(fileID,Text);
-    fclose(fileID);
-    if isfield(state0,'time')==1
-        fprintf(fileIDpvd,'\t\t<DataSet timestep="%d" file="%s"/>\n', ...
-                                                     state0.time,filename);
-    else
-        fprintf(fileIDpvd,'\t\t<DataSet timestep="0" file="%s"/>\n', ...
-                                                                 filename);
+
+    connectivityLengths = cellfun(@numel, cellConnectivity);
+    vtkOffsets = cumsum(connectivityLengths);
+    connectivityColumns = cell(size(cellConnectivity));
+
+    for cellIndex = 1 : numel(cellConnectivity)
+        connectivityColumns{cellIndex} = ...
+            cellConnectivity{cellIndex}(:);
     end
-    for n=2:max(size(states))
-        filename = sprintf('%s-%.05d.vtu',name,n);
-        fileID = fopen(filename,'w');
-        fprintf(fileID,'<?xml version="1.0"?>\n');
-        fprintf(fileID,['<VTKFile type="UnstructuredGrid" '...
-                            'version="0.1" byte_order="LittleEndian">\n']);
-        fprintf(fileID,'\t<UnstructuredGrid>\n');
-        fprintf(fileID,['\t\t<Piece NumberOfCells="%d" '...
-                        'NumberOfPoints="%d">\n'],G.cells.num,G.nodes.num);
-        fprintf(fileID,'\t\t\t<CellData Scalars="Variables">\n');
-        for m=1:size(CellData,1)
-            values=getfield(states{n},CellData{m});
-            if min(size(values))~=1
-                for o=1:min(size(values))
-                    fprintf(fileID,['\t\t\t\t<DataArray type="Float32" '...
-                    'Name="%s-%d" NumberOfComponents="1" '...
-                                       'format="ascii">\n'],CellData{m},o);
-                    fprintf(fileID,'\t\t\t\t\t');
-                    fprintf(fileID,repmat(forms, 1, G.cells.num-1), ...
-                                                        values(1:end-1,o));
-                    fprintf(fileID,[form '\n'],values(end,o));
-                    fprintf(fileID,'\t\t\t\t</DataArray>\n');
+
+    vtkConnectivity = vertcat(connectivityColumns{:});
+
+    geometryText{end + 1} = sprintf([ ...
+        '\t\t\t\t<DataArray type="Int32" Name="offsets" ' ...
+        'NumberOfComponents="1" format="ascii">\n']);
+    geometryText{end + 1} = sprintf('\t\t\t\t\t');
+
+    if numel(vtkOffsets) > 1
+        geometryText{end + 1} = sprintf( ...
+            '%d ', vtkOffsets(1 : end - 1));
+    end
+
+    geometryText{end + 1} = sprintf('%d\n', vtkOffsets(end));
+    geometryText{end + 1} = sprintf('\t\t\t\t</DataArray>\n');
+    geometryText{end + 1} = sprintf([ ...
+        '\t\t\t\t<DataArray type="Int32" Name="connectivity" ' ...
+        'NumberOfComponents="1" format="ascii">\n']);
+    geometryText{end + 1} = sprintf('\t\t\t\t\t');
+
+    if numel(vtkConnectivity) > 1
+        geometryText{end + 1} = sprintf( ...
+            '%d ', vtkConnectivity(1 : end - 1));
+    end
+
+    geometryText{end + 1} = sprintf('%d\n', vtkConnectivity(end));
+    geometryText{end + 1} = sprintf('\t\t\t\t</DataArray>\n');
+
+    if G.griddim == 3
+        vtkFaceOffsets = cumsum(faceOffsetLengths);
+
+        geometryText{end + 1} = sprintf([ ...
+            '\t\t\t\t<DataArray type="Int32" Name="faceoffsets" ' ...
+            'NumberOfComponents="1" format="ascii">\n']);
+        geometryText{end + 1} = sprintf('\t\t\t\t\t');
+
+        if numel(vtkFaceOffsets) > 1
+            geometryText{end + 1} = sprintf( ...
+                '%d ', vtkFaceOffsets(1 : end - 1));
+        end
+
+        geometryText{end + 1} = sprintf( ...
+            '%d\n', vtkFaceOffsets(end));
+        geometryText{end + 1} = sprintf( ...
+            '\t\t\t\t</DataArray>\n');
+    end
+
+    geometryText{end + 1} = sprintf('\t\t\t</Cells>\n');
+    geometryText{end + 1} = sprintf('\t\t</Piece>\n');
+    geometryText{end + 1} = sprintf('\t</UnstructuredGrid>\n');
+    geometryText{end + 1} = sprintf('</VTKFile>\n');
+    geometryText = [geometryText{:}];
+
+    if iscell(states)
+        stateList = states;
+    else
+        stateList = {states};
+    end
+
+    initialState = stateList{1};
+    fields = fieldnames(initialState);
+    keepField = false(numel(fields), 1);
+
+    for fieldIndex = 1 : numel(fields)
+        values = initialState.(fields{fieldIndex});
+        keepField(fieldIndex) = ...
+            max(size(values)) == G.cells.num;
+    end
+
+    cellDataFields = fields(keepField);
+    cellValueFormat = repmat( ...
+        spacedValueFormat, 1, G.cells.num - 1);
+
+    filename = sprintf('%s.pvd', name);
+    pvdFileID = fopen(filename, 'w');
+
+    assert(pvdFileID ~= -1, ...
+        sprintf('Could not open file "%s" for writing.', filename));
+
+    fprintf(pvdFileID, '<?xml version="1.0"?>\n');
+    fprintf(pvdFileID, '<VTKFile type="Collection"\n');
+    fprintf(pvdFileID, '\t\t\t\t version="0.1"\n');
+    fprintf(pvdFileID, ...
+        '\t\t\t\t byte_order="LittleEndian">\n');
+    fprintf(pvdFileID, '\t<Collection>\n');
+
+    hasTime = isfield(initialState, 'time');
+
+    for stateIndex = 1 : numel(stateList)
+        state = stateList{stateIndex};
+        filename = sprintf('%s-%.05d.vtu', name, stateIndex);
+        vtuFileID = fopen(filename, 'w');
+
+        assert(vtuFileID ~= -1, ...
+            sprintf('Could not open file "%s" for writing.', filename));
+
+        fprintf(vtuFileID, '<?xml version="1.0"?>\n');
+        fprintf(vtuFileID, [ ...
+            '<VTKFile type="UnstructuredGrid" version="0.1" ' ...
+            'byte_order="LittleEndian">\n']);
+        fprintf(vtuFileID, '\t<UnstructuredGrid>\n');
+        fprintf(vtuFileID, [ ...
+            '\t\t<Piece NumberOfCells="%d" ' ...
+            'NumberOfPoints="%d">\n'], ...
+            G.cells.num, G.nodes.num);
+        fprintf(vtuFileID, ...
+            '\t\t\t<CellData Scalars="Variables">\n');
+
+        for fieldIndex = 1 : numel(cellDataFields)
+            fieldName = cellDataFields{fieldIndex};
+            values = state.(fieldName);
+            numberOfComponents = min(size(values));
+
+            if numberOfComponents > 1
+                for component = 1 : numberOfComponents
+                    arrayName = sprintf( ...
+                        '%s-%d', fieldName, component);
+                    writeCellDataArray( ...
+                        vtuFileID, arrayName, values, component, ...
+                        cellValueFormat, valueFormat);
                 end
             else
-                fprintf(fileID,['\t\t\t\t<DataArray type="Float32" ' ...
-                 'Name="%s" NumberOfComponents="1" format="ascii">\n'], ...
-                                                              CellData{m});
-                fprintf(fileID,'\t\t\t\t\t');                                          
-                fprintf(fileID,repmat(forms, 1,G.cells.num-1), ...
-                                                        values(1:end-1,1));
-                fprintf(fileID,[form '\n'],values(end,1));
-                fprintf(fileID,'\t\t\t\t</DataArray>\n');
+                writeCellDataArray( ...
+                    vtuFileID, fieldName, values, 1, ...
+                    cellValueFormat, valueFormat);
             end
         end
-        fprintf(fileID,'\t\t\t</CellData>\n');
-        fprintf(fileID,Text);
-        fclose(fileID);
-        if isfield(state0,'time')==1
-            fprintf(fileIDpvd,['\t\t<DataSet timestep="%d" '...
-                                 'file="%s"/>\n'],states{n}.time,filename);
+
+        fprintf(vtuFileID, '\t\t\t</CellData>\n');
+        fprintf(vtuFileID, '%s', geometryText);
+        fclose(vtuFileID);
+
+        if hasTime
+            timestep = state.time;
         else
-            fprintf(fileIDpvd,['\t\t<DataSet timestep="%d" '...
-                                            'file="%s"/>\n'],n-1,filename);
+            timestep = stateIndex - 1;
         end
+
+        fprintf(pvdFileID, ...
+            '\t\t<DataSet timestep="%d" file="%s"/>\n', ...
+            timestep, filename);
     end
-    fprintf(fileIDpvd,'\t</Collection>\n');
-    fprintf(fileIDpvd,'</VTKFile>\n');
-    fclose(fileIDpvd);
+
+    fprintf(pvdFileID, '\t</Collection>\n');
+    fprintf(pvdFileID, '</VTKFile>\n');
+    fclose(pvdFileID);
+end
+
+function writeCellDataArray(fileID, arrayName, values, component, ...
+                            cellValueFormat, valueFormat)
+    fprintf(fileID, [ ...
+        '\t\t\t\t<DataArray type="Float32" Name="%s" ' ...
+        'NumberOfComponents="1" format="ascii">\n'], arrayName);
+    fprintf(fileID, '\t\t\t\t\t');
+    fprintf(fileID, cellValueFormat, ...
+        values(1 : end - 1, component));
+    fprintf(fileID, [valueFormat '\n'], ...
+        values(end, component));
+    fprintf(fileID, '\t\t\t\t</DataArray>\n');
 end
