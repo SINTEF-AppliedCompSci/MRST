@@ -1,5 +1,10 @@
 function value = getStructField(mstruct, fieldnamelist, defaultValue)
 
+    if isempty(fieldnamelist)
+        value = mstruct;
+        return
+    end
+               
     if ischar(fieldnamelist)
         % handle case where fieldnamelist is just a char
         fieldnamelist = {fieldnamelist};
