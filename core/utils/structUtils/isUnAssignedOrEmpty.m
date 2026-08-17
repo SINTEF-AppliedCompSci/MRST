@@ -1,11 +1,15 @@
 function status = isUnAssignedOrEmpty(value, fieldnamelist)
 
-    if isempty(getStructField(value, fieldnamelist))
-        status = true;
-        return
+    if nargin < 2
+        fieldnamelist = {};
     end
     
-    status = isAssigned(value, fieldnamelist);
-    status = ~status;
+    value = getStructField(value, fieldnamelist);
+
+    if isUnAssigned(value) || isempty(value)
+        status = true;
+    else
+        status = false;
+    end
     
 end
