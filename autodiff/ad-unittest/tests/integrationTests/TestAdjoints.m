@@ -4,7 +4,7 @@ classdef TestAdjoints < matlab.unittest.TestCase
     
     methods
         function test = TestAdjoints(varargin)
-            mrstModule add mrst-testing ad-blackoil ad-core optimization
+            mrstModule add ad-unittest ad-blackoil ad-core optimization
         end
         
 
@@ -16,7 +16,7 @@ classdef TestAdjoints < matlab.unittest.TestCase
             [wellSols, states] = simulateScheduleAD(state0, model, schedule);
             
             % This part is currently hard-written to use NPV for OW system
-            [obj_adj, obj_num] = test.getObjectiveNPVOW(G, wellSols, schedule);
+            [obj_adj, obj_num] = test.getObjectiveNPVOW(model, states, schedule);
             
             numgrad = computeGradientPerturbationAD(state0, model, schedule, obj_num, 'scaling', scalFacs);
             adjgrad = computeGradientAdjointAD(state0, states, model, schedule, obj_adj);
@@ -40,11 +40,11 @@ classdef TestAdjoints < matlab.unittest.TestCase
     end
     
     methods (Static)
-        function [obj_adj, obj_num] = getObjectiveNPVOW(G, wellSols, schedule)
+        function [obj_adj, obj_num] = getObjectiveNPVOW(model, states, schedule)
             % Setup function handles for NPV for oil/water system
-            obj_adj = @(tstep)NPVOW(G, wellSols, schedule, ...
+            obj_adj = @(tstep, model, state)NPVOW(model, states, schedule, ...
                             'ComputePartials', true, 'tStep', tstep);
-            obj_num = @(wellSols, states, schedule)NPVOW(G, wellSols, schedule);
+            obj_num = @(wellSols, states, schedule)NPVOW(model, states, schedule);
         end
     end
     

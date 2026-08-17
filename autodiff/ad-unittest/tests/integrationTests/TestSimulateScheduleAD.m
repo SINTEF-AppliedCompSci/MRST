@@ -9,7 +9,7 @@ classdef TestSimulateScheduleAD < matlab.unittest.TestCase
             test.storeResults = false;
             
             % Attempt to be a clean MRST state
-            mrstModule reset mrst-testing ad-core ad-blackoil
+            mrstModule reset ad-core ad-blackoil ad-unittest
             gravity reset off
             mrstVerbose off
 
