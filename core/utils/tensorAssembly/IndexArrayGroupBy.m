@@ -3,7 +3,7 @@ classdef IndexArrayGroupBy < handle
     properties (SetAccess = immutable)
 
         tbl      % input Index Array
-        gfdnames % group field names
+        gfdnames % grouping field names
         ofdnames % other field names
 
         bytbl    % Index Array for the groups (field names gfdnames)
@@ -92,6 +92,18 @@ classdef IndexArrayGroupBy < handle
             ctbl = iagb.currenttbl();
             
             subtbl = crossIndexArray(ctbl, gtbl, {}, 'optpureproduct', true);
+            
+        end
+
+        function n = subgroupnums(iagb)
+
+            map = TensorMap();
+            map.fromTbl  = iagb.tbl
+            map.toTbl    = iagb.bytbl;
+            map.mergefds = iagb.gfdnames;
+            map = map.setup();
+
+            n = map.eval(ones(iagb.tbl.num, 1));
             
         end
         
