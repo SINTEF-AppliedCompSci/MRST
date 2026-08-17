@@ -98,7 +98,7 @@ classdef IndexArrayGroupBy < handle
         function n = subgroupnums(iagb)
 
             map = TensorMap();
-            map.fromTbl  = iagb.tbl
+            map.fromTbl  = iagb.tbl;
             map.toTbl    = iagb.bytbl;
             map.mergefds = iagb.gfdnames;
             map = map.setup();
