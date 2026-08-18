@@ -9,6 +9,23 @@ function results = runTestsCore(varargin)
 %   tier          - 'all' (default), 'tier1', or 'tier2'.
 %   runInParallel - Whether to execute the suite in parallel. Default false.
 %   stopOnFailure - Whether to stop after the first failure. Default false.
+%
+% DEPRECATED:
+%   This function is deprecated. Use runPreReleaseTests.m instead, which 
+%   provides the new three-tier testing framework:
+%     - Tier 1: Fast unit tests (< 1 min each)
+%     - Tier 2: Integration / regression tests (< 10 min each)
+%     - Tier 3: Example smoke tests
+%
+%   NEW USAGE:
+%     % Run all core tests (tiers 1 and 2)
+%     runPreReleaseTests('tier', [1 2], 'modules', {'ad-core'})
+%
+%     % Run only tier 1
+%     runPreReleaseTests('tier', 1, 'modules', {'ad-core'})
+%
+%     % Run in parallel
+%     runPreReleaseTests('tier', 1, 'modules', {'ad-core'}, 'parallel', true)
 
 %{
 Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
@@ -29,32 +46,30 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-   opt = struct('tier', 'all', ...
-                'runInParallel', false, ...
-                'stopOnFailure', false);
-   opt = merge_options(opt, varargin{:});
+    % Parse options
+    opt = struct('tier', 'all', ...
+                 'runInParallel', false, ...
+                 'stopOnFailure', false);
+    opt = merge_options(opt, varargin{:});
 
-   import matlab.unittest.TestRunner;
-   import matlab.unittest.TestSuite;
-   import matlab.unittest.plugins.StopOnFailuresPlugin;
-   import matlab.unittest.selectors.HasTag;
+    % Show deprecation warning
+    warning('mrst:deprecatedFunction', ...
+        ['runTestsCore is deprecated. Use runPreReleaseTests instead.\n', ...
+         '  See runTestsCore.m for migration examples.']);
 
-   testRoot = fileparts(mfilename('fullpath'));
-   suite    = TestSuite.fromFolder(testRoot);
+    % Convert legacy tier names to new tier numbers
+    tiers = [1 2];  % Default to all tiers (was 'all')
+    if strcmpi(opt.tier, 'tier1')
+        tiers = 1;
+    elseif strcmpi(opt.tier, 'tier2')
+        tiers = 2;
+    end
 
-   if ~strcmpi(opt.tier, 'all')
-      suite = suite.selectIf(HasTag(lower(opt.tier)));
-   end
-
-   runner = TestRunner.withTextOutput;
-   if opt.stopOnFailure
-      runner.addPlugin(StopOnFailuresPlugin);
-   end
-
-   if opt.runInParallel
-      results = runner.runInParallel(suite);
-   else
-      results = runner.run(suite);
-   end
+    % Call the new runPreReleaseTests function
+    results = runPreReleaseTests(...
+        'tier', tiers, ...
+        'modules', {'ad-core'}, ...
+        'parallel', opt.runInParallel, ...
+        'stopOnFail', opt.stopOnFailure);
 end
 
