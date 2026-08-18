@@ -85,9 +85,6 @@ function build_mrst_path_tree
        mrstPath('addroot', fullfile(d, rdir{1}));
     end
 
-   % Register the core module for test discovery by runPreReleaseTests.m
-   mrstPath('register', 'core', fullfile(d, 'core'));
-
 end
 
 %--------------------------------------------------------------------------
