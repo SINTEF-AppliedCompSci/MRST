@@ -12,7 +12,7 @@ function [iseq, tens1, tens2] = compareSparseTensor(tens1, tens2, options)
     fdnames2 = tens2.tbl.fdnames;
     
     if ~(all(ismember(fdnames1, fdnames2)) && all(ismember(fdnames1, fdnames2)))
-        iseq = false
+        iseq = false;
         return
     end
     
