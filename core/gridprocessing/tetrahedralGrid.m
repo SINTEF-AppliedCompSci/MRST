@@ -127,6 +127,10 @@ function v = tripleProduct(t, p)
    x = p(:,1); y = p(:,2); z = p(:,3);
    X = x(t);   Y = y(t);   Z = z(t);
 
+   if size(t,1) == 1 % Ensure row vector
+      X = X(:)'; Y = Y(:)'; Z = Z(:)';
+   end
+
    dx = bsxfun(@minus, X(:, 2:4), X(:,1));
    dy = bsxfun(@minus, Y(:, 2:4), Y(:,1));
    dz = bsxfun(@minus, Z(:, 2:4), Z(:,1));
