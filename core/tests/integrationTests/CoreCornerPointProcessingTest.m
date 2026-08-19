@@ -39,7 +39,7 @@ classdef CoreCornerPointProcessingTest < matlab.unittest.TestCase
             G = processGRDECL(grdecl, 'CheckGrid', false);
 
             test.verifyEqual(numel(G), 2);
-            test.verifyEqual(sort([G.cells.num]), [1, 1]);
+            test.verifyEqual(sort([G(1).cells.num, G(2).cells.num]), [1, 1]);
         end
 
         function processedThreeLayerGridSupportsDownstreamTransmissibility(test)
