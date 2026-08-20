@@ -1,7 +1,6 @@
 function G = sortEdges(G)
 
-%{ 
-Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.%} 
+% Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 assert(G.griddim==2);%??? is this correct
 G=sortCellFaces(G);
 end

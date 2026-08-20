@@ -31,8 +31,7 @@ function G=mrstGridWithFullMappings(G)
 
 %G=sortEdges(G);
 
-%{ 
-Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.%} 
+% Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
 if(G.griddim==3)
     ind1=mcolon(G.faces.nodePos(1:end-1),G.faces.nodePos(2:end)-1,1);
     ind2=mcolon(G.faces.nodePos(1:end-1)+1,G.faces.nodePos(2:end),1);
