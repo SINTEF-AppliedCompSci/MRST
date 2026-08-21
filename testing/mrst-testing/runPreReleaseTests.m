@@ -81,7 +81,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % --- Parse options ---------------------------------------------------
     opt = struct( ...
-        'tier'       , [1 2 3]              , ...
+        'tier'       , [1]              , ...
         'modules'    , {{}}                 , ...
         'excludeTags', {{'slow','data-required'}}, ...
         'writeXML'   , false                , ...
@@ -104,6 +104,17 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     end
 
     results = struct('tier', {}, 'name', {}, 'result', {});
+
+    % =====================================================================
+    % Basic tests - Unit tests - core, ad-unittest
+    % =====================================================================
+
+    fprintf('\n%s\n Running basic tests\n%s\n', repmat('=',1,60), repmat('=',1,60));
+    suite = getBasicTestSuiteMRST();
+    res = run_suite(suite, 'unit', opt, xmlDir);
+    results(end+1) = struct('tier', 1, 'name', 'unit-basic', 'result', {res});
+
+
 
     % =====================================================================
     % TIER 1 — Unit tests
