@@ -36,7 +36,7 @@ jobs:
           release: ${{ matrix.matlab-version }}
 
       - name: Run Tier 1 unit tests
-        uses: matlab-actions/run-matlab-command@v3
+        uses: matlab-actions/run-command@v3
         env:
           MRST_TEST_TIERS: '1'
           MRST_WRITE_XML: '1'
