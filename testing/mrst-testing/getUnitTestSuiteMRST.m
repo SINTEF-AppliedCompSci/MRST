@@ -84,7 +84,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     else
         mods = filterMods;
     end
-    testDirs = {'tests/unitTests', 'UnitTests'};
+    testDirs = {'tests/unitTests'};
 
     for im = 1:numel(mods)
         modPath = mrstPath('query', mods{im});
