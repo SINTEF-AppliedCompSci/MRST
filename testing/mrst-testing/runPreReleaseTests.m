@@ -147,7 +147,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         % RegressionTest objects
         rts = getAllRegressionTests();
         if ~isempty(rts)
-            runRegressionTests(rts, opt);
+            runRegressionTests(rts);
         end
     end
 
@@ -208,7 +208,7 @@ function res = run_suite(suite, name, opt, xmlDir)
     end
 end
 
-function runRegressionTests(rts, opt)
+function runRegressionTests(rts)
     fprintf('  Running %d regression test(s)...\n', numel(rts));
     for i = 1:numel(rts)
         rt = rts{i};

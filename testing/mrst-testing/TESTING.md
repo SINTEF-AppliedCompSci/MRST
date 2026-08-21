@@ -7,11 +7,11 @@ in MRST and explains how module authors can integrate their code with it.
 
 ## Overview
 
-| Tier | Name                    | When to run              | Tooling                           |
-|------|-------------------------|--------------------------|-----------------------------------|
-| 1    | Unit tests              | Every push / PR          | `matlab.unittest.TestCase`        |
-| 2    | Integration / regression| Nightly, release branch  | `matlab.unittest` + `RegressionTest` |
-| 3    | Example smoke tests     | Release branch           | `MRSTExampleTests` (parameterised)|
+| Tier | Name                     | When to run           | Tooling                              |
+|------|--------------------------|-----------------------|--------------------------------------|
+| 1    | Unit tests               | Every push / PR       | `matlab.unittest.TestCase`           |
+| 2    | Integration / regression | Local / ad hoc runs   | `matlab.unittest` + `RegressionTest` |
+| 3    | Example smoke tests      | Local / ad hoc runs   | `MRSTExampleTests` (parameterised)   |
 
 All three tiers are orchestrated by a single entry point:
 
@@ -48,13 +48,14 @@ JUnit XML output can be requested with `'writeXML', true`.
 
 ## GitHub Actions CI
 
-Three workflow files drive automated testing:
+The current CI workflow only runs Tier 1 unit tests:
 
 | File                                    | Trigger                            | Tiers |
 |-----------------------------------------|------------------------------------|-------|
-| `.github/workflows/unit-tests.yml`      | Every push / PR to `main`, `release-*` | 1  |
-| `.github/workflows/integration-tests.yml` | Nightly cron, push to `release-*` | 1+2 |
-| `.github/workflows/example-smoke-tests.yml` | Push to `release-*`, manual dispatch | 3 |
+| `.github/workflows/unit-tests.yml`      | Every push / PR to `main`, `release-*` | 1 |
+
+Tier 2 and Tier 3 are still available through `runPreReleaseTests`, but they are
+not scheduled by default CI in the current branch.
 
 ---
 
@@ -64,10 +65,10 @@ Any MRST module *may* provide the following artefacts to participate in the
 testing system.  None are mandatory — the system degrades gracefully when they
 are absent.
 
-### 1. Unit test classes  (`tests/Test*.m` or `tests/*Test.m`)
+### 1. Unit test classes (`tests/unitTests/Test*.m` or `tests/unitTests/*Test.m`)
 
-Place `matlab.unittest.TestCase` subclasses inside a `tests/` or `UnitTests/`
-directory at the root of your module.  Files matching `Test*.m` or `*Test.m`
+Place `matlab.unittest.TestCase` subclasses inside a `tests/unitTests/`
+directory at the root of your module. Files matching `Test*.m` or `*Test.m`
 are auto-discovered by `getUnitTestSuiteMRST`.
 
 Copy the template from:
