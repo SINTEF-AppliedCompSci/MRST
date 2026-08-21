@@ -8,3 +8,4 @@ startup_user.m
 *.pvd
 *.DS_Store
 *.mexmaca64
+testing/mrst-testing/output/
