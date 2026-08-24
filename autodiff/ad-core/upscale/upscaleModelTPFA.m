@@ -134,6 +134,29 @@ function rock_c = getRock(rock, CG, opt)
         perm_c = 1./bsxfun(@rdivide, perm_c, counts);
     end
     rock_c = makeRock(CG, perm_c, poro_c);
+
+    thermalFileds = {'lambdaR', 'rhoR', 'CpR', 'tau'};
+    for n = thermalFileds 
+        if isfield(rock, n{1})
+            if isa(rock.(n{1}), 'function_handle')
+                continue;
+            end
+            v = rock.(n{1});
+            nK = size(v, 2);
+            v_c = zeros(CG.cells.num, nK);
+            if strcmp(n{1}, 'lambdaR')
+                fun_c = @(x) accumarray(p, 1./x);
+            else
+                fun_c = @(x) accumarray(p, x.*vol)./accumarray(p, vol);
+            end
+            for i = 1:nK
+                v_c(:, i) = fun_c(v(:, i));
+            end
+            v_c = 1./bsxfun(@rdivide, v_c, counts);
+            rock_c.(n{1}) = v_c;
+        end
+    end
+
     if isfield(rock, 'regions')
         rock_c = coarsenRegion(CG, rock, rock_c, 'saturation');
         rock_c = coarsenRegion(CG, rock, rock_c, 'pvt');
