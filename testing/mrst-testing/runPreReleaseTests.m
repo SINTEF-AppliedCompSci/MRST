@@ -15,17 +15,19 @@ function results = runPreReleaseTests(varargin)
 %              Uses matlab.unittest.TestCase subclasses discovered via
 %              getUnitTestSuiteMRST.
 %
-%     Tier 2 — Integration / regression tests (< 10 min each, nightly).
+%     Tier 2 — Integration / regression tests (< 10 min each, run ad-hoc).
 %              Full simulations compared against stored reference results.
 %              Requires RegressionTest objects returned by modules.
 %
-%     Tier 3 — Example smoke tests (run before release).
+%     Tier 3 — Example smoke tests (run ad-hoc before release).
 %              Runs every non-interactive, non-excluded example via
 %              MRSTExampleTests / getExampleIntegrationTestSuiteMRST.
 %
 % OPTIONAL PARAMETERS:
 %   'tier'         - Which tiers to run.  Scalar or vector, e.g. 1, [1 2],
-%                    or [1 2 3].  Default: [1 2 3].
+%                    or [1 2 3]. If tier is empty the basic set of tests is run,
+%                    i.e. the unit tests from core and ad-unittest.
+%                    Default: [].
 %   'modules'      - Cell array of module names.  When given, only tests
 %                    belonging to these modules are executed.  Default: all.
 %   'excludeTags'  - Cell array of example tags to exclude in Tier 3.
@@ -81,7 +83,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 
     % --- Parse options ---------------------------------------------------
     opt = struct( ...
-        'tier'       , [1]              , ...
+        'tier'       , []              , ...
         'modules'    , {{}}                 , ...
         'excludeTags', {{'slow','data-required'}}, ...
         'writeXML'   , false                , ...
