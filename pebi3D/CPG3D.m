@@ -98,7 +98,7 @@ function [f, g] = objectiveFunc(pts, bndr, nf, rho)
 
     G = mirroredPebi3D(pts, bndr);
     G = computeGeometry(G);
-    G = mrstGridWithFullMappings(G);
+    G = createAugmentedGrid(G);
 
     intFun = @(x,i) sum(repmat(rho(x),1,3).*(x-repmat(pts(i,:),size(x,1),1)).^2,2);
     f = sum(polyhedronInt_upr(G,1:G.cells.num, intFun,3));
