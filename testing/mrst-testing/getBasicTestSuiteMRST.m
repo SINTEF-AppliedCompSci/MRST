@@ -1,17 +1,14 @@
-% filepath: /Users/fran/FranFiles/git-repos/MRST/testing/mrst-testing/getFixedTestSuiteMRST.m
-function suite = getFixedTestSuiteMRST()
+function suite = getBasicTestSuiteMRST()
 %Build a unit test suite from fixed core and ad-unittest test directories.
 %
 % SYNOPSIS:
-%   suite = getFixedTestSuiteMRST()
+%   suite = getBasicTestSuiteMRST()
 %
 % DESCRIPTION:
 %   Collects matlab.unittest.TestCase subclasses from fixed test directories
 %   that are always run during CI:
 %     1. autodiff/ad-unittest/tests/unitTests
-%     2. autodiff/ad-unittest/tests/integrationTests
-%     3. core/tests/unitTests
-%     4. core/tests/integrationTests
+%     2. core/tests/unitTests
 %
 %   These directories contain the most critical tests that should always
 %   pass and are executed on every CI run regardless of module filter.
@@ -52,12 +49,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     parts = {};
 
     % --- Fixed test directories (always included for CI) -----------------
-    % testFolders = {
-    %     '../autodiff/ad-unittest/tests/unitTests', ...
-    %     '../autodiff/ad-unittest/tests/integrationTests', ...
-    %     'tests/unitTests', ...
-    %     'tests/integrationTests', ...
-    % };
     testFolders = {
         'tests/unitTests', ...
         '../autodiff/ad-unittest/tests/unitTests', ...
