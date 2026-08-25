@@ -103,7 +103,7 @@ function [f, g] = objFunc(p, bnd,nf,rho)
 
     G = clippedPebi2D(pts, bnd);
     G = computeGeometry(G);
-    G = mrstGridWithFullMappings(G);
+    G = createAugmentedGrid(G);
 
     intFun = @(x,i) sum(repmat(rho(x),1,2).*(x-repmat(pts(i,:),size(x,1),1)).^2,2);
     f = sum(polygonInt_v2(G,1:G.cells.num, intFun,7));

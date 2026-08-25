@@ -103,7 +103,7 @@ axis equal off tight,  light('position', [10,5,10])
 %% Define the 3D volumetric grid
 G3 = volumeGrid3D([6, 6, 6], fracs, grids2D, ds, gamma(3));
 G3 = computeGeometry(G3);
-G3 = mrstGridWithFullMappings(G3);
+G3 = createAugmentedGrid(G3);
 
 %% Plot the 1D and 2D grids
 % These grids are defined in different coordinate systems, so we must
