@@ -6,7 +6,7 @@ function G = computeVEMGeometry(G)
 %
 %   DESCRIPTION:
 %       Computes geometry using MRST functions G = computeGeometry(G) and G
-%       = mrstGridWithFullMappings(G), and computes edge data and cell
+%       = createAugmentedGrid(G), and computes edge data and cell
 %       diameters. Edge data is organized in the same way as face data in
 %       2D.
 %

@@ -31,7 +31,7 @@ if(any(~rcell))
     [G,cellmap,facemap,nodemap]=removeCells(G,find(rcell));
     
     G=computeGeometry(G);
-    G=mrstGridWithFullMappings(G);
+    G=createAugmentedGrid(G);
 else
    nodemap=[1:G.nodes.num]';%#ok
 end
