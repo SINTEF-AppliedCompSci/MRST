@@ -73,7 +73,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
                 tmp = load(fn);
                 ref_states = tmp.res_states;
                 reltol = RelativeTolerance(test.relativeTolerance);
-                abstol = RelativeTolerance(0.1);
+                abstol = AbsoluteTolerance(0.1);
                 
                 for i = 1:numel(ref_states)
                     ref = ref_states{i};
