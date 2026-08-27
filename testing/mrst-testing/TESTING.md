@@ -10,7 +10,7 @@ in MRST and explains how module authors can integrate their code with it.
 | Tier | Name                     | When to run           | Tooling                              |
 |------|--------------------------|-----------------------|--------------------------------------|
 | 1    | Unit tests               | Every push / PR       | `matlab.unittest.TestCase`           |
-| 2    | Integration / regression | Local / ad hoc runs   | `matlab.unittest` + `RegressionTest` |
+| 2    | Integration / regression | Local / ad hoc runs   | `matlab.unittest` + `MRSTRegressionTest` |
 | 3    | Example smoke tests      | Local / ad hoc runs   | `MRSTExampleTests` (parameterised)   |
 
 All three tiers are orchestrated by a single entry point:
