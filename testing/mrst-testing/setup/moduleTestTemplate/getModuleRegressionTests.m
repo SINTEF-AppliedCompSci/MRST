@@ -6,21 +6,20 @@ function rts = getModuleRegressionTests()
 %   tests that will be picked up by getAllRegressionTests and run as part
 %   of Tier 2 pre-release testing.
 %
-%   Each element of the returned cell array must be a RegressionTest
-%   object.  The RegressionTest constructor accepts either a test-case name
-%   (string matching a setup function in ad-unittest/setup-functions) or a
-%   TestCase object.
+%   Each element of the returned cell array must be an MRSTRegressionTest
+%   object. The constructor accepts a setup function handle or a packed
+%   problem builder and optional name/value arguments.
 %
 % RETURNS:
-%   rts - Cell array of RegressionTest objects.
+%   rts - Cell array of MRSTRegressionTest objects.
 %
 % EXAMPLE:
-%   To add a regression test for the ''egg_wo'' test case:
+%   To add a regression test for the ``egg_wo`` case:
 %
-%       rts = { RegressionTest('egg_wo', 'group', 'mymodule') };
+%       rts = { MRSTRegressionTest(@egg_wo, 'group', 'mymodule') };
 %
 % SEE ALSO:
-%   RegressionTest, TestCase, getAllRegressionTests, runPreReleaseTests
+%   MRSTRegressionTest, getAllRegressionTests, runPreReleaseTests
 
 %{
 Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
@@ -41,11 +40,10 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
-    % Replace the example below with your module's actual test cases.
     rts = {};
 
-    % Example (uncomment and adapt):
+    % Example:
     % rts = {
-    %     RegressionTest('my_test_case', 'group', 'mymodule'), ...
+    %     MRSTRegressionTest(@my_regression_case, 'group', 'mymodule'), ...
     % };
 end

@@ -13,7 +13,8 @@ function status = mrstModuleTestStatus(varargin)
 %   Checked artefacts:
 %     unitTests       - files matching Test*.m or *Test.m in tests/ or
 %                       UnitTests/ subdirectory
-%     regressionFn    - getModuleRegressionTests.m at module root
+%     regressionFn    - getModuleRegressionTests.m at module root (or
+%                       legacy reg-tests/ folder)
 %     skipListFn      - getSkippedExamples.m at module root
 %     numExamples     - total number of examples in the module
 %     numAnnotated    - examples that carry a MRST_TEST_OPTIONS block
@@ -86,7 +87,8 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         end
 
         % Regression test function
-        regressionFn(i) = exist(fullfile(modPath, 'getModuleRegressionTests.m'), 'file') > 0;
+        regressionFn(i) = exist(fullfile(modPath, 'getModuleRegressionTests.m'), 'file') > 0 || ...
+                          exist(fullfile(modPath, 'reg-tests', 'getModuleRegressionTests.m'), 'file') > 0;
 
         % Skip-list function
         skipListFn(i)   = exist(fullfile(modPath, 'getSkippedExamples.m'), 'file') > 0;

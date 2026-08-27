@@ -17,7 +17,7 @@ function results = runPreReleaseTests(varargin)
 %
 %     Tier 2 — Integration / regression tests (< 10 min each, run ad-hoc).
 %              Full simulations compared against stored reference results.
-%              Requires RegressionTest objects returned by modules.
+%              Uses MRSTRegressionTest objects returned by modules.
 %
 %     Tier 3 — Example smoke tests (run ad-hoc before release).
 %              Runs every non-interactive, non-excluded example via
@@ -60,7 +60,7 @@ function results = runPreReleaseTests(varargin)
 % SEE ALSO:
 %   getUnitTestSuiteMRST, getIntegrationTestSuiteMRST,
 %   getExampleIntegrationTestSuiteMRST, getAllRegressionTests,
-%   mrstModuleTestStatus
+%   mrstModuleTestStatus, MRSTRegressionTest
 
 %{
 Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
@@ -215,14 +215,26 @@ function runRegressionTests(rts)
     for i = 1:numel(rts)
         rt = rts{i};
         try
-            report = rt.runRegressionTest();
-            if report.passed
-                fprintf('  [PASS] %s\n', rt.name);
+            testName = class(rt);
+            if isprop(rt, 'name') && ~isempty(rt.name)
+                testName = rt.name;
+            end
+            if ismethod(rt, 'runRegressionTest')
+                report = rt.runRegressionTest();
+            elseif ismethod(rt, 'runRegressionTests')
+                report = rt.runRegressionTests();
             else
-                fprintf('  [FAIL] %s\n', rt.name);
+                error('Regression test object does not implement a run method.');
+            end
+            if isfield(report, 'passed') && report.passed == 1
+                fprintf('  [PASS] %s\n', testName);
+            elseif isfield(report, 'passed') && report.passed == -1
+                fprintf('  [INFO] %s\n', testName);
+            else
+                fprintf('  [FAIL] %s\n', testName);
             end
         catch ME
-            fprintf('  [ERROR] %s: %s\n', rt.name, ME.message);
+            fprintf('  [ERROR] %s: %s\n', class(rt), ME.message);
         end
     end
 end

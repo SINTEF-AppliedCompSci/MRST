@@ -1,21 +1,22 @@
 %% Add modules
 mrstModule add test-suite
+mrstModule add mrst-testing
 mrstModule add ad-core ad-props ad-blackoil
 mrstVerbose off % Supress extensive command window output
-checkHashSettings();
 
 %% Set up a single regression test
-% Regression tests are set up in the same way as a TestCase, using the
-% setup function name as input. Optional arguments for the test case are
-% passed just as in the TestCase class.
-rtest = RegressionTest('gravity_segregation', 'ncells', 21*3);
+% Regression tests are set up using MRSTRegressionTest.  The setup function
+% can be given directly and any setup arguments are passed via setupArgs.
+rtest = MRSTRegressionTest(@gravity_segregation, ...
+                           'group', 'examples', ...
+                           'name',  'gravity_segregation', ...
+                           'setupArgs', {'ncells', 21*3});
 disp(rtest);
-% You can also set up a regression test from an instance of the TestCase
-% class. This allows for altering test case parameters before definig the
-% regression test
-test   = TestCase('gravity_segregation');
-test.model.rock.poro(1) = 0.2;
-rtest2 = RegressionTest(test); %#ok
+% You can also point the test at a packed-problem builder directly.
+rtest2 = MRSTRegressionTest(@gravity_segregation, ...
+                            'group', 'examples', ...
+                            'name',  'gravity_segregation_custom', ...
+                            'setupArgs', {'ncells', 21*3});
 
 %% Running a single regression test
 % Running the test is done with a one-line command. This will first check
@@ -23,7 +24,7 @@ rtest2 = RegressionTest(test); %#ok
 % will issue a warning saying that the test will be inconclusive. After the
 % test has been run and compared to existing results (if any), existing
 % results from before the test are deleted. If you want to keep results
-% from before the test, you can set the property `deleteExisting` to false.
+% from before the test, you can set the property `deletePrevious` to false.
 % Results from the test are stored to disk.
 report = rtest.runRegressionTest();
 
@@ -43,32 +44,27 @@ if report.passed == 0 || report.passed == 1
 end
 
 %% Running with different options
-% You can define a regression test using specific inputs to
-% `simulateScheduleAD`, such as a non-standard nonlinear solver, with the
-% optional input argument `problemInput`. These will be passed directly to
-% the TestCase method `getPackSimulationProblem`.
+% You can define a regression test using specific packed-problem inputs,
+% such as a non-standard nonlinear solver, with the optional input argument
+% `problemInput`. These are passed directly to `packSimulationProblem`.
 nls  = NonLinearSolver('useLineSearch', true);
-rtest = RegressionTest('qfs_wo', 'dt', 100*day, ...
-                      'problemInput', {'NonLinearSolver', nls});
+rtest = MRSTRegressionTest(@qfs_wo, ...
+                           'group', 'examples', ...
+                           'name',  'qfs_wo', ...
+                           'setupArgs', {'dt', 100*day}, ...
+                           'problemInput', {'NonLinearSolver', nls});
 report = rtest.runRegressionTest(); %#ok
 
 %% Defining a group of regression tests
-% In larger projects, it is convenient to define a set of regression tests
-% that you use regularly to monitor the development process. This can be
-% done using the class RegressionTestGroup. Its constructor takes in a
-% group name, and a cell array of test cases (either as instances of
-% TestCase, or as strings corresponding to names of test case setup
-% functions), or as instances of regression tests. When an input test is
-% given by a test case setup function name or an instance of TestCase,
-% optional inputs can be provided with the argument `testOpt`. This should
-% be a cell array with one element per test. We set up a group of
-% regression tests using the quarter five-spot case with different
-% Brooks-Corey relative permeability exponents.
-rtest1 = TestCase('qfs_wo', 'nkr', 1, 'name', 'qfs_wo_1');
-rtest2 = TestCase('qfs_wo', 'nkr', 2, 'name', 'qfs_wo_2');
-rtest3 = TestCase('qfs_wo', 'nkr', 3, 'name', 'qfs_wo_3');
-testGroup = RegressionTestGroup('qfs-tests', {rtest1, rtest2, rtest3});
-report = testGroup.runRegressionTests();
+% In larger projects, it is convenient to keep a cell array of
+% MRSTRegressionTest objects in getModuleRegressionTests.m.
+rtest1 = MRSTRegressionTest(@qfs_wo, 'group', 'qfs-tests', ...
+                            'name', 'qfs_wo_1', 'setupArgs', {'nkr', 1});
+rtest2 = MRSTRegressionTest(@qfs_wo, 'group', 'qfs-tests', ...
+                            'name', 'qfs_wo_2', 'setupArgs', {'nkr', 2});
+rtest3 = MRSTRegressionTest(@qfs_wo, 'group', 'qfs-tests', ...
+                            'name', 'qfs_wo_3', 'setupArgs', {'nkr', 3});
+report = {rtest1.runRegressionTest(), rtest2.runRegressionTest(), rtest3.runRegressionTest()};
 
 %% Copyright Notice
 %

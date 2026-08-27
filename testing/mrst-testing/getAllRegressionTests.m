@@ -3,22 +3,23 @@ function rts = getAllRegressionTests()
 %
 % DESCRIPTION:
 %   Calls ``getModuleRegressionTests()`` in every registered MRST module
-%   that provides such a function.  Returns all collected RegressionTest
-%   objects in a single cell array.
+%   that provides such a function.  Returns all collected
+%   MRSTRegressionTest objects in a single cell array.
 %
-%   Module authors expose regression tests by placing a function
-%   ``getModuleRegressionTests.m`` at the root of their module.  The
-%   function must return a cell array of RegressionTest objects::
+%   Module authors should expose regression tests by placing a function
+%   ``getModuleRegressionTests.m`` at the root of their module.  Legacy
+%   ``reg-tests/getModuleRegressionTests.m`` layouts are also supported.
+%   The function must return a cell array of MRSTRegressionTest objects::
 %
 %       function rts = getModuleRegressionTests()
-%           rts = { RegressionTest('myCase'), ... };
+%           rts = { MRSTRegressionTest(@myCase), ... };
 %       end
 %
 % RETURNS:
-%   rts - Cell array of RegressionTest objects.
+%   rts - Cell array of MRSTRegressionTest objects.
 %
 % SEE ALSO:
-%   RegressionTest, RegressionTestGroup, runPreReleaseTests
+%   MRSTRegressionTest, runPreReleaseTests
 
 %{
 Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.
@@ -46,16 +47,33 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         modPath = mrstPath('query', mods{i});
         if isempty(modPath), continue; end
 
-        fnpath = fullfile(modPath, 'getModuleRegressionTests.m');
-        if ~exist(fnpath, 'file'), continue; end
+        fnpaths = {
+            fullfile(modPath, 'getModuleRegressionTests.m')
+            fullfile(modPath, 'reg-tests', 'getModuleRegressionTests.m')
+        };
+        idx = find(cellfun(@(f) exist(f, 'file') > 0, fnpaths), 1);
+        if isempty(idx), continue; end
+        fnpath = fnpaths{idx};
 
         wasOnPath = contains(path(), modPath);
         if ~wasOnPath
             addpath(modPath);
         end
+        fnDir = fileparts(fnpath);
+        addedFnDir = false;
+        if ~strcmp(fnDir, modPath) && ~contains(path(), fnDir)
+            addpath(fnDir);
+            addedFnDir = true;
+        end
         try
             modRTs = getModuleRegressionTests();
-            if ~iscell(modRTs)
+            if isempty(modRTs)
+                modRTs = {};
+            elseif iscell(modRTs)
+                % keep as-is
+            elseif numel(modRTs) > 1
+                modRTs = num2cell(modRTs);
+            else
                 modRTs = {modRTs};
             end
             rts = [rts, modRTs(:)']; %#ok<AGROW>
@@ -63,6 +81,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
             warning('mrst:regressionTestDiscovery', ...
                 'Could not load regression tests from module ''%s'': %s', ...
                 mods{i}, ME.message);
+        end
+        if addedFnDir
+            rmpath(fnDir);
         end
         if ~wasOnPath
             rmpath(modPath);

@@ -97,13 +97,22 @@ end
 ### 2. Regression test registration (`getModuleRegressionTests.m`)
 
 Place a function `getModuleRegressionTests.m` at the root of your module.
-It must return a cell array of `RegressionTest` objects.  These are run as
+It must return a cell array of `MRSTRegressionTest` objects. These are run as
 part of Tier 2.
 
 Copy the template from:
 ```
-autodiff/ad-unittest/setup/moduleTestTemplate/getModuleRegressionTests.m
+testing/mrst-testing/setup/moduleTestTemplate/getModuleRegressionTests.m
 ```
+
+Each regression test should be easy to read and run:
+
+- define it with `MRSTRegressionTest`
+- keep the setup in a plain function
+- use `packSimulationProblem`/`copyPackedProblem` for packed-problem setups
+- let the shared comparison helper handle states, well solutions, and reports
+- if you need a setup struct, use `processMRSTRegressionSetupInput` and
+  `packRegressionSetup`
 
 ### 3. Example skip list (`getSkippedExamples.m`)
 
