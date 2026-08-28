@@ -147,6 +147,12 @@ classdef IndexArray
             
         end
         
+        function iagb = groupBy(tbl, fds)
+            
+            iagb = IndexArrayGroupBy(tbl, fds);
+            
+        end
+
         function tbl = duplicateInd(tbl, fdcell)
         %   tbl    - IndexArray
         %   fdcell - Names of the index to duplicate with names of the duplicated indices. The syntax is {'name', {'dupname1', 'dupname2'}}
