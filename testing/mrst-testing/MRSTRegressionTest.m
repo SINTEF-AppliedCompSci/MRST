@@ -43,9 +43,8 @@ classdef MRSTRegressionTest
                 mkdir(directory);
             end
 
-            hash = rt.getRegressionTestHash(setup);
             time = rt.getTimeString();
-            namePrev = rt.findExisting(hash, time);
+            namePrev = rt.findLatestExisting();
 
             if ~isempty(namePrev)
                 problemPrev = rt.buildProblem(setup, namePrev);
@@ -55,7 +54,7 @@ classdef MRSTRegressionTest
                 problemPrev = [];
             end
 
-            nameCurr = [hash, '_', time];
+            nameCurr = time;
             problemCurr = rt.buildProblem(setup, nameCurr);
 
             if rt.verbose
@@ -141,75 +140,21 @@ classdef MRSTRegressionTest
                 rt.group, packArgs{:}, rt.problemInput{:});
         end
 
-        function hash = getRegressionTestHash(rt, setup)
-            if isPackedProblem(setup)
-                setup = setup.SimulatorSetup;
-            end
-            hash = obj2hash({setup.state0, ...
-                             obj2hash(setup.model, 'skip', 'inputdata'), ...
-                             setup.schedule});
-            if isempty(rt.problemInput)
-                return
-            end
-            piHash = cellfun(@(ip) obj2hash(ip), rt.problemInput, 'UniformOutput', false);
-            hash = obj2hash(strjoin([hash, piHash], '_'));
-        end
-
         function directory = getDataDirectory(rt)
             directory = fullfile(mrstOutputDirectory(), 'reg-tests', rt.group, rt.name);
         end
 
-        function existing = findExisting(rt, hash, timeCurr)
+        function existing = findLatestExisting(rt)
             directory = rt.getDataDirectory();
 
-            existing = [];
+            existing = '';
             if ~exist(directory, 'dir'); return; end
-            dirNames = ls(directory);
-            if isempty(dirNames), existing = []; return; end
-            if size(dirNames, 1) > 1
-                pad = repmat(' ', size(dirNames, 1), 1);
-                dirNames = reshape([dirNames, pad]', 1, []);
-            end
-            fmt = rt.dateTimeFormat();
-
-            dirNames = regexp(char(dirNames), '\s+', 'split');
-            nd       = numel(dirNames);
-            existing = cell(nd, 1);
-            for i = 1:nd
-                if ~contains(dirNames{i}, hash) || ...
-                   ~isfolder(fullfile(directory, dirNames{i}))
-                    continue;
-                end
-                existing{i} = dirNames{i};
-            end
-            existing = existing(~cellfun(@isempty, existing));
-            if isempty(existing), return; end
-            timeCurr = datetime(timeCurr, 'Format', fmt);
-            timePrev = cellfun(@(ext) datetime(ext(end-numel(fmt)+1:end), ...
-                                               'Format', fmt), existing);
-            if numel(timePrev) > 1
-                warning(['More than one set of existing results found. ' , ...
-                         'Using most recent results for regression testing.']);
-
-                [timePrev, ix] = sort(timePrev);
-                existing       = existing(ix);
-
-                prompt = sprintf('Do you want to delete older results? y/n [y]: ');
-                str    = input(prompt, 's');
-                if strcmpi(str, 'n')
-                    fprintf('Ok, will not remove results.\n');
-                else
-                    for i = 1:numel(existing)-1
-                        fn = fullfile(directory, existing{i});
-                        rmdir(fn, 's');
-                    end
-                end
-            end
-            timePrev = timePrev(end);
-            assert(timePrev(end) < timeCurr, ...
-                ['Previous results are stored with timestamp larger ' , ...
-                 'than current time. I don''t know how to interpret this']);
-            existing = existing{end};
+            entries = dir(directory);
+            names = {entries([entries.isdir]).name};
+            names = setdiff(names, {'.', '..'}, 'stable');
+            if isempty(names), return; end
+            names = sort(names);
+            existing = names{end};
         end
 
         function printHeader(rt)
@@ -242,10 +187,6 @@ classdef MRSTRegressionTest
     end
 
     methods (Static)
-        function fmt = dateTimeFormat()
-            fmt = 'yyyy-MM-dd_HH-mm-ss';
-        end
-
         function str = flag2str(flag)
             switch flag
                 case -1

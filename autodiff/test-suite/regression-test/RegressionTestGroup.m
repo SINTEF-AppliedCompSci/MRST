@@ -1,6 +1,4 @@
 classdef RegressionTestGroup
-    % Deprecated legacy regression test grouping wrapper.
-    % Use cell arrays of MRSTRegressionTest objects instead.
     properties
         name
         tests
@@ -10,8 +8,6 @@ classdef RegressionTestGroup
     methods
         %-----------------------------------------------------------------%
         function group = RegressionTestGroup(name, tests, varargin)
-            warning('mrst:deprecatedRegressionTestGroup', ...
-                'RegressionTestGroup is deprecated. Use MRSTRegressionTest instead.');
             [group, extra] = merge_options(group, varargin{:});
             opt = struct('regTestOpt', {{}});
             opt = merge_options(opt, extra{:});

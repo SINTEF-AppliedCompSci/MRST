@@ -1,6 +1,4 @@
 classdef RegressionTest
-    % Deprecated legacy regression test wrapper.
-    % Use MRSTRegressionTest from testing/mrst-testing instead.
     
     properties
         group = 'general'
@@ -21,8 +19,6 @@ classdef RegressionTest
     methods
         %-----------------------------------------------------------------%
         function rt = RegressionTest(test, varargin)
-            warning('mrst:deprecatedRegressionTest', ...
-                'RegressionTest is deprecated. Use MRSTRegressionTest instead.');
             [rt, testCaseOpt] = merge_options(rt, varargin{:});
 
             if ischar(test)
