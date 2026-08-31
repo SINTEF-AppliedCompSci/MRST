@@ -1,3 +1,7 @@
+%{
+MRST_TEST_OPTIONS
+tags: slow
+%}
 %% Managing multiple realizations as packed problems
 % We generate a 1D Buckley-Leverett displacement with 50 different porosity
 % realizations. The permeability is correlated with the porosity.

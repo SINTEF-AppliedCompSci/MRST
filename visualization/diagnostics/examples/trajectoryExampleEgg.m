@@ -1,3 +1,8 @@
+%{
+MRST_TEST_OPTIONS
+interactive: true
+tags:        interactive
+%}
 %% trajectoryExampleEgg
 % This example launches the TrajectoryGUI for the Egg model. The GUI enables 
 % editing, drawing and draging around well-trajectories which can be saved as 

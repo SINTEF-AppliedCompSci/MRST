@@ -1,0 +1,66 @@
+name: Unit Tests (Tier 1)
+
+on:
+  push:
+    branches:
+      - main
+      - 'release-*'
+  pull_request:
+    branches:
+      - main
+      - 'release-*'
+
+concurrency:
+  group: unit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    name: Run Tier 1 unit tests — MATLAB ${{ matrix.matlab-version }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      checks: write
+      pull-requests: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        matlab-version: ['latest']
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up MATLAB ${{ matrix.matlab-version }}
+        uses: matlab-actions/setup-matlab@v3
+        with:
+          release: ${{ matrix.matlab-version }}
+
+      - name: Run Tier 1 unit tests
+        uses: matlab-actions/run-command@v3
+        env:
+          MRST_TEST_TIERS: '1'
+          MRST_WRITE_XML: '1'
+        with:
+          command: |
+            cd(getenv('GITHUB_WORKSPACE'));
+            startup();
+            mrstModule add mrst-testing;
+            runPreReleaseTests('tier', 1, 'writeXML', true);
+
+      - name: Upload JUnit XML results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-unit-${{ matrix.matlab-version }}
+          path: testing/mrst-testing/output/XML/*.xml
+
+      - name: Publish test results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: testing/mrst-testing/output/XML/*.xml
+          check_name: Unit Tests (${{ matrix.matlab-version }})

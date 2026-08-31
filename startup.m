@@ -80,7 +80,7 @@ function build_mrst_path_tree
 
    % Add modules as root directories
    dirs = {'autodiff', 'model-io', 'multiscale', 'modules', 'solvers', ...
-      'visualization','co2lab'};
+      'visualization','co2lab','testing'};
     for rdir = reshape(dirs, 1, [])
        mrstPath('addroot', fullfile(d, rdir{1}));
     end

@@ -36,7 +36,7 @@ report = rtest.runRegressionTest();
 % norm) of that respective field. The `states` and `wellSols` also has a
 % field `dsteps`, corresponding to the difference in number of timesteps of
 % the current run to the number of steps in the previous run
-disp(report)
+ disp(report)
 if report.passed == 0 || report.passed == 1
     disp(report.states);
     disp(report.states.dvalues);

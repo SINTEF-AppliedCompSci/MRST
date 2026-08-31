@@ -1,4 +1,8 @@
 function [model, states, initState] = runNorneExample(varargin)
+%{
+MRST_TEST_OPTIONS
+tags: slow, data-required
+%}
 %% Example: Poroelasticity simulation applied to the Norne case.
 % 
 % The simulation options are gathered in the opt structure. If opt=[] the
