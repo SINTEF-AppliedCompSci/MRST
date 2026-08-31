@@ -55,16 +55,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if isempty(idx), continue; end
         fnpath = fnpaths{idx};
 
-        wasOnPath = contains(path(), modPath);
-        if ~wasOnPath
-            addpath(modPath);
-        end
-        fnDir = fileparts(fnpath);
-        addedFnDir = false;
-        if ~strcmp(fnDir, modPath) && ~contains(path(), fnDir)
-            addpath(fnDir);
-            addedFnDir = true;
-        end
+        oldPath = path();
+        cleanup = onCleanup(@() path(oldPath));
+        addpath(modPath, '-begin');
         try
             modRTs = getModuleRegressionTests();
             if isempty(modRTs)
@@ -82,11 +75,6 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
                 'Could not load regression tests from module ''%s'': %s', ...
                 mods{i}, ME.message);
         end
-        if addedFnDir
-            rmpath(fnDir);
-        end
-        if ~wasOnPath
-            rmpath(modPath);
-        end
+        clear cleanup
     end
 end
