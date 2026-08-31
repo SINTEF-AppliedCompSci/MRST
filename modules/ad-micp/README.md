@@ -27,8 +27,8 @@ See the [_Wiki_](https://github.com/daavid00/ad-micp/wiki) for an extended descr
 respect to previous releases, and using this module in macOS with GNU Octave.
 
 ## Requirements
-* MRST (Tested version: mrst-2025b)
-* MATLAB (Tested version: R2025b) or GNU Octave (Tested version: 10.3.0)
+* MRST (Tested version: mrst-2026a)
+* MATLAB (Tested version: R2025b) or GNU Octave (Tested version: 11.3.0)
 
 ## Installation (MATLAB/GNU Octave)
 The ad-micp module is included in MRST, click [_this link_](https://github.com/SINTEF-AppliedCompSci/MRST/tree/main/modules/ad-micp) 
@@ -49,14 +49,23 @@ git clone https://github.com/daavid00/ad-micp.git
 cd ad-micp
 ``` 
 
-Then you can try to run the [_test_runMICP1DCase.m_](https://github.com/daavid00/ad-micp/blob/main/tests/test_runMICP1DCase.m) using octave (octave can be installed by executing `brew install octave`):
+Then you can try to run the [_tests.m_](https://github.com/daavid00/ad-micp/blob/main/tests/tests.m) using octave (in macOS, octave can be installed by executing `brew install octave`):
 
 ```bash
-octave tests/test_runMICP1DCase.m
+octave tests/tests.m
 ```
 
 ## Getting started
 See https://www.youtube.com/watch?v=nvz3bV4QgxM.
+
+## ParaView export for any MRST module
+
+Although included in `ad-micp`, `mrsttovtk` is not specific to MICP. It can export compatible MRST grids and cell-based simulation states from other MRST modules for visualization in ParaView:
+
+```matlab
+outputDirectory = 'vtk_results';
+mkdir(outputDirectory);
+mrsttovtk(G, states, fullfile(outputDirectory, 'states'), '%.6g');
 
 ## Cite
 If you use ad-micp to write a scientific publication, please cite one of

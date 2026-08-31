@@ -1,9 +1,11 @@
-function [d_m, d_o, d_u, dpW] = getDispersionAnddpWMICP(model, state, poro)
-%  Compute the disperison coefficients and "dpW" on the cell centers.
+function [d_m, d_o, d_u, dpW] = ...
+        getDispersionAnddpWMICP(model, state, poro)
+% Compute dispersion coefficients and the pressure-gradient magnitude at
+% the cell centers.
 
 %{
-Copyright 2021-2025, NORCE Research AS, Computational Geosciences and
-Modeling. 
+Copyright 2021-2026, NORCE Research AS, Computational Geosciences and
+Modeling.
 
 This file is part of the ad-micp module.
 
@@ -14,54 +16,256 @@ the Free Software Foundation, either version 3 of the License, or
 
 ad-micp is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this file.  If not, see <http://www.gnu.org/licenses/>.
+along with this file. If not, see <http://www.gnu.org/licenses/>.
 %}
-  
-  % Get model parameters
-  alphaT = model.fluid.alphaT;
-  alphaL = model.fluid.alphaL;
-  Diff_m = model.fluid.diffm;
-  Diff_o = model.fluid.diffo;
-  Diff_u = model.fluid.diffu;
-  muw = model.fluid.muw;
-  % Compute current permeability
-  K = model.fluid.K(poro);
-  % "dpW" in the center of the cells
-  v = faceFlux2cellVelocity(model.G, state.flux(:, 1));
-  % Using the previous function to compute v results in half values of
-  % velocity on the injection/free flow boundary. If the injetcion well 
-  % is on the boundary, we correct the values
-  if model.G.injectionwellonboundary == 1
-      v(model.G.cellsinjectionwell, :) = ...
-                                      2 * v(model.G.cellsinjectionwell, :);
-  end
-  v_norm = sqrt(sum(v .^ 2, 2));
-  dpW = muw .* v_norm ./ K;
-  % Dispersion terms for microbes, oxygen, and urea
-  DD = (alphaL - alphaT) * ...
-  [poro .* v(:, 1) .* v(:, 1) poro .* v(:, 1) .* v(:, 2) poro .* ...
-       v(:, 1) .* v(:, 3) poro .* v(:, 2) .* v(:, 2) poro .* v(:, 2) .* ...
-                     v(:, 3) poro .* v(:, 3) .* v(:, 3)] ./ (v_norm + eps);
-  vm_tensor = (poro * Diff_m - alphaT * v_norm) * [1 0 0 1 0 1] + DD;
-  vo_tensor = (poro * Diff_o - alphaT * v_norm) * [1 0 0 1 0 1] + DD;
-  vu_tensor = (poro * Diff_u - alphaT * v_norm) * [1 0 0 1 0 1] + DD;
-  % We use the harmonic average to compute the correspondic values on the
-  % cell faces. We use the routine implemented in MRST to compute the
-  % transmisibilities.
-  Dispm = makeRock(model.G, vm_tensor, 1);
-  Dispo = makeRock(model.G, vo_tensor, 1);
-  Dispu = makeRock(model.G, vu_tensor, 1);
-  d_m = getFaceTransmissibility(model.G, Dispm);
-  d_o = getFaceTransmissibility(model.G, Dispo);
-  d_u = getFaceTransmissibility(model.G, Dispu);
-  % Half-trans -> trans and reduce to interior
-  N = model.G.faces.neighbors;
-  intInx = all(N ~= 0, 2);
-  d_m = d_m(intInx);
-  d_o = d_o(intInx);
-  d_u = d_u(intInx);
+    % Get model parameters
+    fluid = model.fluid;
+    grid = model.G;
+
+    transverseDispersivity = fluid.alphaT;
+    longitudinalDispersivity = fluid.alphaL;
+    microorganismDiffusion = fluid.diffm;
+    oxygenDiffusion = fluid.diffo;
+    ureaDiffusion = fluid.diffu;
+    waterViscosity = fluid.muw;
+
+    % Compute current permeability
+    permeability = fluid.K(poro);
+    permeability = max(permeability, fluid.kmin);
+
+    % Compute the Darcy water velocity at the cell centers
+    darcyVelocity = faceFlux2cellVelocity( ...
+        grid, state.flux(:, 1));
+
+    % Using the previous function to compute velocity results in half the
+    % velocity on the injection/free-flow boundary. If the injection well
+    % is on the boundary, we correct the values.
+    hasBoundaryInjection = ...
+        isfield(grid, 'injectionwellonboundary') && ...
+        grid.injectionwellonboundary == 1;
+
+    if hasBoundaryInjection
+        assert(isfield(grid, 'cellsinjectionwell'), ...
+            ['Grid field ''cellsinjectionwell'' is required when ' ...
+             'the injection well is on the boundary.']);
+
+        darcyVelocity(grid.cellsinjectionwell, :) = ...
+            2 .* darcyVelocity(grid.cellsinjectionwell, :);
+    end
+
+    darcyVelocityMagnitude = ...
+        sqrt(sum(darcyVelocity .^ 2, 2));
+
+    assert(size(permeability, 2) == 1, ...
+        ['Pressure-gradient reconstruction currently supports only ' ...
+         'scalar isotropic permeability.']);
+
+    dpW = waterViscosity .* ...
+        darcyVelocityMagnitude ./ permeability;
+
+    if size(darcyVelocity, 2) < 3
+        darcyVelocity(:, end + 1 : 3) = 0;
+    end
+
+    % Dispersion terms for microorganisms, oxygen, and urea
+    velocityX = darcyVelocity(:, 1);
+    velocityY = darcyVelocity(:, 2);
+    velocityZ = darcyVelocity(:, 3);
+
+    velocityProducts = [ ...
+        velocityX .* velocityX, ...
+        velocityX .* velocityY, ...
+        velocityX .* velocityZ, ...
+        velocityY .* velocityY, ...
+        velocityY .* velocityZ, ...
+        velocityZ .* velocityZ];
+
+    nonzeroVelocityMagnitude = ...
+        max(darcyVelocityMagnitude, eps);
+
+    mechanicalDispersion = ...
+        (longitudinalDispersivity - transverseDispersivity) .* ...
+        velocityProducts ./ nonzeroVelocityMagnitude;
+
+    isotropicTensor = [1 0 0 1 0 1];
+
+    microorganismTensor = ...
+        (poro .* microorganismDiffusion + ...
+        transverseDispersivity .* darcyVelocityMagnitude) * ...
+        isotropicTensor + mechanicalDispersion;
+
+    oxygenTensor = ...
+        (poro .* oxygenDiffusion + ...
+        transverseDispersivity .* darcyVelocityMagnitude) * ...
+        isotropicTensor + mechanicalDispersion;
+
+    ureaTensor = ...
+        (poro .* ureaDiffusion + ...
+        transverseDispersivity .* darcyVelocityMagnitude) * ...
+        isotropicTensor + mechanicalDispersion;
+
+    % We use the harmonic average to compute the corresponding values on
+    % the cell faces.
+    internalFaces = getInternalFaces(model);
+    halfFaceToFace = getHalfFaceToFaceMap(model);
+
+    dispersionTensors = { ...
+        microorganismTensor, ...
+        oxygenTensor, ...
+        ureaTensor};
+
+    internalTransmissibilities = ...
+        getInternalDispersionTransmissibilities( ...
+        grid, dispersionTensors, internalFaces, halfFaceToFace);
+
+    d_m = internalTransmissibilities{1};
+    d_o = internalTransmissibilities{2};
+    d_u = internalTransmissibilities{3};
+end
+
+function internalFaces = getInternalFaces(model)
+    operators = model.operators;
+    numberOfFaces = model.G.faces.num;
+
+    hasCachedInternalFaces = ...
+        isfield(operators, 'micpInternalFaces') && ...
+        numel(operators.micpInternalFaces) == numberOfFaces;
+
+    if hasCachedInternalFaces
+        internalFaces = ...
+            logical(operators.micpInternalFaces(:));
+    else
+        internalFaces = ...
+            all(model.G.faces.neighbors ~= 0, 2);
+    end
+end
+
+function halfFaceToFace = getHalfFaceToFaceMap(model)
+    operators = model.operators;
+    grid = model.G;
+    numberOfHalfFaces = size(grid.cells.faces, 1);
+
+    hasCachedMap = ...
+        isfield(operators, 'micpHalfFaceToFace') && ...
+        size(operators.micpHalfFaceToFace, 1) == ...
+        grid.faces.num && ...
+        size(operators.micpHalfFaceToFace, 2) == ...
+        numberOfHalfFaces;
+
+    if hasCachedMap
+        halfFaceToFace = operators.micpHalfFaceToFace;
+    else
+        faceIndices = grid.cells.faces(:, 1);
+
+        halfFaceToFace = sparse( ...
+            faceIndices, ...
+            1 : numberOfHalfFaces, ...
+            1, ...
+            grid.faces.num, ...
+            numberOfHalfFaces);
+    end
+end
+
+function internalTransmissibilities = ...
+        getInternalDispersionTransmissibilities( ...
+        grid, dispersionTensors, internalFaces, halfFaceToFace)
+
+    numberOfComponents = numel(dispersionTensors);
+    internalTransmissibilities = ...
+        cell(numberOfComponents, 1);
+
+    for componentIndex = 1 : numberOfComponents
+        halfTransmissibility = ...
+            computeDispersionHalfTransmissibility( ...
+            grid, dispersionTensors{componentIndex});
+
+        halfTransmissibilityValues = ...
+            value(halfTransmissibility);
+
+        nonpositiveHalfFaces = ...
+            halfTransmissibilityValues <= 0;
+
+        safeHalfTransmissibility = ...
+            halfTransmissibility + ...
+            nonpositiveHalfFaces .* ...
+            (1 - halfTransmissibility);
+
+        inverseFaceTransmissibility = ...
+            halfFaceToFace * ...
+            (1 ./ safeHalfTransmissibility);
+
+        faceTransmissibility = ...
+            1 ./ inverseFaceTransmissibility;
+
+        blockedFaces = ...
+            halfFaceToFace * ...
+            double(nonpositiveHalfFaces) > 0;
+
+        faceTransmissibility = ...
+            faceTransmissibility .* (~blockedFaces);
+
+        internalTransmissibilities{componentIndex} = ...
+            faceTransmissibility(internalFaces);
+    end
+end
+
+function halfTransmissibility = ...
+        computeDispersionHalfTransmissibility( ...
+        grid, dispersionTensor)
+
+    dispersionRock = makeRock(grid, dispersionTensor, 1);
+
+    if hasCornerPointGeometry(grid)
+        cornerPointGeometry = grid.cells.cpgeometry;
+
+        halfTransmissibility = computeTrans( ...
+            grid, ...
+            dispersionRock, ...
+            'K_system', ...
+            'loc_xyz', ...
+            'cellCenters', ...
+            cornerPointGeometry.centroids, ...
+            'cellFaceCenters', ...
+            cornerPointGeometry.facecentroids);
+    else
+        halfTransmissibility = ...
+            computeTrans(grid, dispersionRock);
+    end
+end
+
+function present = hasCornerPointGeometry(grid)
+    if ~isfield(grid, 'nodes')
+        present = false;
+        return
+    end
+
+    physicalDimension = size(grid.nodes.coords, 2);
+    numberOfCells = grid.cells.num;
+    numberOfCellFaces = size(grid.cells.faces, 1);
+
+    present = ...
+        isfield(grid.cells, 'cpgeometry') && ...
+        all(isfield( ...
+        grid.cells.cpgeometry, ...
+        {'centroids', 'facecentroids'}));
+
+    if ~present
+        return
+    end
+
+    cornerPointGeometry = grid.cells.cpgeometry;
+
+    present = ...
+        ismatrix(cornerPointGeometry.centroids) && ...
+        ismatrix(cornerPointGeometry.facecentroids) && ...
+        isequal( ...
+        size(cornerPointGeometry.centroids), ...
+        [numberOfCells, physicalDimension]) && ...
+        isequal( ...
+        size(cornerPointGeometry.facecentroids), ...
+        [numberOfCellFaces, physicalDimension]);
 end

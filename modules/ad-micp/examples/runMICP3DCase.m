@@ -1,388 +1,782 @@
-%% Workflow example for the MICP model in a 3D system assessing CO2 leakage
+%% Workflow example for MICP treatment of a 3D leakage system
 %
-% This example aims to show complete workflow for creating, running, and
-% analyzing a 3D-flow system with a leakage path using the MICP
-% mathematical model. To asses the CO2 distribution before and after
-% treatment, we use the 'TwoPhaseWaterGasModel' in the MRST co2lab module
-% (we use the system relationships/properties as in the 'basic_3D_example'
-% in the co2lab module).
+% This example demonstrates a complete workflow for creating, running, and
+% analyzing a three-dimensional flow system containing a vertical leakage
+% path. The workflow consists of three simulations:
 %
-% For details on the MICP model, see
-% Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. Practical
-% approaches to study microbially induced calcite precipitation at the
-% field scale. Int. J. Greenh. Gas Control 106, 103256.
+% 1. CO2 injection before MICP treatment.
+% 2. MICP treatment of the leakage path.
+% 3. CO2 injection after MICP treatment.
+%
+% The CO2 simulations use `TwoPhaseWaterGasModel` from the MRST `co2lab`
+% module. The MICP treatment uses `MICPModel` from the `ad-micp` module.
+%
+% For details on the MICP model, see:
+%
+% Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021.
+% Practical approaches to study microbially induced calcite precipitation
+% at the field scale. International Journal of Greenhouse Gas Control 106,
+% 103256.
+%
 % https://doi.org/10.1016/j.ijggc.2021.103256
 
 % Required modules
 mrstModule add ad-blackoil ad-core ad-micp ad-props co2lab upr
 
-%% Reservoir geometry/properties and model parameters
+%% Reservoir geometry, properties, and model parameters
 %
-% The domain has a length of 200 m, a height of 160 m, and width of 180 m.
-% We remove the domain cells where there is caprock. The leakage
-% xy-position is set to the origin (0, 0). The grid is coarser in order to
-% run the example in couple of minutes. You should try with larger domains
-% and finer grids (see https://doi.org/10.1016/j.ijggc.2021.103256).
+% The domain is 200 m long, 180 m wide, and 160 m high. It contains a
+% lower aquifer, a vertical leakage path through the caprock, and an upper
+% aquifer. Cells outside the leakage path are removed from the caprock
+% interval.
+%
+% The leakage path is centered at (0, 0). The computational grid is refined
+% around the leakage path and the injection well and coarsened away from
+% these regions.
 
-L = 200;            % Reservoir length, m
-W = 180;            % Reservoir width, m
-ht = 30;            % Top aquifer heigth, m
-hl = 100;           % Leakage heigth, m
-hb = 30;            % Bottom aquifer heigth, m
-H = ht + hl + hb;   % Reservoir heigth, m
-D = 1500;           % Depth of aquifer top surface, m
-a = 1;              % Leakage width, m
-w = -20;            % Well x-location from leakage, m
-hmin = a;           % Minimum grid size, m
-hmid = 3;           % Medium grid size, m
-hmax = L;           % Maximum grid size, m
-B = 10;             % hmid to hmax transition radius, m
-% Here we create the mesh using a modified version of distmesh in the upr 
-% module.
-fd = @(p) drectangle(p, -L / 2, L / 2, -W / 2, W / 2);
-fh = @(p) min(min(hmid + 0.3 * abs(dcircle(p, w, 0, 0)), hmid) .* ...
- (abs(dcircle(p, w, 0, 0)) < B) + min(hmid + 0.3 * abs(dcircle(p, w, 0, ...
-        B)), hmax) .* (abs(dcircle(p, w, 0, 0)) >= B), min(hmin + 0.3 * ...
-         abs(dcircle(p, 0, 0, 0)), hmid) .* (abs(dcircle(p, 0, 0, 0)) < ...
-                  B) + min(hmid + 0.3 * abs(dcircle(p, 0, 0, B)), hmax) ...
-                                       .* (abs(dcircle(p, 0, 0, 0)) >= B));
-[p, t] = distmesh2d(fd, fh, hmin, [-L / 2, -W / 2; L / 2, W / 2], ...
-       [-L / 2, -W / 2; L / 2, -W / 2; -L / 2, W / 2; L / 2, W / 2; 0, ...
-                                                                 0], true);
+domainLength = 200;       % Reservoir length, m
+domainWidth = 180;        % Reservoir width, m
+topAquiferHeight = 30;    % Top aquifer height, m
+leakageHeight = 100;      % Leakage interval height, m
+bottomAquiferHeight = 30; % Bottom aquifer height, m
+
+domainHeight = ...
+    topAquiferHeight + leakageHeight + bottomAquiferHeight;
+
+aquiferTopDepth = 1500;   % Depth of the top surface, m
+leakageWidth = 1;         % Leakage-path width, m
+wellXLocation = -20;      % Well x-coordinate relative to leakage, m
+
+minimumGridSize = leakageWidth;
+mediumGridSize = 3;
+maximumGridSize = domainLength;
+transitionRadius = 10;
+
+% Fix the random seed to improve mesh reproducibility.
+rand('seed', 0);
+randn('seed', 0);
+
+distanceFunction = @(points) drectangle( ...
+    points, ...
+    -domainLength / 2, ...
+    domainLength / 2, ...
+    -domainWidth / 2, ...
+    domainWidth / 2);
+
+sizeFunction = @(points) min( ...
+    min( ...
+    mediumGridSize + ...
+    0.3 .* abs(dcircle(points, wellXLocation, 0, 0)), ...
+    mediumGridSize) .* ...
+    (abs(dcircle(points, wellXLocation, 0, 0)) < ...
+    transitionRadius) + ...
+    min( ...
+    mediumGridSize + ...
+    0.3 .* abs(dcircle( ...
+    points, wellXLocation, 0, transitionRadius)), ...
+    maximumGridSize) .* ...
+    (abs(dcircle(points, wellXLocation, 0, 0)) >= ...
+    transitionRadius), ...
+    min( ...
+    minimumGridSize + ...
+    0.3 .* abs(dcircle(points, 0, 0, 0)), ...
+    mediumGridSize) .* ...
+    (abs(dcircle(points, 0, 0, 0)) < ...
+    transitionRadius) + ...
+    min( ...
+    mediumGridSize + ...
+    0.3 .* abs(dcircle(points, 0, 0, transitionRadius)), ...
+    maximumGridSize) .* ...
+    (abs(dcircle(points, 0, 0, 0)) >= ...
+    transitionRadius));
+
+boundingBox = [ ...
+    -domainLength / 2, -domainWidth / 2; ...
+     domainLength / 2,  domainWidth / 2];
+
+fixedPoints = [ ...
+    -domainLength / 2, -domainWidth / 2; ...
+     domainLength / 2, -domainWidth / 2; ...
+    -domainLength / 2,  domainWidth / 2; ...
+     domainLength / 2,  domainWidth / 2; ...
+     0,                 0];
+
+[gridPoints, gridTriangles] = distmesh2d( ...
+    distanceFunction, ...
+    sizeFunction, ...
+    minimumGridSize, ...
+    boundingBox, ...
+    fixedPoints, ...
+    true);
+
 close
-Z = [0 3 10 ht : 10 : ht + hl ht + hl + 3 ht + hl + 10 H];
-G = makeLayeredGrid(pebi(triangleGrid(p, t)), max(size(Z)) - 1);
-zn = G.nodes.num / max(size(Z));
-for i = 1 : max(size(Z))
-    G.nodes.coords(1 + zn * (i - 1) : 1 : zn * i, 3) = Z(i) + D;
+
+verticalCoordinates = [ ...
+    0, ...
+    3, ...
+    10, ...
+    topAquiferHeight : 10 : ...
+    topAquiferHeight + leakageHeight, ...
+    topAquiferHeight + leakageHeight + 3, ...
+    topAquiferHeight + leakageHeight + 10, ...
+    domainHeight];
+
+verticalCoordinates = unique(verticalCoordinates, 'stable');
+
+numberOfLayers = numel(verticalCoordinates) - 1;
+
+G = makeLayeredGrid( ...
+    pebi(triangleGrid(gridPoints, gridTriangles)), ...
+    numberOfLayers);
+
+nodesPerLayer = G.nodes.num / numel(verticalCoordinates);
+
+nodesPerLayer = round(nodesPerLayer);
+
+for layerIndex = 1 : numel(verticalCoordinates)
+    firstNode = 1 + nodesPerLayer * (layerIndex - 1);
+    lastNode = nodesPerLayer * layerIndex;
+
+    G.nodes.coords(firstNode : lastNode, 3) = ...
+        verticalCoordinates(layerIndex) + aquiferTopDepth;
 end
+
 G = computeGeometry(G);
-c = G.cells.centroids;
-G = removeCells(G, c(:, 1) .^ 2 + c(:, 2) .^ 2 > (hmin / 2) ^ 2 & ...
-                                 c(:, 3) < D + ht + hl & c(:, 3) > D + ht);
+
+cellCentroids = G.cells.centroids;
+
+caprockCellsOutsideLeakage = ...
+    cellCentroids(:, 1) .^ 2 + ...
+    cellCentroids(:, 2) .^ 2 > ...
+    (minimumGridSize / 2) ^ 2 & ...
+    cellCentroids(:, 3) < ...
+    aquiferTopDepth + topAquiferHeight + leakageHeight & ...
+    cellCentroids(:, 3) > ...
+    aquiferTopDepth + topAquiferHeight;
+
+G = removeCells(G, caprockCellsOutsideLeakage);
 G = computeGeometry(G);
-c = G.cells.centroids;
-C = ones(G.cells.num, 1);
 
-% Rock
-K0 = 2e-14 * C;              % Aquifer permeability, m^2
-% We find the cells where the leakage path is located and set a higher
-% permeability.
-cellsl = G.cells.indexMap;
-cellsl = cellsl(c(:, 1) .^ 2 + c(:, 2) .^ 2 < (hmin / 2) ^ 2 & ...
-                                  c(:, 3) < D + H - hb & c(:, 3) > D + ht);
-cellsF =  G.cells.indexMap;
-idx = ismember(cellsF, cellsl);
-K0(idx) = 1e-12;             % Leakage permeability, m^2
-porosity = 0.15;             % Aquifer/leakage porosity, [-]
-rock = makeRock(G, K0, porosity);
+cellCentroids = G.cells.centroids;
+cellTemplate = ones(G.cells.num, 1);
 
-% Fluid properties
-fluid.muw = 2.535e-4;        % Water viscocity, Pa s
-fluid.bW = @(p) 0 * p + 1;   % Water formation volume factor, [-]
-fluid.rhoWS = 1045;          % Water density, kg/m^3
+%% Rock properties
 
-% Remaining model parameters (we put them on the fluid structure)
-fluid.rho_b = 35;            % Density (biofilm), kg/m^3
-fluid.rho_c = 2710;          % Density (calcite), kg/m^3
-fluid.k_str = 2.6e-10;       % Detachment rate, m/(Pa s)
-fluid.diffm = 2.1e-9;        % Diffusion coefficient (microbes), m^2/s
-fluid.diffo = 2.32e-9;       % Diffusion coefficient (oxygen), m^2/s
-fluid.diffu = 1.38e-9;       % Diffusion coefficient (urea), m^2/s
-fluid.alphaL = 1e-3;         % Disperison coefficient (longitudinal), m
-fluid.alphaT = 4e-4;         % Disperison coefficient (transverse), m
-fluid.eta = 3;               % Fitting factor, [-]
-fluid.k_o = 2e-5;            % Half-velocity constant (oxygen), kg/m^3
-fluid.k_u = 21.3;            % Half-velocity constant (urea), kg/m^3
-fluid.mu = 4.17e-5;          % Maximum specific growth rate, 1/s
-fluid.mu_u = 0.0161;         % Maximum rate of urease utilization, 1/s
-fluid.k_a = 8.51e-7;         % Microbial attachment rate, 1/s
-fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
-fluid.Y = 0.5;               % Yield growth coefficient, [-]
-fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
-fluid.F = 0.5;               % Oxygen consumption factor, [-]
-fluid.crit = 0.1;            % Critical porosity, [-]
-fluid.kmin = 1e-20;          % Minimum permeability, m^2
-fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
+initialPermeability = 2e-14 .* cellTemplate;
 
-% Porosity-permeability relationship
-fluid.K = @(poro) (K0 .* ((poro - fluid.crit) / (porosity - fluid.crit))...
-               .^ fluid.eta + fluid.kmin) .* K0 ./ (K0 + fluid.kmin) .* ...
-                  (poro > fluid.crit) + fluid.kmin .* (poro <= fluid.crit);
+% Identify the cells belonging to the vertical leakage path and assign a
+% higher initial permeability.
+leakageCellIndices = G.cells.indexMap;
 
-% The two following lines are not really used in these simulations since
-% the current MICP implementation only considers single-phase flow (it is
-% possible to extend to two-phase flow), but since the implementation is
-% based on the 'equationsOilWaterPolymer' script (two-phase flow), they are
-% required to avoid errors.
-fluid.bO   = fluid.bW;
+leakageCellIndices = leakageCellIndices( ...
+    cellCentroids(:, 1) .^ 2 + ...
+    cellCentroids(:, 2) .^ 2 < ...
+    (minimumGridSize / 2) ^ 2 & ...
+    cellCentroids(:, 3) < ...
+    aquiferTopDepth + domainHeight - bottomAquiferHeight & ...
+    cellCentroids(:, 3) > ...
+    aquiferTopDepth + topAquiferHeight);
+
+activeCellIndices = G.cells.indexMap;
+isLeakageCell = ismember(activeCellIndices, leakageCellIndices);
+
+initialPermeability(isLeakageCell) = 1e-12;
+
+initialPorosity = 0.15;
+
+rock = makeRock( ...
+    G, initialPermeability, initialPorosity);
+
+%% MICP fluid and model properties
+
+fluid.muw = 2.535e-4;          % Water viscosity, Pa s
+fluid.bW = @(pressure) ...
+    0 .* pressure + 1;         % Water formation volume factor, [-]
+fluid.rhoWS = 1045;            % Water density, kg/m^3
+
+fluid.rho_b = 35;              % Biofilm density, kg/m^3
+fluid.rho_c = 2710;            % Calcite density, kg/m^3
+fluid.k_str = 2.6e-10;         % Detachment coefficient, m/(Pa s)
+fluid.diffm = 2.1e-9;          % Microorganism diffusion, m^2/s
+fluid.diffo = 2.32e-9;         % Oxygen diffusion, m^2/s
+fluid.diffu = 1.38e-9;         % Urea diffusion, m^2/s
+fluid.alphaL = 1e-3;           % Longitudinal dispersivity, m
+fluid.alphaT = 4e-4;           % Transverse dispersivity, m
+fluid.eta = 3;                 % Permeability fitting factor, [-]
+fluid.k_o = 2e-5;              % Oxygen half-velocity constant, kg/m^3
+fluid.k_u = 21.3;              % Urea half-velocity constant, kg/m^3
+fluid.mu = 4.17e-5;            % Maximum growth rate, 1/s
+fluid.mu_u = 0.0161;           % Maximum urease utilization rate, 1/s
+fluid.k_a = 8.51e-7;           % Microorganism attachment rate, 1/s
+fluid.k_d = 3.18e-7;           % Microorganism death rate, 1/s
+fluid.Y = 0.5;                 % Growth yield coefficient, [-]
+fluid.Yuc = 1.67;              % Calcite-to-urea yield coefficient, [-]
+fluid.F = 0.5;                 % Oxygen consumption factor, [-]
+fluid.crit = 0.1;              % Critical porosity, [-]
+fluid.kmin = 1e-20;            % Minimum permeability, m^2
+
+% Porosity-permeability relationship. Clipping the normalized porosity
+% avoids evaluating fractional powers of negative values if the exponent
+% is changed to a noninteger value.
+normalizedPorosity = @(porosity) max( ...
+    (porosity - fluid.crit) ./ ...
+    (initialPorosity - fluid.crit), ...
+    0);
+
+fluid.K = @(porosity) max( ...
+    (initialPermeability .* ...
+    normalizedPorosity(porosity) .^ fluid.eta + ...
+    fluid.kmin) .* ...
+    initialPermeability ./ ...
+    (initialPermeability + fluid.kmin), ...
+    fluid.kmin);
+
+% Compatibility fields required by the oil-water parent model.
+fluid.bO = fluid.bW;
 fluid.rhoOS = fluid.rhoWS;
 
-% Gravity
+%% Gravity
+
+gravity reset
 gravity on
 
-%% CO2 assesment
+gravityMagnitude = norm(gravity);
+
+%% CO2 assessment before MICP treatment
 %
-% We simulate the CO2 distribution on the domain before MICP treatment.
-% We use the 'TwoPhaseWaterGasModel' in the MRST co2lab module (the system
-% relationships/properties are set as in the 'basic_3D_example' in the
-% co2lab module.
+% Simulate CO2 injection before MICP treatment using
+% `TwoPhaseWaterGasModel`.
 
-state0.pressure = fluid.rhoWS * norm(gravity) * c(:, 3); % Initial pressure
-state0.s = repmat([1, 0], G.cells.num, 1); % Initial saturations
-co2     = CO2props(); % Load sampled tables of co2 fluid properties
-p_ref   = 15 * mega * Pascal; % Reference pressure
-t_ref   = 70 + 273.15; % Reference temperature, in Kelvin
-rhoco2  = co2.rho(p_ref, t_ref); % CO2 density at ref. press/temp
-cf_co2  = co2.rhoDP(p_ref, t_ref) / rhoco2; % CO2 compressibility
-cf_wat  = 0; % Water compressibility (zero)
-cf_rock = 0; % Rock compressibility (zero)
-muco2   = co2.mu(p_ref, t_ref) * Pascal * second; % CO2 viscosity
+initialCO2State.pressure = ...
+    fluid.rhoWS .* gravityMagnitude .* cellCentroids(:, 3);
 
-% Use function 'initSimpleADIFluid' to make a simple fluid object
-fluidH2OCO2 = initSimpleADIFluid('phases', 'WG'           , ...
-                           'mu'  , [fluid.muw, muco2]     , ...
-                           'rho' , [fluid.rhoWS, rhoco2]  , ...
-                           'pRef', p_ref                  , ...
-                           'c'   , [cf_wat, cf_co2]       , ...
-                           'cR'  , cf_rock                , ...
-                           'n'   , [2 2]);
+initialCO2State.s = ...
+    repmat([1, 0], G.cells.num, 1);
 
-% Change relperm curves
-srw = 0.27;
-src = 0;
-fluidH2OCO2.krW = @(s) fluidH2OCO2.krW(max((s - srw) ./ (1 - srw), 0));
-fluidH2OCO2.krG = @(s) fluidH2OCO2.krG(max((s - src) ./ (1 - src), 0));
+co2Properties = CO2props();
 
-% Add capillary pressure curve
-pe = 5 * kilo * Pascal;
-pcWG = @(sw) pe * sw .^ (-1 / 2);
-fluidH2OCO2.pcWG = @(sg) pcWG(max((1 - sg - srw) ./ (1 - srw), 1e-5));
+referencePressure = 15 * mega * Pascal;
+referenceTemperature = 70 + 273.15;
 
-% Create Model
-model = TwoPhaseWaterGasModel(G, rock, fluidH2OCO2, 0, 0);
+co2Density = co2Properties.rho( ...
+    referencePressure, referenceTemperature);
 
-% Create Well
-QCO2 = 80 / day;      % Injection rate, m^3/day
-r = 0.15;             % Well radius, m
-[~, iw] = min(abs((c(:, 1) - w) .^ 2 + c(:, 2) .^ 2));
-cellsW =  1 : G.cells.num;
-cellsW = cellsW(abs(c(:, 1) - c(iw, 1)) < eps & ...
-                     abs(c(:, 2) - c(iw, 2)) < eps & c(:, 3) > D + H - hb);
-% Injector
-WCO2 = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', [0, 1], ...
-                                                 'Val', QCO2, 'Radius', r);
+co2Compressibility = ...
+    co2Properties.rhoDP( ...
+    referencePressure, referenceTemperature) ./ co2Density;
 
-% We set a constant hydrostatic pressure on the left and right side of the
-% domain to model open boundaries.
-f = boundaryFaces(G);
-f = f(abs(G.faces.normals(f, 1)) > eps & (G.faces.centroids(f, 1) < ...
-                  -hmax / 4 | G.faces.centroids(f, 1) > L / 2 - hmax / 4));
-fp = G.faces.centroids(f, 3) * fluid.rhoWS * norm(gravity);
-bc = addBC([], f, 'pressure', fp, 'sat', [0 0]);
+waterCompressibility = 0;
+rockCompressibility = 0;
 
-% Setup some schedule
-dt_co2 = day;
-nt = 30 * day / dt_co2;
-timestepsCO2 = repmat(dt_co2, nt, 1);
+co2Viscosity = ...
+    co2Properties.mu( ...
+    referencePressure, referenceTemperature) .* ...
+    Pascal .* second;
 
-% Make schedule
-schedule = simpleSchedule(timestepsCO2, 'W', WCO2, 'bc', bc);
+co2Fluid = initSimpleADIFluid( ...
+    'phases', 'WG', ...
+    'mu', [fluid.muw, co2Viscosity], ...
+    'rho', [fluid.rhoWS, co2Density], ...
+    'pRef', referencePressure, ...
+    'c', [waterCompressibility, co2Compressibility], ...
+    'cR', rockCompressibility, ...
+    'n', [2, 2]);
 
-% Simulate
-if exist('OCTAVE_VERSION', 'builtin') == 0
-  % The two last entries in the 'getPlotAfterStepCO2' function are the
-  % azimuth and elevation angles for view of the current axes while
-  % visualizing the solution. This function could be also used in
-  % other mrst examples to visualize the evolution of the non-wetting phase
-  % saturation, e.g., it works in the 'example3D' in the co2lab module, if
-  % line 145 is replaced by the three following lines:
-  % mrstModule add ad-micp
-  % fn = getPlotAfterStepCO2(initState, model, 340, 20);
-  % [wellSol, states] = simulateScheduleAD(initState, model, schedule, ...
-  % 'afterStepFn', fn);
-  fn = getPlotAfterStepCO2(state0, model, 340, 20);
-  [~, statesCO2beforeMICP] = simulateScheduleAD(state0, model, ...
-                                              schedule, 'afterStepFn', fn);
+% Relative permeability curves
+residualWaterSaturation = 0.27;
+residualCO2Saturation = 0;
+
+baseWaterRelativePermeability = co2Fluid.krW;
+baseCO2RelativePermeability = co2Fluid.krG;
+
+co2Fluid.krW = @(saturation) ...
+    baseWaterRelativePermeability(max( ...
+    (saturation - residualWaterSaturation) ./ ...
+    (1 - residualWaterSaturation), ...
+    0));
+
+co2Fluid.krG = @(saturation) ...
+    baseCO2RelativePermeability(max( ...
+    (saturation - residualCO2Saturation) ./ ...
+    (1 - residualCO2Saturation), ...
+    0));
+
+% Capillary-pressure curve
+entryPressure = 5 * kilo * Pascal;
+
+waterGasCapillaryPressure = @(waterSaturation) ...
+    entryPressure .* waterSaturation .^ (-1 / 2);
+
+co2Fluid.pcWG = @(gasSaturation) ...
+    waterGasCapillaryPressure(max( ...
+    (1 - gasSaturation - residualWaterSaturation) ./ ...
+    (1 - residualWaterSaturation), ...
+    1e-5));
+
+co2ModelBeforeMICP = ...
+    TwoPhaseWaterGasModel(G, rock, co2Fluid, 0, 0);
+
+%% CO2 injection well
+
+co2InjectionRate = 80 / day;
+wellRadius = 0.15;
+
+[~, nearestWellCell] = min( ...
+    (cellCentroids(:, 1) - wellXLocation) .^ 2 + ...
+    cellCentroids(:, 2) .^ 2);
+
+allCellIndices = (1 : G.cells.num)';
+
+co2WellCells = allCellIndices( ...
+    abs(cellCentroids(:, 1) - ...
+    cellCentroids(nearestWellCell, 1)) < eps & ...
+    abs(cellCentroids(:, 2) - ...
+    cellCentroids(nearestWellCell, 2)) < eps & ...
+    cellCentroids(:, 3) > ...
+    aquiferTopDepth + domainHeight - bottomAquiferHeight);
+
+co2Well = addWell( ...
+    [], ...
+    G, ...
+    rock, ...
+    co2WellCells, ...
+    'Type', 'rate', ...
+    'Comp_i', [0, 1], ...
+    'Val', co2InjectionRate, ...
+    'Radius', wellRadius);
+
+%% Open boundary conditions
+
+boundaryFaceIndices = boundaryFaces(G);
+
+openBoundaryFaces = boundaryFaceIndices( ...
+    abs(G.faces.normals(boundaryFaceIndices, 1)) > eps & ...
+    (G.faces.centroids(boundaryFaceIndices, 1) < ...
+    -maximumGridSize / 4 | ...
+    G.faces.centroids(boundaryFaceIndices, 1) > ...
+    domainLength / 2 - maximumGridSize / 4));
+
+boundaryPressure = ...
+    G.faces.centroids(openBoundaryFaces, 3) .* ...
+    fluid.rhoWS .* gravityMagnitude;
+
+co2BoundaryConditions = addBC( ...
+    [], ...
+    openBoundaryFaces, ...
+    'pressure', boundaryPressure, ...
+    'sat', [1, 0]);
+
+%% CO2 injection schedule
+
+co2TimeStep = day;
+numberOfCO2Steps = 30;
+
+if exist('AD_MICP_TEST', 'var')
+    numberOfCO2Steps = 15;
+end
+
+co2Timesteps = ...
+    repmat(co2TimeStep, numberOfCO2Steps, 1);
+
+co2Schedule = simpleSchedule( ...
+    co2Timesteps, ...
+    'W', co2Well, ...
+    'bc', co2BoundaryConditions);
+
+%% Simulate CO2 injection before treatment
+
+if exist('OCTAVE_VERSION', 'builtin') ~= 0
+    [~, statesCO2beforeMICP] = simulateScheduleAD( ...
+        initialCO2State, ...
+        co2ModelBeforeMICP, ...
+        co2Schedule);
 else
-  [~, statesCO2beforeMICP] = simulateScheduleAD(state0, model, schedule);
+    co2PlotFunction = getPlotAfterStepCO2( ...
+        initialCO2State, ...
+        co2ModelBeforeMICP, ...
+        340, ...
+        20);
+
+    [~, statesCO2beforeMICP] = simulateScheduleAD( ...
+        initialCO2State, ...
+        co2ModelBeforeMICP, ...
+        co2Schedule, ...
+        'afterStepFn', co2PlotFunction);
 end
 
-% Compute leakage rate (CO2 rate through the lowest grid face on the
-% leakage path). If the grid properties are modified, then it could be
-% necessary to also modify the choosen value 0.01 in L 225-226.
-lrbeforeMICP = zeros(nt, 1);
-fc = G.faces.centroids;
-facel =  1 : G.faces.num;
-facel = facel(fc(:, 3) < D + hl + ht + 0.01 & fc(:, 3) > D + ...
-        hl + ht - 0.01 & (fc(:, 1) .^ 2 + fc(:, 2) .^ 2 < (hmin / 2) ^ 2));
-for i = 1 : nt
-    lrbeforeMICP(i) = abs(statesCO2beforeMICP{i}.flux(facel, 2));
+%% Calculate leakage before MICP treatment
+%
+% The leakage rate is evaluated through the horizontal face at the base of
+% the leakage path.
+
+faceCentroids = G.faces.centroids;
+allFaceIndices = (1 : G.faces.num)';
+
+leakageElevation = ...
+    aquiferTopDepth + topAquiferHeight + leakageHeight;
+
+leakageFaceTolerance = 0.01;
+
+leakageFaces = allFaceIndices( ...
+    faceCentroids(:, 3) < ...
+    leakageElevation + leakageFaceTolerance & ...
+    faceCentroids(:, 3) > ...
+    leakageElevation - leakageFaceTolerance & ...
+    faceCentroids(:, 1) .^ 2 + ...
+    faceCentroids(:, 2) .^ 2 < ...
+    (minimumGridSize / 2) ^ 2);
+
+leakageBeforeMICP = zeros(numberOfCO2Steps, 1);
+
+for stepIndex = 1 : numberOfCO2Steps
+    leakageBeforeMICP(stepIndex) = abs( ...
+        statesCO2beforeMICP{stepIndex}.flux(leakageFaces, 2));
 end
 
-%% MICP treatment
+%% MICP treatment strategy
+%
+% Each row of `injectionStrategy` contains:
+%
+%   1. Phase duration, s
+%   2. Simulation timestep, s
+%   3. Injection rate, m^3/s
+%   4. Microorganism concentration, kg/m^3
+%   5. Oxygen concentration, kg/m^3
+%   6. Urea concentration, kg/m^3
 
-% Set the injection strategy.
-N = 9; % Number of injection phases in the injection strategy
-M = zeros(N, 6); % The entries per row are: time, dt, rate, m, o, and u.
-dt_on = hour; % Time step when the well is on
-dt_off = 5 * hour;  % Time step when the well is off
+activeTimeStep = hour;
+shutInTimeStep = 5 * hour;
 
-M(1, :) = [15 * hour,   dt_on,  0.3, 0.01, 0,      0];
-M(2, :) = [11 * hour,   dt_on,  0.3, 0,    0,      0];
-M(3, :) = [75 * hour,   dt_off, 0,   0,    0,      0];
-M(4, :) = [30 * hour,   dt_on,  0.3, 0,    0.04,   0];
-M(5, :) = [5 * hour,    dt_on,  0.3, 0,    0,      0];
-M(6, :) = [25 * hour,   dt_off, 0,   0,    0,      0];
-M(7, :) = [40 * hour,   dt_on,  0.3, 0,    0,     60];
-M(8, :) = [10 * hour,   dt_on,  0.3, 0,    0,      0];
-M(9, :) = [40 * hour,   dt_off, 0,   0,    0,      0];
+injectionStrategy = [ ...
+    15 * hour, activeTimeStep, 0.3, 0.01, 0,    0; ...
+    11 * hour, activeTimeStep, 0.3, 0,    0,    0; ...
+    75 * hour, shutInTimeStep, 0,  0,    0,    0; ...
+    30 * hour, activeTimeStep, 0.3, 0,    0.04, 0; ...
+     5 * hour, activeTimeStep, 0.3, 0,    0,    0; ...
+    25 * hour, shutInTimeStep, 0,  0,    0,    0; ...
+    40 * hour, activeTimeStep, 0.3, 0,    0,   60; ...
+    10 * hour, activeTimeStep, 0.3, 0,    0,    0; ...
+    40 * hour, shutInTimeStep, 0,  0,    0,    0];
 
-% Create Well. For the injection of the MICP components, we create a well
-% with an upper and lower parts, where the components are injected in the
-% top part and only water on the lower part (hb is the bottom aquifer
-% heigth).
-Whu = 3 / hb;   % Upper fraction part of the well to inject the components
-Whb = 1 - Whu;  % Bottom fraction part of the well to inject the components
-cellsW =  1 : G.cells.num;
-cellsWu = cellsW(abs(c(:, 1) - c(iw, 1)) < eps & abs(c(:, 2)-c(iw, 2)) ...
-                < eps & c(:, 3) > D + H - hb & c(:, 3) < D + H - Whb * hb);
-% Upper injector
-W = addWell([],G, rock, cellsWu, 'Type', 'rate', 'Comp_i', [1, 0], ...
-                                        'Val', Whu * M(1, 3), 'Radius', r);
-cellsWb = cellsW(abs(c(:, 1) - c(iw, 1)) < eps & ...
-               abs(c(:, 2) - c(iw, 2)) < eps & c(:, 3) > D + H - Whb * hb);
-% Lower injector
-W = addWell(W, G, rock, cellsWb, 'Type', 'rate', 'Comp_i', [1, 0], ...
-                                        'Val', Whb * M(1, 3), 'Radius', r);
-
-% Add the fields to the wells/bc for the additional components
-bc.m = zeros(size(bc.sat, 1), 1);
-bc.o = zeros(size(bc.sat, 1), 1);
-bc.u = zeros(size(bc.sat, 1), 1);
-bc.b = zeros(size(bc.sat, 1), 1);
-bc.c = zeros(size(bc.sat, 1), 1);
-for i = 1 : 2
-    W(i).o = 0;
-    W(i).u = 0;
-    W(i).m = 0;
+if exist('AD_MICP_TEST', 'var')
+    injectionStrategy = [ ...
+        15 * hour, activeTimeStep, 0.3, 0.01, 0.04, 60];
 end
-W(1).m = M(1, 4);  % Injected microbial concentration, kg/m^3
-W(1).o = M(1, 5);  % Injected oxygen concentration, kg/m^3
-W(1).u = M(1, 6);  % Injected urea concentration, kg/m^3
-% The injection well is not on the boundary
+
+numberOfTreatmentPhases = size(injectionStrategy, 1);
+
+%% MICP injection wells
+%
+% The treatment well has two completions. MICP components are injected
+% through the upper completion, while the lower completion injects water.
+
+upperWellFraction = 3 / bottomAquiferHeight;
+lowerWellFraction = 1 - upperWellFraction;
+
+upperTreatmentCells = allCellIndices( ...
+    abs(cellCentroids(:, 1) - ...
+    cellCentroids(nearestWellCell, 1)) < eps & ...
+    abs(cellCentroids(:, 2) - ...
+    cellCentroids(nearestWellCell, 2)) < eps & ...
+    cellCentroids(:, 3) > ...
+    aquiferTopDepth + domainHeight - bottomAquiferHeight & ...
+    cellCentroids(:, 3) < ...
+    aquiferTopDepth + domainHeight - ...
+    lowerWellFraction * bottomAquiferHeight);
+
+lowerTreatmentCells = allCellIndices( ...
+    abs(cellCentroids(:, 1) - ...
+    cellCentroids(nearestWellCell, 1)) < eps & ...
+    abs(cellCentroids(:, 2) - ...
+    cellCentroids(nearestWellCell, 2)) < eps & ...
+    cellCentroids(:, 3) > ...
+    aquiferTopDepth + domainHeight - ...
+    lowerWellFraction * bottomAquiferHeight);
+
+treatmentWell = addWell( ...
+    [], ...
+    G, ...
+    rock, ...
+    upperTreatmentCells, ...
+    'Type', 'rate', ...
+    'Comp_i', [1, 0], ...
+    'Val', upperWellFraction * injectionStrategy(1, 3), ...
+    'Radius', wellRadius);
+
+treatmentWell = addWell( ...
+    treatmentWell, ...
+    G, ...
+    rock, ...
+    lowerTreatmentCells, ...
+    'Type', 'rate', ...
+    'Comp_i', [1, 0], ...
+    'Val', lowerWellFraction * injectionStrategy(1, 3), ...
+    'Radius', wellRadius);
+
+for completionIndex = 1 : numel(treatmentWell)
+    treatmentWell(completionIndex).m = 0;
+    treatmentWell(completionIndex).o = 0;
+    treatmentWell(completionIndex).u = 0;
+end
+
+treatmentWell(1).m = injectionStrategy(1, 4);
+treatmentWell(1).o = injectionStrategy(1, 5);
+treatmentWell(1).u = injectionStrategy(1, 6);
+
+% The MICP injection well is not located on the model boundary.
 G.injectionwellonboundary = 0;
 
-% Setup some schedule
-nt = sum(M(:, 1) ./ M(:, 2));
-timesteps = repmat(dt_on, nt, 1);
-schedule = simpleSchedule(timesteps, 'W', W, 'bc', bc);
-for i = 2 : N
-    schedule.control(i) = schedule.control(i - 1);
-    schedule.step.control(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
-                                                                  end) = i;
-    schedule.step.val(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
-                                                            end) = M(i, 2);
-    schedule.control(i).W(1).val = Whu * M(i, 3);
-    schedule.control(i).W(2).val = Whb * M(i, 3);
-    schedule.control(i).W(1).m = M(i, 4);
-    schedule.control(i).W(1).o = M(i, 5);
-    schedule.control(i).W(1).u = M(i, 6);
+%% MICP boundary conditions
+
+micpBoundaryConditions = co2BoundaryConditions;
+
+numberOfBoundaryFaces = ...
+    size(micpBoundaryConditions.sat, 1);
+
+micpBoundaryConditions.m = ...
+    zeros(numberOfBoundaryFaces, 1);
+micpBoundaryConditions.o = ...
+    zeros(numberOfBoundaryFaces, 1);
+micpBoundaryConditions.u = ...
+    zeros(numberOfBoundaryFaces, 1);
+micpBoundaryConditions.b = ...
+    zeros(numberOfBoundaryFaces, 1);
+micpBoundaryConditions.c = ...
+    zeros(numberOfBoundaryFaces, 1);
+
+%% Construct MICP treatment schedule
+
+stepsPerPhase = ...
+    injectionStrategy(:, 1) ./ injectionStrategy(:, 2);
+
+stepsPerPhase = round(stepsPerPhase);
+totalNumberOfTreatmentSteps = sum(stepsPerPhase);
+
+treatmentTimesteps = ...
+    zeros(totalNumberOfTreatmentSteps, 1);
+
+treatmentControlIndices = ...
+    zeros(totalNumberOfTreatmentSteps, 1);
+
+firstStep = 1;
+
+for phaseIndex = 1 : numberOfTreatmentPhases
+    lastStep = ...
+        firstStep + stepsPerPhase(phaseIndex) - 1;
+
+    treatmentTimesteps(firstStep : lastStep) = ...
+        injectionStrategy(phaseIndex, 2);
+
+    treatmentControlIndices(firstStep : lastStep) = ...
+        phaseIndex;
+
+    firstStep = lastStep + 1;
 end
 
-% Maximum injected oxygen and urea concentrations.
-fluid.Comax = max(M(:, 5));
-fluid.Cumax = max(M(:, 6));
+micpSchedule = simpleSchedule( ...
+    treatmentTimesteps, ...
+    'W', treatmentWell, ...
+    'bc', micpBoundaryConditions);
 
-% Create model
-model = MICPModel(G, rock, fluid);
+baseControl = micpSchedule.control(1);
 
-% Initial Condition
-state0_micp = state0;
-state0_micp.m = zeros(G.cells.num, 1);
-state0_micp.o = zeros(G.cells.num, 1);
-state0_micp.u = zeros(G.cells.num, 1);
-state0_micp.b = zeros(G.cells.num, 1);
-state0_micp.c = zeros(G.cells.num, 1);
+micpSchedule.control = repmat( ...
+    baseControl, numberOfTreatmentPhases, 1);
 
-% If MATLAB is used, we use the getPlotAfterStepMICP function to visualize
-% the results at each time step.
+for phaseIndex = 1 : numberOfTreatmentPhases
+    micpSchedule.control(phaseIndex).W(1).val = ...
+        upperWellFraction * injectionStrategy(phaseIndex, 3);
+
+    micpSchedule.control(phaseIndex).W(2).val = ...
+        lowerWellFraction * injectionStrategy(phaseIndex, 3);
+
+    micpSchedule.control(phaseIndex).W(1).m = ...
+        injectionStrategy(phaseIndex, 4);
+
+    micpSchedule.control(phaseIndex).W(1).o = ...
+        injectionStrategy(phaseIndex, 5);
+
+    micpSchedule.control(phaseIndex).W(1).u = ...
+        injectionStrategy(phaseIndex, 6);
+end
+
+micpSchedule.step.control = treatmentControlIndices;
+micpSchedule.step.val = treatmentTimesteps;
+
+% Maximum injected concentrations used for state limiting and plotting.
+fluid.Comax = max(injectionStrategy(:, 5));
+fluid.Cumax = max(injectionStrategy(:, 6));
+
+%% Create MICP model and initial state
+
+micpModel = MICPModel(G, rock, fluid);
+
+initialMICPState = initialCO2State;
+initialMICPState.m = zeros(G.cells.num, 1);
+initialMICPState.o = zeros(G.cells.num, 1);
+initialMICPState.u = zeros(G.cells.num, 1);
+initialMICPState.b = zeros(G.cells.num, 1);
+initialMICPState.c = zeros(G.cells.num, 1);
+
+%% Simulate MICP treatment
+
 if exist('OCTAVE_VERSION', 'builtin') ~= 0
-    ok = 'true';
-    fn = checkCloggingMICP(ok);
+    [~, statesMICP] = simulateScheduleAD( ...
+        initialMICPState, ...
+        micpModel, ...
+        micpSchedule);
 else
-    fn = getPlotAfterStepMICP(state0_micp, model, 340, 20);
-end
-[~,statesMICP] = simulateScheduleAD(state0_micp, model, schedule, ...
-                                                        'afterStepFn', fn);
+    micpPlotFunction = getPlotAfterStepMICP( ...
+        initialMICPState, micpModel, 340, 20);
 
-%% CO2 assesment after MICP treatment
-%
-% We simulate the CO2 distribution on the domain after MICP treatment.
-
-% Compute porosity and permeability after MICP treatment
-porosityafterMICP = porosity - statesMICP{end}.c - statesMICP{end}.b;
-KafterMICP = fluid.K(porosityafterMICP);
-rock = makeRock(G, KafterMICP, porosityafterMICP);
-
-% Create model
-model = TwoPhaseWaterGasModel(G, rock, fluidH2OCO2, 0, 0);
-
-% Make schedule
-schedule = simpleSchedule(timestepsCO2, 'W', WCO2, 'bc', bc);
-
-% Simulate
-if exist('OCTAVE_VERSION', 'builtin') == 0
-  fn = getPlotAfterStepCO2(state0, model, 340, 20);
-  [~, statesCO2afterMICP] = simulateScheduleAD(state0, model, schedule, ...
-                                                        'afterStepFn', fn);
-else
-  [~, statesCO2afterMICP] = simulateScheduleAD(state0, model, schedule);
+    [~, statesMICP] = simulateScheduleAD( ...
+        initialMICPState, ...
+        micpModel, ...
+        micpSchedule, ...
+        'afterStepFn', micpPlotFunction);
 end
 
-% Compute the CO2 leakage rate after MICP treatment
-lrafterMICP = zeros(max(size(timestepsCO2,1)), 1);
-for i = 1 : size(timestepsCO2,1)
-    lrafterMICP(i) = abs(statesCO2afterMICP{i}.flux(facel, 2));
-end
+%% CO2 assessment after MICP treatment
 
-%% Process the data
-%
-% Plot the comparison of CO2 leakage before and after micp treatment. Using
-% the default example setting, we observe the leakage is reduced after MICP
-% treatment but still there is significant leakage. Then additional MICP
-% treatments could be applied to reduce the leakage as reported in
-% https://doi.org/10.1016/j.ijggc.2021.103256
+porosityAfterMICP = max( ...
+    micpModel.referencePorosity - ...
+    statesMICP{end}.b - statesMICP{end}.c, ...
+    micpModel.minimumPorosity);
 
-figure;
-hold on
-plot((1 : size(timestepsCO2, 1)) * dt_co2 / day, lrbeforeMICP * 100 /...
-             QCO2, 'color', [1 0.2 0.2], 'LineWidth', 9, 'LineStyle', '-');
-plot((1 : size(timestepsCO2, 1)) * dt_co2 / day, lrafterMICP * 100 / ...
-               QCO2, 'color', [1 0.5 0], 'LineWidth', 9, 'LineStyle', '-');
-hold off
-legend('Before MICP', 'After MICP', 'Location', 'southeast');
-xlabel('Time [d]');
-ylabel('CO2 leakage rate/injection rate [%]');
-grid on
+permeabilityAfterMICP = ...
+    fluid.K(porosityAfterMICP);
 
-% If Octave is used, then the results are printed in vtk format to be
-% visualized in Paraview and the 'return' command is executed as currently
-% it is not possible to run 'plotToolbar' in Octave.
+permeabilityAfterMICP = max( ...
+    permeabilityAfterMICP, fluid.kmin);
 
-% Write the results to be read in ParaView (GNU Octave)
+treatedRock = makeRock( ...
+    G, permeabilityAfterMICP, porosityAfterMICP);
+
+co2ModelAfterMICP = ...
+    TwoPhaseWaterGasModel(G, treatedRock, co2Fluid, 0, 0);
+
+% Recreate the CO2 well using the treated rock so that the well index is
+% consistent with the post-treatment permeability.
+co2WellAfterMICP = addWell( ...
+    [], ...
+    G, ...
+    treatedRock, ...
+    co2WellCells, ...
+    'Type', 'rate', ...
+    'Comp_i', [0, 1], ...
+    'Val', co2InjectionRate, ...
+    'Radius', wellRadius);
+
+co2ScheduleAfterMICP = simpleSchedule( ...
+    co2Timesteps, ...
+    'W', co2WellAfterMICP, ...
+    'bc', co2BoundaryConditions);
+
 if exist('OCTAVE_VERSION', 'builtin') ~= 0
-    mkdir vtk_3DCase;
-    cd vtk_3DCase;
-    mrsttovtk(G, statesCO2afterMICP, 'statesCO2afterMICP', '%f');
-    mrsttovtk(G, statesMICP, 'statesMICP', '%f');
-    mrsttovtk(G, statesCO2beforeMICP, 'statesCO2beforeMICP', '%f');
+    [~, statesCO2afterMICP] = simulateScheduleAD( ...
+        initialCO2State, ...
+        co2ModelAfterMICP, ...
+        co2ScheduleAfterMICP);
+else
+    co2PlotFunction = getPlotAfterStepCO2( ...
+        initialCO2State, co2ModelAfterMICP, 340, 20);
+
+    [~, statesCO2afterMICP] = simulateScheduleAD( ...
+        initialCO2State, ...
+        co2ModelAfterMICP, ...
+        co2ScheduleAfterMICP, ...
+        'afterStepFn', co2PlotFunction);
+end
+
+%% Calculate leakage after MICP treatment
+
+leakageAfterMICP = zeros(numberOfCO2Steps, 1);
+
+for stepIndex = 1 : numberOfCO2Steps
+    leakageAfterMICP(stepIndex) = abs( ...
+        statesCO2afterMICP{stepIndex}.flux(leakageFaces, 2));
+end
+
+%% Compare leakage before and after treatment
+
+if ~exist('AD_MICP_TEST', 'var')
+    timeInDays = ...
+        cumsum(co2Timesteps) ./ day;
+
+    figure;
+    hold on
+
+    plot( ...
+        timeInDays, ...
+        100 .* leakageBeforeMICP ./ co2InjectionRate, ...
+        'Color', [1, 0.2, 0.2], ...
+        'LineWidth', 9, ...
+        'LineStyle', '-');
+
+    plot( ...
+        timeInDays, ...
+        100 .* leakageAfterMICP ./ co2InjectionRate, ...
+        'Color', [1, 0.5, 0], ...
+        'LineWidth', 9, ...
+        'LineStyle', '-');
+
+    hold off
+
+    legend( ...
+        'Before MICP', ...
+        'After MICP', ...
+        'Location', 'southeast');
+
+    xlabel('Time [d]');
+    ylabel('CO$_2$ leakage rate/injection rate [\%]', ...
+        'Interpreter', 'latex');
+
+    grid on
+end
+
+%% Export and visualize results
+%
+% Export all three simulations to VTK format without changing the current
+% working directory.
+
+outputDirectory = fullfile(pwd, 'vtk_3DCase');
+
+if ~isfolder(outputDirectory)
+    mkdir(outputDirectory);
+end
+
+co2BeforeOutput = fullfile( ...
+    outputDirectory, 'statesCO2beforeMICP');
+
+micpOutput = fullfile( ...
+    outputDirectory, 'statesMICP');
+
+co2AfterOutput = fullfile( ...
+    outputDirectory, 'statesCO2afterMICP');
+
+mrsttovtk( ...
+    G, statesCO2beforeMICP, co2BeforeOutput, '%f');
+
+mrsttovtk( ...
+    G, statesMICP, micpOutput, '%f');
+
+mrsttovtk( ...
+    G, statesCO2afterMICP, co2AfterOutput, '%f');
+
+fprintf( ...
+    ['VTK results written to:\n' ...
+     '  %s.pvd\n' ...
+     '  %s.pvd\n' ...
+     '  %s.pvd\n'], ...
+    co2BeforeOutput, ...
+    micpOutput, ...
+    co2AfterOutput);
+
+if exist('OCTAVE_VERSION', 'builtin') ~= 0
     return
 end
 
-% If MATLAB is used, then the plotToolbar is used to show the results. For
-% this is necessary to add the mrst-gui module.
+%% Interactive visualization in MATLAB
 mrstModule add mrst-gui
 figure;
 plotToolbar(G, statesMICP, 'field', 's:1', 'lockCaxis', true);
@@ -390,7 +784,7 @@ view(340, 20); axis tight; colorbar; caxis([0 1]);
 
 %% Copyright notice
 %{
-Copyright 2021-2025, NORCE Research AS, Computational Geosciences and
+Copyright 2021-2026, NORCE Research AS, Computational Geosciences and
 Modeling.
 
 This file is part of the ad-micp module.
@@ -402,9 +796,9 @@ the Free Software Foundation, either version 3 of the License, or
 
 ad-micp is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this file.  If not, see <http://www.gnu.org/licenses/>.
+along with this file. If not, see <http://www.gnu.org/licenses/>.
 %}

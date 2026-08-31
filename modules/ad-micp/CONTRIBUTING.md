@@ -10,7 +10,7 @@ Contributions are more than welcome using the fork and pull request approach ðŸ™
 ## Contribute to the software
 
 1. Work on your own fork of the main repo
-1. Make sure the two scripts in the [_examples_](https://github.com/daavid00/ad-micp/examples) run with Octave (see the [_CI.yml_](https://github.com/daavid00/ad-micp/blob/main/.github/workflows/CI.yml) for the steps to run the first example)
+1. Make sure the script tests/tests.m works in Octave (see the [_CI.yml_](https://github.com/daavid00/ad-micp/blob/main/.github/workflows/CI.yml) for the steps to run this script)
 1. Squash your commits into a single commit (see this [_nice tutorial_](https://gist.github.com/lpranam/4ae996b0a4bc37448dc80356efbca7fa) if you are not familiar with this)
 1. Push your commit and make a pull request
 1. The maintainers will review the pull request, and if the contribution is accepted, then it will be merge to the main repo 

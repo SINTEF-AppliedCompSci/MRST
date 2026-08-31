@@ -1,20 +1,25 @@
-% Setting up and solving the 2D flow leaky system (2Dfls).
-% In MATLAB, this file produces Figures 10 and 11 in:
+%% Two-dimensional MICP treatment of a leakage system
+%
+% Set up and solve the two-dimensional flow and leakage system (2Dfls).
+% The example first simulates MICP treatment and then assesses CO2 leakage
+% before treatment and after three treatment stages.
+%
+% In MATLAB, this example produces Figures 10 and 11 from:
 %
 % Landa-Marbán, D., Tveit, S., Kumar, K., Gasda, S.E., 2021. Practical
 % approaches to study microbially induced calcite precipitation at the
-% field scale. Int. J. Greenh. Gas Control 106, 103256.
-% https://doi.org/10.1016/j.ijggc.2021.103256.
+% field scale. International Journal of Greenhouse Gas Control 106, 103256.
 %
-% In GNU Octave, this file creates and prints the results in the folder
-% vtk_micp_2Dfls which can be visualized using ParaView. The example
-% assumes MRST is the Matlab/Octave path. For information on
-% MRST-functions, confer the MRST documentation at
+% https://doi.org/10.1016/j.ijggc.2021.103256
 %
-% http://www.sintef.no/projectweb/mrst/
+% In GNU Octave, the example writes the results to the
+% `vtk_micp_2Dfls` directory for visualization in ParaView.
 %
+% The example assumes that MRST and the `ad-micp` module are available on
+% the MATLAB or GNU Octave path.
+
 %{
-Copyright 2021-2025, NORCE Research AS, Computational Geosciences and
+Copyright 2021-2026, NORCE Research AS, Computational Geosciences and
 Modeling.
 
 This file is part of the ad-micp module.
@@ -26,316 +31,566 @@ the Free Software Foundation, either version 3 of the License, or
 
 ad-micp is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this file.  If not, see <http://www.gnu.org/licenses/>.
+along with this file. If not, see <http://www.gnu.org/licenses/>.
 %}
 
-% Required modules
+%% Required modules
+
 mrstModule add ad-blackoil ad-core ad-micp
 
-% Grid
-L = 500;        % Reservoir length, m
-H = 160;        % Reservoir heigth, m
-if exist('OCTAVE_VERSION', 'builtin') ~= 0 % GNU Octave
-    Y = [0 : 0.25 : 135  H * exp(-0.16 : 0.02 : 0)];
-    X = [0 1 50 * exp(-3.6 : 0.25 : 0) 100 - 50 * exp(0 : -0.25 : ...
-             -4.75) 99.7 99.85 100.15 100.3 100.5 101 102 105 : 5 : 210 ...
-                                                 L * exp(-0.8 : 0.05 : 0)];
-    G = tensorGrid(X, Y, [0 1]);
+%% Grid
+
+L = 500; % Reservoir length, m
+H = 160; % Reservoir height, m
+
+if exist('OCTAVE_VERSION', 'builtin') ~= 0
+    verticalCoordinates = [ ...
+        0 : 0.25 : 135, ...
+        H .* exp(-0.16 : 0.02 : 0)];
+
+    horizontalCoordinates = [ ...
+        0, ...
+        1, ...
+        50 .* exp(-3.6 : 0.25 : 0), ...
+        100 - 50 .* exp(0 : -0.25 : -4.75), ...
+        99.7, ...
+        99.85, ...
+        100.15, ...
+        100.3, ...
+        100.5, ...
+        101, ...
+        102, ...
+        105 : 5 : 210, ...
+        L .* exp(-0.8 : 0.05 : 0)];
+
+    horizontalCoordinates = unique(horizontalCoordinates, 'stable');
+    verticalCoordinates = unique(verticalCoordinates, 'stable');
+
+    horizontalCoordinates(end) = L;
+    verticalCoordinates(end) = H;
+
+    G = tensorGrid( ...
+        horizontalCoordinates, verticalCoordinates, [0 1]);
+
     G = computeGeometry(G);
-    c = G.cells.centroids;
-    G = removeCells(G, (c(:, 1) < 100 - 0.3 | c(:, 1) > 100 + 0.3) & ...
-                                           (c(:, 2) < 130 & c(:, 2) > 30));
+    cellCentroids = G.cells.centroids;
+
+    cellsToRemove = ...
+        (cellCentroids(:, 1) < 100 - 0.3 | ...
+        cellCentroids(:, 1) > 100 + 0.3) & ...
+        (cellCentroids(:, 2) < 130 & ...
+        cellCentroids(:, 2) > 30);
+
+    G = removeCells(G, cellsToRemove);
     G = computeGeometry(G);
-    c = G.cells.centroids;
-    G = removeCells(G, (c(:, 1) < 99.9 | c(:, 1) > 100.1) & ...
-                                           (c(:, 2) < 130 & c(:, 2) > 30));
+    cellCentroids = G.cells.centroids;
+
+    cellsToRemove = ...
+        (cellCentroids(:, 1) < 99.9 | ...
+        cellCentroids(:, 1) > 100.1) & ...
+        (cellCentroids(:, 2) < 130 & ...
+        cellCentroids(:, 2) > 30);
+
+    G = removeCells(G, cellsToRemove);
     G = computeGeometry(G);
-    c = G.cells.centroids;
-    G = removeCells(G, c(:, 1) < -0.5 - eps & c(:, 2) > 130);
+    cellCentroids = G.cells.centroids;
+
+    cellsToRemove = ...
+        cellCentroids(:, 1) < -0.5 - eps & ...
+        cellCentroids(:, 2) > 130;
+
+    G = removeCells(G, cellsToRemove);
     G = computeGeometry(G);
-    c = G.cells.centroids;
-    G = removeCells(G, c(:, 1) < 99.8 & c(:, 2) < 30);
+    cellCentroids = G.cells.centroids;
+
+    cellsToRemove = ...
+        cellCentroids(:, 1) < 99.8 & ...
+        cellCentroids(:, 2) < 30;
+
+    G = removeCells(G, cellsToRemove);
     G = computeGeometry(G);
-else % MATLAB
-    [X1, Y1] = meshgrid([-L : 10 : -50 180 :10 : L], [0 : 5 : 30 31 : ...
-                                                         129 130 : 5 : H]);
-    [X2, Y2] = meshgrid(-50 : 10 : 50, 0 : 5 : 30);
-    [x, y] = meshgrid([100 - 0.3 100 100 + 0.3], 0 : 0.25 : H);
-    [xc, yc] = meshgrid([-1 0 1], 130 : 0.25 : H);
-    [xw, yw] = meshgrid([-50 * exp(0 : -0.25 : -3.6) 50 * ...
-                                       exp(-3.6 : 0.25 : 0)], 130 : 1 : H);
-    [xl, yl] = meshgrid([100 - 50 * exp(0 : -0.25 : -5) 100 + 80 * ...
-                                              exp(-5 : 0.125 : 0)], 0 : H);
-    [xwc1, ywc1] = meshgrid(50 * exp(-3.6 : 0.25 : 0), 130 : 0.25 : 137.5);
-    [xwc2, ywc2] = meshgrid(50 * exp(-3.6 : 0.25 : 0), 137.5 : 0.5: 145);
-    [xwc3, ywc3] = meshgrid(100 - 50 * exp(0 : -0.25 : -5), ...
-                                                       130 : 0.25 : 137.5);
-    [xwc4, ywc4] = meshgrid(100 - 50 * exp(0 : -0.25 : -5), ...
-                                                        137.5 : 0.5 : 145);
-    P = unique([X1(:) Y1(:); X2(:) Y2(:); x(:) y(:); xw(:) yw(:); xl(:) ...
-          yl(:); xc(:) yc(:); xwc1(:) ywc1(:); xwc2(:) ywc2(:); xwc3(:) ...
-                                        ywc3(:); xwc4(:) ywc4(:)], 'rows');
-    G = triangleGrid(P);
+else
+    [coarseX, coarseY] = meshgrid( ...
+        [-L : 10 : -50, 180 : 10 : L], ...
+        [0 : 5 : 30, 31 : 129, 130 : 5 : H]);
+
+    [bottomX, bottomY] = meshgrid( ...
+        -50 : 10 : 50, 0 : 5 : 30);
+
+    [leakageX, leakageY] = meshgrid( ...
+        [100 - 0.3, 100, 100 + 0.3], 0 : 0.25 : H);
+
+    [leftChannelX, leftChannelY] = meshgrid( ...
+        [-1, 0, 1], 130 : 0.25 : H);
+
+    [upperLeftX, upperLeftY] = meshgrid( ...
+        [-50 .* exp(0 : -0.25 : -3.6), ...
+          50 .* exp(-3.6 : 0.25 : 0)], ...
+        130 : 1 : H);
+
+    [lowerLeakageX, lowerLeakageY] = meshgrid( ...
+        [100 - 50 .* exp(0 : -0.25 : -5), ...
+         100 + 80 .* exp(-5 : 0.125 : 0)], ...
+        0 : H);
+
+    [transitionX1, transitionY1] = meshgrid( ...
+        50 .* exp(-3.6 : 0.25 : 0), 130 : 0.25 : 137.5);
+
+    [transitionX2, transitionY2] = meshgrid( ...
+        50 .* exp(-3.6 : 0.25 : 0), 137.5 : 0.5 : 145);
+
+    [transitionX3, transitionY3] = meshgrid( ...
+        100 - 50 .* exp(0 : -0.25 : -5), 130 : 0.25 : 137.5);
+
+    [transitionX4, transitionY4] = meshgrid( ...
+        100 - 50 .* exp(0 : -0.25 : -5), 137.5 : 0.5 : 145);
+
+    gridPoints = unique([ ...
+        coarseX(:), coarseY(:); ...
+        bottomX(:), bottomY(:); ...
+        leakageX(:), leakageY(:); ...
+        upperLeftX(:), upperLeftY(:); ...
+        lowerLeakageX(:), lowerLeakageY(:); ...
+        leftChannelX(:), leftChannelY(:); ...
+        transitionX1(:), transitionY1(:); ...
+        transitionX2(:), transitionY2(:); ...
+        transitionX3(:), transitionY3(:); ...
+        transitionX4(:), transitionY4(:)], ...
+        'rows');
+
+    G = triangleGrid(gridPoints);
     G = computeGeometry(G);
-    c = G.cells.centroids;
-    G = removeCells(G, (c(:, 1) < 100 - 0.3 | c(:, 1) > 100 + 0.3) & ...
-                                           (c(:, 2) < 130 & c(:, 2) > 30));
+
+    cellCentroids = G.cells.centroids;
+
+    cellsToRemove = ...
+        (cellCentroids(:, 1) < 100 - 0.3 | ...
+        cellCentroids(:, 1) > 100 + 0.3) & ...
+        (cellCentroids(:, 2) < 130 & ...
+        cellCentroids(:, 2) > 30);
+
+    G = removeCells(G, cellsToRemove);
     G = makeLayeredGrid(pebi(G), 1);
     G = computeGeometry(G);
-    c = G.cells.centroids;
-    G = removeCells(G, (c(:, 1) < 99.9 | c(:, 1) > 100.1) & ...
-                                           (c(:, 2) < 130 & c(:, 2) > 30));
+
+    cellCentroids = G.cells.centroids;
+
+    cellsToRemove = ...
+        (cellCentroids(:, 1) < 99.9 | ...
+        cellCentroids(:, 1) > 100.1) & ...
+        (cellCentroids(:, 2) < 130 & ...
+        cellCentroids(:, 2) > 30);
+
+    G = removeCells(G, cellsToRemove);
     G = computeGeometry(G);
-    c = G.cells.centroids;
-    G = removeCells(G, c(:, 1) < -0.5 - eps & c(:, 2) > 130);
+
+    cellCentroids = G.cells.centroids;
+
+    cellsToRemove = ...
+        cellCentroids(:, 1) < -0.5 - eps & ...
+        cellCentroids(:, 2) > 130;
+
+    G = removeCells(G, cellsToRemove);
     G = computeGeometry(G);
-    c = G.cells.centroids;
-    G = removeCells(G, c(:, 1) < 99.8 & c(:, 2) < 30);
+
+    cellCentroids = G.cells.centroids;
+
+    cellsToRemove = ...
+        cellCentroids(:, 1) < 99.8 & ...
+        cellCentroids(:, 2) < 30;
+
+    G = removeCells(G, cellsToRemove);
     G = computeGeometry(G);
 end
-c = G.cells.centroids;
-C = ones(G.cells.num,1);
 
-% Rock
-K0 = 2e-14 * C;              % Aquifer permeability, m^2
-cellsfrac =  G.cells.indexMap;
-cellsfrac1 = cellsfrac(c(:, 1) > 99.9 & c(:, 1) < 100.1 & ...
-                                             c(:, 2) < 130 & c(:, 2) > 30);
-cellsF =  G.cells.indexMap;
-idx = ismember(cellsF, cellsfrac1);
-K0(idx) = 1e-12;             % Leakage permeability, m^2
-porosity = 0.15;             % Aquifer/leakage porosity, [-]
+cellCentroids = G.cells.centroids;
+cellTemplate = ones(G.cells.num, 1);
+
+% Preserve the original variable names used by the plotting sections.
+c = cellCentroids;
+C = cellTemplate;
+
+%% Rock properties
+
+K0 = 2e-14 .* cellTemplate; % Aquifer permeability, m^2
+
+activeCellMap = G.cells.indexMap;
+
+leakageCells = activeCellMap( ...
+    cellCentroids(:, 1) > 99.9 & ...
+    cellCentroids(:, 1) < 100.1 & ...
+    cellCentroids(:, 2) < 130 & ...
+    cellCentroids(:, 2) > 30);
+
+isLeakageCell = ismember(activeCellMap, leakageCells);
+
+K0(isLeakageCell) = 1e-12; % Leakage-path permeability, m^2
+
+porosity = 0.15;           % Aquifer and leakage porosity, [-]
+
 rock = makeRock(G, K0, porosity);
 
-% Fluid properties
-fluid.muw = 2.535e-4;        % Water viscocity, Pa s
-fluid.muO = 3.95e-5;         % CO2 viscosity, Pa s
-fluid.bW = @(p) 0 * p + 1;   % Water formation volume factor, [-]
-fluid.bO = @(p) 0 * p + 1;   % CO2 formation volume factor, [-]
-fluid.rhoWS = 1045;          % Water density, kg/m^3
-fluid.rhoOS = 479;           % CO2 density, kg/m^3
+%% Fluid and MICP model properties
 
-% Remaining model parameters (we put them on the fluid structure)
-fluid.rho_b = 35;            % Density (biofilm), kg/m^3
-fluid.rho_c = 2710;          % Density (calcite), kg/m^3
-fluid.k_str = 2.6e-10;       % Detachment rate, m/(Pa s)
-fluid.diffm = 0;             % Diffusion coefficient (microbes), m^2/s
-fluid.diffo = 0;             % Diffusion coefficient (oxygen), m^2/s
-fluid.diffu = 0;             % Diffusion coefficient (urea), m^2/s
-fluid.alphaL = 0;            % Disperison coefficient (longitudinal), m
-fluid.alphaT = 0;            % Disperison coefficient (transverse), m
-fluid.eta = 3;               % Fitting factor, [-]
-fluid.k_o = 2e-5;            % Half-velocity constant (oxygen), kg/m^3
-fluid.k_u = 21.3;            % Half-velocity constant (urea), kg/m^3
-fluid.mu = 4.17e-5;          % Maximum specific growth rate, 1/s
-fluid.mu_u = 0.0161;         % Maximum rate of urease utilization, 1/s
-fluid.k_a = 8.51e-7;         % Microbial attachment rate, 1/s
-fluid.k_d = 3.18e-7;         % Microbial death rate, 1/s
-fluid.Y = 0.5;               % Yield growth coefficient, [-]
-fluid.Yuc = 1.67;            % Yield coeccifient (calcite/urea), [-]
-fluid.F = 0.5;               % Oxygen consumption factor, [-]
-fluid.crit = 0.1;            % Critical porosity, [-]
-fluid.kmin = 1e-20;          % Minimum permeability, m^2
-fluid.cells = C;             % Array with all cells, [-]
-fluid.ptol = 1e-4;           % Porosity tolerance to stop the simulation
+fluid.muw = 2.535e-4;       % Water viscosity, Pa s
+fluid.muO = 3.95e-5;        % CO2 viscosity, Pa s
+fluid.bW = @(pressure) ...
+    0 .* pressure + 1;      % Water formation volume factor, [-]
+fluid.bO = @(pressure) ...
+    0 .* pressure + 1;      % CO2 formation volume factor, [-]
+fluid.rhoWS = 1045;         % Water density, kg/m^3
+fluid.rhoOS = 479;          % CO2 density, kg/m^3
+
+fluid.rho_b = 35;           % Biofilm density, kg/m^3
+fluid.rho_c = 2710;         % Calcite density, kg/m^3
+fluid.k_str = 2.6e-10;      % Detachment coefficient, m/(Pa s)
+fluid.diffm = 0;            % Microorganism diffusion, m^2/s
+fluid.diffo = 0;            % Oxygen diffusion, m^2/s
+fluid.diffu = 0;            % Urea diffusion, m^2/s
+fluid.alphaL = 0;           % Longitudinal dispersivity, m
+fluid.alphaT = 0;           % Transverse dispersivity, m
+fluid.eta = 3;              % Permeability fitting factor, [-]
+fluid.k_o = 2e-5;           % Oxygen half-velocity constant, kg/m^3
+fluid.k_u = 21.3;           % Urea half-velocity constant, kg/m^3
+fluid.mu = 4.17e-5;         % Maximum specific growth rate, 1/s
+fluid.mu_u = 0.0161;        % Maximum urease utilization rate, 1/s
+fluid.k_a = 8.51e-7;        % Microorganism attachment rate, 1/s
+fluid.k_d = 3.18e-7;        % Microorganism death rate, 1/s
+fluid.Y = 0.5;              % Growth yield coefficient, [-]
+fluid.Yuc = 1.67;           % Calcite-to-urea yield coefficient, [-]
+fluid.F = 0.5;              % Oxygen consumption factor, [-]
+fluid.crit = 0.1;           % Critical porosity, [-]
+fluid.kmin = 1e-20;         % Minimum permeability, m^2
 
 % Porosity-permeability relationship
-fluid.K = @(poro) (K0 .* ((poro - fluid.crit) / (porosity - fluid.crit))...
-               .^ fluid.eta + fluid.kmin) .* K0 ./ (K0 + fluid.kmin) .* ...
-                  (poro > fluid.crit) + fluid.kmin .* (poro <= fluid.crit);
+normalizedPorosity = @(currentPorosity) max( ...
+    (currentPorosity - fluid.crit) ./ ...
+    (porosity - fluid.crit), 0);
 
-% Injection strategy
-N = 18; % Number of injection phases in the injection strategy
-M = zeros(N, 6); % The entries per row are: time, dt, rate, m, o, and u.
+fluid.K = @(currentPorosity) max( ...
+    (K0 .* normalizedPorosity(currentPorosity) .^ fluid.eta + ...
+    fluid.kmin) .* K0 ./ (K0 + fluid.kmin), fluid.kmin);
+
+%% MICP injection strategy
+%
+% Each row of `M` contains:
+%
+%   1. Phase duration, s
+%   2. Simulation timestep, s
+%   3. Injection rate, m^3/s
+%   4. Microorganism concentration, kg/m^3
+%   5. Oxygen concentration, kg/m^3
+%   6. Urea concentration, kg/m^3
+
 dt = hour;
 
-M(1, :)  = [15 * hour,   dt,      6e-3  , 0.01,   0,      0];
-M(2, :)  = [11 * hour,   dt,      6e-3  , 0,      0,      0];
-M(3, :)  = [74 * hour,   dt,      0     , 0,      0,      0];
-M(4, :)  = [30 * hour,   dt,      6e-3  , 0,      0.04,   0];
-M(5, :)  = [5 * hour,    dt,      6e-3  , 0,      0,      0];
-M(6, :)  = [25 * hour,   dt,      0     , 0,      0,      0];
-M(7, :)  = [40 * hour,   dt,      6e-3  , 0,      0,    300];
-M(8, :)  = [10 * hour,   dt,      6e-3  , 0,      0,      0];
-M(9, :)  = [390 * hour,  dt,      0     , 0,      0,      0];
-M(10, :) = [30 * hour,   dt,      6e-3  , 0,      0.04,   0];
-M(11, :) = [20 * hour,   dt,      6e-3  , 0,      0,      0];
-M(12, :) = [20 * hour,   dt,      0     , 0,      0,      0];
-M(13, :) = [20 * hour,   dt,      6e-3  , 0,      0,    300];
-M(14, :) = [20 * hour,   dt,      6e-3  , 0,      0,      0];
-M(15, :) = [90 * hour,   dt,      0     , 0,      0,      0];
-M(16, :) = [20 * hour,   dt,      6e-3  , 0,      0,    300];
-M(17, :) = [20 * hour,   dt,      6e-3  , 0,      0,      0];
-M(18, :) = [110 * hour,  dt,      0     , 0,      0,      0];
+M = [ ...
+     15 * hour, dt, 6e-3, 0.01, 0,    0; ...
+     11 * hour, dt, 6e-3, 0,    0,    0; ...
+     74 * hour, dt, 0,    0,    0,    0; ...
+     30 * hour, dt, 6e-3, 0,    0.04, 0; ...
+      5 * hour, dt, 6e-3, 0,    0,    0; ...
+     25 * hour, dt, 0,    0,    0,    0; ...
+     40 * hour, dt, 6e-3, 0,    0,  300; ...
+     10 * hour, dt, 6e-3, 0,    0,    0; ...
+    390 * hour, dt, 0,    0,    0,    0; ...
+     30 * hour, dt, 6e-3, 0,    0.04, 0; ...
+     20 * hour, dt, 6e-3, 0,    0,    0; ...
+     20 * hour, dt, 0,    0,    0,    0; ...
+     20 * hour, dt, 6e-3, 0,    0,  300; ...
+     20 * hour, dt, 6e-3, 0,    0,    0; ...
+     90 * hour, dt, 0,    0,    0,    0; ...
+     20 * hour, dt, 6e-3, 0,    0,  300; ...
+     20 * hour, dt, 6e-3, 0,    0,    0; ...
+    110 * hour, dt, 0,    0,    0,    0];
 
-% Create well
+if exist('AD_MICP_TEST', 'var')
+    dt = 30 * minute;
+    M(:, 1) = dt;
+    M(:, 2) = dt;
+end
+
+N = size(M, 1);
+
+%% MICP injection well
+
 r = 0.15;
 Whu = 1 / 10;
 Whb = 1 - Whu;
-cellsW = 1 : G.cells.num;
-cellsWu = cellsW(c(:, 1) < min(c(:, 1)) + 0.1 & c(:, 2) > 130 & ...
-                                                            c(:, 2) < 133);
-W = addWell([], G, rock, cellsWu, 'Type', 'rate', 'Comp_i', [1, 0], ...
-                            'Val', Whu * M(1, 3), 'Radius', r, 'dir', 'y');
-cellsWb = cellsW(c(:, 1) < min(c(:, 1)) + 0.1 & c(:, 2) > 133);
-W = addWell(W, G, rock, cellsWb, 'Type', 'rate', 'Comp_i', [1, 0], ...
-                            'Val', Whb * M(1, 3), 'Radius', r, 'dir', 'y');
-for i = 1 : 2
-    W(i).o = 0;
-    W(i).u = 0;
-    W(i).m = 0;
+
+allCellIndices = (1 : G.cells.num)';
+
+cellsWu = allCellIndices( ...
+    cellCentroids(:, 1) < min(cellCentroids(:, 1)) + 0.1 & ...
+    cellCentroids(:, 2) > 130 & ...
+    cellCentroids(:, 2) < 133);
+
+W = addWell([], G, rock, cellsWu, 'Type', 'rate', ...
+    'Comp_i', [1, 0], 'Val', Whu .* M(1, 3), ...
+    'Radius', r, 'dir', 'y');
+
+cellsWb = allCellIndices( ...
+    cellCentroids(:, 1) < min(cellCentroids(:, 1)) + 0.1 & ...
+    cellCentroids(:, 2) > 133);
+
+W = addWell(W, G, rock, cellsWb, 'Type', 'rate', ...
+    'Comp_i', [1, 0], 'Val', Whb .* M(1, 3), ...
+    'Radius', r, 'dir', 'y');
+
+for wellIndex = 1 : numel(W)
+    W(wellIndex).m = 0;
+    W(wellIndex).o = 0;
+    W(wellIndex).u = 0;
 end
+
 W(1).m = M(1, 4);
 W(1).o = M(1, 5);
 W(1).u = M(1, 6);
-G.injectionwellonboundary = 1;
-G.cellsinjectionwell = [cellsWu cellsWb];
 
-% Gravity
+G.injectionwellonboundary = 1;
+G.cellsinjectionwell = [cellsWu; cellsWb];
+
+%% Gravity
+
+gravity reset
 gravity on
 gravity y
 
-% Boundary condition
-f = boundaryFaces(G);
-f = f(abs(G.faces.normals(f, 1)) > eps & (G.faces.centroids(f, 1) < -L ...
-                                   + 2 | G.faces.centroids(f, 1) > L - 2));
-fp = G.faces.centroids(f, 2) * fluid.rhoWS * norm(gravity);
-bc = addBC([], f, 'pressure', fp, 'sat', [0 0]);
-bc.o = zeros(size(bc.sat, 1), 1);
-bc.u = zeros(size(bc.sat, 1), 1);
-bc.m = zeros(size(bc.sat, 1), 1);
-bc.b = zeros(size(bc.sat, 1), 1);
-bc.c = zeros(size(bc.sat, 1), 1);
+gravityMagnitude = norm(gravity);
 
-% Setup some schedule
-nt = sum(M(:, 1) ./ M(:, 2));
-timesteps = repmat(dt, nt, 1);
-schedule = simpleSchedule(timesteps, 'W', W, 'bc', bc);
-for i = 2 : N
-    schedule.control(i) = schedule.control(i - 1);
-    schedule.step.control(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
-                                                                  end) = i;
-    schedule.step.val(sum(M(1 : i - 1, 1) ./ M(1 : i - 1, 2)) + 1 : ...
-                                                            end) = M(i, 2);
-    schedule.control(i).W(1).val = Whu * M(i, 3);
-    schedule.control(i).W(2).val = Whb * M(i, 3);
-    schedule.control(i).W(1).m = M(i, 4);
-    schedule.control(i).W(1).o = M(i, 5);
-    schedule.control(i).W(1).u = M(i, 6);
+%% Boundary conditions
+
+boundaryFaceIndices = boundaryFaces(G);
+
+openBoundaryFaces = boundaryFaceIndices( ...
+    abs(G.faces.normals(boundaryFaceIndices, 1)) > eps & ...
+    (G.faces.centroids(boundaryFaceIndices, 1) < -L + 2 | ...
+    G.faces.centroids(boundaryFaceIndices, 1) > L - 2));
+
+boundaryPressure = ...
+    G.faces.centroids(openBoundaryFaces, 2) .* ...
+    fluid.rhoWS .* gravityMagnitude;
+
+bc = addBC([], openBoundaryFaces, 'pressure', boundaryPressure, ...
+                                           'sat', [0 0]);
+
+numberOfBoundaryFaces = size(bc.sat, 1);
+
+bc.m = zeros(numberOfBoundaryFaces, 1);
+bc.o = zeros(numberOfBoundaryFaces, 1);
+bc.u = zeros(numberOfBoundaryFaces, 1);
+bc.b = zeros(numberOfBoundaryFaces, 1);
+bc.c = zeros(numberOfBoundaryFaces, 1);
+
+%% Construct MICP schedule
+
+stepsPerPhase = round(M(:, 1) ./ M(:, 2));
+nt = sum(stepsPerPhase);
+
+timesteps = zeros(nt, 1);
+controlIndices = zeros(nt, 1);
+
+firstStep = 1;
+
+for phaseIndex = 1 : N
+    lastStep = firstStep + stepsPerPhase(phaseIndex) - 1;
+
+    timesteps(firstStep : lastStep) = M(phaseIndex, 2);
+    controlIndices(firstStep : lastStep) = phaseIndex;
+
+    firstStep = lastStep + 1;
 end
 
-% Maximum injected oxygen and urea concentrations.
+schedule = simpleSchedule(timesteps, 'W', W, 'bc', bc);
+
+baseControl = schedule.control(1);
+schedule.control = repmat(baseControl, N, 1);
+
+for phaseIndex = 1 : N
+    schedule.control(phaseIndex).W(1).val = Whu .* M(phaseIndex, 3);
+    schedule.control(phaseIndex).W(2).val = Whb .* M(phaseIndex, 3);
+    schedule.control(phaseIndex).W(1).m = M(phaseIndex, 4);
+    schedule.control(phaseIndex).W(1).o = M(phaseIndex, 5);
+    schedule.control(phaseIndex).W(1).u = M(phaseIndex, 6);
+end
+
+schedule.step.control = controlIndices;
+schedule.step.val = timesteps;
+
+phaseEndSteps = cumsum(stepsPerPhase);
+
+% Maximum injected oxygen and urea concentrations
 fluid.Comax = max(M(:, 5));
 fluid.Cumax = max(M(:, 6));
 
-% Create model
+%% MICP model and initial state
+
 model = MICPModel(G, rock, fluid);
 
-% Initial condition
-state0 = initState(G, W, c(:, 2) * fluid.rhoWS * norm(gravity), [1, 0]);
+initialPressure = ...
+    cellCentroids(:, 2) .* fluid.rhoWS .* gravityMagnitude;
+
+state0 = initState(G, W, initialPressure, [1, 0]);
+
 state0.m = zeros(G.cells.num, 1);
 state0.o = zeros(G.cells.num, 1);
 state0.u = zeros(G.cells.num, 1);
 state0.b = zeros(G.cells.num, 1);
 state0.c = zeros(G.cells.num, 1);
 
-% Simulate case (GNU Octave/MATLAB)
-if exist('OCTAVE_VERSION', 'builtin') ~= 0
-    ok = 'true';
-    fn = checkCloggingMICP(ok);
-else
-    fn = getPlotAfterStepMICP(state0, model, 0, 270);
-end
-[~, states] = simulateScheduleAD(state0, model, schedule, ...
-                                                        'afterStepFn', fn);
+%% Simulate MICP treatment
 
-% CO2 assesment
+if exist('OCTAVE_VERSION', 'builtin') ~= 0
+    [~, states] = simulateScheduleAD(state0, model, schedule);
+else
+    micpPlotFunction = getPlotAfterStepMICP(state0, model, 0, 270);
+
+    [~, states] = simulateScheduleAD(state0, model, schedule, ...
+                                      'afterStepFn', micpPlotFunction);
+end
+
+%% Select treatment states for CO2 assessment
+
 statesa = state0;
-statesb = states{sum(M(1 : 9, 1) ./ M(1 : 9, 2))};
-statesc = states{sum(M(1 : 15, 1) ./ M(1 : 15, 2))};
+
+phaseIIndex = min(9, N);
+phaseIIIndex = min(15, N);
+
+statesb = states{phaseEndSteps(phaseIIndex)};
+statesc = states{phaseEndSteps(phaseIIIndex)};
 statesd = states{end};
 
-% Setup some schedule
-dt = day;
-ntco2 = 100 * day / dt;
-timesteps = repmat(dt, ntco2, 1);
+%% CO2 assessment schedule
 
-% Create CO2 Well
+co2TimeStep = day;
+ntco2 = 100;
+
+if exist('AD_MICP_TEST', 'var')
+    co2TimeStep = minute;
+    ntco2 = 10;
+end
+
+co2Timesteps = repmat(co2TimeStep, ntco2, 1);
+
+%% CO2 injection well
+
 QCO2 = (1600 / day) / L;
-cellsW =  1 : G.cells.num;
-cellsW = cellsW(c(:, 1) < min(c(:, 1)) + 0.1 & c(:,2) > 130);
-W = addWell([], G, rock, cellsW, 'Type', 'rate', 'Comp_i', [0, 1], ...
-                                     'Val', QCO2, 'Radius', r, 'dir', 'y');
 
-% Make schedule
-schedule_co2 = simpleSchedule(timesteps, 'W', W, 'bc', bc);
+co2WellCells = allCellIndices( ...
+    cellCentroids(:, 1) < min(cellCentroids(:, 1)) + 0.1 & ...
+    cellCentroids(:, 2) > 130);
 
-% Initial state
-state0 = initState(G, W, G.cells.centroids(:, 2) * fluid.rhoWS * ...
-                                                    norm(gravity), [1, 0]);
+co2Well = addWell([], G, rock, co2WellCells, 'Type', 'rate', ...
+    'Comp_i', [0, 1], 'Val', QCO2, 'Radius', r, 'dir', 'y');
 
-% Compute porosity and permeability
-poro = porosity - statesa.c - statesa.b;
-KK = fluid.K(poro);
-rocka = makeRock(G, KK, poro);
-poro = porosity - statesb.c - statesb.b;
-KK = fluid.K(poro);
-rockb = makeRock(G, KK, poro);
-poro = porosity - statesc.c - statesc.b;
-KK = fluid.K(poro);
-rockc = makeRock(G, KK, poro);
-poro = porosity - statesd.c - statesd.b;
-KK = fluid.K(poro);
-rockd = makeRock(G, KK, poro);
+co2Schedule = simpleSchedule( ...
+    co2Timesteps, 'W', co2Well, 'bc', bc);
 
-% Create model
+co2InitialState = initState( ...
+    G, co2Well, initialPressure, [1, 0]);
+
+%% Build rock states before and after MICP treatment
+
+porositya = max(porosity - statesa.c - statesa.b, ...
+                model.minimumPorosity);
+porosityf = max(porosity - statesb.c - statesb.b, ...
+                model.minimumPorosity);
+porosityg = max(porosity - statesc.c - statesc.b, ...
+                model.minimumPorosity);
+porosityh = max(porosity - statesd.c - statesd.b, ...
+                model.minimumPorosity);
+
+rocka = makeRock(G, max(fluid.K(porositya), fluid.kmin), porositya);
+rockb = makeRock(G, max(fluid.K(porosityf), fluid.kmin), porosityf);
+rockc = makeRock(G, max(fluid.K(porosityg), fluid.kmin), porosityg);
+rockd = makeRock(G, max(fluid.K(porosityh), fluid.kmin), porosityh);
+
 modela = CO2Model(G, rocka, fluid);
 modelb = CO2Model(G, rockb, fluid);
 modelc = CO2Model(G, rockc, fluid);
 modeld = CO2Model(G, rockd, fluid);
 
-% Simulate
-if exist('OCTAVE_VERSION', 'builtin') == 0
-    fn = getPlotAfterStepCO2(state0, model, 0, 270);
-    [~, statese] = simulateScheduleAD(state0, modela, schedule_co2, ...
-                                                        'afterStepFn', fn);
-    [~, statesf] = simulateScheduleAD(state0, modelb, schedule_co2, ...
-                                                        'afterStepFn', fn);
-    [~, statesg] = simulateScheduleAD(state0, modelc, schedule_co2, ...
-                                                        'afterStepFn', fn);
-    [~, statesh] = simulateScheduleAD(state0, modeld, schedule_co2, ...
-                                                        'afterStepFn', fn);
+%% Simulate CO2 migration
+
+if exist('OCTAVE_VERSION', 'builtin') ~= 0
+    [~, statese] = simulateScheduleAD(co2InitialState, modela, co2Schedule);
+    [~, statesf] = simulateScheduleAD(co2InitialState, modelb, co2Schedule);
+    [~, statesg] = simulateScheduleAD(co2InitialState, modelc, co2Schedule);
+    [~, statesh] = simulateScheduleAD(co2InitialState, modeld, co2Schedule);
 else
-    [~, statese] = simulateScheduleAD(state0, modela, schedule_co2);
-    [~, statesf] = simulateScheduleAD(state0, modelb, schedule_co2);
-    [~, statesg] = simulateScheduleAD(state0, modelc, schedule_co2);
-    [~, statesh] = simulateScheduleAD(state0, modeld, schedule_co2);
+    co2PlotFunctionA = getPlotAfterStepCO2( ...
+        co2InitialState, modela, 0, 270);
+    co2PlotFunctionB = getPlotAfterStepCO2( ...
+        co2InitialState, modelb, 0, 270);
+    co2PlotFunctionC = getPlotAfterStepCO2( ...
+        co2InitialState, modelc, 0, 270);
+    co2PlotFunctionD = getPlotAfterStepCO2( ...
+        co2InitialState, modeld, 0, 270);
+
+    [~, statese] = simulateScheduleAD(co2InitialState, modela, ...
+                            co2Schedule, 'afterStepFn', co2PlotFunctionA);
+    [~, statesf] = simulateScheduleAD(co2InitialState, modelb, ...
+                            co2Schedule, 'afterStepFn', co2PlotFunctionB);
+    [~, statesg] = simulateScheduleAD(co2InitialState, modelc, ...
+                            co2Schedule, 'afterStepFn', co2PlotFunctionC);
+    [~, statesh] = simulateScheduleAD(co2InitialState, modeld, ...
+                            co2Schedule, 'afterStepFn', co2PlotFunctionD);
 end
 
-% Compute leakage rate
-cellsfa =  1 : G.faces.num;
-cellsfac = cellsfa(G.faces.centroids(:, 2) < 80.6 & ...
-         G.faces.centroids(:, 2) > 80.3 & abs(G.faces.normals(:, 2))> 0.1);
-for i = 1 : ntco2
-    lr0(i) = abs(statese{i}.flux(cellsfac(1), 2));
-    lr1(i) = abs(statesf{i}.flux(cellsfac(1), 2));
-    lr2(i) = abs(statesg{i}.flux(cellsfac(1), 2));
-    lr3(i) = abs(statesh{i}.flux(cellsfac(1), 2));
+%% Compute CO2 leakage rates
+
+allFaceIndices = (1 : G.faces.num)';
+
+leakageFaces = allFaceIndices( ...
+    G.faces.centroids(:, 2) < 80.6 & ...
+    G.faces.centroids(:, 2) > 80.3 & ...
+    abs(G.faces.normals(:, 2)) > 0.1);
+
+lr0 = zeros(ntco2, 1);
+lr1 = zeros(ntco2, 1);
+lr2 = zeros(ntco2, 1);
+lr3 = zeros(ntco2, 1);
+
+for stepIndex = 1 : ntco2
+    lr0(stepIndex) = abs(statese{stepIndex}.flux(leakageFaces(1), 2));
+    lr1(stepIndex) = abs(statesf{stepIndex}.flux(leakageFaces(1), 2));
+    lr2(stepIndex) = abs(statesg{stepIndex}.flux(leakageFaces(1), 2));
+    lr3(stepIndex) = abs(statesh{stepIndex}.flux(leakageFaces(1), 2));
 end
+
 statese = statese{end};
 statesf = statesf{end};
 statesg = statesg{end};
 statesh = statesh{end};
 
-% Write the results to be read in ParaView (GNU Octave)
+% Preserve the original timestep variable used in the Figure 11b plotting
+% section.
+dt = co2TimeStep;
+
+%% Export results in GNU Octave
+
 if exist('OCTAVE_VERSION', 'builtin') ~= 0
-    mkdir vtk_micp_2Dfls;
-    cd vtk_micp_2Dfls;
-    mrsttovtk(G, states, 'states_2Dfls', '%f');
+    outputDirectory = fullfile(pwd, 'vtk_micp_2Dfls');
+
+    if ~isfolder(outputDirectory)
+        mkdir(outputDirectory);
+    end
+
+    micpOutput = fullfile(outputDirectory, 'states_2Dfls');
+    co2Output = fullfile(outputDirectory, 'states_2Dfls_CO2');
+
+    mrsttovtk(G, states, micpOutput, '%f');
+    mrsttovtk(G, statesh, co2Output, '%f');
+
+    fprintf(['VTK results written to:\n' ...
+             '  %s.pvd\n' ...
+             '  %s.pvd\n'], ...
+             micpOutput, co2Output);
+
     return
 end
 
@@ -662,7 +917,9 @@ for i = 1 : nt
   m(i) = mean(states{i}.m(cell_leak));
   u(i) = mean(states{i}.u(cell_leak));
   o(i) = mean(states{i}.o(cell_leak));
-  Ki = fluid.K(porosity - states{i}.c - states{i}.b);
+  currentPorosity = max(porosity - states{i}.c - states{i}.b, ...
+                      model.minimumPorosity);
+  Ki = fluid.K(currentPorosity);
   K(i) = mean(Ki(cell_leak) ./ K0(cell_leak));
   vc = faceFlux2cellVelocity(G, states{i}.flux(:));
   v(i) = mean(sqrt(sum(vc(cell_leak, :) .^ 2, 2)));
