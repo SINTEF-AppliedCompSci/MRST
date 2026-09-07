@@ -20,12 +20,17 @@ You should have received a copy of the GNU General Public License
 along with MRST.  If not, see <http://www.gnu.org/licenses/>.
 %}
 
+<<<<<<< HEAD
     if ~exist(fn, 'file')
         % Not an absolute/resolvable path - assume it is relative to the
         % bundled ad-unittest test data directory.
         moddir = fullfile(mrstPath('query', 'ad-unittest'), 'data');
         fn = fullfile(moddir, fn);
     end
+=======
+    moddir = fullfile(mrstPath('query', 'ad-unittest'), 'data');
+    fn = fullfile(moddir, fn);
+>>>>>>> 7d03586e8 (Fix ad-unittest dataset path resolution after data move to ad-unittest/data)
     if ~exist(fn, 'file')
         error(['Did not find dataset at expected location: (', fn , ')'])
     end
