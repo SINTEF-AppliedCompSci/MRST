@@ -1,0 +1,38 @@
+name: Example Smoke Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      module:
+        description: 'Module name to smoke-test (or "all" for every module)'
+        required: true
+        default: 'all'
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      MRST_TEST_MODULE: ${{ github.event.inputs.module }}
+    steps:
+      - name: Check out MRST
+        uses: actions/checkout@v4
+
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v2
+
+      - name: Run example smoke tests
+        uses: matlab-actions/run-command@v2
+        with:
+          command: |
+            startup;
+            runMRSTTests('examples', 'module', getenv('MRST_TEST_MODULE'), ...
+                         'writeXML', true, 'errorOnFailure', true);
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: 'MRST Example Smoke Tests (${{ github.event.inputs.module }})'
+          path: '**/TestOutput/runMRSTTests/examples/XML/*.xml'
+          reporter: java-junit
