@@ -176,7 +176,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
             try
                 agmg(speye(3), ones(3, 1));
             catch
-                test.verifyFail( ...
+                test.assumeFail( ...
                     'AGMG is not installed properly, test cannot proceed')
                 return
             end
