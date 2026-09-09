@@ -122,7 +122,7 @@ classdef ScheduleTest < matlab.unittest.TestCase
                         test.verifyThat(ref.(fn), ...
                             IsEqualTo(res.(fn), 'Within', abstol), ...
                             ['Saturations were not equal for state ' num2str(i)]);
-                    case {'flux', 'cmax', 'c'}
+                    case {'flux', 'cpmax', 'cp'}
                         % Ignore fields intentionally, numerically not that
                         % stable for comparison.
                     case 'wellsol'
@@ -170,18 +170,20 @@ classdef ScheduleTest < matlab.unittest.TestCase
             states = test.runSchedule(name, 'useCPR', true, 'useAGMG', false);
         end
                 
-        function states = CPR_AGMG(test)
-            name = test.getIdentifier('cpr_agmg');
-            mrstModule add agmg
+        function states = CPR_AMGCL(test)
+            name = test.getIdentifier('cpr_amgcl');
+            mrstModule add linearsolvers
             try
-                agmg(speye(3), ones(3, 1));
+                solver = AMGCLSolverAD();
+                solver.solveLinearSystem(speye(3), ones(3, 1));
             catch
-                test.assumeFail( ...
-                    'AGMG is not installed properly, test cannot proceed')
+                test.verifyFail( ...
+                    'AMGCL is not installed properly, test cannot proceed')
                 return
             end
-            states = test.runSchedule(name, 'useCPR', true, 'useAGMG', true);
+            states = test.runSchedule(name, 'useCPR', true, 'useAMGCL', true);
         end
+        
         function states = selectLinearSolver(test)
             name = test.getIdentifier('select_linear_solver');
             mrstModule add linearsolvers

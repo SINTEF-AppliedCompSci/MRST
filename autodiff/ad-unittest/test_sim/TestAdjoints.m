@@ -42,7 +42,7 @@ classdef TestAdjoints < matlab.unittest.TestCase
     methods (Static)
         function [obj_adj, obj_num] = getObjectiveNPVOW(model, states, schedule)
             % Setup function handles for NPV for oil/water system
-            obj_adj = @(tstep)NPVOW(model, states, schedule, ...
+            obj_adj = @(tstep, model, state)NPVOW(model, states, schedule, ...
                             'ComputePartials', true, 'tStep', tstep);
             obj_num = @(wellSols, states, schedule)NPVOW(model, states, schedule);
         end

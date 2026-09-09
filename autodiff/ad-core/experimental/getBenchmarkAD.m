@@ -49,8 +49,8 @@ function [schedule, model, state0] = getBenchmarkAD(name)
             state0.s(:,1) = 1 - state0.s(:,2);
             
             % Add zero polymer concentration to the state.
-            state0.c    = zeros(G.cells.num, 1);
-            state0.cmax = zeros(G.cells.num, 1);
+            state0.cp    = zeros(G.cells.num, 1);
+            state0.cpmax = zeros(G.cells.num, 1);
         otherwise
             error(['Unknown benchmark case ''', name, '''.'])
     end
