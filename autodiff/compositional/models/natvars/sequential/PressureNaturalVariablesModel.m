@@ -65,7 +65,9 @@ classdef PressureNaturalVariablesModel < NaturalVariablesCompositionalModel
         end
         function [state, report] = updateAfterConvergence(model, state0, state, dt, drivingForces) %#ok
             [state, report] = updateAfterConvergence@NaturalVariablesCompositionalModel(model, state0, state, dt, drivingForces);
-            state.switchCount_p = state.switchCount;
+            if isfield(state,'switchCount')
+                state.switchCount_p = state.switchCount;
+            end
         end
     end
 end
