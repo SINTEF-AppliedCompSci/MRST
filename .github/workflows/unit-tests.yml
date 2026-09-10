@@ -1,0 +1,32 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out MRST
+        uses: actions/checkout@v4
+
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v2
+
+      - name: Run unit tests (core + autodiff)
+        uses: matlab-actions/run-command@v2
+        with:
+          command: |
+            startup;
+            runMRSTTests('unit', 'writeXML', true, 'errorOnFailure', true);
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: MRST Unit Tests
+          path: '**/TestOutput/runMRSTTests/unit/XML/*.xml'
+          reporter: java-junit

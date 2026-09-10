@@ -1,5 +1,39 @@
 function [suite, names] = getExampleIntegrationTestSuiteMRST(modules, varargin)
-%Undocumented Utility Function
+%Build the example-smoke matlab.unittest.TestSuite for one or more modules
+%
+% SYNOPSIS:
+%   suite = getExampleIntegrationTestSuiteMRST()
+%   suite = getExampleIntegrationTestSuiteMRST(modules)
+%   [suite, names] = getExampleIntegrationTestSuiteMRST(modules, 'seperateModules', true)
+%
+% PARAMETERS:
+%   modules - Optional. A module name, or a cell array of module names, to
+%             restrict the suite to. If omitted, the suite covers every
+%             registered module's examples. This is what lets callers (see
+%             `runMRSTTests`) run the example-smoke tier for a single
+%             module rather than the full ~60+ module sweep.
+%
+% OPTIONAL PARAMETERS:
+%   seperateModules - If true, returns `suite` and `names` as parallel cell
+%                      arrays with one entry per module (each entry itself a
+%                      `matlab.unittest.TestSuite` for that module's
+%                      examples), instead of one combined suite. Default:
+%                      false.
+%
+% RETURNS:
+%   suite - A matlab.unittest.TestSuite (or, if 'seperateModules' is true, a
+%           cell array of per-module suites).
+%   names - Only returned/meaningful with 'seperateModules', true: a cell
+%           array of module names parallel to `suite`.
+%
+% NOTE:
+%   The set of skipped examples/modules (slow, GUI-based, or otherwise
+%   unsuitable for automated smoke-testing) is defined once, in
+%   `MRSTExampleTests`'s private `getSkippedTests` function -- do not
+%   duplicate that list elsewhere.
+%
+% SEE ALSO:
+%   `MRSTExampleTests`, `mrstExamples`, `runMRSTTests`
 
 %{
 Copyright 2009-2026 SINTEF Digital, Mathematics & Cybernetics.

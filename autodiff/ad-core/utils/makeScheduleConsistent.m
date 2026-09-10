@@ -458,6 +458,7 @@ end
 
 function schedule = directionReorder(schedule, wellNo, opt, strategy)
     G = opt.G;
+    assert(not(isempty(G)), 'Grid must be provided for directional ordering');
     w = schedule.control(1).W(wellNo);
     options = strsplit(strategy, '-');
     nopt = numel(options);
@@ -492,7 +493,6 @@ function schedule = directionReorder(schedule, wellNo, opt, strategy)
     else
         index = 1;
     end
-    assert(not(isempty(G)), 'Grid must be provided for directional ordering');
     nc = numel(w.cells);
     sortIx = nan(nc, 1);
     % Always start with first perforation
