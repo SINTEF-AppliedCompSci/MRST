@@ -2,7 +2,7 @@ classdef ScheduleConsistencyTest < matlab.unittest.TestCase
     methods (Test)
        function testReorderStrategies(test)
            mrstModule reset
-           mrstModule add deckformat ad-fi ad-core ad-props ad-unittest ad-blackoil
+           mrstModule add deckformat ad-core ad-props ad-unittest ad-blackoil
 
            G = cartGrid([11 1 3]);
            G = computeGeometry(G);
