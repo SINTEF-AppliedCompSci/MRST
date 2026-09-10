@@ -85,7 +85,7 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
       [CXXFLAGS, iomp5] = compile_flags_msvc(defines, iomp5);
 
    elseif is_xcode_clang()
-      [CXXFLAGS, iomp5] = compile_flags_clang(defines);
+      [CXXFLAGS, LINK, iomp5] = compile_flags_clang(defines, LINK);
 
    elseif is_gnu_gcc()
       [CXXFLAGS, LINK, iomp5] = compile_flags_gcc(defines, LINK, iomp5);
@@ -179,14 +179,43 @@ end
 
 %--------------------------------------------------------------------------
 
-function [CXXFLAGS, iomp5] = compile_flags_clang(defines)
+function [CXXFLAGS, LINK, iomp5] = compile_flags_clang(defines, LINK)
    dispif(mrstVerbose(), 'Clang detected. Will not use OpenMP...\n');
 
    CXXFLAGS = ...
       { ['CXXFLAGS=$CXXFLAGS ', formatDefs('-', defines), ...
          ' -fPIC -O3 -std=c++11 -ffast-math -march=native'] };
 
+   if ismac() && xcode_needs_classic_linker()
+      % Xcode 15+ defaults to a new linker that fails to resolve MATLAB's
+      % C++ MEX adapter symbols (mexCreateMexFunction et al.), causing
+      % "Undefined symbols for architecture ..." at link time.  Forcing
+      % the classic linker restores the previously working behaviour.
+      LINK = [LINK, {'LDFLAGS=$LDFLAGS -Wl,-ld_classic'}];
+   end
+
    iomp5 = {};
+end
+
+%--------------------------------------------------------------------------
+
+function tf = xcode_needs_classic_linker()
+   persistent needs_classic
+
+   if isempty(needs_classic)
+      needs_classic = false;
+
+      [status, out] = system('xcodebuild -version');
+      if status == 0
+         tok = regexp(out, 'Xcode (\d+)', 'tokens', 'once');
+
+         if ~isempty(tok) && str2double(tok{1}) >= 15
+            needs_classic = true;
+         end
+      end
+   end
+
+   tf = needs_classic;
 end
 
 %--------------------------------------------------------------------------
