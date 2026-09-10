@@ -39,6 +39,9 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
         if opt.useAGMG
             mrstModule add agmg
             ellipSolver = AGMGSolverAD('tolerance', 1e-2');
+        elseif opt.useAMGCL
+            mrstModule add linearsolvers
+            ellipSolver = AMGCLSolverAD();
         else
             ellipSolver = BackslashSolverAD();
         end
