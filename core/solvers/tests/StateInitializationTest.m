@@ -138,5 +138,5 @@ function testInitStateRejectsWellReservoirPhaseMismatch(t)       %#ok<DEFNU>
                'compi', [1, 0, 0]); % 3-phase composition
 
    verifyError(t, @() initState(G, W, 100*barsa, [0.2, 0.8]), ...
-      ?MException); % 2-phase s0
+      'MATLAB:assertion:failed'); % 2-phase s0
 end
