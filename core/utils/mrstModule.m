@@ -298,9 +298,21 @@ function lst = clear_modules(lst, behaviour)
       p = path_search(lst);
       p = p(~ cellfun(@isempty, p));
 
+      current_path = split_path(path());
+
       for r = reshape(p, 1, [])
          dirs = filter_module_dirs(r{1}, behaviour);
-         rmpath(dirs{:});
+
+         % Only attempt to remove directories that are actually on the
+         % current MATLAB search path.  Passing directories that are not
+         % on the path to RMPATH triggers a "not found in path" warning
+         % for each such directory, which is both noisy and harmless to
+         % skip since RMPATH would be a no-op for them anyway.
+         dirs = dirs(ismember(dirs, current_path));
+
+         if ~isempty(dirs)
+            rmpath(dirs{:});
+         end
       end
 
       lst = {};
