@@ -23,7 +23,8 @@ function [schedule, model, state0] = getBenchmarkAD(name)
         case 'egg'
             % Egg benchmark model from TU Delft (single realization). Uses
             % nearly incompressible oil/water system.
-            [schedule, model] = readAndSetup('external', 'TUDelft-EGG', 'BENCH_EGG.DATA');
+            pth = getDatasetPath('egg', 'askBeforeDownload', false);
+            [schedule, model] = readAndSetup(pth, 'MRST', Egg_Model_ECL.DATA');
             G = model.G;
             fluid = model.fluid;
             % Approximate initial conds:
