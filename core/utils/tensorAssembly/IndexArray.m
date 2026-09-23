@@ -19,7 +19,7 @@ classdef IndexArray
 %   `computeVagTrans`
 %
 % SEE ALSO:
-%   `TensorProd`, `TensorMap`, `SparseTensor`.
+%   `TensorProd`, `TensorMap`, `SparseMatrix`.
     
     properties
         
@@ -53,6 +53,10 @@ classdef IndexArray
                          'inds'     , [], ...
                          'num', []);
             opt = merge_options(opt, varargin{:}); 
+
+            if nargin < 1
+                structtbl = [];
+            end
             
             if ~isempty(structtbl)
                 fdnames = fieldnames(structtbl)';
@@ -81,7 +85,10 @@ classdef IndexArray
                 vnum = opt.num;
                 assert(~isempty(vnum), 'In case of virtual table, the size of the index array should be given');
                 tbl.vnum = vnum;
+            else
+                tbl.isvirtual = false;
             end
+            
             tbl.tblname = opt.tblname;    
         end
 
@@ -127,11 +134,28 @@ classdef IndexArray
             tbl.inds = inds;            
              
         end
+
+        function tbl = proj(tbl, fds)
+
+            tbl = projIndexArray(tbl, fds);
+
+        end
         
+        function tbl = sort(tbl, fds, varargin)
+
+            tbl = sortIndexArray(tbl, fds, varargin{:});
+            
+        end
+        
+        function iagb = groupBy(tbl, fds)
+            
+            iagb = IndexArrayGroupBy(tbl, fds);
+            
+        end
+
         function tbl = duplicateInd(tbl, fdcell)
         %   tbl    - IndexArray
-        %   fdcell - Names of the index to duplicate with names of the duplicated
-        %   indices. The syntax is {'name', {'dupname1', 'dupname2'}}
+        %   fdcell - Names of the index to duplicate with names of the duplicated indices. The syntax is {'name', {'dupname1', 'dupname2'}}
             
             oldfd = fdcell{1};
             fd1 = fdcell{2}{1};
@@ -155,18 +179,41 @@ classdef IndexArray
             tbl.inds = inds;
             
         end
+
+        function tbl = set(tbl, fdname, inds)
+        % replace the row for a given variable name, return error if fdname is not found
+            assert(tbl.isvirtual == false, 'This function cannot be used for virtual tables');
+            fdnames = tbl.fdnames;
+            tblinds = strcmp(fdname, fdnames);
+            assert(any(tblinds), 'index array field name not recognized');
+            tbl.inds(:, tblinds) = inds;
+        end
         
         function inds = get(tbl, fdname)
         % get index vector for the indexing given by fdname
+            assert(tbl.isvirtual == false, 'This function cannot be used for virtual tables');
             fdnames = tbl.fdnames;
             tblinds = strcmp(fdname, fdnames);
             assert(any(tblinds), 'index array field name not recognized');
             inds = tbl.inds(:, tblinds);
             
         end    
+
+        function inds = getunique(tbl, fdname)
+            inds = tbl.get(fdname);
+            inds = unique(inds);
+        end
+
+        function inds = getsunique(tbl, getfdnames)
+            inds = tbl.gets(getfdnames);
+            inds = unique(inds, 'rows');
+        end
+        
         
         function inds = gets(tbl, getfdnames)
+            
         % get the index vectors for the indexings given by fdnames
+            assert(tbl.isvirtual == false, 'This function cannot be used for virtual tables');
             fdnames = tbl.fdnames;
             inds = tbl.inds;
             [isok, getinds] = ismember(getfdnames, fdnames);
@@ -174,21 +221,56 @@ classdef IndexArray
             inds = tbl.inds(:, getinds);
             
         end    
-        
-        function tbl = removeInd(tbl, rmfdnames)
-        % remove the indices given by the names rmfdnames
-            fdnames = tbl.fdnames;
-            inds = tbl.inds;
-            for i = 1 : numel(rmfdnames)
-                fdname = rmfdnames{i};
-                [isok, ind] = ismember(fdname, fdnames);
-                assert(isok, 'field does not exist');
-                fdnames(ind) = [];
-                inds(:, ind) = [];
+
+        function fdinds = getindfds(tbl, fdnames)
+
+            if ischar(fdnames)
+                fdinds = tbl.getindfds({fdnames});
+                return
             end
+
+            deprecated = any(cellfun(@iscell, fdnames));
+            if deprecated
+                error('option not supported any more');
+            end
+              
+            [isok, fdinds] = ismember(fdnames, tbl.fdnames);
+            assert(all(isok), 'field does not exist');
+            
+        end
+        
+        function tbl = filterfds(tbl, fdnames)
+        % create table with only the indices given by fdnames, by removing columns. Note that the function does not
+        % check for uniqueness of the rows and should therefore be used with care.
+
+            if ischar(fdnames)
+                tbl = tbl.filterfds({fdnames});
+                return
+            end
+
+            fdinds = tbl.getindfds(fdnames);
             tbl.fdnames = fdnames;
-            tbl.inds = inds;
-        end    
+            tbl.inds = tbl.inds(:, fdinds);
+            
+        end
+
+        function tbl = replacefds(tbl, fieldpairs)
+
+            tbl = replacefield(tbl, fieldpairs);
+            
+        end
+        
+        function tbl = removefds(tbl, fdnames)
+        % create table where the column given by fdnames are removed. Note that the function does not
+        % check for uniqueness of the rows and should therefore be used with care.
+
+            fdinds = tbl.getindfds(fdnames);
+            
+            tbl.fdnames(fdinds) = [];
+            tbl.inds(:, fdinds) = [];
+            
+        end
+        
 
         function tbl = addLocInd(tbl, locindname)
         % Add local indexing (given by 1 : N ) and gives it the name locindname
@@ -200,24 +282,43 @@ classdef IndexArray
             
         end    
 
+        function isunique = checkUnique(tbl)
+
+            isunique = (size(unique(tbl.inds, 'rows'), 1) == tbl.num);
+
+        end
+        
         function print(tbl, varargin)
         % Display IndexArray in terminal
-            fprintf('%s ', tbl.fdnames{:});
-            fprintf('\n');
+            opt = struct('range', (1 : tbl.num)', ...
+                         'fdnames', {tbl.fdnames}, ...
+                         'unique', false);
+
+            opt = merge_options(opt, varargin{:});
+
+            [found, indcol] = ismember(opt.fdnames, tbl.fdnames);
+            assert(all(found), 'some field names were not found');
             
-            switch nargin 
-              case 1
-                rg = (1 : tbl.num)';
-                tblinds = (1 : numel(tbl.fdnames))';
-              case 2
-                rg = varargin{1};
-                tblinds = (1 : numel(tbl.fdnames))';
-              case 3
-                rg = varargin{1};
-                tblinds = strcmp(varargin{2}, tbl.fdnames);
+            indrow = opt.range;
+            inds = tbl.inds(indrow, indcol);
+
+            if opt.unique
+                inds = unique(inds, 'rows');
             end
             
-            display(tbl.inds(rg, tblinds));
+            try
+
+                t = array2table(inds);
+                t.Properties.VariableNames = tbl.fdnames(indcol);
+                disp(t)
+                
+            catch
+                
+                fprintf('%s ', tbl.fdnames{indcol});
+                fprintf('\n');
+                display(inds);
+                
+            end
         end
         
     end

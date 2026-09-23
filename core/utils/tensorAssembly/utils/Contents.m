@@ -1,7 +1,7 @@
 % UTILS
 %
 % Files
-%   compIndexArray    - SYNOPSIS:
+%   compareIndexArray - SYNOPSIS:
 %   crossindconstruct - SYNOPSIS:
 %   replacefield      - SYNOPSIS:
 %   tbldispatch1      - SYNOPSIS:

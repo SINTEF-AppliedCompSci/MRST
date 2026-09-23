@@ -41,6 +41,10 @@ classdef TensorProd
 % prod.replacefds2. This option is used very often as different names for the
 % same indexing appear naturally.
 %
+% If the pivot space (pivottbl property) is given before the setup, then it is possible to dispatch in a index array
+% tbl3 which does not corresponds to the otherwise detected sparsity of the product. It is implemented for convenience,
+% to avoid to have to create an extra TensorMap to do this this operation.
+%
 % RETURNS:
 %   class instance
 %
@@ -48,7 +52,7 @@ classdef TensorProd
 %   `computeVagTrans`
 %
 % SEE ALSO:
-%   `IndexArray`, `SparseTensor`.
+%   `IndexArray`, `SparseMatrix`.
     
     properties
         tbl1         % Table for first argument
@@ -81,23 +85,20 @@ classdef TensorProd
         
         issetup      % Flag is set to true is product has been set up.
         settbl3      % Flag is set to true if the resulting product table is created
-        setpivottbl3 % Flag is set to true if the pivottbl table is created        
+        setpivottbl3 % Flag is set to true if the pivottbl table is created
+
+        chunksize = 500000; % Chunk size for the computation of the product
+
+        needIntersectTbl3 = false; % For the automatically generated pivot space, the index array tbl3 must be a projection of the pivot
+                                   % space. For some cases, one may want to use a tbl3 which is not a projection
+                                   % of the pivot space, and this case will require an extra mapping. Then, this option should be
+                                   % set to true, so that the intersection is computed.
+        
     end
    
     methods
         
         function prod = TensorProd(varargin)
-            
-            opts = struct('tbl1'       , [], ...
-                          'tbl2'       , [], ...
-                          'tbl3'       , [], ...
-                          'replacefds1', [], ...
-                          'replacefds2', [], ...
-                          'replacefds3', [], ...
-                          'reducefds'  , [], ...
-                          'reducefds1'  , [], ...
-                          'reducefds2'  , [], ...
-                          'mergefds'   , []);
             
             prod = merge_options(prod, varargin{:}); 
             
@@ -125,6 +126,155 @@ classdef TensorProd
             
             prod.pivottbl = [];
             prod.issetup = false;
+            
+        end
+
+        function [C, prod] = seval(prod, A, B)
+            
+            reducefds  = prod.reducefds;
+            mergefds   = prod.mergefds;
+
+            crossfds  = {reducefds{:}, mergefds{:}};
+            
+            tbl1 = prod.tbl1;
+            tbl2 = prod.tbl2;
+            
+            if ~isempty(prod.replacefds1)
+                tbl1 = replacefield(tbl1, prod.replacefds1);
+            end
+            if ~isempty(prod.replacefds2)
+                tbl2 = replacefield(tbl2, prod.replacefds2);
+            end
+
+            % some sanity checks on the table's field names.
+            fds1 = tbl1.fdnames;
+            fds2 = tbl2.fdnames;
+
+            assert(all(ismember(mergefds, fds1)), ['There exist merge fields that do ' ...
+                                'not belong to fields of first table']);
+            assert(all(ismember(mergefds, fds2)), ['There exist merge fields that do ' ...
+                                'not belong to fields of second table']);
+            ofds1 = fds1(~ismember(fds1, crossfds));
+            ofds2 = fds2(~ismember(fds2, crossfds));
+            assert(all(~ismember(ofds1, ofds2)) & all(~ismember(ofds2, ofds1)), ...
+                   ['There exist fields with same name in first and second ' ...
+                    'table that are neither merged or reduced.']);
+            
+            lA = tbl1.gets(mergefds);
+            iA = tbl1.gets(ofds1);
+            jA = tbl1.gets(reducefds);
+
+            lB = tbl2.gets(mergefds);
+            jB = tbl2.gets(reducefds);
+            kB = tbl2.gets(ofds2);
+
+            [m_l, ~, b_l] = unique([lA; lB], 'rows');
+            b_lA = b_l(1 : size(lA, 1));
+            b_lB = b_l(size(lA, 1) + (1 : size(lB, 1)));
+
+            [~, ~, b_j] = unique([jA; jB], 'rows');
+            b_jA = b_j(1 : size(jA, 1));
+            b_jB = b_j(size(jA, 1) + (1 : size(jB, 1)));
+
+            [m_i, ~, b_iA] = unique(iA, 'rows');
+            [m_k, ~, b_kB] = unique(kB, 'rows');
+
+            b_l = intersect(b_lA, b_lB, 'sorted');
+
+            LIA = ismember(b_lA, b_l);
+            b_lA = b_lA(LIA);
+            b_iA = b_iA(LIA);
+            b_jA = b_jA(LIA);
+            A    = A(LIA);
+
+            LIA = ismember(b_lB, b_l);
+            b_lB = b_lB(LIA);
+            b_jB = b_jB(LIA);
+            b_kB = b_kB(LIA);
+            B    = B(LIA);
+
+            [b_lA, isort] = sort(b_lA);
+            b_iA = b_iA(isort);
+            b_jA = b_jA(isort);
+            A = A(isort);
+ 
+            [b_lB, isort] = sort(b_lB);
+            b_jB = b_jB(isort);
+            b_kB = b_kB(isort);
+            B = B(isort);
+
+            b_lA_b_iA = unique([b_lA, b_iA], 'rows');
+            [~, nI] = rlencode(b_lA_b_iA(: , 1));
+            
+            b_lB_b_kB = unique([b_lB, b_kB], 'rows');
+            [~, nK] = rlencode(b_lB_b_kB(: , 1));
+
+            nalloc = sum(nI.*nK);
+
+            [u_b_lA, n_lA] = rlencode(b_lA);
+            [u_b_lB, n_lB] = rlencode(b_lB);
+
+            assert(all(u_b_lA == u_b_lB));
+            u_b_l = u_b_lA;
+            
+            startA   = 1;
+            endA     = n_lA(1);
+            
+            startB   = 1;
+            endB     = n_lB(1);
+            
+            b_iC_all = zeros(nalloc, 1, 'uint64');
+            b_kC_all = zeros(nalloc, 1, 'uint64');
+            C_all    = zeros(nalloc, 1, 'double');
+            
+            n_u_b_l = [];
+            
+            posC = 0;
+
+            alldone = false;
+
+            if mrstVerbose > 0
+                fprintf('number of sparse multiplication: %d\n ', numel(u_b_l));
+            end
+
+            for ind_u_b_l = 1 : numel(u_b_l)
+                
+                ind = (startA : endA);
+                sA = sparse(b_iA(ind), b_jA(ind), A(ind));
+
+                ind = (startB : endB);
+                sB = sparse(b_jB(ind), b_kB(ind), B(ind));
+
+                sC = sA * sB;
+
+                [b_iC, b_kC, C] = find(sC);                    
+
+                nC = size(C, 1);
+                
+                n_u_b_l(end + 1) = nC;
+                
+                b_iC_all(posC  + (1 : nC)) =  b_iC;
+                b_kC_all(posC  + (1 : nC)) =  b_kC;
+                C_all(posC  + (1 : nC))    =  C ;
+                
+                posC = posC + nC;
+
+                if ind_u_b_l < numel(u_b_l)
+                    startA = endA + 1;
+                    endA   = startA + n_lA(ind_u_b_l + 1) - 1;                        
+                    startB = endB + 1;
+                    endB   = startB + n_lB(ind_u_b_l + 1) - 1;
+                end
+
+            end
+
+            fprintf('nalloc : %d, posC : %d, difference : %d\n', nalloc, posC, abs(nalloc - posC));
+            
+            C = C_all(1 : posC);
+
+            lC_all = rldecode(m_l(u_b_l, :), n_u_b_l);
+            fdnames = {mergefds{:}, ofds1{:}, ofds2{:}};
+            prod.tbl3 = IndexArray([], 'fdnames', fdnames, 'inds', [lC_all, m_i(b_iC_all(1 : posC), :), m_k(b_kC_all(1 : posC), :)]);
             
         end
         
@@ -157,16 +307,49 @@ classdef TensorProd
                                 'not belong to fields of second table']);
             ofds1 = fds1(~ismember(fds1, crossfds));
             ofds2 = fds2(~ismember(fds2, crossfds));
-            assert(all(~ismember(ofds1, ofds2)) & all(~ismember(ofds1, ofds2)), ...
+            assert(all(~ismember(ofds1, ofds2)) & all(~ismember(ofds2, ofds1)), ...
                    ['There exist fields with same name in first and second ' ...
                     'table that are neither merged or reduced.']);
+
+            assert(all(ismember(reducefds1, fds1)), ...
+                   ['some fields in reducefds1 are not recognized']);
+
+            assert(all(ismember(reducefds2, fds2)), ...
+                   ['some fields in reducefds2 are not recognized']);
             
-            [pivottbl, indstruct] = crossIndexArray(tbl1, tbl2, crossfds);
-            
-            dispind1 = indstruct{1}.inds;
-            dispind2 = indstruct{2}.inds;
+            if isempty(prod.pivottbl)
+                
+                [pivottbl, indstruct] = crossIndexArray(tbl1, tbl2, crossfds);
+                
+                dispind1 = indstruct{1}.inds;
+                dispind2 = indstruct{2}.inds;
+                
+            else
+
+                pivottbl = prod.pivottbl;
+
+                pivotfds = pivottbl.fdnames;
+                
+                mergefds1 = tbl1.fdnames(ismember(tbl1.fdnames, pivotfds));
+
+                map = TensorMap();
+                map.fromTbl  = tbl1;
+                map.toTbl    = pivottbl;
+                map.mergefds = mergefds1;
+                dispind1 = getDispatchInd(map);
+                
+                mergefds2 = tbl2.fdnames(ismember(tbl2.fdnames, pivotfds));
+
+                map = TensorMap();
+                map.fromTbl  = tbl2;
+                map.toTbl    = pivottbl;
+                map.mergefds = mergefds2;
+                dispind2 = getDispatchInd(map);
+                
+            end
             
             if isempty(prod.tbl3)
+                
                 fds1 = tbl1.fdnames;
                 fds1 = fds1(~ismember(fds1, horzcat(crossfds, reducefds1)));
                 fds2 = tbl2.fdnames;
@@ -174,18 +357,34 @@ classdef TensorProd
                 fds3 = {fds1{:}, fds2{:}, mergefds{:}};
                 [tbl3, dispind3] = projIndexArray(pivottbl, fds3);
                 dispind3 = dispind3.inds;
+                
             else
+                
                 tbl3 = prod.tbl3;
+                if ~isempty(prod.replacefds3)
+                    tbl3 = replacefield(tbl3, prod.replacefds3);
+                end 
                 fds3 = tbl3.fdnames;
                 
                 fds3 = fds3(~ismember(fds3, reducefds1));
                 fds3 = fds3(~ismember(fds3, reducefds2));
+
+                if prod.needIntersectTbl3
+
+                    [pivottbl, indstruct] = crossIndexArray(pivottbl, tbl3, fds3);
+                    disppivot = indstruct{1}.inds;
+
+                    dispind1 = dispind1(disppivot);
+                    dispind2 = dispind2(disppivot);
+                    
+                end
                 
                 map = TensorMap();
-                map.fromTbl = tbl3;
-                map.toTbl = pivottbl;
+                map.fromTbl  = tbl3;
+                map.toTbl    = pivottbl;
                 map.mergefds = fds3;
                 dispind3 = getDispatchInd(map);
+                
             end
             
             if prod.settbl3
@@ -209,23 +408,70 @@ classdef TensorProd
         function prodAB = eval(prod, A, B)
             assert(prod.issetup, ['tensor product is not setup. Use method ' ...
                                 'setup']);
+
+            chunksize = prod.chunksize;
             
             dispind1 = prod.dispind1;
             dispind2 = prod.dispind2;
             dispind3 = prod.dispind3;
             
             n3 = prod.tbl3.num;
-            n = prod.pivottbl.num;
-            
-            A = A(dispind1);
-            B = B(dispind2);
-            prodAB = A.*B;
-            
-            if isa(prodAB, 'double')
-                prodAB = accumarray(dispind3, prodAB, [n3, 1]);
+            n  = prod.pivottbl.num;
+
+            if ~isempty(chunksize) && isa(A, 'double') && isa(B, 'double')
+
+                pivotsize = numel(dispind1); % size is same for dispind1, dispind2 and dispind3
+                nchunks   = ceil(pivotsize/chunksize);
+
+                if mrstVerbose() > 0
+                    fprintf('number of chunks %d ', nchunks);
+                end
+                
+                prodAB = zeros(n3, 1);
+                
+                for ichunk = 1 : nchunks
+
+                    if ichunk < nchunks
+                        ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
+                        if ichunk == 1
+                            prodABc = zeros(chunksize, 1);
+                            pind = (1 : chunksize)';
+                        end
+                    else
+                        npind = pivotsize - (nchunks - 1)*chunksize;
+                        prodABc = zeros(npind, 1);
+                        pind = (1 : npind)';
+                        ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
+                    end
+
+                    prodABc(pind) = A(dispind1(ind)).*B(dispind2(ind));
+                    
+                    prodAB = prodAB + accumarray(dispind3(ind), prodABc, [n3, 1]);
+
+                    if mrstVerbose() > 0
+                        fprintf('.');
+                    end
+                    
+                end
+                
+                if mrstVerbose() > 0
+                    fprintf('\n');
+                end
+                
             else
-                M = sparse(dispind3, (1 : n)', 1, n3, n);
-                prodAB = M*prodAB;
+                
+                if isa(A, 'double') && isa(B, 'double')
+                    
+                    prodAB = accumarray(dispind3, A(dispind1).*B(dispind2), [n3, 1]);
+                    
+                else
+
+                    prodAB = A(dispind1).*B(dispind2);
+                    M = sparse(dispind3, (1 : n)', 1, n3, n);
+                    prodAB = M*prodAB;
+                    
+                end
+                
             end
             
         end
@@ -281,11 +527,48 @@ classdef TensorProd
             
         end
 
-        function M = setupMatrix(prod, vals)
+        function M = setupMatrix(prod, vals, varargin)
+            
+            opts = struct('argindex', 1);            
+            opts = merge_options(opts, varargin{:}); 
+            argindex = opts.argindex;
+            
+            if ~(prod.issetup)
+                prod = prod.setup();
+            end
+            
+            dispind1 = prod.dispind1;
+            dispind2 = prod.dispind2;
+            dispind3 = prod.dispind3;
+            
+            switch argindex
+              case 1
+                col  = dispind2;
+                vals = vals(dispind1);
+                ncol = prod.tbl2.num;
+              case 2
+                col  = dispind1;
+                vals = vals(dispind2);
+                ncol = prod.tbl1.num;
+            end
+            
+            row  = dispind3;
+            nrow = prod.tbl3.num;
 
-            M = SparseTensor();
-            M = M.setFromTensorProd(vals, prod);
-            M = M.getMatrix();
+            % tensor.col     = dispind;
+            % tensor.row     = redind;
+            % tensor.fromTbl = fromTbl;
+            % tensor.toTbl   = toTbl;
+            
+            if isa(vals, 'ADI')
+                vals = vals.value;
+            end
+
+            M = sparse(row, col, vals, nrow, ncol);
+            
+            % M = SparseMatrix();
+            % M = M.setFromTensorProd(vals, prod);
+            % M = M.getMatrix();
 
         end
 
@@ -317,7 +600,7 @@ classdef TensorProd
             
         function [ind1, ind2] = getDispatchInd(prod)
         % In the case where the product is set up to create a bilinear mapping (see
-        % SparseTensor.setFromTensorProd method), then we can use this function
+        % SparseMatrix.setFromTensorProd method), then we can use this function
         % to obtain the dispatching indices. It can be only used if the pivot
         % space (given by pivottbl) is the same as the space given by
         % tbl1. Hence, the assert statement below, which should be enough to

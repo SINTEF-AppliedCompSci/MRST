@@ -55,6 +55,7 @@ classdef TensorMap
 %   `IndexArray`.
     
     properties
+        
         fromTbl           % IndexArray for the argument space of the mapping
         toTbl             % IndexArray for the output space of the mapping
         mergefds          % Field names for merging
@@ -75,21 +76,16 @@ classdef TensorMap
         dispind2          % from toTbl to pivottbl
         
         issetup           % Flag is set to true is map has been set up.
+
+        chunksize = 500000; % Chunk size for the computation of the product
+        
     end
    
     methods
         
         function map = TensorMap(varargin)
             
-            map.fromTbl = [];
-            map.toTbl = [];
-            map.replaceFromTblfds = [];
-            map.replaceToTblfds = [];
-            map.mergefds = [];
-            map.pivottbl = [];
-            map.dispind1 = [];
-            map.dispind2 = [];
-            map.issetup = false;
+            map.issetup           = false;
             
             map = merge_options(map, varargin{:}); 
             
@@ -108,9 +104,9 @@ classdef TensorMap
                 return
             end
             
-            mergefds  = map.mergefds;
-            fromTbl = map.fromTbl;
-            toTbl = map.toTbl;
+            mergefds = map.mergefds;
+            fromTbl  = map.fromTbl;
+            toTbl    = map.toTbl;
             
             if ~isempty(map.replaceFromTblfds)
                 fromTbl = replacefield(fromTbl, map.replaceFromTblfds);
@@ -119,6 +115,14 @@ classdef TensorMap
                 toTbl = replacefield(toTbl, map.replaceToTblfds);
             end
 
+            if ischar(map.mergefds) && strcmp(map.mergefds, 'allFrom')
+                mergefds = fromTbl.fdnames;
+            end
+
+            if ischar(map.mergefds) && strcmp(map.mergefds, 'allTo')
+                mergefds = toTbl.fdnames;
+            end
+            
             % some sanity checks on the table's field names.
             fds1 = fromTbl.fdnames;
             fds2 = toTbl.fdnames;
@@ -127,11 +131,11 @@ classdef TensorMap
             assert(numel(unique(fds2)) == numel(fds2), ['repetition in second ' ...
                                 'table field names']);            
             assert(all(ismember(mergefds, fds1)), ['merge  fields do ' ...
-                                'not belong to fields of first table']);
+                                                   'not belong to fields of first table']);
             assert(all(ismember(mergefds, fds2)), ['merge  fields do ' ...
-                                'not belong to fields of second table']);
+                                                   'not belong to fields of second table']);
             assert(all(ismember(mergefds, fds1) | ismember(mergefds, fds2)), ['replace  fields do ' ...
-                                'not belong to fields of either first or second table']);
+                                                                              'not belong to fields of either first or second table']);
             ofds1 = fds1(~ismember(fds1, mergefds));
             ofds2 = fds2(~ismember(fds2, mergefds));
             assert(all(~ismember(ofds1, ofds2)) & all(~ismember(ofds1, ofds2)), ...
@@ -177,17 +181,51 @@ classdef TensorMap
             assert(map.issetup, ['tensor map is not setup. Use method ' ...
                                 'setup']);
             
-            dispind1 = map.dispind1;
-            dispind2 = map.dispind2;
-            toTbl    = map.toTbl;
-            fromTbl  = map.fromTbl;
+            dispind1  = map.dispind1;
+            dispind2  = map.dispind2;
+            toTbl     = map.toTbl;
+            fromTbl   = map.fromTbl;
+            chunksize = map.chunksize;
             
             if isa(u, 'ADI')
                 M = sparse(dispind2, dispind1, 1, toTbl.num, fromTbl.num);
                 v = M*u;
             else
-                v = u(dispind1);
-                v = accumarray(dispind2, v, [toTbl.num, 1]);
+                
+                if ~isempty(chunksize)
+
+                    pivotsize = numel(dispind1);
+                    nchunks   = ceil(pivotsize/chunksize);
+                    
+                    if mrstVerbose() > 0
+                        fprintf('number of chunks %d', nchunks);
+                    end
+
+                    v = sparse(toTbl.num, 1);
+
+                    for ichunk = 1 : nchunks
+
+                        if ichunk < nchunks
+                            ind = (1 + (ichunk - 1)*chunksize) : ichunk*chunksize;
+                        else
+                            ind = (1 + (ichunk - 1)*chunksize) : pivotsize;
+                        end
+
+                        v = v + accumarray(dispind2(ind), u(dispind1(ind)), [toTbl.num, 1]);
+
+                        if mrstVerbose() > 0
+                            fprintf('.');
+                        end
+                        
+                    end
+
+                    if mrstVerbose() > 0
+                        fprintf('\n');
+                    end
+
+                else
+                    v = accumarray(dispind2, u(dispind1), [toTbl.num, 1]);
+                end
             end
             
         end
@@ -195,8 +233,10 @@ classdef TensorMap
         function inds = getDispatchInd(map)
         % Compute dispatching indices: For an index i in map.toTbl gives the index number in map.fromTbl that will be sent to i
         % by the mapping map. It requires that the constructed pivottbl coincides with toTbl.
-            
-            map = map.setup();
+
+            if ~map.issetup
+                map = map.setup();
+            end
             
             ind1 = map.dispind1;
             ind2 = map.dispind2;
@@ -264,6 +304,7 @@ classdef TensorMap
         function mat = getMatrix(map)
         % get matlab sparse matrix representation of the mapping in term of the local
         % indices of fromTbl and toTbl.
+
             n1 = map.fromTbl.num;
             n2 = map.toTbl.num;
             n  = map.pivottbl.num;
