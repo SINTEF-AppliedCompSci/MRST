@@ -25,7 +25,10 @@ classdef IndexArrayGroupBy < handle
     methods
 
         function iagb = IndexArrayGroupBy(tbl, gfdnames)
-            
+
+            if ~iscell(gfdnames)
+                gfdnames = {gfdnames};
+            end
             iagb.gfdnames = gfdnames;
             iagb.tbl      = tbl.sort(gfdnames, 'keepAllFields', true);
             iagb.bytbl    = iagb.tbl.proj(gfdnames);
@@ -86,6 +89,14 @@ classdef IndexArrayGroupBy < handle
             
         end
 
+        function tbl = byExtract(iagb, inds)
+
+            tbl = iagb.tbl;
+            tbl.inds = tbl.inds(mcolon(iagb.startinds(inds), iagb.endinds(inds)), :);
+            
+        end
+
+        
         function subtbl = subtbl(iagb)
             
             gtbl = iagb.grouptbl();
