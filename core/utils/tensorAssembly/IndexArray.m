@@ -135,6 +135,12 @@ classdef IndexArray
              
         end
 
+        function tbl = extract(tbl, inds)
+
+            tbl.inds = tbl.inds(inds, :);
+            
+        end
+        
         function tbl = proj(tbl, fds)
 
             tbl = projIndexArray(tbl, fds);
@@ -148,7 +154,7 @@ classdef IndexArray
         end
         
         function iagb = groupBy(tbl, fds)
-            
+
             iagb = IndexArrayGroupBy(tbl, fds);
             
         end
