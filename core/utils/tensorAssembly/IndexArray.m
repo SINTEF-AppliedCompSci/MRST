@@ -135,11 +135,24 @@ classdef IndexArray
              
         end
 
-        function tbl = extract(tbl, inds)
-
+        function tbl = extractinds(tbl, inds)
+        % extract from the index table the rows specified by inds
             tbl.inds = tbl.inds(inds, :);
             
         end
+
+        function tbl = removeinds(tbl, inds)
+        % remove from the index table the rows specified by inds
+            if islogical(inds)
+                tbl.inds = tbl.inds(~inds, :);
+            else
+                rinds = true(tbl.num, 1);
+                rinds(inds) = false;
+                tbl.inds = tbl.inds(rinds, :);
+            end
+            
+        end
+        
         
         function tbl = proj(tbl, fds)
 
