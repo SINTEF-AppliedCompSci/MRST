@@ -37,7 +37,11 @@ along with MRST.  If not, see <http://www.gnu.org/licenses/>.
     % Optional input arguments
     opt = struct('name', []);
     [opt, varargin] = merge_options(opt, varargin{:});
-    if isfield(setup, 'name') && isempty(opt.name), opt.name = [setup.name, '_wb']; end
+    % NB: isfield is always false for objects, so check isprop as well to
+    % also rename TestCase instances. Otherwise, packed problems of the
+    % converted and original setups end up in the same output folder
+    hasName = isfield(setup, 'name') || isprop(setup, 'name');
+    if hasName && isempty(opt.name), opt.name = [setup.name, '_wb']; end
     
     % Get reservoir model and construct wellbore model
     reservoirModel = setup.model;

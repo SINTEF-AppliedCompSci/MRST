@@ -55,12 +55,16 @@ test.schedule.control(2).Wellbore = ctrl;
 [lsol, test.model] = setUpGeothermalWellboreLinearSolver(test.model);
 
 %% Simulate
-problem = test.getPackedSimulationProblem('LinearSolver', lsol);
+% We give the problems distinct names so that the wellbore and reference
+% simulations are stored in separate output folders also when hashing is
+% disabled (see mrstSettings)
+problem = test.getPackedSimulationProblem('LinearSolver', lsol, ...
+                                          'Name', 'wellbore');
 simulatePackedProblem(problem, 'restartStep', 1);
 
 %% Simulate reference case without wellbore model
 testRef = TestCase('fivespot_geothermal', 'cartDims', cartDims, 'dfm', true);
-problemRef = testRef.getPackedSimulationProblem();
+problemRef = testRef.getPackedSimulationProblem('Name', 'reference');
 simulatePackedProblem(problemRef, 'restartStep', 1);
 
 %% Compare
