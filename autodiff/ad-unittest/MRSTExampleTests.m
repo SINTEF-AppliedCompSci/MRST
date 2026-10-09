@@ -44,8 +44,11 @@ function names = getTestNames()
     names = getTestNamesInternal();
 end
 
-function runScoped(name)
-    run(name);
+function runScoped(varargin)
+    % The example script runs in this function's workspace, so avoid a
+    % named argument: scripts commonly test exist('name', 'var') etc. and
+    % would otherwise pick up the example's own file name.
+    run(varargin{1});
 end
 
 function mods = getTestModules()

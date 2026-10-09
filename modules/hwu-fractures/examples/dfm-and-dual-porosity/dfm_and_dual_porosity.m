@@ -114,7 +114,9 @@ while t<=tmax
     disp(['Time = ',num2str(t/day), ' days'])
     state = solver.solveTimestep(state, dt, model, 'W', W);
     
-    figure(fig1)
+    % Clear before redrawing: plotCellData adds a new patch on every call,
+    % so without clf the figures accumulate one patch per time step.
+    figure(fig1); clf
     colormap(flipud(jet));
     p = plotCellData(G,state.s(1:nx*ny,1,1));
     p.EdgeAlpha = 0.3;
@@ -123,10 +125,9 @@ while t<=tmax
     set(gca,'FontSize',16);
     xlabel('x')
     ylabel('y')
-    hold on;
 %     title('Flowing Domain');
     
-    figure(fig2)
+    figure(fig2); clf
     colormap(flipud(jet));
     p = plotCellData(G,state.s(vcells,1),dual_porosity_cells);
     p.EdgeAlpha = 0.3;
