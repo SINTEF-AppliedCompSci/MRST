@@ -184,7 +184,9 @@ end
 % function input to:
 % evalFunStandalone(fn, args, startupPath, varargin)
 % args in {}
-inpstr = commacat( quote([{fn}, {argstr}, {ROOTDIR}, optstr]) );
+% startup.m lives in the MRST root, one level above ROOTDIR (core/)
+startupPath = fullfile(ROOTDIR, '..');
+inpstr = commacat( quote([{fn}, {argstr}, {startupPath}, optstr]) );
 
 %expr = ['"cd(', quote(curpath), '); evalFunStandalone(', inpstr, '); quit"'];
 if opt.exitWhenDone
