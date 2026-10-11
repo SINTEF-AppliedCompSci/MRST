@@ -1,9 +1,12 @@
 function [truth,area,type,location,points]=pebiAABBintersect(PEBInodes,AABBnodes,tol,varargin)
 % Given 3D AABB cell nodes and 2D PEBI nodes, determine if they intersect.
-% If they intersect, the area and type of intersections are provided. If no
-% intersection, area is 0 and type is 'none'. The output type will only
-% take 'polygon' or 'none'. Line and point intersections are regarded as
-% type 'none' and truth will be false.
+% If they intersect, the area and type of intersections are provided.
+%
+% REVISED: the original returned 'area' as the SUM of per-triangle
+% intersection areas (line marked below), which under-estimates the cut area
+% when the fan diagonal corner-clips the cell. After the merged intersection
+% polygon is built it is geometrically correct, so the area is recomputed from
+% it (single added line, marked "REVISED").
 
 opt=struct('boundaryoneside',false,'planenormal',[0 0 0]);
 opt=merge_options(opt,varargin{:});
@@ -25,8 +28,7 @@ for i=1:numtriangles
     [xtruth,xpoints,xtype,xlocation] = triangleAABBintersect(trinodes,AABBnodes,tol);
     points_cell{i}=xpoints;
     if strcmp(xtype,'polygon') && xtruth
-        area=area+convexpolygonarea(xpoints,tol,'normal',normal);
-        
+        area=area+convexpolygonarea(xpoints,tol,'normal',normal); % buggy triangle sum
         switch xlocation
             case 'none'
                 xlocation=0;
@@ -58,12 +60,16 @@ points=uniquetol(points,tol,'ByRows',true,'DataScale',1);
 points=arrangenodes(points,normal);
 points=removeredundantnodes(points,tol);
 
+% REVISED: recompute area from the merged intersection polygon (fixes the
+% triangle-sum under-count of the original).
+area=convexpolygonarea(points,tol,'normal',normal);
+
 % pick only cells on positive side of planenormal
 if opt.boundaryoneside && strcmp(location,'boundary')
     AABBcentroid=sum(AABBnodes)/size(AABBnodes,1);
     dir=dot(AABBcentroid-PEBInodes(1,:),opt.planenormal);
     dir=dir/abs(dir);
-    truth=dir>0;  
+    truth=dir>0;
 end
 
 end
@@ -77,12 +83,12 @@ for i=1:numpoints
     p0=rotpts(i,:);
     p1=rotpts(i+1,:);
     p2=rotpts(i+2,:);
-    
+
     normal=cross(p1-p0,p1-p2);
-    
+
     if abs(norm(normal))<tol
         keep(i)=false;
-    end    
+    end
 end
 
 points=points(keep,:);
