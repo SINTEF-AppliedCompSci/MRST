@@ -161,125 +161,39 @@ classdef SparseTensorProd
             end
 
             
-            [m_l, ~, b_l] = unique([lA; lB], 'rows');
-            b_lA = b_l(1 : size(lA, 1));
-            b_lB = b_l(size(lA, 1) + (1 : size(lB, 1)));
+            % Fold the merge index l into the row and column index spaces of both
+            % operands. Each nonzero of A then belongs to the column block l and each
+            % nonzero of B to the row block l, so that the product sA*sB is block
+            % diagonal in l : the cross-block entries are structurally zero and are
+            % never computed. This gives the same multiplications as a loop over the
+            % merge blocks, but with a single sparse product.
 
-            [~, ~, b_j] = unique([jA; jB], 'rows');
-            b_jA = b_j(1 : size(jA, 1));
-            b_jB = b_j(size(jA, 1) + (1 : size(jB, 1)));
+            [m_li, ~, i_A ] = unique([lA, iA], 'rows');
+            [u_lj, ~, j_AB] = unique([[lA, jA]; [lB, jB]], 'rows');
+            [m_lk, ~, k_B ] = unique([lB, kB], 'rows');
 
-            [m_i, ~, b_iA] = unique(iA, 'rows');
-            [m_k, ~, b_kB] = unique(kB, 'rows');
+            j_A = j_AB(1 : size(jA, 1));
+            j_B = j_AB(size(jA, 1) + (1 : size(jB, 1)));
 
-            b_l = intersect(b_lA, b_lB, 'sorted');
-
-            LIA = ismember(b_lA, b_l);
-            b_lA = b_lA(LIA);
-            b_iA = b_iA(LIA);
-            b_jA = b_jA(LIA);
-            A    = A(LIA);
-
-            LIA = ismember(b_lB, b_l);
-            b_lB = b_lB(LIA);
-            b_jB = b_jB(LIA);
-            b_kB = b_kB(LIA);
-            B    = B(LIA);
-
-            [b_lA, isort] = sort(b_lA);
-            b_iA = b_iA(isort);
-            b_jA = b_jA(isort);
-            A = A(isort);
- 
-            [b_lB, isort] = sort(b_lB);
-            b_jB = b_jB(isort);
-            b_kB = b_kB(isort);
-            B = B(isort);
-
-            b_lA_b_iA = unique([b_lA, b_iA], 'rows');
-            [~, nI] = rlencode(b_lA_b_iA(: , 1));
-            
-            b_lB_b_kB = unique([b_lB, b_kB], 'rows');
-            [~, nK] = rlencode(b_lB_b_kB(: , 1));
-
-            nalloc = sum(nI.*nK);
-
-            [u_b_lA, n_lA] = rlencode(b_lA);
-            [u_b_lB, n_lB] = rlencode(b_lB);
-
-            assert(all(u_b_lA == u_b_lB));
-            u_b_l = u_b_lA;
-            
-            startA   = 1;
-            endA     = n_lA(1);
-            
-            startB   = 1;
-            endB     = n_lB(1);
-            
-            b_iC_all = zeros(nalloc, 1, 'uint64');
-            b_kC_all = zeros(nalloc, 1, 'uint64');
-            C_all    = zeros(nalloc, 1, 'double');
-            
-            n_u_b_l = [];
-            
-            posC = 0;
+            nI = size(m_li, 1);
+            nJ = size(u_lj, 1);
+            nK = size(m_lk, 1);
 
             if mrstVerbose > 0
-                fprintf('number of sparse multiplication: %d\n ', numel(u_b_l));
+                fprintf('sparse product of sizes %d x %d and %d x %d\n', nI, nJ, nJ, nK);
             end
 
-            for ind_u_b_l = 1 : numel(u_b_l)
-                
-                indA = (startA : endA);
-                indB = (startB : endB);
+            % Note that sparse() sums the values of the repeated indices, which is the
+            % expected behaviour here.
+            sA = sparse(i_A, j_A, A, nI, nJ);
+            sB = sparse(j_B, k_B, B, nJ, nK);
 
-                n = max(max(b_jA(indA)), max(b_jB(indB)));
-                sA = sparse(b_iA(indA), b_jA(indA), A(indA), max(b_iA(indA)), n);
-                sB = sparse(b_jB(indB), b_kB(indB), B(indB), n, max(b_kB(indB)));
+            [i_C, k_C, C] = find(sA*sB);
 
-                sC = sA * sB;
-
-                [b_iC, b_kC, C] = find(sC);
-
-                if ~isempty(C)
-                    
-                    nC = numel(C);
-                    
-                    n_u_b_l(end + 1) = nC;
-                    
-                    b_iC_all(posC  + (1 : nC)) =  b_iC;
-                    b_kC_all(posC  + (1 : nC)) =  b_kC;
-                    C_all(posC  + (1 : nC))    =  C ;
-                    
-                    posC = posC + nC;
-                    
-                else
-                    
-                    n_u_b_l(end + 1) = 0;
-                    
-                end
-                
-                if ind_u_b_l < numel(u_b_l)
-                    
-                    startA = endA + 1;
-                    endA   = startA + n_lA(ind_u_b_l + 1) - 1;                        
-                    startB = endB + 1;
-                    endB   = startB + n_lB(ind_u_b_l + 1) - 1;
-                end
-
-            end
-
-            if nalloc < posC
-                warning('allocation was not enough');
-                fprintf('nalloc : %d, posC : %d, difference : %d\n', nalloc, posC, abs(nalloc - posC));
-            end
-            
-            C = C_all(1 : posC);
-
-            lC_all = rldecode(m_l(u_b_l, :), n_u_b_l);
-            
+            % The merge indices are given by the first columns of m_li (the ones of m_lk
+            % coincide with them for each entry of the product, by construction).
             fdnames = {mergefds{:}, ofds1{:}, ofds2{:}};
-            inds    =  [lC_all, m_i(b_iC_all(1 : posC), :), m_k(b_kC_all(1 : posC), :)];
+            inds    = [m_li(i_C, :), m_lk(k_C, numel(mergefds) + 1 : end)];
 
             rmfds = cellfun(@(str) strcmp('', str), fdnames);
 
