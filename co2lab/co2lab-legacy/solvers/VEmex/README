@@ -29,6 +29,13 @@ Note: "$" is the shell command prompt
 Please review the build notes at the bottom of this file if the above
 "cmake" command fails.
 
+For newer CMake releases, you can point the build directly at a MATLAB
+installation root by passing the Matlab_ROOT_DIR cache variable:
+
+    $ cmake -DMatlab_ROOT_DIR=/path/to/MATLAB ..
+
+This is the preferred option when the automatic MATLAB lookup fails.
+
 Now you can start MATLAB from your MRST directory and activate the
 vertical-eqilibrium module by typing the following command at the MATLAB
 command prompt:
@@ -63,6 +70,9 @@ MATLAB_PATH: Path to the root MATLAB directory.
   You should set this variable to the value returned by MATLAB's built
   in 'matlabroot' function.
 
+  If you are using a newer CMake release, prefer the CMake cache variable
+  Matlab_ROOT_DIR instead.
+
 MATLAB_ARCH: Architecture for which to build the library.
   If the library will be run on the same computer as you're using to
   build it, i.e., "natively", you can ignore this variable.
@@ -72,3 +82,7 @@ MATLAB_ARCH: Architecture for which to build the library.
 
      e = mexext('all');
      strvcat({ e.arch })
+
+The generated MEX filename should match the suffix reported by the MATLAB
+command 'mexext'.  For recent MATLAB releases this includes macOS Intel
+('mexmaci64') and macOS Apple silicon ('mexmaca64').
